@@ -9,6 +9,17 @@ export default function TrackList() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  // Incremented on every new play request — stale fetches check this before playing
+  const generationRef = useRef(0);
+
+  const stopCurrent = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = "";
+      audioRef.current.load(); // Forces iOS to fully release the audio
+      audioRef.current = null;
+    }
+  }, []);
 
   const handlePlay = useCallback(
     async (trackId: string, audioKey: string) => {
@@ -23,26 +34,27 @@ export default function TrackList() {
         return;
       }
 
-      // Stop current track
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = "";
-      }
+      stopCurrent();
+
+      // Stamp this request — if another tap arrives before this fetch completes,
+      // the generation will have moved on and we discard the stale result
+      const generation = ++generationRef.current;
 
       setLoadingId(trackId);
+      setCurrentTrackId(trackId);
+      setIsPlaying(false);
 
-      // Fetch a signed URL from our API
       const res = await fetch(`/api/stream?key=${encodeURIComponent(audioKey)}`);
       const { url } = await res.json();
+
+      if (generation !== generationRef.current) return; // Superseded by a newer tap
 
       setLoadingId(null);
 
       const audio = new Audio(url);
-      audio.preload = "none";
       audioRef.current = audio;
 
       audio.play().catch(console.error);
-      setCurrentTrackId(trackId);
       setIsPlaying(true);
 
       audio.addEventListener("ended", () => {
@@ -50,7 +62,7 @@ export default function TrackList() {
         setCurrentTrackId(null);
       });
     },
-    [currentTrackId, isPlaying]
+    [currentTrackId, isPlaying, stopCurrent]
   );
 
   return (
