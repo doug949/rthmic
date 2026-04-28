@@ -18,7 +18,9 @@ export const metadata: Metadata = {
     title: "RTHMIC",
   },
   icons: {
-    apple: "/icons/apple-touch-icon.png",
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
   },
 };
 
@@ -38,6 +40,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${geist.variable} h-full antialiased`}>
+      <head>
+        {/* Explicit tags for iOS home screen icon — metadata API alone is unreliable */}
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+      </head>
       <body className="min-h-full flex flex-col bg-[#0a0a0a]">
         <ServiceWorkerRegistration />
         {children}
