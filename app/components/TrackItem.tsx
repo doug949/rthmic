@@ -53,9 +53,6 @@ export default function TrackItem({
         >
           {track.title}
         </p>
-        {track.artist && (
-          <p className="text-xs text-white/30 mt-0.5 truncate">{track.artist}</p>
-        )}
       </div>
 
       {/* Waveform animation when playing */}
