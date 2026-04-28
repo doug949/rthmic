@@ -7,12 +7,12 @@ import TrackItem from "./TrackItem";
 export default function TrackList() {
   const [currentTrackId, setCurrentTrackId] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const handlePlay = useCallback(
-    (trackId: string, audioUrl: string) => {
+    async (trackId: string, audioKey: string) => {
       if (currentTrackId === trackId) {
-        // Toggle play/pause on same track
         if (isPlaying) {
           audioRef.current?.pause();
           setIsPlaying(false);
@@ -29,8 +29,15 @@ export default function TrackList() {
         audioRef.current.src = "";
       }
 
-      // Start new track
-      const audio = new Audio(audioUrl);
+      setLoadingId(trackId);
+
+      // Fetch a signed URL from our API
+      const res = await fetch(`/api/stream?key=${encodeURIComponent(audioKey)}`);
+      const { url } = await res.json();
+
+      setLoadingId(null);
+
+      const audio = new Audio(url);
       audio.preload = "none";
       audioRef.current = audio;
 
@@ -55,6 +62,7 @@ export default function TrackList() {
           index={index + 1}
           isPlaying={currentTrackId === track.id && isPlaying}
           isActive={currentTrackId === track.id}
+          isLoading={loadingId === track.id}
           onPlay={handlePlay}
         />
       ))}

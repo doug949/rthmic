@@ -7,7 +7,8 @@ interface Props {
   index: number;
   isPlaying: boolean;
   isActive: boolean;
-  onPlay: (trackId: string, audioUrl: string) => void;
+  isLoading: boolean;
+  onPlay: (trackId: string, audioKey: string) => void;
 }
 
 export default function TrackItem({
@@ -15,11 +16,12 @@ export default function TrackItem({
   index,
   isPlaying,
   isActive,
+  isLoading,
   onPlay,
 }: Props) {
   return (
     <button
-      onClick={() => onPlay(track.id, track.audioUrl)}
+      onClick={() => onPlay(track.id, track.audioKey)}
       className={`
         w-full flex items-center gap-4 px-5 py-4 rounded-xl
         transition-all duration-200 text-left
@@ -33,7 +35,9 @@ export default function TrackItem({
     >
       {/* Track number / play state */}
       <div className="flex-shrink-0 w-8 flex items-center justify-center">
-        {isPlaying ? (
+        {isLoading ? (
+          <LoadingIcon />
+        ) : isPlaying ? (
           <PauseIcon />
         ) : isActive ? (
           <PlayIcon active />
@@ -73,32 +77,25 @@ export default function TrackItem({
 
 function PlayIcon({ active }: { active?: boolean }) {
   return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      className={active ? "text-white" : "text-white/40"}
-    >
-      <path
-        d="M4 2.5L13 8L4 13.5V2.5Z"
-        fill="currentColor"
-      />
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className={active ? "text-white" : "text-white/40"}>
+      <path d="M4 2.5L13 8L4 13.5V2.5Z" fill="currentColor" />
     </svg>
   );
 }
 
 function PauseIcon() {
   return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      className="text-white"
-    >
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-white">
       <rect x="3" y="2" width="3.5" height="12" rx="1" fill="currentColor" />
       <rect x="9.5" y="2" width="3.5" height="12" rx="1" fill="currentColor" />
+    </svg>
+  );
+}
+
+function LoadingIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-white/50 animate-spin">
+      <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="2" strokeDasharray="20 18" />
     </svg>
   );
 }
