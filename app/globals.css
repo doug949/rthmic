@@ -7,10 +7,22 @@
 @theme inline {
   --font-sans: var(--font-geist);
   --animate-wave: wave 1s ease-in-out infinite;
+  --animate-fade-up: fade-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 
   @keyframes wave {
     0%, 100% { height: 4px; }
     50% { height: 14px; }
+  }
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 }
 

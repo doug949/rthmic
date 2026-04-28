@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
 import ServiceWorkerRegistration from "@/app/components/ServiceWorkerRegistration";
+import SplashScreen from "@/app/components/SplashScreen";
 
 const geist = Geist({
   variable: "--font-geist",
@@ -46,6 +47,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col bg-[#0a0a0a]">
         <ServiceWorkerRegistration />
+        <SplashScreen />
         {children}
       </body>
     </html>
