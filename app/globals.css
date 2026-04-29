@@ -7,7 +7,9 @@
 @theme inline {
   --font-sans: var(--font-geist);
   --animate-wave: wave 1s ease-in-out infinite;
-  --animate-fade-up: fade-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-fade-up: fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-float: float 5s ease-in-out infinite;
+  --animate-spin: spin 1s linear infinite;
 
   @keyframes wave {
     0%, 100% { height: 4px; }
@@ -17,12 +19,22 @@
   @keyframes fade-up {
     from {
       opacity: 0;
-      transform: translateY(12px);
+      transform: translateY(10px);
     }
     to {
       opacity: 1;
       transform: translateY(0);
     }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-6px); }
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
   }
 }
 
@@ -40,4 +52,8 @@ html, body {
 /* Safe area padding for iPhone notch / home bar */
 .pt-safe {
   padding-top: env(safe-area-inset-top);
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
 }

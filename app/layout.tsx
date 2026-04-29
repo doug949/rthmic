@@ -2,7 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
 import ServiceWorkerRegistration from "@/app/components/ServiceWorkerRegistration";
-import SplashScreen from "@/app/components/SplashScreen";
+import { AudioProvider } from "@/app/contexts/AudioContext";
+import MiniPlayer from "@/app/components/MiniPlayer";
 
 const geist = Geist({
   variable: "--font-geist",
@@ -42,13 +43,14 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geist.variable} h-full antialiased`}>
       <head>
-        {/* Explicit tags for iOS home screen icon — metadata API alone is unreliable */}
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
       </head>
       <body className="min-h-full flex flex-col bg-[#0a0a0a]">
         <ServiceWorkerRegistration />
-        <SplashScreen />
-        {children}
+        <AudioProvider>
+          {children}
+          <MiniPlayer />
+        </AudioProvider>
       </body>
     </html>
   );
