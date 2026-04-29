@@ -49,8 +49,8 @@ git add app/data/tracks.ts
 git commit -m "Add track: $TITLE"
 git push
 
-echo "→ Deploying to Netlify..."
-netlify deploy --prod --message "Add track: $TITLE" 2>&1 | grep -E "Deploy|URL|Error"
+echo "→ Deploying to Vercel..."
+vercel deploy --prod --scope video4 2>&1 | grep -E "Production:|Error"
 
 echo ""
 echo "✓ Done! '$TITLE' is now live."
