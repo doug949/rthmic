@@ -3,7 +3,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useAudio } from "@/app/contexts/AudioContext";
-import { saveRhythm } from "@/app/lib/personalLibrary";
 import type { PillarType, StateSummary, Song, SongStatus, SongStatusMap } from "@/app/types/pipeline";
 import type { StyleChoice } from "@/app/services/llmService";
 
@@ -239,14 +238,21 @@ export default function SpeakPage() {
           setSongs(readySongs);
           setPhase("results");
 
-          // Auto-save to personal library
+          // Auto-save to server-side library (fire-and-forget; non-blocking)
           readySongs.forEach((song) => {
-            saveRhythm({
-              id: song.id,
-              title: song.title,
-              pillar: understandResult.pillar,
-              audioUrl: song.audioUrl,
-            });
+            fetch("/api/library", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                action: "save",
+                rhythm: {
+                  id: song.id,
+                  title: song.title,
+                  pillar: understandResult.pillar,
+                  audioUrl: song.audioUrl,
+                },
+              }),
+            }).catch(console.error);
           });
           return;
         }

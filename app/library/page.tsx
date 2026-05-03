@@ -2,30 +2,50 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { loadLibrary, removeRhythm, setRhythmStatus } from "@/app/lib/personalLibrary";
-import type { SavedRhythm } from "@/app/lib/personalLibrary";
+import type { SavedRhythm } from "@/app/api/library/route";
+
+type LoadState = "loading" | "ready" | "error";
 
 export default function LibraryPage() {
   const [rhythms, setRhythms] = useState<SavedRhythm[]>([]);
+  const [loadState, setLoadState] = useState<LoadState>("loading");
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioElRef = useRef<HTMLAudioElement>(null);
 
-  useEffect(() => {
-    setRhythms(loadLibrary());
+  const fetchLibrary = useCallback(async () => {
+    try {
+      const res = await fetch("/api/library");
+      if (!res.ok) throw new Error("fetch failed");
+      const data = await res.json();
+      setRhythms(data.rhythms ?? []);
+      setLoadState("ready");
+    } catch {
+      setLoadState("error");
+    }
   }, []);
 
-  const refresh = () => setRhythms(loadLibrary());
+  useEffect(() => {
+    fetchLibrary();
+  }, [fetchLibrary]);
 
-  const handleRemove = (id: string) => {
-    removeRhythm(id);
-    refresh();
-  };
+  const mutate = useCallback(async (body: Record<string, unknown>) => {
+    await fetch("/api/library", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    fetchLibrary(); // re-fetch to stay in sync with server
+  }, [fetchLibrary]);
 
-  const handleArchive = (id: string, current: SavedRhythm["status"]) => {
-    setRhythmStatus(id, current === "archived" ? "active" : "archived");
-    refresh();
-  };
+  const handleRemove = (id: string) => mutate({ action: "remove", id });
+
+  const handleToggleArchive = (rhythm: SavedRhythm) =>
+    mutate({
+      action: "update",
+      id: rhythm.id,
+      status: rhythm.status === "archived" ? "active" : "archived",
+    });
 
   const togglePlay = useCallback((rhythm: SavedRhythm) => {
     const el = audioElRef.current;
@@ -83,7 +103,19 @@ export default function LibraryPage() {
             )}
           </div>
 
-          {active.length === 0 ? (
+          {loadState === "loading" && (
+            <div className="flex justify-center py-10">
+              <div className="w-6 h-6 rounded-full border-2 border-white/15 border-t-white/40 animate-spin" />
+            </div>
+          )}
+
+          {loadState === "error" && (
+            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5 py-6 text-center">
+              <p className="text-sm text-white/25">Couldn't load library. Check your connection.</p>
+            </div>
+          )}
+
+          {loadState === "ready" && active.length === 0 && (
             <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5 py-8 flex flex-col items-center gap-3">
               <p className="text-sm text-white/25 text-center leading-relaxed">
                 Rhythms you generate will appear here.
@@ -95,7 +127,9 @@ export default function LibraryPage() {
                 Speak your state →
               </Link>
             </div>
-          ) : (
+          )}
+
+          {loadState === "ready" && active.length > 0 && (
             <div className="flex flex-col gap-2">
               {active.map((rhythm) => (
                 <RhythmRow
@@ -103,7 +137,7 @@ export default function LibraryPage() {
                   rhythm={rhythm}
                   playing={playingId === rhythm.id && isPlaying}
                   onPlay={() => togglePlay(rhythm)}
-                  onArchive={() => handleArchive(rhythm.id, rhythm.status)}
+                  onArchive={() => handleToggleArchive(rhythm)}
                   onRemove={() => handleRemove(rhythm.id)}
                 />
               ))}
@@ -111,7 +145,7 @@ export default function LibraryPage() {
           )}
         </div>
 
-        {/* Explore Library */}
+        {/* Curated Library */}
         <div className="flex flex-col gap-3">
           <h2 className="text-lg font-light tracking-wide text-white" style={{ fontFamily: "var(--font-display)" }}>Curated Library</h2>
           <Link
@@ -138,7 +172,7 @@ export default function LibraryPage() {
                   rhythm={rhythm}
                   playing={playingId === rhythm.id && isPlaying}
                   onPlay={() => togglePlay(rhythm)}
-                  onArchive={() => handleArchive(rhythm.id, rhythm.status)}
+                  onArchive={() => handleToggleArchive(rhythm)}
                   onRemove={() => handleRemove(rhythm.id)}
                   dimmed
                 />
@@ -169,8 +203,8 @@ function RhythmRow({
   dimmed?: boolean;
 }) {
   const canPlay = !!rhythm.audioUrl;
-  const age = Date.now() - rhythm.savedAt;
-  const expiredSoon = age > 20 * 60 * 60 * 1000; // >20h — audio URL may be near expiry
+  // Suno audio URLs expire after ~24–48h; warn on entries older than 20h
+  const mayBeExpired = Date.now() - rhythm.savedAt > 20 * 60 * 60 * 1000;
 
   return (
     <div
@@ -195,8 +229,8 @@ function RhythmRow({
           </p>
           <div className="flex items-center gap-2 mt-0.5">
             <span className="text-[9px] text-white/20 uppercase tracking-widest">{rhythm.pillar}</span>
-            {expiredSoon && !playing && (
-              <span className="text-[9px] text-white/15 uppercase tracking-widest">· audio may have expired</span>
+            {mayBeExpired && !playing && canPlay && (
+              <span className="text-[9px] text-white/12 uppercase tracking-widest">· may have expired</span>
             )}
           </div>
         </div>
@@ -214,21 +248,15 @@ function RhythmRow({
   );
 }
 
-function SmallBtn({
-  onClick,
-  label,
-  icon,
-  danger,
-}: {
-  onClick: () => void;
-  label: string;
-  icon: string;
-  danger?: boolean;
+// ─── Micro components ─────────────────────────────────────────────────────────
+
+function SmallBtn({ onClick, label, icon, danger }: {
+  onClick: () => void; label: string; icon: string; danger?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
-      className={`flex-1 flex flex-col items-center gap-1 py-2.5 text-xs tracking-wide touch-manipulation transition-colors
+      className={`flex-1 flex flex-col items-center gap-1 py-2.5 touch-manipulation transition-colors
         ${danger ? "text-white/20 hover:text-red-400/50" : "text-white/20 hover:text-white/40"}`}
     >
       <span className="text-sm leading-none">{icon}</span>
