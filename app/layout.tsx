@@ -1,13 +1,23 @@
 import type { Metadata, Viewport } from "next";
-import { Geist } from "next/font/google";
+import { Raleway, DM_Sans } from "next/font/google";
 import "./globals.css";
 import ServiceWorkerRegistration from "@/app/components/ServiceWorkerRegistration";
+import SplashScreen from "@/app/components/SplashScreen";
 import { AudioProvider } from "@/app/contexts/AudioContext";
 import MiniPlayer from "@/app/components/MiniPlayer";
 
-const geist = Geist({
-  variable: "--font-geist",
+// Display font — wordmark, headings. Geometric, elegant, premium sans.
+const raleway = Raleway({
+  variable: "--font-display",
   subsets: ["latin"],
+  weight: ["200", "300", "400", "500", "600"],
+});
+
+// UI font — labels, buttons, body copy. Clean and precise.
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600"],
 });
 
 export const metadata: Metadata = {
@@ -27,7 +37,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0a0a0a",
+  themeColor: "#0d1628",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -41,12 +51,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${geist.variable} h-full antialiased`}>
+    <html lang="en" className={`${raleway.variable} ${dmSans.variable} h-full antialiased`}>
       <head>
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
       </head>
-      <body className="min-h-full flex flex-col bg-[#0a0a0a]">
+      <body className="min-h-full flex flex-col bg-[#0d1628]">
         <ServiceWorkerRegistration />
+        <SplashScreen />
         <AudioProvider>
           {children}
           <MiniPlayer />

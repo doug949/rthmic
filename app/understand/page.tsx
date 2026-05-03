@@ -26,7 +26,7 @@ export default function UnderstandPage() {
   const panel = panels[active];
 
   return (
-    <main className="min-h-screen bg-[#0a0a0a] flex flex-col px-6 pt-safe">
+    <main className="min-h-screen bg-[#0d1628] flex flex-col px-6 pt-safe">
       {/* Nav */}
       <header className="flex items-center gap-4 pt-12 pb-8">
         <Link
@@ -79,20 +79,12 @@ export default function UnderstandPage() {
         ) : null}
 
         <Link
-          href="/unlock"
-          className="flex-1 py-4 rounded-2xl bg-white/10 border border-white/20 text-white text-sm font-semibold tracking-wide text-center active:scale-[0.98] transition-transform touch-manipulation"
+          href="/speak"
+          className="flex-1 py-4 rounded-2xl text-sm font-semibold tracking-wide text-center active:scale-[0.98] transition-all touch-manipulation"
+          style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.45)", color: "#c9a55a" }}
         >
-          Unlock now
+          Start speaking
         </Link>
-
-        {active === panels.length - 1 && (
-          <Link
-            href="/explore"
-            className="flex-1 py-4 rounded-2xl bg-white/[0.06] border border-white/[0.08] text-white/70 text-sm font-medium tracking-wide text-center active:scale-[0.98] transition-transform touch-manipulation"
-          >
-            Explore
-          </Link>
-        )}
       </footer>
     </main>
   );

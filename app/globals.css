@@ -1,11 +1,13 @@
 @import "tailwindcss";
 
 :root {
-  --font-sans: var(--font-geist);
+  --font-sans: var(--font-dm-sans);
+  --font-display: var(--font-display);
 }
 
 @theme inline {
-  --font-sans: var(--font-geist);
+  --font-sans: var(--font-dm-sans);
+  --font-display: var(--font-display);
   --animate-wave: wave 1s ease-in-out infinite;
   --animate-fade-up: fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   --animate-float: float 5s ease-in-out infinite;
@@ -43,7 +45,7 @@
 }
 
 html, body {
-  background: #0a0a0a;
+  background: #0d1628;
   color: #ededed;
   font-family: var(--font-sans), system-ui, sans-serif;
   overscroll-behavior: none;
