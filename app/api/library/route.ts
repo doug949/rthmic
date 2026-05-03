@@ -1,15 +1,15 @@
-// /api/library — server-side personal rhythm library backed by Upstash Redis.
+// /api/library — server-side personal rhythm library backed by Redis.
 //
 // Each device gets its own library namespace via the rthmic_uid cookie
 // (set at login time). No user accounts — just a stable per-device ID.
 //
-// Redis schema: key `lib:{uid}` → SavedRhythm[] (JSON, max ~200 songs × ~500 bytes)
+// Redis schema: key `lib:{uid}` → SavedRhythm[] (JSON)
 //
-// If Redis env vars are not configured (e.g. local dev), GET returns [] and
+// If REDIS_URL is not configured (e.g. local dev), GET returns [] and
 // POST returns ok:true — the app works, saves just don't persist.
 
 import { NextRequest, NextResponse } from "next/server";
-import { Redis } from "@upstash/redis";
+import { createClient } from "redis";
 import type { PillarType } from "@/app/types/pipeline";
 
 export interface SavedRhythm {
@@ -21,21 +21,7 @@ export interface SavedRhythm {
   status: "active" | "archived";
 }
 
-const REDIS_AVAILABLE = !!(
-  process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
-);
-
-// Lazy singleton — only constructed when env vars are present
-let _redis: Redis | null = null;
-function getRedis(): Redis {
-  if (!_redis) {
-    _redis = new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL!,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-    });
-  }
-  return _redis;
-}
+const REDIS_AVAILABLE = !!process.env.REDIS_URL;
 
 function libKey(uid: string) {
   return `lib:${uid}`;
@@ -47,6 +33,18 @@ function requireAuth(request: NextRequest): string | null {
   return request.cookies.get("rthmic_uid")?.value ?? null;
 }
 
+async function withRedis<T>(
+  fn: (client: ReturnType<typeof createClient>) => Promise<T>
+): Promise<T> {
+  const client = createClient({ url: process.env.REDIS_URL });
+  await client.connect();
+  try {
+    return await fn(client);
+  } finally {
+    await client.disconnect();
+  }
+}
+
 // GET /api/library — fetch all saved rhythms, newest first
 export async function GET(request: NextRequest) {
   const uid = requireAuth(request);
@@ -55,12 +53,15 @@ export async function GET(request: NextRequest) {
   }
 
   if (!REDIS_AVAILABLE) {
-    console.warn("Upstash Redis not configured — returning empty library");
+    console.warn("Redis not configured — returning empty library");
     return NextResponse.json({ rhythms: [] });
   }
 
   try {
-    const rhythms = (await getRedis().get<SavedRhythm[]>(libKey(uid))) ?? [];
+    const rhythms = await withRedis(async (client) => {
+      const data = await client.get(libKey(uid));
+      return data ? (JSON.parse(data) as SavedRhythm[]) : [];
+    });
     return NextResponse.json({ rhythms });
   } catch (err) {
     console.error("Redis get error:", err);
@@ -80,37 +81,42 @@ export async function POST(request: NextRequest) {
   }
 
   if (!REDIS_AVAILABLE) {
-    console.warn("Upstash Redis not configured — save skipped");
+    console.warn("Redis not configured — save skipped");
     return NextResponse.json({ ok: true });
   }
 
+  const body = await request.json();
+  const { action } = body;
+
+  if (!["save", "remove", "update"].includes(action)) {
+    return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+  }
+
   try {
-    const body = await request.json();
-    const { action } = body;
-    const redis = getRedis();
+    await withRedis(async (client) => {
+      const data = await client.get(libKey(uid));
+      const current: SavedRhythm[] = data ? JSON.parse(data) : [];
 
-    const current = (await redis.get<SavedRhythm[]>(libKey(uid))) ?? [];
+      let updated: SavedRhythm[];
 
-    let updated: SavedRhythm[];
+      if (action === "save") {
+        const rhythm: SavedRhythm = {
+          ...body.rhythm,
+          savedAt: Date.now(),
+          status: "active",
+        };
+        updated = [rhythm, ...current.filter((r) => r.id !== rhythm.id)];
+      } else if (action === "remove") {
+        updated = current.filter((r) => r.id !== body.id);
+      } else {
+        updated = current.map((r) =>
+          r.id === body.id ? { ...r, status: body.status } : r
+        );
+      }
 
-    if (action === "save") {
-      const rhythm: SavedRhythm = {
-        ...body.rhythm,
-        savedAt: Date.now(),
-        status: "active",
-      };
-      updated = [rhythm, ...current.filter((r) => r.id !== rhythm.id)];
-    } else if (action === "remove") {
-      updated = current.filter((r) => r.id !== body.id);
-    } else if (action === "update") {
-      updated = current.map((r) =>
-        r.id === body.id ? { ...r, status: body.status } : r
-      );
-    } else {
-      return NextResponse.json({ error: "Unknown action" }, { status: 400 });
-    }
+      await client.set(libKey(uid), JSON.stringify(updated));
+    });
 
-    await redis.set(libKey(uid), updated);
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("Redis write error:", err);
