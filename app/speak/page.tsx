@@ -5,19 +5,17 @@ import Link from "next/link";
 import { useAudio } from "@/app/contexts/AudioContext";
 import { saveRhythm } from "@/app/lib/personalLibrary";
 import type { PillarType, StateSummary, Song, SongStatus, SongStatusMap } from "@/app/types/pipeline";
+import type { StyleChoice } from "@/app/services/llmService";
 
 type Phase = "idle" | "recording" | "understanding" | "confirming" | "generating" | "results";
-
-const MAX_RECORDING_SECONDS = 60;
 
 interface UnderstandResult {
   transcript: string;
   pillar: PillarType;
   stateSummary: StateSummary;
-  titleA: string;
-  titleB: string;
-  lyricsA: string;
-  lyricsB: string;
+  title: string;
+  lyrics: string;
+  style: StyleChoice;
 }
 
 export default function SpeakPage() {
@@ -26,7 +24,6 @@ export default function SpeakPage() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [errorMsg, setErrorMsg] = useState("");
   const [songStatus, setSongStatus] = useState<SongStatusMap>({});
-  const [recordingSeconds, setRecordingSeconds] = useState(0);
 
   const allTranscriptsRef = useRef<string[]>([]);
 
@@ -34,9 +31,6 @@ export default function SpeakPage() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const mimeTypeRef = useRef<string>("");
-
-  // Recording timer
-  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Web Audio API — orb animation
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -61,32 +55,6 @@ export default function SpeakPage() {
     analyserRef.current = null;
     try { audioCtxRef.current?.close(); } catch { /* ignore */ }
     audioCtxRef.current = null;
-  }, []);
-
-  // ─── Recording timer ──────────────────────────────────────────────────────
-
-  const startRecordingTimer = useCallback(() => {
-    setRecordingSeconds(0);
-    recordingTimerRef.current = setInterval(() => {
-      setRecordingSeconds((s) => {
-        const next = s + 1;
-        if (next >= MAX_RECORDING_SECONDS) {
-          // Auto-stop at limit
-          if (mediaRecorderRef.current?.state === "recording") {
-            mediaRecorderRef.current.stop();
-          }
-        }
-        return next;
-      });
-    }, 1000);
-  }, []);
-
-  const stopRecordingTimer = useCallback(() => {
-    if (recordingTimerRef.current) {
-      clearInterval(recordingTimerRef.current);
-      recordingTimerRef.current = null;
-    }
-    setRecordingSeconds(0);
   }, []);
 
   // ─── Orb animation ────────────────────────────────────────────────────────
@@ -161,12 +129,16 @@ export default function SpeakPage() {
       recorder.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
         cleanupWebAudio();
-        stopRecordingTimer();
         const blob = new Blob(chunksRef.current, { type: mimeTypeRef.current });
         if (blob.size === 0) {
           setErrorMsg("No audio captured — please try again.");
           setPhase("idle");
           return;
+        }
+        // Warn if the recording is unusually large (>8MB) — Whisper limit is 25MB
+        // but Vercel's request body limit may be lower on some plans
+        if (blob.size > 8 * 1024 * 1024) {
+          console.warn(`Large recording: ${(blob.size / 1024 / 1024).toFixed(1)}MB`);
         }
         await runUnderstand(blob);
       };
@@ -179,23 +151,21 @@ export default function SpeakPage() {
         };
       });
 
-      recorder.start(250);
+      recorder.start(250); // timeslice required for iOS
       startOrbAnimation(stream);
-      startRecordingTimer();
       setPhase("recording");
     } catch {
       setErrorMsg("Microphone access denied.");
       setPhase("idle");
     }
-  }, [cleanupWebAudio, startOrbAnimation, startRecordingTimer, stopRecordingTimer]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cleanupWebAudio, startOrbAnimation]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current?.state === "recording") {
       mediaRecorderRef.current.stop();
     }
-    stopRecordingTimer();
     setPhase("understanding");
-  }, [stopRecordingTimer]);
+  }, []);
 
   // ─── Understand step ──────────────────────────────────────────────────────
 
@@ -235,31 +205,29 @@ export default function SpeakPage() {
     setErrorMsg("");
 
     try {
-      // Step 1 — fire both Suno jobs
+      // Step 1 — start the Suno job
       const startRes = await fetch("/api/start-generation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          lyricsA: understandResult.lyricsA,
-          lyricsB: understandResult.lyricsB,
-          pillar: understandResult.pillar,
-          titleA: understandResult.titleA,
-          titleB: understandResult.titleB,
+          lyrics: understandResult.lyrics,
+          style: understandResult.style,
+          title: understandResult.title,
         }),
       });
       if (!startRes.ok) {
         const err = await startRes.json();
         throw new Error(err.error || "Failed to start generation");
       }
-      const { taskIdA, taskIdB } = await startRes.json();
+      const { taskId } = await startRes.json();
 
-      // Step 2 — poll until both tasks have playable clips (up to 4 minutes)
-      const MAX_POLLS = 48; // 48 × 5s = 240s
+      // Step 2 — poll every 5s for up to 4 minutes
+      const MAX_POLLS = 48;
       for (let i = 0; i < MAX_POLLS; i++) {
         await new Promise((r) => setTimeout(r, 5000));
 
         const pollRes = await fetch(
-          `/api/poll-generation?taskIdA=${encodeURIComponent(taskIdA)}&taskIdB=${encodeURIComponent(taskIdB)}&t=${Date.now()}`,
+          `/api/poll-generation?taskId=${encodeURIComponent(taskId)}&t=${Date.now()}`,
           { cache: "no-store" }
         );
         if (!pollRes.ok) continue;
@@ -271,7 +239,7 @@ export default function SpeakPage() {
           setSongs(readySongs);
           setPhase("results");
 
-          // Auto-save both songs to personal library
+          // Auto-save to personal library
           readySongs.forEach((song) => {
             saveRhythm({
               id: song.id,
@@ -365,10 +333,9 @@ export default function SpeakPage() {
   useEffect(() => {
     return () => {
       cleanupWebAudio();
-      stopRecordingTimer();
       audioElRef.current?.pause();
     };
-  }, [cleanupWebAudio, stopRecordingTimer]);
+  }, [cleanupWebAudio]);
 
   const visibleSongs = songs.filter((s) => songStatus[s.id] !== "deleted");
 
@@ -398,12 +365,7 @@ export default function SpeakPage() {
       )}
 
       {phase === "recording" && (
-        <RecordingView
-          orbRef={orbRef}
-          onStop={stopRecording}
-          seconds={recordingSeconds}
-          maxSeconds={MAX_RECORDING_SECONDS}
-        />
+        <RecordingView orbRef={orbRef} onStop={stopRecording} />
       )}
 
       {phase === "understanding" && <UnderstandingView />}
@@ -429,6 +391,7 @@ export default function SpeakPage() {
           isSongPlaying={isSongPlaying}
           isSongLoading={isSongLoading}
           pillar={understandResult?.pillar}
+          debugMsg={errorMsg}
         />
       )}
     </main>
@@ -465,17 +428,10 @@ function IdleView({ onRecord, errorMsg }: { onRecord: () => void; errorMsg: stri
 function RecordingView({
   orbRef,
   onStop,
-  seconds,
-  maxSeconds,
 }: {
   orbRef: React.RefObject<HTMLDivElement | null>;
   onStop: () => void;
-  seconds: number;
-  maxSeconds: number;
 }) {
-  const remaining = maxSeconds - seconds;
-  const showCountdown = remaining <= 10;
-
   return (
     <section
       className="flex-1 flex flex-col items-center justify-center pb-24 gap-10"
@@ -506,15 +462,6 @@ function RecordingView({
         >
           <MicIcon active />
         </div>
-      </div>
-
-      {/* Countdown — only shown in final 10 seconds */}
-      <div className="pointer-events-none h-6 flex items-center justify-center">
-        {showCountdown && (
-          <p className={`text-xs tracking-widest tabular-nums transition-colors ${remaining <= 5 ? "text-white/50" : "text-white/25"}`}>
-            {remaining}s remaining
-          </p>
-        )}
       </div>
     </section>
   );
@@ -547,6 +494,8 @@ function ConfirmingView({
   onProceed: () => void;
   errorMsg: string;
 }) {
+  const styleLabel = result.style === "A" ? "Energy" : "Focus";
+
   return (
     <section className="flex-1 flex flex-col pb-12 gap-6">
       <div className="flex flex-col gap-2">
@@ -556,7 +505,7 @@ function ConfirmingView({
             {result.pillar}
           </span>
           <span className="text-[10px] text-white/20 border border-white/[0.08] rounded-full px-2.5 py-0.5 uppercase tracking-widest">
-            Pop + House
+            {styleLabel}
           </span>
         </div>
       </div>
@@ -606,7 +555,7 @@ function GeneratingView() {
     <section className="flex-1 flex flex-col items-center justify-center pb-24 gap-8">
       <div className="text-center max-w-xs">
         <h2 className="text-xl font-light tracking-wide text-white" style={{ fontFamily: "var(--font-display)" }}>Building your rhythms</h2>
-        <p className="text-sm text-white/30 mt-2 leading-relaxed">Two tracks generating now. This takes 1–2 minutes.</p>
+        <p className="text-sm text-white/30 mt-2 leading-relaxed">This takes 1–2 minutes. RTHMIC will let you know when your tracks are ready.</p>
       </div>
       <div className="w-7 h-7 rounded-full border-2 border-white/15 border-t-white/55 animate-spin" />
     </section>
@@ -624,6 +573,7 @@ function ResultsView({
   isSongPlaying,
   isSongLoading,
   pillar,
+  debugMsg,
 }: {
   songs: Song[];
   songStatus: SongStatusMap;
@@ -633,9 +583,8 @@ function ResultsView({
   isSongPlaying: (song: Song) => boolean;
   isSongLoading: (song: Song) => boolean;
   pillar?: PillarType;
+  debugMsg?: string;
 }) {
-  const labels = ["Direct", "Reflective"];
-
   return (
     <section className="flex-1 flex flex-col gap-5 pb-32">
       <div className="flex items-center gap-3">
@@ -647,6 +596,8 @@ function ResultsView({
         )}
       </div>
 
+      {debugMsg && <p className="text-[10px] text-red-400/60 break-all">{debugMsg}</p>}
+
       {songs.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-5 py-16">
           <p className="text-sm text-white/25 text-center">All rhythms removed.</p>
@@ -656,12 +607,11 @@ function ResultsView({
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {songs.map((song, idx) => {
+          {songs.map((song) => {
             const status = songStatus[song.id] ?? null;
             const playing = isSongPlaying(song);
             const loading = isSongLoading(song);
             const canPlay = !!(song.audioUrl || (song.trackId && song.trackAudioKey));
-            const label = labels[idx] ?? "";
 
             return (
               <div
@@ -682,13 +632,6 @@ function ResultsView({
                     {loading ? <LoadingIcon /> : playing ? <PauseIcon /> : <PlayIcon />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      {label && (
-                        <span className="text-[9px] text-white/20 uppercase tracking-widest border border-white/[0.07] rounded-full px-1.5 py-0.5 flex-shrink-0">
-                          {label}
-                        </span>
-                      )}
-                    </div>
                     <p className={`text-base font-semibold leading-snug truncate ${playing ? "text-white" : "text-white/75"}`}>
                       {song.title}
                     </p>

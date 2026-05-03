@@ -18,8 +18,7 @@ export interface PipelineResult {
   transcript: string;
   pillar: PillarType;
   stateSummary: StateSummary;
-  lyricsA: string;
-  lyricsB: string;
+  lyrics: string;
   songs: [Song, Song];
 }
 

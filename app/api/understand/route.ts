@@ -38,14 +38,13 @@ export async function POST(req: NextRequest) {
     const newTranscript = textInput?.trim() || (await transcribe(audio!));
     // audio blob is not stored — transcription result only
 
-    // Combine with previous context for "Add more" flow
     const fullTranscript = previousContext
       ? `${previousContext} ${newTranscript}`
       : newTranscript;
 
-    const { pillar, stateSummary, titleA, titleB, lyricsA, lyricsB } = await interpret(fullTranscript);
+    const { pillar, stateSummary, title, lyrics, style } = await interpret(fullTranscript);
 
-    return NextResponse.json({ transcript: newTranscript, pillar, stateSummary, titleA, titleB, lyricsA, lyricsB });
+    return NextResponse.json({ transcript: newTranscript, pillar, stateSummary, title, lyrics, style });
   } catch (err) {
     console.error("Understand error:", err);
     return NextResponse.json(

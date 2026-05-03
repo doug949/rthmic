@@ -23,19 +23,17 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
 
   // Step 2: LLM interpretation
   // n8n replacement: HTTP Request node → OpenAI Chat Completions → parse JSON
-  const { pillar, stateSummary, lyricsA, lyricsB } = await interpret(transcript);
+  const { pillar, stateSummary, lyrics } = await interpret(transcript);
 
-  // Step 3: Music generation — legacy flow passes lyricsA to the old single-call path
+  // Step 3: Music generation
   // n8n replacement: HTTP Request node → Suno API → extract audio URLs
-  // No mock fallback — caller receives a real error if Suno fails
-  const songs = await generateSongs(lyricsA, pillar);
+  const songs = await generateSongs(lyrics, pillar);
 
   return {
     transcript,
     pillar,
     stateSummary,
-    lyricsA,
-    lyricsB,
+    lyrics,
     songs,
   };
 }

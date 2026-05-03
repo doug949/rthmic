@@ -1,61 +1,22 @@
-// Fires TWO parallel Suno generate requests (Style A + Style B) and returns both taskIds.
-// The client polls /api/poll-generation?taskIdA=...&taskIdB=... every 5s until both are ready.
-// Two calls guarantees meaningful musical variation — same lyrics, two distinct productions.
+// Fires a single Suno generate request and returns the taskId immediately.
+// The client polls /api/poll-generation?taskId=... every 5s until ready.
+// Suno naturally returns 2 clips per call — variation is handled at the Suno level.
 
 import { NextRequest, NextResponse } from "next/server";
-import type { PillarType } from "@/app/types/pipeline";
+import type { StyleChoice } from "@/app/services/llmService";
 
 const BASE_URL = "https://api.sunoapi.org/api/v1";
 const SUNO_CHAR_LIMIT = 5000;
 
-// Style A — direct, energetic, upbeat pop (pairs with Song A lyrics: direct/motivational)
-// Style B — reflective, hypnotic, minimal house (pairs with Song B lyrics: reflective/expansive)
-const MUSIC_STYLES = {
-  A: "sunny upbeat pop, 90s 00s vibe, male vocal, relaxed talk-sung, bright guitar, funky bass, light drums, handclaps, catchy singalong chorus, feel-good hook, warm, slightly lo-fi, playful, human",
-  B: "positive minimal house, morning vibe, warm male voice, slightly vocoded, hypnotic repetitive focus mantra, clean electronic groove, soft synth pads, pulsing bass, minimal percussion, comforting, scandinavian, motivating",
-} as const;
+// Both styles share the same indie-electronic aesthetic — same genre, same warmth, same instruments.
+// "fade out ending" and "resolving outro" are audio-level tags Suno uses for musical resolution.
+// They prevent abrupt cut-offs by signalling that the track should close naturally.
+const MUSIC_STYLES: Record<StyleChoice, string> = {
+  A: "indie electronic, uplifting male vocal, acoustic guitar, warm synth pads, 95bpm, motivational, grounded energy, human feel, positive, fade out ending, resolving outro",
+  B: "indie folk electronic, reflective male vocal, acoustic guitar, soft pads, 80bpm, meditative, calm focus, introspective, warm, fade out ending, resolving outro",
+};
 
-export const maxDuration = 20;
-
-async function startSunoJob(lyrics: string, style: "A" | "B", title: string): Promise<string> {
-  const res = await fetch(`${BASE_URL}/generate`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.SUNO_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      customMode: true,
-      instrumental: false,
-      model: "V4_5",
-      prompt: lyrics.slice(0, SUNO_CHAR_LIMIT),
-      style: MUSIC_STYLES[style],
-      title,
-      callBackUrl: "https://rthmic.vercel.app/api/suno-webhook",
-    }),
-  });
-
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Suno generate error ${res.status}: ${body}`);
-  }
-
-  const json = await res.json();
-  console.log(`Suno start response (${style}):`, JSON.stringify(json));
-
-  const taskId: string =
-    json.data?.taskId ??
-    (typeof json.data === "string" ? json.data : undefined) ??
-    json.taskId;
-
-  if (!taskId) {
-    throw new Error(
-      `Suno returned no taskId for style ${style}. Response: ${JSON.stringify(json).slice(0, 400)}`
-    );
-  }
-
-  return taskId;
-}
+export const maxDuration = 15;
 
 export async function POST(req: NextRequest) {
   if (!process.env.SUNO_API_KEY) {
@@ -64,23 +25,53 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const lyricsA = typeof body.lyricsA === "string" ? body.lyricsA : "";
-    const lyricsB = typeof body.lyricsB === "string" ? body.lyricsB : "";
-    const pillar = body.pillar as PillarType;
-    const titleA = typeof body.titleA === "string" && body.titleA.trim() ? body.titleA.trim() : `RTHM — ${pillar}`;
-    const titleB = typeof body.titleB === "string" && body.titleB.trim() ? body.titleB.trim() : `RTHM — ${pillar} (Alt)`;
+    const lyrics = typeof body.lyrics === "string" ? body.lyrics.slice(0, SUNO_CHAR_LIMIT) : "";
+    const style = (body.style as StyleChoice) ?? "B";
+    const songTitle = typeof body.title === "string" && body.title.trim()
+      ? body.title.trim()
+      : "RTHM";
 
-    if (!lyricsA.trim() || !lyricsB.trim() || !pillar) {
-      return NextResponse.json({ error: "lyricsA, lyricsB, and pillar required" }, { status: 400 });
+    if (!lyrics.trim()) {
+      return NextResponse.json({ error: "lyrics required" }, { status: 400 });
     }
 
-    // Fire both calls in parallel — they are independent
-    const [taskIdA, taskIdB] = await Promise.all([
-      startSunoJob(lyricsA, "A", titleA),
-      startSunoJob(lyricsB, "B", titleB),
-    ]);
+    const res = await fetch(`${BASE_URL}/generate`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.SUNO_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        customMode: true,
+        instrumental: false,
+        model: "V4_5",
+        prompt: lyrics,
+        style: MUSIC_STYLES[style],
+        title: songTitle,
+        callBackUrl: "https://rthmic.vercel.app/api/suno-webhook",
+      }),
+    });
 
-    return NextResponse.json({ taskIdA, taskIdB });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Suno generate error ${res.status}: ${text}`);
+    }
+
+    const json = await res.json();
+    console.log("Suno start response:", JSON.stringify(json));
+
+    const taskId: string =
+      json.data?.taskId ??
+      (typeof json.data === "string" ? json.data : undefined) ??
+      json.taskId;
+
+    if (!taskId) {
+      throw new Error(
+        `Suno returned no taskId. Response: ${JSON.stringify(json).slice(0, 400)}`
+      );
+    }
+
+    return NextResponse.json({ taskId });
   } catch (err) {
     console.error("Start generation error:", err);
     return NextResponse.json(

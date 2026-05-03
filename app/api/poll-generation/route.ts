@@ -1,8 +1,6 @@
-// Single-shot poll for one or two Suno tasks.
-// Called from the frontend every 5s.
-// Accepts taskIdA (required) + taskIdB (optional).
+// Single-shot poll for a Suno task. Called from the frontend every 5s.
 // Returns { status: "pending"|"ready"|"failed", songs? }
-// When both IDs provided, returns "ready" only when BOTH tasks have playable clips.
+// Suno returns 2 clips per task — both are surfaced as Song A and Song B.
 
 import { NextRequest, NextResponse } from "next/server";
 import type { Song } from "@/app/types/pipeline";
@@ -66,111 +64,66 @@ function getAudioUrl(clip: Record<string, unknown>): string | undefined {
   return undefined;
 }
 
-interface TaskResult {
-  ready: boolean;
-  failed: boolean;
-  clip?: SunoClip;
-  error?: string;
-}
-
-async function pollTask(taskId: string): Promise<TaskResult> {
-  const res = await fetch(
-    `${BASE_URL}/generate/record-info?taskId=${encodeURIComponent(taskId)}`,
-    { headers: { Authorization: `Bearer ${process.env.SUNO_API_KEY}` } }
-  );
-
-  if (!res.ok) {
-    return { ready: false, failed: false }; // transient error — keep polling
-  }
-
-  const json = await res.json();
-  console.log(`Poll [${taskId.slice(0, 8)}]:`, JSON.stringify(json).slice(0, 400));
-
-  const task = json.data;
-  const rawStatus = (
-    (typeof task === "object" && task !== null ? (task as Record<string, unknown>).status : null) ??
-    json.status ??
-    ""
-  ).toString().toUpperCase();
-
-  if (rawStatus === "FAILED") {
-    return { ready: false, failed: true, error: "Suno generation failed" };
-  }
-
-  const clips = extractClips(json);
-  const playableClips = clips.filter(c => getAudioUrl(c));
-
-  console.log(`  → status="${rawStatus}" clips=${clips.length} playable=${playableClips.length}`);
-
-  if (playableClips.length > 0 && !STILL_WAITING.has(rawStatus)) {
-    return { ready: true, failed: false, clip: playableClips[0] };
-  }
-
-  return { ready: false, failed: false };
-}
-
 export async function GET(req: NextRequest) {
-  const taskIdA = req.nextUrl.searchParams.get("taskIdA") ?? req.nextUrl.searchParams.get("taskId");
-  const taskIdB = req.nextUrl.searchParams.get("taskIdB");
-
-  if (!taskIdA) {
-    return NextResponse.json({ error: "taskIdA required" }, { status: 400 });
+  const taskId = req.nextUrl.searchParams.get("taskId");
+  if (!taskId) {
+    return NextResponse.json({ error: "taskId required" }, { status: 400 });
   }
   if (!process.env.SUNO_API_KEY) {
     return NextResponse.json({ error: "SUNO_API_KEY not set" }, { status: 500 });
   }
 
   try {
-    if (taskIdB) {
-      // Dual-task mode — check both in parallel, ready only when both have clips
-      const [resultA, resultB] = await Promise.all([
-        pollTask(taskIdA),
-        pollTask(taskIdB),
-      ]);
+    const res = await fetch(
+      `${BASE_URL}/generate/record-info?taskId=${encodeURIComponent(taskId)}`,
+      { headers: { Authorization: `Bearer ${process.env.SUNO_API_KEY}` } }
+    );
 
-      if (resultA.failed || resultB.failed) {
-        return NextResponse.json({ status: "failed", error: "Music generation failed" });
-      }
-
-      if (resultA.ready && resultA.clip && resultB.ready && resultB.clip) {
-        const songs: [Song, Song] = [
-          {
-            id: `${String(resultA.clip.id ?? "suno-a")}-0`,
-            title: String(resultA.clip.title ?? "Rhythm A"),
-            audioUrl: getAudioUrl(resultA.clip),
-          },
-          {
-            id: `${String(resultB.clip.id ?? "suno-b")}-1`,
-            title: String(resultB.clip.title ?? "Rhythm B"),
-            audioUrl: getAudioUrl(resultB.clip),
-          },
-        ];
-        return NextResponse.json(
-          { status: "ready", songs },
-          { headers: { "Cache-Control": "no-store" } }
-        );
-      }
-
+    if (!res.ok) {
       return NextResponse.json(
-        { status: "pending", readyA: resultA.ready, readyB: resultB.ready },
-        { headers: { "Cache-Control": "no-store" } }
+        { status: "failed", error: `Suno poll error ${res.status}` },
+        { status: 502 }
       );
     }
 
-    // Single-task mode (backwards compat or single song scenarios)
-    const result = await pollTask(taskIdA);
+    const json = await res.json();
+    console.log("Poll response:", JSON.stringify(json).slice(0, 800));
 
-    if (result.failed) {
-      return NextResponse.json({ status: "failed", error: result.error ?? "Generation failed" });
+    const task = json.data;
+    const rawStatus = (
+      (typeof task === "object" && task !== null ? (task as Record<string, unknown>).status : null) ??
+      json.status ??
+      ""
+    ).toString().toUpperCase();
+
+    console.log("Parsed status:", rawStatus);
+
+    if (rawStatus === "FAILED") {
+      return NextResponse.json({ status: "failed", error: "Suno generation failed" });
     }
 
-    if (result.ready && result.clip) {
-      const clip = result.clip;
-      const baseTitle = String(clip.title ?? "RTHM");
+    const clips = extractClips(json);
+    const playableClips = clips.filter(c => getAudioUrl(c));
+
+    console.log(`Found ${clips.length} clips (${playableClips.length} playable), status="${rawStatus}"`);
+
+    const stillWaiting = STILL_WAITING.has(rawStatus);
+
+    if (playableClips.length > 0 && !stillWaiting) {
+      const toSong = (clip: SunoClip, idx: number): Song => {
+        const baseTitle = String(clip.title ?? `RTHM ${idx + 1}`);
+        return {
+          id: `${String(clip.id ?? "suno")}-${idx}`,
+          title: idx === 0 ? baseTitle : `${baseTitle} (Variation)`,
+          audioUrl: getAudioUrl(clip),
+        };
+      };
+
       const songs: [Song, Song] = [
-        { id: `${String(clip.id ?? "suno")}-0`, title: baseTitle, audioUrl: getAudioUrl(clip) },
-        { id: `${String(clip.id ?? "suno")}-1`, title: `${baseTitle} (Alternate)`, audioUrl: getAudioUrl(clip) },
+        toSong(playableClips[0], 0),
+        toSong(playableClips[1] ?? playableClips[0], 1),
       ];
+
       return NextResponse.json(
         { status: "ready", songs },
         { headers: { "Cache-Control": "no-store" } }
@@ -178,7 +131,7 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json(
-      { status: "pending" },
+      { status: "pending", rawStatus, clipsFound: clips.length },
       { headers: { "Cache-Control": "no-store" } }
     );
   } catch (err) {
