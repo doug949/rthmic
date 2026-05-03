@@ -33,15 +33,11 @@ const HUB_EDGES: [HubId, HubId][] = [
 // ─── Categorise ───────────────────────────────────────────────────────────────
 function getCat(title: string): HubId {
   const t = title.toLowerCase();
-  if (t.includes("morning menu")||t.includes("menues before bed")||t.includes("afternoon menu")) return "morning";
-  if (t.includes("aim the ramp")||t.includes("early motion")||t.includes("starting song")||
-      t.includes("this is not about forcing")||t.includes("five-minute run")||t.includes("get set")||
-      t.includes("make a new rthm")||t.includes("collapse the fog")) return "start";
+  if (t.includes("morning menu")||t.includes("menues before bed")||t.includes("afternoon menu")||t.includes("hold the night")) return "morning";
+  if (t.includes("early motion")||t.includes("get set")||t.includes("cage drop")||t.includes("danger chords")) return "start";
   if (t.includes("don't think about")||t.includes("the minimum")||t.includes("the vacuum")||
-      t.includes("confirmation day")||t.includes("i understand")||t.includes("you already know")||
-      t.includes("outcome candidates")||t.includes("the art of approaching")) return "focus";
-  if (t.includes("preshow")||t.includes("show prep")||t.includes("run the room")||
-      t.includes("prepare a standup")||t.includes("introducing rthmic")||t.includes("comedy clothing")) return "shows";
+      t.includes("i understand")||t.includes("you already know")||t.includes("outcome candidates")) return "focus";
+  if (t.includes("introducing rthmic")||t.includes("you're don't know it yet")) return "shows";
   return "other";
 }
 

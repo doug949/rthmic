@@ -155,7 +155,7 @@ export default function LibraryPage() {
             <span className="text-2xl flex-shrink-0 text-white/30" aria-hidden>◎</span>
             <div className="flex-1 min-w-0">
               <p className="text-base font-semibold text-white/80 tracking-wide">Explore</p>
-              <p className="text-sm text-white/35 mt-0.5">95 hand-selected rhythms</p>
+              <p className="text-sm text-white/35 mt-0.5">20 hand-selected rhythms</p>
             </div>
             <span className="text-white/20 text-lg flex-shrink-0">›</span>
           </Link>
