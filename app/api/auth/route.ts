@@ -3,7 +3,14 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(request: NextRequest) {
   const { password } = await request.json();
 
-  if (password !== process.env.RTHMIC_PASSWORD) {
+  // RTHMIC_CODES is a comma-separated list of valid invite codes.
+  // Any matching code grants access. Remove a code to revoke.
+  const validCodes = (process.env.RTHMIC_CODES ?? "")
+    .split(",")
+    .map(c => c.trim())
+    .filter(Boolean);
+
+  if (!validCodes.includes(password)) {
     return NextResponse.json({ error: "Wrong password" }, { status: 401 });
   }
 

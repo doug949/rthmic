@@ -41,7 +41,7 @@ function LoginForm() {
         RTHMIC
       </h1>
       <p className="text-xs text-white/25 tracking-widest uppercase mb-12">
-        Private
+        Beta
       </p>
 
       <form onSubmit={handleSubmit} className="w-full max-w-xs flex flex-col gap-3">
@@ -50,7 +50,7 @@ function LoginForm() {
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="Password"
+          placeholder="Invite code"
           autoFocus
           autoComplete="current-password"
           className={`
