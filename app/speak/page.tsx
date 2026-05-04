@@ -41,6 +41,8 @@ export default function SpeakPage() {
   const audioElRef = useRef<HTMLAudioElement>(null);
   const [realPlayingId, setRealPlayingId] = useState<string | null>(null);
   const [realIsPlaying, setRealIsPlaying] = useState(false);
+  const [realCurrentTime, setRealCurrentTime] = useState(0);
+  const [realDuration, setRealDuration] = useState(0);
 
   const { handlePlay: handleMockPlay, currentTrackId, isPlaying: mockIsPlaying, loadingId } = useAudio();
 
@@ -374,8 +376,11 @@ export default function SpeakPage() {
     <main className="min-h-screen bg-[#0d1628] flex flex-col px-6 pt-safe">
       <audio
         ref={audioElRef}
-        onEnded={() => setRealIsPlaying(false)}
+        onEnded={() => { setRealIsPlaying(false); setRealCurrentTime(0); }}
         onError={() => setRealIsPlaying(false)}
+        onTimeUpdate={(e) => setRealCurrentTime(e.currentTarget.currentTime)}
+        onDurationChange={(e) => setRealDuration(isFinite(e.currentTarget.duration) ? e.currentTarget.duration : 0)}
+        onLoadedMetadata={(e) => setRealDuration(isFinite(e.currentTarget.duration) ? e.currentTarget.duration : 0)}
         preload="none"
       />
 
@@ -421,6 +426,10 @@ export default function SpeakPage() {
           isSongLoading={isSongLoading}
           pillar={understandResult?.pillar}
           debugMsg={errorMsg}
+          audioEl={audioElRef}
+          playingId={realPlayingId}
+          currentTime={realCurrentTime}
+          duration={realDuration}
         />
       )}
     </main>
@@ -603,6 +612,10 @@ function ResultsView({
   isSongLoading,
   pillar,
   debugMsg,
+  audioEl,
+  playingId,
+  currentTime,
+  duration,
 }: {
   songs: Song[];
   songStatus: SongStatusMap;
@@ -613,8 +626,34 @@ function ResultsView({
   isSongLoading: (song: Song) => boolean;
   pillar?: PillarType;
   debugMsg?: string;
+  audioEl: React.RefObject<HTMLAudioElement | null>;
+  playingId: string | null;
+  currentTime: number;
+  duration: number;
 }) {
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
+
+  const fmt = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${sec.toString().padStart(2, "0")}`;
+  };
+
+  const handleRestart = (song: Song) => {
+    if (!song.audioUrl) return;
+    const el = audioEl.current;
+    if (!el) return;
+    el.currentTime = 0;
+    el.play().catch(console.error);
+  };
+
+  const handleScrub = (e: React.MouseEvent<HTMLDivElement>, song: Song) => {
+    if (!song.audioUrl || duration <= 0 || playingId !== song.id) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const el = audioEl.current;
+    if (el) el.currentTime = ratio * duration;
+  };
 
   const handleRemove = (id: string) => {
     if (confirmRemoveId === id) {
@@ -705,7 +744,35 @@ function ResultsView({
                   </div>
                 </button>
 
+                {/* Progress bar — only for real audio tracks */}
+                {song.audioUrl && playingId === song.id && (
+                  <div className="px-5 pb-3">
+                    <div
+                      className="h-[3px] bg-white/10 rounded-full cursor-pointer"
+                      onClick={(e) => handleScrub(e, song)}
+                    >
+                      <div
+                        className="h-full bg-white/40 rounded-full"
+                        style={{ width: duration > 0 ? `${(currentTime / duration) * 100}%` : "0%" }}
+                      />
+                    </div>
+                    {duration > 0 && (
+                      <div className="flex justify-between mt-1">
+                        <span className="text-[9px] text-white/25 tabular-nums">{fmt(currentTime)}</span>
+                        <span className="text-[9px] text-white/25 tabular-nums">{fmt(duration)}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className="flex border-t border-white/[0.06]">
+                  {song.audioUrl && (
+                    <ActionBtn
+                      onClick={() => handleRestart(song)}
+                      label="Restart"
+                      icon="↩"
+                    />
+                  )}
                   <ActionBtn
                     active={status === "archived"}
                     onClick={() => setStatus(song.id, status === "archived" ? null : "archived")}

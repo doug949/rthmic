@@ -4,7 +4,7 @@ import { useAudio } from "@/app/contexts/AudioContext";
 import { tracks } from "@/app/data/tracks";
 
 export default function MiniPlayer() {
-  const { currentTrackId, isPlaying, loadingId, handlePlay } = useAudio();
+  const { currentTrackId, isPlaying, loadingId, currentTime, duration, handlePlay, restart, seek } = useAudio();
 
   if (!currentTrackId) return null;
 
@@ -12,44 +12,82 @@ export default function MiniPlayer() {
   if (!track) return null;
 
   const isLoading = loadingId === currentTrackId;
+  const progress = duration > 0 ? currentTime / duration : 0;
+
+  const handleScrub = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (duration <= 0) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    seek(ratio * duration);
+  };
+
+  const fmt = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${sec.toString().padStart(2, "0")}`;
+  };
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 pb-safe">
-      <div className="mx-4 mb-4 flex items-center gap-4 px-5 py-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15">
-        <button
-          onClick={() => handlePlay(track.id, track.audioKey)}
-          className="flex-shrink-0 w-10 h-10 rounded-full bg-white/15 flex items-center justify-center active:scale-95 transition-transform touch-manipulation"
-          aria-label={isPlaying ? "Pause" : "Play"}
-        >
-          {isLoading ? (
-            <LoadingIcon />
-          ) : isPlaying ? (
-            <PauseIcon />
-          ) : (
-            <PlayIcon />
-          )}
-        </button>
+      <div className="mx-4 mb-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 overflow-hidden">
 
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-white truncate tracking-wide">
-            {track.title}
-          </p>
-          <p className="text-xs text-white/40 mt-0.5 uppercase tracking-widest">
-            {isLoading ? "Loading…" : isPlaying ? "Playing" : "Paused"}
-          </p>
+        {/* Progress bar */}
+        <div
+          className="h-[3px] bg-white/10 cursor-pointer relative"
+          onClick={handleScrub}
+        >
+          <div
+            className="h-full bg-white/50 transition-none"
+            style={{ width: `${progress * 100}%` }}
+          />
         </div>
 
-        {isPlaying && (
-          <div className="flex-shrink-0 flex items-end gap-[3px] h-4">
-            {[1, 2, 3].map((i) => (
-              <span
-                key={i}
-                className="w-[3px] bg-white/50 rounded-full animate-wave"
-                style={{ animationDelay: `${i * 0.15}s` }}
-              />
-            ))}
+        {/* Controls row */}
+        <div className="flex items-center gap-3 px-4 py-3">
+
+          {/* Restart */}
+          <button
+            onClick={restart}
+            className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-white/40 hover:text-white/70 active:scale-90 transition-all touch-manipulation"
+            aria-label="Restart"
+          >
+            <RestartIcon />
+          </button>
+
+          {/* Play / Pause */}
+          <button
+            onClick={() => handlePlay(track.id, track.audioKey)}
+            className="flex-shrink-0 w-10 h-10 rounded-full bg-white/15 flex items-center justify-center active:scale-95 transition-transform touch-manipulation"
+            aria-label={isPlaying ? "Pause" : "Play"}
+          >
+            {isLoading ? <LoadingIcon /> : isPlaying ? <PauseIcon /> : <PlayIcon />}
+          </button>
+
+          {/* Title + time */}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-white truncate tracking-wide">
+              {track.title}
+            </p>
+            {duration > 0 && (
+              <p className="text-[10px] text-white/30 mt-0.5 tabular-nums">
+                {fmt(currentTime)} / {fmt(duration)}
+              </p>
+            )}
           </div>
-        )}
+
+          {/* Wave animation */}
+          {isPlaying && !isLoading && (
+            <div className="flex-shrink-0 flex items-end gap-[3px] h-4">
+              {[1, 2, 3].map((i) => (
+                <span
+                  key={i}
+                  className="w-[3px] bg-white/40 rounded-full animate-wave"
+                  style={{ animationDelay: `${i * 0.15}s` }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -68,6 +106,14 @@ function PauseIcon() {
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="text-white">
       <rect x="3" y="2" width="3.5" height="12" rx="1" fill="currentColor" />
       <rect x="9.5" y="2" width="3.5" height="12" rx="1" fill="currentColor" />
+    </svg>
+  );
+}
+
+function RestartIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" className="text-current">
+      <path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-6.36 2.64L3 4v5h5L6.34 7.34A7 7 0 1 1 5 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   );
 }
