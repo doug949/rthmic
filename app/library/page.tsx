@@ -38,7 +38,17 @@ export default function LibraryPage() {
     fetchLibrary(); // re-fetch to stay in sync with server
   }, [fetchLibrary]);
 
-  const handleRemove = (id: string) => mutate({ action: "remove", id });
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
+
+  const handleRemove = (id: string) => {
+    if (confirmRemoveId === id) {
+      mutate({ action: "remove", id });
+      setConfirmRemoveId(null);
+    } else {
+      setConfirmRemoveId(id);
+      setTimeout(() => setConfirmRemoveId(c => c === id ? null : c), 3000);
+    }
+  };
 
   const handleToggleArchive = (rhythm: SavedRhythm) =>
     mutate({
@@ -139,6 +149,7 @@ export default function LibraryPage() {
                   onPlay={() => togglePlay(rhythm)}
                   onArchive={() => handleToggleArchive(rhythm)}
                   onRemove={() => handleRemove(rhythm.id)}
+                  confirmingRemove={confirmRemoveId === rhythm.id}
                 />
               ))}
             </div>
@@ -174,6 +185,7 @@ export default function LibraryPage() {
                   onPlay={() => togglePlay(rhythm)}
                   onArchive={() => handleToggleArchive(rhythm)}
                   onRemove={() => handleRemove(rhythm.id)}
+                  confirmingRemove={confirmRemoveId === rhythm.id}
                   dimmed
                 />
               ))}
@@ -193,6 +205,7 @@ function RhythmRow({
   onPlay,
   onArchive,
   onRemove,
+  confirmingRemove,
   dimmed,
 }: {
   rhythm: SavedRhythm;
@@ -200,6 +213,7 @@ function RhythmRow({
   onPlay: () => void;
   onArchive: () => void;
   onRemove: () => void;
+  confirmingRemove?: boolean;
   dimmed?: boolean;
 }) {
   const canPlay = !!rhythm.audioUrl;
@@ -240,9 +254,17 @@ function RhythmRow({
         <SmallBtn
           onClick={onArchive}
           label={rhythm.status === "archived" ? "Restore" : "Archive"}
+          sublabel={rhythm.status === "archived" ? "Back to active" : "Keep but hide"}
           icon="⊙"
         />
-        <SmallBtn onClick={onRemove} label="Remove" icon="×" danger />
+        <SmallBtn
+          onClick={onRemove}
+          label={confirmingRemove ? "Confirm?" : "Remove"}
+          sublabel={confirmingRemove ? "Tap again to delete" : "Delete from library"}
+          icon="×"
+          danger
+          confirming={confirmingRemove}
+        />
       </div>
     </div>
   );
@@ -250,17 +272,20 @@ function RhythmRow({
 
 // ─── Micro components ─────────────────────────────────────────────────────────
 
-function SmallBtn({ onClick, label, icon, danger }: {
-  onClick: () => void; label: string; icon: string; danger?: boolean;
+function SmallBtn({ onClick, label, sublabel, icon, danger, confirming }: {
+  onClick: () => void; label: string; sublabel?: string; icon: string; danger?: boolean; confirming?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
-      className={`flex-1 flex flex-col items-center gap-1 py-2.5 touch-manipulation transition-colors
-        ${danger ? "text-white/20 hover:text-red-400/50" : "text-white/20 hover:text-white/40"}`}
+      className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 touch-manipulation transition-colors
+        ${confirming ? "text-red-400/80"
+          : danger ? "text-white/20 hover:text-red-400/50"
+          : "text-white/20 hover:text-white/40"}`}
     >
       <span className="text-sm leading-none">{icon}</span>
       <span className="uppercase tracking-widest text-[9px]">{label}</span>
+      {sublabel && <span className="text-[8px] opacity-60 normal-case tracking-normal">{sublabel}</span>}
     </button>
   );
 }

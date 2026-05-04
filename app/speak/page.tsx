@@ -44,8 +44,31 @@ export default function SpeakPage() {
 
   const { handlePlay: handleMockPlay, currentTrackId, isPlaying: mockIsPlaying, loadingId } = useAudio();
 
-  const setStatus = (id: string, status: SongStatus) =>
+  const setStatus = (id: string, status: SongStatus) => {
     setSongStatus((prev) => ({ ...prev, [id]: status }));
+
+    // Sync to server library
+    if (status === "archived") {
+      fetch("/api/library", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "update", id, status: "archived" }),
+      }).catch(console.error);
+    } else if (status === null) {
+      // Restoring from archived → mark active
+      fetch("/api/library", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "update", id, status: "active" }),
+      }).catch(console.error);
+    } else if (status === "deleted") {
+      fetch("/api/library", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "remove", id }),
+      }).catch(console.error);
+    }
+  };
 
   // ─── Web Audio cleanup ────────────────────────────────────────────────────
 
@@ -591,8 +614,33 @@ function ResultsView({
   pillar?: PillarType;
   debugMsg?: string;
 }) {
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
+
+  const handleRemove = (id: string) => {
+    if (confirmRemoveId === id) {
+      setStatus(id, "deleted");
+      setConfirmRemoveId(null);
+    } else {
+      setConfirmRemoveId(id);
+      // Auto-clear after 3s if not confirmed
+      setTimeout(() => setConfirmRemoveId(c => c === id ? null : c), 3000);
+    }
+  };
+
   return (
     <section className="flex-1 flex flex-col gap-5 pb-32">
+      {/* Saved notice */}
+      <Link
+        href="/library"
+        className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] transition-colors touch-manipulation"
+      >
+        <span className="text-xs text-white/40">✓</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs text-white/50 leading-snug">Saved to your library — tap to manage</p>
+        </div>
+        <span className="text-white/20 text-sm flex-shrink-0">›</span>
+      </Link>
+
       <div className="flex items-center gap-3">
         <p className="text-[10px] text-white/25 uppercase tracking-[0.2em]">Generated for you</p>
         {pillar && (
@@ -659,22 +707,19 @@ function ResultsView({
 
                 <div className="flex border-t border-white/[0.06]">
                   <ActionBtn
-                    active={status === "favorite"}
-                    onClick={() => setStatus(song.id, status === "favorite" ? null : "favorite")}
-                    label="Save"
-                    icon={status === "favorite" ? "♥" : "♡"}
-                  />
-                  <ActionBtn
                     active={status === "archived"}
                     onClick={() => setStatus(song.id, status === "archived" ? null : "archived")}
-                    label="Archive"
+                    label={status === "archived" ? "Restore" : "Archive"}
+                    sublabel={status === "archived" ? "Back to active" : "Keep but hide"}
                     icon="⊙"
                   />
                   <ActionBtn
-                    onClick={() => setStatus(song.id, "deleted")}
-                    label="Remove"
+                    onClick={() => handleRemove(song.id)}
+                    label={confirmRemoveId === song.id ? "Confirm?" : "Remove"}
+                    sublabel={confirmRemoveId === song.id ? "Tap again to delete" : "Delete from library"}
                     icon="×"
                     danger
+                    confirming={confirmRemoveId === song.id}
                   />
                 </div>
               </div>
@@ -700,26 +745,32 @@ function ResultsView({
 function ActionBtn({
   onClick,
   label,
+  sublabel,
   icon,
   active,
   danger,
+  confirming,
 }: {
   onClick: () => void;
   label: string;
+  sublabel?: string;
   icon: string;
   active?: boolean;
   danger?: boolean;
+  confirming?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
-      className={`flex-1 flex flex-col items-center gap-1 py-3 text-xs tracking-wide touch-manipulation transition-colors
-        ${danger ? "text-white/20 hover:text-red-400/50 active:text-red-400/70"
+      className={`flex-1 flex flex-col items-center gap-0.5 py-3 text-xs tracking-wide touch-manipulation transition-colors
+        ${confirming ? "text-red-400/80"
+          : danger ? "text-white/20 hover:text-red-400/50 active:text-red-400/70"
           : active ? "text-white/60"
           : "text-white/20 hover:text-white/40"}`}
     >
       <span className="text-base leading-none">{icon}</span>
       <span className="uppercase tracking-widest text-[9px]">{label}</span>
+      {sublabel && <span className="text-[8px] opacity-60 normal-case tracking-normal">{sublabel}</span>}
     </button>
   );
 }
