@@ -11,6 +11,18 @@ export function proxy(request: NextRequest) {
 
   const session = request.cookies.get("rthmic_session");
   if (session?.value === process.env.RTHMIC_SESSION_TOKEN) {
+    // Backfill rthmic_uid for sessions created before uid generation was added
+    if (!request.cookies.get("rthmic_uid")?.value) {
+      const response = NextResponse.next();
+      response.cookies.set("rthmic_uid", crypto.randomUUID(), {
+        httpOnly: true,
+        secure: true,
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 365,
+      });
+      return response;
+    }
     return NextResponse.next();
   }
 
