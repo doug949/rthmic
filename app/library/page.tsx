@@ -80,8 +80,17 @@ export default function LibraryPage() {
     setIsPlaying(true);
   }, [playingId, isPlaying]);
 
+  const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+
   const active = rhythms.filter((r) => r.status === "active");
   const archived = rhythms.filter((r) => r.status === "archived");
+  const recentlyDeleted = rhythms.filter(
+    (r) => r.status === "deleted" && r.deletedAt !== undefined && now - r.deletedAt < THIRTY_DAYS
+  );
+
+  const handleRestore = (id: string) =>
+    mutate({ action: "update", id, status: "active" });
 
   return (
     <main className="min-h-screen bg-[#0d1628] flex flex-col px-6 pt-safe">
@@ -189,6 +198,39 @@ export default function LibraryPage() {
                   dimmed
                 />
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Recently Deleted */}
+        {recentlyDeleted.length > 0 && (
+          <div className="flex flex-col gap-3">
+            <div className="flex items-baseline gap-2">
+              <h2 className="text-sm font-light tracking-widest text-white/20 uppercase">Recently Deleted</h2>
+              <span className="text-[9px] text-white/15">Recoverable for 30 days</span>
+            </div>
+            <div className="flex flex-col gap-2">
+              {recentlyDeleted.map((rhythm) => {
+                const daysLeft = Math.ceil((THIRTY_DAYS - (now - (rhythm.deletedAt ?? now))) / (24 * 60 * 60 * 1000));
+                return (
+                  <div key={rhythm.id} className="rounded-2xl border border-white/[0.05] bg-white/[0.02] opacity-40">
+                    <div className="flex items-center gap-4 px-5 py-4">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-white/50 truncate">{rhythm.title}</p>
+                        <p className="text-[9px] text-white/20 uppercase tracking-widest mt-0.5">
+                          {daysLeft} day{daysLeft !== 1 ? "s" : ""} left to restore
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleRestore(rhythm.id)}
+                        className="flex-shrink-0 text-[10px] uppercase tracking-widest text-white/30 hover:text-white/60 transition-colors touch-manipulation px-3 py-1.5 rounded-lg border border-white/[0.08] hover:border-white/20"
+                      >
+                        Restore
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

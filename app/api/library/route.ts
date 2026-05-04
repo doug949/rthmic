@@ -5,6 +5,9 @@
 //
 // Redis schema: key `lib:{uid}` → SavedRhythm[] (JSON)
 //
+// Deletion is soft: status → "deleted" + deletedAt timestamp.
+// Items are recoverable for 30 days, then purged lazily on next read.
+//
 // If REDIS_URL is not configured (e.g. local dev), GET returns [] and
 // POST returns ok:true — the app works, saves just don't persist.
 
@@ -18,9 +21,11 @@ export interface SavedRhythm {
   pillar: PillarType;
   audioUrl?: string;
   savedAt: number;
-  status: "active" | "archived";
+  status: "active" | "archived" | "deleted";
+  deletedAt?: number;
 }
 
+const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
 const REDIS_AVAILABLE = !!process.env.REDIS_URL;
 
 function libKey(uid: string) {
@@ -45,7 +50,7 @@ async function withRedis<T>(
   }
 }
 
-// GET /api/library — fetch all saved rhythms, newest first
+// GET /api/library — fetch all rhythms (active, archived, recently deleted)
 export async function GET(request: NextRequest) {
   const uid = requireAuth(request);
   if (!uid) {
@@ -60,7 +65,20 @@ export async function GET(request: NextRequest) {
   try {
     const rhythms = await withRedis(async (client) => {
       const data = await client.get(libKey(uid));
-      return data ? (JSON.parse(data) as SavedRhythm[]) : [];
+      const all: SavedRhythm[] = data ? JSON.parse(data) : [];
+
+      // Lazily purge deleted items older than 30 days
+      const now = Date.now();
+      const kept = all.filter(
+        (r) => r.status !== "deleted" || (r.deletedAt !== undefined && now - r.deletedAt < THIRTY_DAYS)
+      );
+
+      // Write back if anything was purged
+      if (kept.length !== all.length) {
+        await client.set(libKey(uid), JSON.stringify(kept));
+      }
+
+      return kept;
     });
     return NextResponse.json({ rhythms });
   } catch (err) {
@@ -71,9 +89,9 @@ export async function GET(request: NextRequest) {
 
 // POST /api/library — mutate the library
 // Body shapes:
-//   { action: "save",   rhythm: SavedRhythm }  — upsert (prepend, dedup by id)
-//   { action: "remove", id: string }            — delete by id
-//   { action: "update", id: string, status: "active"|"archived" } — update status
+//   { action: "save",    rhythm: SavedRhythm }               — upsert
+//   { action: "remove",  id: string }                         — soft-delete (30-day recovery)
+//   { action: "update",  id: string, status: "active"|"archived" } — update status / restore
 export async function POST(request: NextRequest) {
   const uid = requireAuth(request);
   if (!uid) {
@@ -107,11 +125,18 @@ export async function POST(request: NextRequest) {
         };
         updated = [rhythm, ...current.filter((r) => r.id !== rhythm.id)];
       } else if (action === "remove") {
-        updated = current.filter((r) => r.id !== body.id);
-      } else {
+        // Soft-delete — preserves the rhythm for 30 days
         updated = current.map((r) =>
-          r.id === body.id ? { ...r, status: body.status } : r
+          r.id === body.id ? { ...r, status: "deleted" as const, deletedAt: Date.now() } : r
         );
+      } else {
+        // update — also clears deletedAt when restoring
+        updated = current.map((r) => {
+          if (r.id !== body.id) return r;
+          const next = { ...r, status: body.status as SavedRhythm["status"] };
+          if (body.status !== "deleted") delete next.deletedAt;
+          return next;
+        });
       }
 
       await client.set(libKey(uid), JSON.stringify(updated));
