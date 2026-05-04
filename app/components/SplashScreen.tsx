@@ -1,68 +1,41 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function SplashScreen() {
-  const [videoOpacity, setVideoOpacity] = useState(0);
-  const [wrapperOpacity, setWrapperOpacity] = useState(1);
-  const [gone, setGone] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const [phase, setPhase] = useState<"in" | "hold" | "out" | "gone">("in");
 
   useEffect(() => {
-    // Fade video in from black on mount
-    const fadeIn = setTimeout(() => setVideoOpacity(1), 50);
-
-    const video = videoRef.current;
-    if (!video) return;
-
-    const handleEnd = () => {
-      // Fade wrapper to black over 0.5s, then unmount
-      setWrapperOpacity(0);
-      setTimeout(() => setGone(true), 500);
-    };
-
-    const handleError = () => {
-      setWrapperOpacity(0);
-      setTimeout(() => setGone(true), 500);
-    };
-
-    video.addEventListener("ended", handleEnd);
-    video.addEventListener("error", handleError);
-
-    video.play().catch(() => {
-      setWrapperOpacity(0);
-      setTimeout(() => setGone(true), 500);
-    });
-
-    return () => {
-      clearTimeout(fadeIn);
-      video.removeEventListener("ended", handleEnd);
-      video.removeEventListener("error", handleError);
-    };
+    const fadeIn  = setTimeout(() => setPhase("hold"), 50);
+    const fadeOut = setTimeout(() => setPhase("out"),  3000);
+    const done    = setTimeout(() => setPhase("gone"), 3600);
+    return () => { clearTimeout(fadeIn); clearTimeout(fadeOut); clearTimeout(done); };
   }, []);
 
-  if (gone) return null;
+  if (phase === "gone") return null;
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black"
+      className="fixed inset-0 z-50 flex items-center justify-center"
       style={{
-        opacity: wrapperOpacity,
-        transition: wrapperOpacity === 0 ? "opacity 0.5s ease-in-out" : "none",
+        background: "#060810",
+        opacity: phase === "out" ? 0 : 1,
+        transition: phase === "out" ? "opacity 0.6s ease-in-out" : "none",
       }}
     >
-      <video
-        ref={videoRef}
-        src="/splash.mp4"
-        muted
-        playsInline
-        preload="auto"
-        className="absolute inset-0 w-full h-full object-cover"
+      <h1
         style={{
-          opacity: videoOpacity,
-          transition: "opacity 0.5s ease-in-out",
+          fontFamily: "var(--font-display)",
+          fontSize: "2rem",
+          letterSpacing: "0.4em",
+          fontWeight: 300,
+          color: "#c9a55a",
+          opacity: phase === "in" ? 0 : 1,
+          transition: phase !== "in" ? "opacity 0.8s ease-in-out" : "none",
         }}
-      />
+      >
+        RTHMIC
+      </h1>
     </div>
   );
 }

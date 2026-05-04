@@ -9,7 +9,7 @@ export default function Home() {
           RTHMIC
         </h1>
         <p className="text-xs mt-1.5 tracking-widest uppercase" style={{ color: "#c9a55a", opacity: 0.45 }}>
-          Rhythm-based action
+          Rthm-based action
         </p>
       </header>
 
@@ -17,14 +17,14 @@ export default function Home() {
         <ModeCard
           href="/speak"
           label="Speak"
-          description="Tell RTHMIC your state. Get a rhythm built for you."
+          description="Tell Rthmic your state. Get an Rthm built for you."
           symbol="◉"
           primary
         />
         <ModeCard
           href="/library"
           label="Library"
-          description="Your generated rhythms and the curated collection."
+          description="Your generated Rthms and the curated collection."
           symbol="▤"
         />
         <ModeCard

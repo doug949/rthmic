@@ -6,18 +6,18 @@ import { useState } from "react";
 const panels = [
   {
     heading: "What",
-    body: "RTHMIC is a rhythm-based action system. Short audio tracks designed to move you — physically, mentally, emotionally.",
-    detail: "Each track is called a RTHM. They're not music for the background. They're tools for doing.",
+    body: "Rthmic is an Rthm-based action system. Short audio tracks designed to move you — physically, mentally, emotionally.",
+    detail: "Each track is called an Rthm. They're not music for the background. They're tools for doing.",
   },
   {
     heading: "When",
     body: "Use it when you're stuck. Overwhelmed. Procrastinating. Frozen before a task.",
-    detail: "The moment you notice resistance — that's when RTHMIC works. You don't need to be ready. You just need to press play.",
+    detail: "The moment you notice resistance — that's when Rthmic works. You don't need to be ready. You just need to press play.",
   },
   {
     heading: "How",
-    body: "Press play. Follow the rhythm. Let your state shift.",
-    detail: "No setup. No decisions. One tap is enough. The RTHM does the rest.",
+    body: "Press play. Follow the Rthm. Let your state shift.",
+    detail: "No setup. No decisions. One tap is enough. The Rthm does the rest.",
   },
 ];
 

@@ -116,7 +116,7 @@ export default function LibraryPage() {
         {/* My Rhythms */}
         <div className="flex flex-col gap-3">
           <div className="flex items-baseline gap-2">
-            <h2 className="text-lg font-light tracking-wide text-white" style={{ fontFamily: "var(--font-display)" }}>My Rhythms</h2>
+            <h2 className="text-lg font-light tracking-wide text-white" style={{ fontFamily: "var(--font-display)" }}>My Rthms</h2>
             {active.length > 0 && (
               <span className="text-[10px] text-white/25 tabular-nums">{active.length}</span>
             )}
@@ -137,7 +137,7 @@ export default function LibraryPage() {
           {loadState === "ready" && active.length === 0 && (
             <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5 py-8 flex flex-col items-center gap-3">
               <p className="text-sm text-white/25 text-center leading-relaxed">
-                Rhythms you generate will appear here.
+                Rthms you generate will appear here.
               </p>
               <Link
                 href="/speak"
@@ -175,7 +175,7 @@ export default function LibraryPage() {
             <span className="text-2xl flex-shrink-0 text-white/30" aria-hidden>◎</span>
             <div className="flex-1 min-w-0">
               <p className="text-base font-semibold text-white/80 tracking-wide">Explore</p>
-              <p className="text-sm text-white/35 mt-0.5">20 hand-selected rhythms</p>
+              <p className="text-sm text-white/35 mt-0.5">20 hand-selected Rthms</p>
             </div>
             <span className="text-white/20 text-lg flex-shrink-0">›</span>
           </Link>

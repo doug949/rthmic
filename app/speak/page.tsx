@@ -434,7 +434,7 @@ function IdleView({ onRecord, errorMsg }: { onRecord: () => void; errorMsg: stri
     <section className="flex-1 flex flex-col items-center justify-center pb-24 gap-10">
       <div className="text-center">
         <h2 className="text-2xl font-light tracking-wide text-white leading-snug" style={{ fontFamily: "var(--font-display)" }}>Speak your state</h2>
-        <p className="text-sm text-white/35 mt-2">Two rhythms will be built for you.</p>
+        <p className="text-sm text-white/35 mt-2">Two Rthms will be built for you.</p>
       </div>
 
       <button
@@ -555,7 +555,7 @@ function ConfirmingView({
           className="w-full py-5 rounded-2xl text-sm font-semibold tracking-wide active:scale-[0.98] transition-all touch-manipulation"
           style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.45)", color: "#c9a55a" }}
         >
-          Yes — build my rhythms
+          Yes — build my Rthms
         </button>
         <button
           onClick={onAddMore}
@@ -583,7 +583,7 @@ function GeneratingView() {
   return (
     <section className="flex-1 flex flex-col items-center justify-center pb-24 gap-8">
       <div className="text-center max-w-xs">
-        <h2 className="text-xl font-light tracking-wide text-white" style={{ fontFamily: "var(--font-display)" }}>Building your rhythms</h2>
+        <h2 className="text-xl font-light tracking-wide text-white" style={{ fontFamily: "var(--font-display)" }}>Building your Rthms</h2>
         <p className="text-sm text-white/30 mt-2 leading-relaxed">This takes 1–2 minutes. RTHMIC will let you know when your tracks are ready.</p>
       </div>
       <div className="w-7 h-7 rounded-full border-2 border-white/15 border-t-white/55 animate-spin" />
@@ -654,7 +654,7 @@ function ResultsView({
 
       {songs.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-5 py-16">
-          <p className="text-sm text-white/25 text-center">All rhythms removed.</p>
+          <p className="text-sm text-white/25 text-center">All Rthms removed.</p>
           <button onClick={onReset} className="text-xs text-white/30 underline underline-offset-4">
             Speak again
           </button>
