@@ -23,19 +23,39 @@ export default function SplashScreen() {
         transition: phase === "out" ? "opacity 0.6s ease-in-out" : "none",
       }}
     >
-      <h1
+      <div
         style={{
-          fontFamily: "var(--font-display)",
-          fontSize: "2rem",
-          letterSpacing: "0.4em",
-          fontWeight: 300,
-          color: "#c9a55a",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "0.5rem",
           opacity: phase === "in" ? 0 : 1,
           transition: phase !== "in" ? "opacity 0.8s ease-in-out" : "none",
         }}
       >
-        RTHMIC
-      </h1>
+        <h1
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "2rem",
+            letterSpacing: "0.4em",
+            fontWeight: 300,
+            color: "#c9a55a",
+          }}
+        >
+          RTHMIC
+        </h1>
+        <span
+          style={{
+            fontSize: "0.55rem",
+            letterSpacing: "0.25em",
+            textTransform: "uppercase",
+            color: "#c9a55a",
+            opacity: 0.35,
+          }}
+        >
+          beta
+        </span>
+      </div>
     </div>
   );
 }

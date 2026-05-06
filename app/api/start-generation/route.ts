@@ -8,13 +8,16 @@ import type { StyleChoice } from "@/app/services/llmService";
 const BASE_URL = "https://api.sunoapi.org/api/v1";
 const SUNO_CHAR_LIMIT = 5000;
 
-// Both styles share the same indie-electronic aesthetic — same genre, same warmth, same instruments.
-// "fade out ending" and "resolving outro" are audio-level tags Suno uses for musical resolution.
-// They prevent abrupt cut-offs by signalling that the track should close naturally.
-const MUSIC_STYLES: Record<StyleChoice, string> = {
-  A: "indie electronic, uplifting male vocal, acoustic guitar, warm synth pads, 95bpm, motivational, grounded energy, human feel, positive, fade out ending, resolving outro",
-  B: "indie folk electronic, reflective male vocal, acoustic guitar, soft pads, 80bpm, meditative, calm focus, introspective, warm, fade out ending, resolving outro",
+// Style modifiers — applied on top of the user's chosen genre.
+// "fade out ending" and "resolving outro" prevent abrupt cut-offs.
+const STYLE_MODIFIERS: Record<StyleChoice, string> = {
+  A: "uplifting vocal, motivational, grounded energy, human feel, positive, 95bpm, fade out ending, resolving outro",
+  B: "reflective vocal, calm focus, meditative, introspective, warm, 80bpm, fade out ending, resolving outro",
 };
+
+function buildMusicStyle(style: StyleChoice, genre: string): string {
+  return `${genre}, ${STYLE_MODIFIERS[style]}`;
+}
 
 export const maxDuration = 15;
 
@@ -27,6 +30,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const lyrics = typeof body.lyrics === "string" ? body.lyrics.slice(0, SUNO_CHAR_LIMIT) : "";
     const style = (body.style as StyleChoice) ?? "B";
+    const genre = typeof body.genre === "string" && body.genre.trim() ? body.genre.trim() : "Indie Electronic";
     const songTitle = typeof body.title === "string" && body.title.trim()
       ? body.title.trim()
       : "RTHM";
@@ -46,7 +50,7 @@ export async function POST(req: NextRequest) {
         instrumental: false,
         model: "V4_5",
         prompt: lyrics,
-        style: MUSIC_STYLES[style],
+        style: buildMusicStyle(style, genre),
         title: songTitle,
         callBackUrl: "https://rthmic.vercel.app/api/suno-webhook",
       }),

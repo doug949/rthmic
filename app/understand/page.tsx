@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 const panels = [
   {
     heading: "What",
-    body: "Rthmic is an Rthm-based action system. Short audio tracks designed to move you — physically, mentally, emotionally.",
-    detail: "Each track is called an Rthm. They're not music for the background. They're tools for doing.",
+    body: "Rthmic generates complete songs — built specifically to solve your immediate challenge in the moment.",
+    detail: "Each song is called a Rthm. Not background music. A tool. Created for exactly what you're facing right now.",
   },
   {
     heading: "When",
@@ -16,25 +17,32 @@ const panels = [
   },
   {
     heading: "How",
-    body: "Press play. Follow the Rthm. Let your state shift.",
-    detail: "No setup. No decisions. One tap is enough. The Rthm does the rest.",
+    body: "Over time, you build a library. A toolkit of go-to tracks that work specifically for you, in specific moments.",
+    detail: "Every Rthm you generate is saved. The more you use it, the more precisely your library fits your life.",
   },
 ];
 
 export default function UnderstandPage() {
   const [active, setActive] = useState(0);
+  const router = useRouter();
   const panel = panels[active];
+  const isLast = active === panels.length - 1;
+
+  const goBack = () => {
+    if (active > 0) setActive((a) => a - 1);
+    else router.push("/");
+  };
 
   return (
     <main className="min-h-screen bg-[#0d1628] flex flex-col px-6 pt-safe">
       {/* Nav */}
       <header className="flex items-center gap-4 pt-12 pb-8">
-        <Link
-          href="/"
-          className="text-white/30 hover:text-white/60 transition-colors text-sm tracking-widest uppercase"
+        <button
+          onClick={goBack}
+          className="text-white/30 hover:text-white/60 transition-colors text-sm tracking-widest uppercase touch-manipulation"
         >
           ← Back
-        </Link>
+        </button>
         <span className="text-white/15 text-sm uppercase tracking-widest ml-auto">
           Understand
         </span>
@@ -69,22 +77,30 @@ export default function UnderstandPage() {
 
       {/* Navigation buttons */}
       <footer className="pb-10 flex gap-3">
-        {active < panels.length - 1 ? (
+        {isLast ? (
+          <>
+            <Link
+              href="/"
+              className="flex-1 py-4 rounded-2xl bg-white/[0.06] border border-white/[0.08] text-white/70 text-sm font-medium tracking-wide text-center active:scale-[0.98] transition-all touch-manipulation"
+            >
+              Home
+            </Link>
+            <Link
+              href="/speak"
+              className="flex-1 py-4 rounded-2xl text-sm font-semibold tracking-wide text-center active:scale-[0.98] transition-all touch-manipulation"
+              style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.45)", color: "#c9a55a" }}
+            >
+              Start speaking
+            </Link>
+          </>
+        ) : (
           <button
             onClick={() => setActive((a) => a + 1)}
-            className="flex-1 py-4 rounded-2xl bg-white/[0.06] border border-white/[0.08] text-white/70 text-sm font-medium tracking-wide active:scale-[0.98] transition-transform touch-manipulation"
+            className="ml-auto py-4 px-8 rounded-2xl bg-white/[0.06] border border-white/[0.08] text-white/70 text-sm font-medium tracking-wide active:scale-[0.98] transition-transform touch-manipulation"
           >
-            Next
+            Next →
           </button>
-        ) : null}
-
-        <Link
-          href="/speak"
-          className="flex-1 py-4 rounded-2xl text-sm font-semibold tracking-wide text-center active:scale-[0.98] transition-all touch-manipulation"
-          style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.45)", color: "#c9a55a" }}
-        >
-          Start speaking
-        </Link>
+        )}
       </footer>
     </main>
   );

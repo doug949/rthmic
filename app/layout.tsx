@@ -4,7 +4,10 @@ import "./globals.css";
 import ServiceWorkerRegistration from "@/app/components/ServiceWorkerRegistration";
 import SplashScreen from "@/app/components/SplashScreen";
 import { AudioProvider } from "@/app/contexts/AudioContext";
+import { GenerationProvider } from "@/app/contexts/GenerationContext";
 import MiniPlayer from "@/app/components/MiniPlayer";
+import GenerationBanner from "@/app/components/GenerationBanner";
+import PageFooter from "@/app/components/PageFooter";
 
 // Display font — wordmark, headings. Geometric, elegant, premium sans.
 const raleway = Raleway({
@@ -58,10 +61,16 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-[#0d1628]">
         <ServiceWorkerRegistration />
         <SplashScreen />
-        <AudioProvider>
-          {children}
-          <MiniPlayer />
-        </AudioProvider>
+        <GenerationProvider>
+          <AudioProvider>
+            <GenerationBanner />
+            {children}
+            <MiniPlayer />
+            {/* Spacer so fixed PageFooter never overlaps page content */}
+            <div className="h-12 flex-shrink-0" aria-hidden="true" />
+            <PageFooter />
+          </AudioProvider>
+        </GenerationProvider>
       </body>
     </html>
   );

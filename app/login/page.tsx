@@ -37,12 +37,9 @@ function LoginForm() {
 
   return (
     <main className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center px-6">
-      <h1 className="text-2xl font-semibold tracking-[0.2em] text-white/90 uppercase mb-2">
+      <h1 className="text-2xl font-semibold tracking-[0.2em] text-white/90 uppercase mb-12">
         RTHMIC
       </h1>
-      <p className="text-xs text-white/25 tracking-widest uppercase mb-12">
-        Beta
-      </p>
 
       <form onSubmit={handleSubmit} className="w-full max-w-xs flex flex-col gap-3">
         <input
