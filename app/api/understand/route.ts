@@ -6,8 +6,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { transcribe } from "@/app/services/transcriptionService";
 import { interpret } from "@/app/services/llmService";
+import { normalisePillar } from "@/app/types/pipeline";
+import type { PillarType } from "@/app/types/pipeline";
 
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,6 +18,7 @@ export async function POST(req: NextRequest) {
     let audio: Blob | undefined;
     let textInput: string | undefined;
     let previousContext: string | undefined;
+    let selectedPillarSlug: string | undefined;
 
     if (contentType.includes("multipart/form-data")) {
       const form = await req.formData();
@@ -25,10 +28,13 @@ export async function POST(req: NextRequest) {
       if (typeof text === "string" && text.trim()) textInput = text;
       const ctx = form.get("previousContext");
       if (typeof ctx === "string" && ctx.trim()) previousContext = ctx.trim();
+      const p = form.get("pillar");
+      if (typeof p === "string" && p.trim()) selectedPillarSlug = p.trim();
     } else {
       const body = await req.json();
       if (typeof body.transcript === "string") textInput = body.transcript;
       if (typeof body.previousContext === "string") previousContext = body.previousContext;
+      if (typeof body.pillar === "string") selectedPillarSlug = body.pillar;
     }
 
     if (!audio && !textInput) {
@@ -42,7 +48,12 @@ export async function POST(req: NextRequest) {
       ? `${previousContext} ${newTranscript}`
       : newTranscript;
 
-    const { pillar, stateSummary, title, lyrics, style } = await interpret(fullTranscript);
+    // User's explicit pillar choice overrides auto-detection
+    const overridePillar: PillarType | undefined = selectedPillarSlug
+      ? normalisePillar(selectedPillarSlug)
+      : undefined;
+
+    const { pillar, stateSummary, title, lyrics, style } = await interpret(fullTranscript, overridePillar);
 
     return NextResponse.json({ transcript: newTranscript, pillar, stateSummary, title, lyrics, style });
   } catch (err) {

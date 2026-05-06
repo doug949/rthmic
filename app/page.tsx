@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 
 export default function Home() {
@@ -13,11 +15,11 @@ export default function Home() {
         </p>
       </header>
 
-      <section className="flex-1 flex flex-col gap-4 pb-12">
+      <section className="flex-1 flex flex-col gap-4 pb-6">
         <ModeCard
           href="/speak"
           label="Speak"
-          description="Tell Rthmic your state. Get an Rthm built for you."
+          description="Tell Rthmic your state. Get a Rthm built for you."
           symbol="◉"
           primary
         />
@@ -33,6 +35,12 @@ export default function Home() {
           description="What is RTHMIC and when to use it"
           symbol="◎"
         />
+        <ModeCard
+          href="/settings"
+          label="RTHMIC Styles"
+          description="Configure your genre map and preferences"
+          symbol="⊙"
+        />
       </section>
     </main>
   );
@@ -44,40 +52,43 @@ function ModeCard({
   description,
   symbol,
   primary,
+  subtle,
 }: {
   href: string;
   label: string;
   description: string;
   symbol: string;
   primary?: boolean;
+  subtle?: boolean;
 }) {
   return (
     <Link
       href={href}
       className={`
-        flex items-center gap-5 px-6 py-7 rounded-2xl border transition-all duration-150
+        flex items-center gap-5 px-6 rounded-2xl border transition-all duration-150
         active:scale-[0.98] touch-manipulation
+        ${primary ? "py-7" : subtle ? "py-4" : "py-7"}
         ${primary ? "" : "bg-white/[0.03] border-white/[0.08] hover:bg-white/[0.07]"}
       `}
       style={primary ? { background: "rgba(201,165,90,0.08)", borderColor: "rgba(201,165,90,0.35)" } : {}}
     >
       <span
-        className="text-2xl flex-shrink-0"
-        style={{ color: primary ? "#c9a55a" : "rgba(255,255,255,0.4)" }}
+        className={`flex-shrink-0 ${subtle ? "text-lg" : "text-2xl"}`}
+        style={{ color: primary ? "#c9a55a" : subtle ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.4)" }}
         aria-hidden
       >
         {symbol}
       </span>
       <div className="flex-1 min-w-0">
         <p
-          className="text-lg font-semibold tracking-wide"
-          style={{ color: primary ? "#c9a55a" : "rgba(255,255,255,0.8)" }}
+          className={`font-semibold tracking-wide ${subtle ? "text-base" : "text-lg"}`}
+          style={{ color: primary ? "#c9a55a" : subtle ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.8)" }}
         >
           {label}
         </p>
-        <p className="text-sm text-white/35 mt-0.5 leading-snug">{description}</p>
+        <p className={`mt-0.5 leading-snug ${subtle ? "text-xs text-white/20" : "text-sm text-white/35"}`}>{description}</p>
       </div>
-      <span className="flex-shrink-0 text-lg" style={{ color: primary ? "rgba(201,165,90,0.4)" : "rgba(255,255,255,0.2)" }}>›</span>
+      <span className="flex-shrink-0 text-lg" style={{ color: primary ? "rgba(201,165,90,0.4)" : subtle ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.2)" }}>›</span>
     </Link>
   );
 }

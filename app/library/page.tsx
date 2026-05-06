@@ -3,15 +3,29 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import type { SavedRhythm } from "@/app/api/library/route";
+import { useGeneration } from "@/app/contexts/GenerationContext";
+import CustomStyleInput from "@/app/components/CustomStyleInput";
 
 type LoadState = "loading" | "ready" | "error";
+
+function inferStyle(pillar: string): "A" | "B" {
+  // Movement uses Style A (forward momentum); all others default to B (calm focus)
+  return (pillar || "").toLowerCase() === "movement" ? "A" : "B";
+}
 
 export default function LibraryPage() {
   const [rhythms, setRhythms] = useState<SavedRhythm[]>([]);
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [showLyricsId, setShowLyricsId] = useState<string | null>(null);
   const audioElRef = useRef<HTMLAudioElement>(null);
+
+  // Recreate genre picker
+  const [recreateRhythm, setRecreateRhythm] = useState<SavedRhythm | null>(null);
+  const { startGeneration } = useGeneration();
 
   const fetchLibrary = useCallback(async () => {
     try {
@@ -35,10 +49,16 @@ export default function LibraryPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    fetchLibrary(); // re-fetch to stay in sync with server
+    fetchLibrary();
   }, [fetchLibrary]);
 
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
+  const [myRthmsOpen, setMyRthmsOpen] = useState(false);
+  const [myRthmsExpanded, setMyRthmsExpanded] = useState(false);
+  const [curatedOpen, setCuratedOpen] = useState(false);
+  const [archivedOpen, setArchivedOpen] = useState(false);
+  const [deletedOpen, setDeletedOpen] = useState(false);
+  const MY_RTHMS_PREVIEW = 5;
 
   const handleRemove = (id: string) => {
     if (confirmRemoveId === id) {
@@ -73,12 +93,30 @@ export default function LibraryPage() {
     }
 
     el.pause();
+    setCurrentTime(0);
+    setDuration(0);
     el.src = rhythm.audioUrl;
-    el.load();
-    el.play().catch(() => setIsPlaying(false));
     setPlayingId(rhythm.id);
-    setIsPlaying(true);
+    el.play()
+      .then(() => setIsPlaying(true))
+      .catch(() => setIsPlaying(false));
   }, [playingId, isPlaying]);
+
+  const handleRecreate = (rhythm: SavedRhythm) => {
+    setRecreateRhythm(rhythm);
+  };
+
+  const handleGenreSelected = (genre: string) => {
+    if (!recreateRhythm) return;
+    startGeneration({
+      lyrics: recreateRhythm.lyrics || "",
+      style: inferStyle(recreateRhythm.pillar),
+      title: recreateRhythm.title,
+      pillar: recreateRhythm.pillar,
+      genre,
+    });
+    setRecreateRhythm(null);
+  };
 
   const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
   const now = Date.now();
@@ -96,9 +134,12 @@ export default function LibraryPage() {
     <main className="min-h-screen bg-[#0d1628] flex flex-col px-6 pt-safe">
       <audio
         ref={audioElRef}
-        onEnded={() => setIsPlaying(false)}
+        onEnded={() => { setIsPlaying(false); setCurrentTime(0); }}
         onError={() => setIsPlaying(false)}
-        preload="none"
+        onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+        onDurationChange={(e) => setDuration(isFinite(e.currentTarget.duration) ? e.currentTarget.duration : 0)}
+        onLoadedMetadata={(e) => setDuration(isFinite(e.currentTarget.duration) ? e.currentTarget.duration : 0)}
+        preload="metadata"
       />
 
       <header className="flex items-center gap-4 pt-12 pb-8">
@@ -113,129 +154,301 @@ export default function LibraryPage() {
 
       <section className="flex-1 flex flex-col gap-8 pb-16">
 
-        {/* My Rhythms */}
+        {/* My Rthms */}
         <div className="flex flex-col gap-3">
-          <div className="flex items-baseline gap-2">
-            <h2 className="text-lg font-light tracking-wide text-white" style={{ fontFamily: "var(--font-display)" }}>My Rthms</h2>
-            {active.length > 0 && (
-              <span className="text-[10px] text-white/25 tabular-nums">{active.length}</span>
-            )}
-          </div>
+          <SectionHeader
+            title="My Rthms"
+            count={active.length > 0 ? active.length : undefined}
+            open={myRthmsOpen}
+            onToggle={() => setMyRthmsOpen((o) => !o)}
+          />
 
-          {loadState === "loading" && (
-            <div className="flex justify-center py-10">
-              <div className="w-6 h-6 rounded-full border-2 border-white/15 border-t-white/40 animate-spin" />
-            </div>
-          )}
+          {myRthmsOpen && (
+            <>
+              {loadState === "loading" && (
+                <div className="flex justify-center py-10">
+                  <div className="w-6 h-6 rounded-full border-2 border-white/15 border-t-white/40 animate-spin" />
+                </div>
+              )}
 
-          {loadState === "error" && (
-            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5 py-6 text-center">
-              <p className="text-sm text-white/25">Couldn't load library. Check your connection.</p>
-            </div>
-          )}
+              {loadState === "error" && (
+                <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5 py-6 text-center">
+                  <p className="text-sm text-white/25">Couldn't load library. Check your connection.</p>
+                </div>
+              )}
 
-          {loadState === "ready" && active.length === 0 && (
-            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5 py-8 flex flex-col items-center gap-3">
-              <p className="text-sm text-white/25 text-center leading-relaxed">
-                Rthms you generate will appear here.
-              </p>
-              <Link
-                href="/speak"
-                className="text-xs text-white/30 underline underline-offset-4 hover:text-white/50 transition-colors"
-              >
-                Speak your state →
-              </Link>
-            </div>
-          )}
+              {loadState === "ready" && active.length === 0 && (
+                <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5 py-8 flex flex-col items-center gap-3">
+                  <p className="text-sm text-white/25 text-center leading-relaxed">
+                    Rthms you generate will appear here.
+                  </p>
+                  <Link
+                    href="/speak"
+                    className="text-xs text-white/30 underline underline-offset-4 hover:text-white/50 transition-colors"
+                  >
+                    Speak your state →
+                  </Link>
+                </div>
+              )}
 
-          {loadState === "ready" && active.length > 0 && (
-            <div className="flex flex-col gap-2">
-              {active.map((rhythm) => (
-                <RhythmRow
-                  key={rhythm.id}
-                  rhythm={rhythm}
-                  playing={playingId === rhythm.id && isPlaying}
-                  onPlay={() => togglePlay(rhythm)}
-                  onArchive={() => handleToggleArchive(rhythm)}
-                  onRemove={() => handleRemove(rhythm.id)}
-                  confirmingRemove={confirmRemoveId === rhythm.id}
-                />
-              ))}
-            </div>
+              {loadState === "ready" && active.length > 0 && (
+                <div className="flex flex-col gap-2">
+                  {(myRthmsExpanded ? active : active.slice(0, MY_RTHMS_PREVIEW)).map((rhythm) => (
+                    <RhythmRow
+                      key={rhythm.id}
+                      rhythm={rhythm}
+                      playing={playingId === rhythm.id && isPlaying}
+                      currentTime={playingId === rhythm.id ? currentTime : 0}
+                      duration={playingId === rhythm.id ? duration : 0}
+                      showLyrics={showLyricsId === rhythm.id}
+                      onToggleLyrics={() => setShowLyricsId(showLyricsId === rhythm.id ? null : rhythm.id)}
+                      onPlay={() => togglePlay(rhythm)}
+                      onArchive={() => handleToggleArchive(rhythm)}
+                      onRemove={() => handleRemove(rhythm.id)}
+                      onRecreate={() => handleRecreate(rhythm)}
+                      confirmingRemove={confirmRemoveId === rhythm.id}
+                    />
+                  ))}
+                  {active.length > MY_RTHMS_PREVIEW && (
+                    <button
+                      onClick={() => setMyRthmsExpanded((e) => !e)}
+                      className="text-[10px] text-white/25 uppercase tracking-widest py-2 touch-manipulation hover:text-white/40 transition-colors"
+                    >
+                      {myRthmsExpanded ? "Show less ↑" : `+${active.length - MY_RTHMS_PREVIEW} more ↓`}
+                    </button>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </div>
 
         {/* Curated Library */}
         <div className="flex flex-col gap-3">
-          <h2 className="text-lg font-light tracking-wide text-white" style={{ fontFamily: "var(--font-display)" }}>Curated Library</h2>
-          <Link
-            href="/explore"
-            className="flex items-center gap-5 px-6 py-6 rounded-2xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] active:scale-[0.98] transition-all touch-manipulation"
-          >
-            <span className="text-2xl flex-shrink-0 text-white/30" aria-hidden>◎</span>
-            <div className="flex-1 min-w-0">
-              <p className="text-base font-semibold text-white/80 tracking-wide">Explore</p>
-              <p className="text-sm text-white/35 mt-0.5">20 hand-selected Rthms</p>
-            </div>
-            <span className="text-white/20 text-lg flex-shrink-0">›</span>
-          </Link>
+          <SectionHeader
+            title="Curated Library"
+            open={curatedOpen}
+            onToggle={() => setCuratedOpen((o) => !o)}
+          />
+          {curatedOpen && (
+            <Link
+              href="/explore"
+              className="flex items-center gap-5 px-6 py-6 rounded-2xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] active:scale-[0.98] transition-all touch-manipulation"
+            >
+              <span className="text-2xl flex-shrink-0 text-white/30" aria-hidden>◎</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-base font-semibold text-white/80 tracking-wide">Explore</p>
+                <p className="text-sm text-white/35 mt-0.5">20 hand-selected Rthms</p>
+              </div>
+              <span className="text-white/20 text-lg flex-shrink-0">›</span>
+            </Link>
+          )}
         </div>
 
         {/* Archived */}
         {archived.length > 0 && (
           <div className="flex flex-col gap-3">
-            <h2 className="text-sm font-light tracking-widest text-white/25 uppercase">Archived</h2>
-            <div className="flex flex-col gap-2">
-              {archived.map((rhythm) => (
-                <RhythmRow
-                  key={rhythm.id}
-                  rhythm={rhythm}
-                  playing={playingId === rhythm.id && isPlaying}
-                  onPlay={() => togglePlay(rhythm)}
-                  onArchive={() => handleToggleArchive(rhythm)}
-                  onRemove={() => handleRemove(rhythm.id)}
-                  confirmingRemove={confirmRemoveId === rhythm.id}
-                  dimmed
-                />
-              ))}
-            </div>
+            <SectionHeader
+              title="Archived"
+              count={archived.length}
+              open={archivedOpen}
+              onToggle={() => setArchivedOpen((o) => !o)}
+              dim
+            />
+            {archivedOpen && (
+              <div className="flex flex-col gap-2">
+                {archived.map((rhythm) => (
+                  <RhythmRow
+                    key={rhythm.id}
+                    rhythm={rhythm}
+                    playing={playingId === rhythm.id && isPlaying}
+                    currentTime={playingId === rhythm.id ? currentTime : 0}
+                    duration={playingId === rhythm.id ? duration : 0}
+                    showLyrics={showLyricsId === rhythm.id}
+                    onToggleLyrics={() => setShowLyricsId(showLyricsId === rhythm.id ? null : rhythm.id)}
+                    onPlay={() => togglePlay(rhythm)}
+                    onArchive={() => handleToggleArchive(rhythm)}
+                    onRemove={() => handleRemove(rhythm.id)}
+                    onRecreate={() => handleRecreate(rhythm)}
+                    confirmingRemove={confirmRemoveId === rhythm.id}
+                    dimmed
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )}
 
         {/* Recently Deleted */}
         {recentlyDeleted.length > 0 && (
           <div className="flex flex-col gap-3">
-            <div className="flex items-baseline gap-2">
-              <h2 className="text-sm font-light tracking-widest text-white/20 uppercase">Recently Deleted</h2>
-              <span className="text-[9px] text-white/15">Recoverable for 30 days</span>
-            </div>
-            <div className="flex flex-col gap-2">
-              {recentlyDeleted.map((rhythm) => {
-                const daysLeft = Math.ceil((THIRTY_DAYS - (now - (rhythm.deletedAt ?? now))) / (24 * 60 * 60 * 1000));
-                return (
-                  <div key={rhythm.id} className="rounded-2xl border border-white/[0.05] bg-white/[0.02] opacity-40">
-                    <div className="flex items-center gap-4 px-5 py-4">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-white/50 truncate">{rhythm.title}</p>
-                        <p className="text-[9px] text-white/20 uppercase tracking-widest mt-0.5">
-                          {daysLeft} day{daysLeft !== 1 ? "s" : ""} left to restore
-                        </p>
+            <SectionHeader
+              title="Recently Deleted"
+              count={recentlyDeleted.length}
+              subtitle="Recoverable for 30 days"
+              open={deletedOpen}
+              onToggle={() => setDeletedOpen((o) => !o)}
+              dim
+            />
+            {deletedOpen && (
+              <div className="flex flex-col gap-2">
+                {recentlyDeleted.map((rhythm) => {
+                  const daysLeft = Math.ceil((THIRTY_DAYS - (now - (rhythm.deletedAt ?? now))) / (24 * 60 * 60 * 1000));
+                  return (
+                    <div key={rhythm.id} className="rounded-2xl border border-white/[0.05] bg-white/[0.02] opacity-40">
+                      <div className="flex items-center gap-4 px-5 py-4">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-white/50 truncate">{rhythm.title}</p>
+                          <p className="text-[10px] text-white/35 uppercase tracking-wider mt-0.5">
+                            {daysLeft} day{daysLeft !== 1 ? "s" : ""} left to restore
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleRestore(rhythm.id)}
+                          className="flex-shrink-0 text-[10px] uppercase tracking-widest text-white/30 hover:text-white/60 transition-colors touch-manipulation px-3 py-1.5 rounded-lg border border-white/[0.08] hover:border-white/20"
+                        >
+                          Restore
+                        </button>
                       </div>
-                      <button
-                        onClick={() => handleRestore(rhythm.id)}
-                        className="flex-shrink-0 text-[10px] uppercase tracking-widest text-white/30 hover:text-white/60 transition-colors touch-manipulation px-3 py-1.5 rounded-lg border border-white/[0.08] hover:border-white/20"
-                      >
-                        Restore
-                      </button>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </section>
+
+      {/* Genre picker overlay */}
+      {recreateRhythm && (
+        <LibraryGenrePicker
+          rhythm={recreateRhythm}
+          onSelect={handleGenreSelected}
+          onClose={() => setRecreateRhythm(null)}
+        />
+      )}
     </main>
+  );
+}
+
+// ─── Genre picker bottom sheet ────────────────────────────────────────────────
+
+function LibraryGenrePicker({
+  rhythm,
+  onSelect,
+  onClose,
+}: {
+  rhythm: SavedRhythm;
+  onSelect: (genre: string) => void;
+  onClose: () => void;
+}) {
+  const [genres, setGenres] = useState<string[]>([]);
+  const [loadingGenres, setLoadingGenres] = useState(true);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [customStyle, setCustomStyle] = useState("");
+  const [customSelected, setCustomSelected] = useState(false);
+
+  const selectPreset = (i: number) => { setSelectedIndex(i); setCustomSelected(false); };
+  const selectCustom = () => { if (customStyle) { setCustomSelected(true); setSelectedIndex(null); } };
+
+  useEffect(() => {
+    fetch("/api/genres")
+      .then((r) => r.json())
+      .then((d) => { if (d.genres) setGenres(d.genres); })
+      .catch(() => {})
+      .finally(() => setLoadingGenres(false));
+  }, []);
+
+  const selectedGenre = customSelected && customStyle
+    ? customStyle
+    : selectedIndex !== null ? genres[selectedIndex] ?? "" : "";
+  const canProceed = selectedGenre.length > 0;
+  const buildLabel = canProceed
+    ? `Recreate with ${selectedGenre.split(",")[0].slice(0, 28)}${selectedGenre.length > 28 ? "…" : ""}`
+    : "Select a style";
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col justify-end">
+      <div className="absolute inset-0 bg-black/60" onClick={onClose} style={{ backdropFilter: "blur(4px)" }} />
+
+      <div
+        className="relative rounded-t-3xl px-6 pt-6 flex flex-col gap-4 max-h-[85vh]"
+        style={{ background: "#0d1628", borderTop: "1px solid rgba(255,255,255,0.08)" }}
+      >
+        <div className="flex justify-center -mt-1">
+          <div className="w-10 h-1 rounded-full bg-white/15" />
+        </div>
+
+        <div className="flex-shrink-0">
+          <p className="text-[10px] text-white/25 uppercase tracking-widest mb-1">Recreate in another genre</p>
+          <h3 className="text-lg font-light text-white leading-snug" style={{ fontFamily: "var(--font-display)" }}>
+            {rhythm.title}
+          </h3>
+        </div>
+
+        {/* Scrollable genre list */}
+        <div className="flex-1 overflow-y-auto flex flex-col gap-2 pb-2">
+          {loadingGenres ? (
+            <div className="flex justify-center py-8">
+              <div className="w-6 h-6 rounded-full border-2 border-white/15 border-t-white/40 animate-spin" />
+            </div>
+          ) : (
+            <>
+              {genres.map((genre, i) => {
+                const isSelected = !customSelected && selectedIndex === i;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => selectPreset(i)}
+                    className="w-full text-left px-5 py-4 rounded-2xl border transition-all duration-150 active:scale-[0.98] touch-manipulation"
+                    style={
+                      isSelected
+                        ? { borderColor: "rgba(201,165,90,0.5)", background: "rgba(201,165,90,0.08)" }
+                        : { borderColor: "rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }
+                    }
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <span className={`text-sm font-medium leading-snug ${isSelected ? "text-[#c9a55a]" : "text-white/65"}`}>
+                        {genre}
+                      </span>
+                      <div
+                        className="w-4 h-4 rounded-full border flex-shrink-0 flex items-center justify-center"
+                        style={isSelected
+                          ? { borderColor: "rgba(201,165,90,0.7)", background: "rgba(201,165,90,0.3)" }
+                          : { borderColor: "rgba(255,255,255,0.2)" }}
+                      >
+                        {isSelected && <div className="w-2 h-2 rounded-full bg-[#c9a55a]" />}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+
+              {/* Custom style */}
+              <CustomStyleInput
+                onStyleChange={(s) => { setCustomStyle(s); setCustomSelected(true); setSelectedIndex(null); }}
+                selected={customSelected}
+                onSelect={selectCustom}
+              />
+            </>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-2 pb-safe pt-2 flex-shrink-0">
+          <button
+            onClick={() => canProceed && onSelect(selectedGenre)}
+            disabled={!canProceed}
+            className="w-full py-5 rounded-2xl text-sm font-semibold tracking-wide active:scale-[0.98] transition-all touch-manipulation disabled:opacity-30"
+            style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.45)", color: "#c9a55a" }}
+          >
+            {buildLabel}
+          </button>
+          <button onClick={onClose} className="w-full py-3 text-white/25 text-sm tracking-wide touch-manipulation">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -244,23 +457,38 @@ export default function LibraryPage() {
 function RhythmRow({
   rhythm,
   playing,
+  currentTime,
+  duration,
+  showLyrics,
+  onToggleLyrics,
   onPlay,
   onArchive,
   onRemove,
+  onRecreate,
   confirmingRemove,
   dimmed,
 }: {
   rhythm: SavedRhythm;
   playing: boolean;
+  currentTime: number;
+  duration: number;
+  showLyrics: boolean;
+  onToggleLyrics: () => void;
   onPlay: () => void;
   onArchive: () => void;
   onRemove: () => void;
+  onRecreate: () => void;
   confirmingRemove?: boolean;
   dimmed?: boolean;
 }) {
   const canPlay = !!rhythm.audioUrl;
-  // Suno audio URLs expire after ~24–48h; warn on entries older than 20h
   const mayBeExpired = Date.now() - rhythm.savedAt > 20 * 60 * 60 * 1000;
+
+  const fmt = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${sec.toString().padStart(2, "0")}`;
+  };
 
   return (
     <div
@@ -284,15 +512,50 @@ function RhythmRow({
             {rhythm.title}
           </p>
           <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-[9px] text-white/20 uppercase tracking-widest">{rhythm.pillar}</span>
+            <span className="text-[10px] text-white/35 uppercase tracking-wider">{rhythm.pillar}</span>
             {mayBeExpired && !playing && canPlay && (
-              <span className="text-[9px] text-white/12 uppercase tracking-widest">· may have expired</span>
+              <span className="text-[10px] text-white/25 uppercase tracking-wider">· may have expired</span>
             )}
           </div>
         </div>
       </button>
 
+      {/* Progress bar when playing */}
+      {playing && duration > 0 && (
+        <div className="px-5 pb-3">
+          <div className="h-[3px] bg-white/10 rounded-full">
+            <div
+              className="h-full bg-white/40 rounded-full"
+              style={{ width: `${(currentTime / duration) * 100}%` }}
+            />
+          </div>
+          <div className="flex justify-between mt-1">
+            <span className="text-xs text-white/35 tabular-nums">{fmt(currentTime)}</span>
+            <span className="text-xs text-white/35 tabular-nums">{fmt(duration)}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Lyrics panel */}
+      {showLyrics && rhythm.lyrics && (
+        <LibraryLyricsView
+          lyrics={rhythm.lyrics}
+          currentTime={currentTime}
+          duration={duration}
+          isPlaying={playing}
+        />
+      )}
+
       <div className="flex border-t border-white/[0.06]">
+        {rhythm.lyrics && (
+          <SmallBtn onClick={onToggleLyrics} label="Lyrics" icon="≡" active={showLyrics} />
+        )}
+        <SmallBtn
+          onClick={onRecreate}
+          label="Recreate"
+          sublabel="New genre"
+          icon="↺"
+        />
         <SmallBtn
           onClick={onArchive}
           label={rhythm.status === "archived" ? "Restore" : "Archive"}
@@ -302,7 +565,7 @@ function RhythmRow({
         <SmallBtn
           onClick={onRemove}
           label={confirmingRemove ? "Confirm?" : "Remove"}
-          sublabel={confirmingRemove ? "Tap again to delete" : "Delete from library"}
+          sublabel={confirmingRemove ? "Tap again" : "Delete"}
           icon="×"
           danger
           confirming={confirmingRemove}
@@ -312,22 +575,76 @@ function RhythmRow({
   );
 }
 
+function LibraryLyricsView({
+  lyrics,
+  currentTime,
+  duration,
+  isPlaying,
+}: {
+  lyrics: string;
+  currentTime: number;
+  duration: number;
+  isPlaying: boolean;
+}) {
+  const lines = lyrics
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l && !l.match(/^\[.*\]$/));
+
+  if (lines.length === 0) return null;
+
+  const introGap = duration > 0 ? Math.min(10, duration * 0.07) : 0;
+  const lyricSpan = Math.max(0, duration - introGap);
+  const lineTime = lines.length > 1 ? lyricSpan / lines.length : lyricSpan;
+
+  let currentIdx = -1;
+  if (isPlaying && duration > 0 && currentTime >= introGap) {
+    currentIdx = Math.min(
+      Math.floor((currentTime - introGap) / lineTime),
+      lines.length - 1
+    );
+  }
+
+  const prevLine = currentIdx > 0 ? lines[currentIdx - 1] : null;
+  const currLine = currentIdx >= 0 ? lines[currentIdx] : null;
+  const nextLine =
+    currentIdx >= 0 && currentIdx < lines.length - 1 ? lines[currentIdx + 1] :
+    currentIdx === -1 ? lines[0] : null;
+
+  return (
+    <div className="px-6 pt-1 pb-5 flex flex-col items-center gap-1.5 text-center border-t border-white/[0.04]">
+      {prevLine && (
+        <p className="text-[11px] text-white/20 leading-snug transition-all duration-500">{prevLine}</p>
+      )}
+      {currLine ? (
+        <p className="text-sm text-white/80 font-medium leading-snug transition-all duration-300">{currLine}</p>
+      ) : (
+        <p className="text-[11px] text-white/15 leading-snug italic">{nextLine}</p>
+      )}
+      {currLine && nextLine && (
+        <p className="text-[11px] text-white/20 leading-snug transition-all duration-500">{nextLine}</p>
+      )}
+    </div>
+  );
+}
+
 // ─── Micro components ─────────────────────────────────────────────────────────
 
-function SmallBtn({ onClick, label, sublabel, icon, danger, confirming }: {
-  onClick: () => void; label: string; sublabel?: string; icon: string; danger?: boolean; confirming?: boolean;
+function SmallBtn({ onClick, label, sublabel, icon, danger, confirming, active }: {
+  onClick: () => void; label: string; sublabel?: string; icon: string; danger?: boolean; confirming?: boolean; active?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
-      className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 touch-manipulation transition-colors
-        ${confirming ? "text-red-400/80"
-          : danger ? "text-white/20 hover:text-red-400/50"
-          : "text-white/20 hover:text-white/40"}`}
+      className={`flex-1 flex flex-col items-center gap-1 py-3 touch-manipulation transition-colors
+        ${confirming ? "text-red-400/90"
+          : danger ? "text-white/35 hover:text-red-400/70"
+          : active ? "text-white/70"
+          : "text-white/40 hover:text-white/60"}`}
     >
-      <span className="text-sm leading-none">{icon}</span>
-      <span className="uppercase tracking-widest text-[9px]">{label}</span>
-      {sublabel && <span className="text-[8px] opacity-60 normal-case tracking-normal">{sublabel}</span>}
+      <span className="text-base leading-none">{icon}</span>
+      <span className="uppercase tracking-wider text-[10px] font-medium">{label}</span>
+      {sublabel && <span className="text-[10px] opacity-60 normal-case tracking-normal">{sublabel}</span>}
     </button>
   );
 }
@@ -346,5 +663,45 @@ function PauseIcon() {
       <rect x="3" y="2" width="3.5" height="12" rx="1" fill="currentColor" />
       <rect x="9.5" y="2" width="3.5" height="12" rx="1" fill="currentColor" />
     </svg>
+  );
+}
+
+
+function SectionHeader({
+  title,
+  count,
+  subtitle,
+  open,
+  onToggle,
+  dim,
+}: {
+  title: string;
+  count?: number;
+  subtitle?: string;
+  open: boolean;
+  onToggle: () => void;
+  dim?: boolean;
+}) {
+  return (
+    <button
+      onClick={onToggle}
+      className="flex items-baseline gap-2 touch-manipulation text-left w-full py-0.5"
+    >
+      <h2
+        className={`font-light tracking-wide ${dim ? "text-sm text-white/25 uppercase tracking-widest" : "text-lg text-white"}`}
+        style={dim ? {} : { fontFamily: "var(--font-display)" }}
+      >
+        {title}
+      </h2>
+      {count !== undefined && count > 0 && (
+        <span className="text-xs text-white/35 tabular-nums">{count}</span>
+      )}
+      {subtitle && (
+        <span className="text-[10px] text-white/30 ml-1">{subtitle}</span>
+      )}
+      <span className="ml-auto text-[10px] text-white/35 uppercase tracking-widest">
+        {open ? "↑" : "↓"}
+      </span>
+    </button>
   );
 }

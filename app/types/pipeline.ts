@@ -1,4 +1,34 @@
-export type PillarType = "Mode" | "Algorithm" | "Menu" | "Memorisation" | "Mindset";
+export type PillarType = "Memory" | "Menus" | "Mindset" | "Mode" | "Movement" | "Understanding";
+
+// Legacy pillar names stored in older Redis entries.
+// Map at read-time only — never produce these from new generation.
+export const LEGACY_PILLAR_MAP: Record<string, PillarType> = {
+  // Exact old values (TitleCase)
+  Memorisation: "Memory",
+  Menu:         "Menus",
+  Algorithm:    "Movement",
+  Mantra:       "Movement",
+  Master:       "Understanding",
+  "Mode-shift": "Mode",
+  // Lowercase variants that may appear in stored data
+  memorisation: "Memory",
+  menu:         "Menus",
+  algorithm:    "Movement",
+  mantra:       "Movement",
+  master:       "Understanding",
+  "mode-shift": "Mode",
+  // Current pillars (pass-through, needed for case-insensitive safety)
+  memory:       "Memory",
+  menus:        "Menus",
+  mindset:      "Mindset",
+  mode:         "Mode",
+  movement:     "Movement",
+  understanding: "Understanding",
+};
+
+export function normalisePillar(raw: string): PillarType {
+  return LEGACY_PILLAR_MAP[raw] ?? LEGACY_PILLAR_MAP[raw.toLowerCase()] ?? "Mindset";
+}
 
 export interface StateSummary {
   state: string;

@@ -10,11 +10,12 @@ const BASE_URL = "https://api.sunoapi.org/api/v1";
 
 // Map RTHMIC pillars to Suno style tags
 const PILLAR_STYLES: Record<PillarType, string> = {
-  Mode:         "driving electronic, minimal, 100bpm, focus, hypnotic",
-  Algorithm:    "lo-fi hip hop, steady beat, 85bpm, calm, spoken word",
-  Menu:         "indie pop, acoustic guitar, 92bpm, thoughtful, introspective",
-  Memorisation: "ambient, sparse, 75bpm, repetitive motif, meditative",
-  Mindset:      "cinematic, piano, orchestral build, 80bpm, emotional arc",
+  Memory:        "ambient, sparse, 75bpm, warm, melodic, repetitive motif",
+  Menus:         "ambient lofi, 80bpm, spacious, gentle, cyclical",
+  Mindset:       "cinematic, piano, orchestral build, 80bpm, emotional arc",
+  Mode:          "minimal electronic, 90bpm, grounding pulse, close and clear",
+  Movement:      "microhouse, hypnotic, 95bpm, steady groove, forward momentum",
+  Understanding: "indie folk, acoustic, 78bpm, patient, clear melodic phrasing",
 };
 
 function delay(ms: number) {
@@ -150,11 +151,12 @@ function seededPick<T>(arr: T[], seed: number, n: number): T[] {
 
 const TITLE_PREFIXES = ["The", "After the", "Before the", "Through the", "Into the", "Beyond the", "At the"];
 const TITLE_NOUNS: Record<PillarType, string[]> = {
-  Mode:         ["Lock",    "Flow State",  "Threshold",   "Signal",    "Protocol"],
-  Algorithm:    ["Process", "Clear Pass",  "Next Step",   "Exit",      "Sequence"],
-  Menu:         ["Choice",  "Fork",        "One Path",    "Commit",    "Clearing"],
-  Memorisation: ["Anchor",  "Encode",      "Third Pass",  "Hold",      "Pattern"],
-  Mindset:      ["Shift",   "Ground",      "Turn",        "Weight",    "Opening"],
+  Memory:        ["Anchor",   "Encode",     "Third Pass",  "Hold",      "Pattern"],
+  Menus:         ["Options",  "The List",   "One Choice",  "Open",      "Field"],
+  Mindset:       ["Shift",    "Ground",     "Turn",        "Weight",    "Opening"],
+  Mode:          ["Still",    "Steady",     "Return",      "Floor",     "Breath"],
+  Movement:      ["Groove",   "Thread",     "Step",        "Forward",   "Loop"],
+  Understanding: ["Model",    "Clarity",    "Frame",       "Shape",     "Map"],
 };
 
 function mockTitle(pillar: PillarType, seed: number): string {

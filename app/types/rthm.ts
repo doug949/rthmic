@@ -1,4 +1,6 @@
-export type Pillar = "Memorization" | "Menus" | "Mindset" | "Mode" | "Algorithm";
+import type { PillarType } from "./pipeline";
+
+export type Pillar = PillarType;
 
 export interface RthmDNA {
   title: string;

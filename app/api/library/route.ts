@@ -14,12 +14,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "redis";
 import type { PillarType } from "@/app/types/pipeline";
+import { normalisePillar } from "@/app/types/pipeline";
 
 export interface SavedRhythm {
   id: string;
   title: string;
   pillar: PillarType;
   audioUrl?: string;
+  lyrics?: string;
   savedAt: number;
   status: "active" | "archived" | "deleted";
   deletedAt?: number;
@@ -78,7 +80,13 @@ export async function GET(request: NextRequest) {
         await client.set(libKey(uid), JSON.stringify(kept));
       }
 
-      return kept;
+      // Normalise legacy pillar names at read-time (no data migration needed)
+      const normalised = kept.map((r) => ({
+        ...r,
+        pillar: normalisePillar(r.pillar) as PillarType,
+      }));
+
+      return normalised;
     });
     return NextResponse.json({ rhythms });
   } catch (err) {

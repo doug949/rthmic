@@ -2,19 +2,21 @@ import fs from "fs";
 import path from "path";
 import type { PillarType } from "@/app/types/pipeline";
 
-const TEMPLATE_DIR = path.join(process.cwd(), "templates");
+// Module files live in app/modules/ — one per pillar + MASTER.md
+const MODULE_DIR = path.join(process.cwd(), "app", "modules");
 
 const PILLAR_FILE: Record<PillarType, string> = {
-  Mode: "mode.md",
-  Algorithm: "algorithm.md",
-  Menu: "menu.md",
-  Memorisation: "memorisation.md",
-  Mindset: "mindset.md",
+  Memory:      "memory.md",
+  Menus:       "menus.md",
+  Mindset:     "mindset.md",
+  Mode:        "mode.md",
+  Movement:    "movement.md",
+  Understanding: "understanding.md",
 };
 
 export function loadTemplate(pillar: PillarType): string {
   const file = PILLAR_FILE[pillar];
-  const filePath = path.join(TEMPLATE_DIR, file);
+  const filePath = path.join(MODULE_DIR, file);
   try {
     return fs.readFileSync(filePath, "utf-8");
   } catch {
@@ -22,19 +24,66 @@ export function loadTemplate(pillar: PillarType): string {
   }
 }
 
-// Keyword-based pillar detection used by mock LLM
+export function loadMaster(): string {
+  try {
+    return fs.readFileSync(path.join(MODULE_DIR, "MASTER.md"), "utf-8");
+  } catch {
+    return "";
+  }
+}
+
+// ─── Pillar detection ─────────────────────────────────────────────────────────
+//
+// Keyword scoring across the 6 canonical pillars.
+// Mode and Movement can overlap (both involve stuckness/difficulty) — the
+// distinguishing signal is emotional crisis (Mode) vs. friction/inertia (Movement).
+
 const PILLAR_KEYWORDS: Record<PillarType, string[]> = {
-  Mode: ["focus", "flow", "deep work", "concentrate", "get into", "zone", "work mode", "locked in", "productive", "working"],
-  Algorithm: ["steps", "process", "routine", "sequence", "workflow", "inbox", "tasks", "checklist", "procedure", "how to"],
-  Menu: ["decide", "choice", "options", "picking", "choosing", "stuck between", "which one", "not sure", "overwhelmed by options"],
-  Memorisation: ["remember", "memorise", "memorize", "learn", "recall", "study", "names", "facts", "numbers", "dates"],
-  Mindset: ["anxious", "anxiety", "stressed", "overwhelmed", "scared", "fear", "heavy", "down", "low", "stuck", "frozen", "dread", "worried", "procrastinat"],
+  Memory: [
+    "remember", "memorise", "memorize", "recall", "study", "memorising",
+    "memorizing", "names", "facts", "numbers", "dates", "learn by heart",
+    "imprint", "encode", "association", "lines", "script", "speech",
+    "recite", "by heart",
+  ],
+  Menus: [
+    "to-do", "todo", "tasks", "list", "options", "choices", "picking",
+    "what to do", "agenda", "schedule", "menu", "inbox", "backlog",
+    "decide", "decide between", "which one", "not sure what to",
+    "overwhelmed by options", "too many things", "everything I need to",
+  ],
+  Mindset: [
+    "prepare", "preparation", "ready", "getting ready", "about to",
+    "upcoming", "before my", "presentation", "meeting", "interview",
+    "performance", "event", "nervous about", "pre-show", "pre-match",
+    "pitch", "big day", "show up", "walk in",
+  ],
+  Mode: [
+    "overwhelmed", "panic", "spiral", "freeze", "frozen", "anxious",
+    "anxiety", "stressed", "scared", "fear", "heavy", "down", "low",
+    "dread", "worried", "shame", "anger", "rage", "crying", "breakdown",
+    "can't cope", "too much", "falling apart", "lost it", "desperate",
+    "crisis", "not okay", "shutdown",
+  ],
+  Movement: [
+    "stuck", "stuckness", "resistance", "momentum", "blocked", "friction",
+    "procrastinat", "can't start", "can't begin", "keep going", "push through",
+    "get moving", "inertia", "grinding", "grind", "rhythm", "groove",
+    "flow state", "focus", "deep work", "concentrate", "get into it",
+    "zone", "work mode", "locked in", "productive", "working session",
+  ],
+  Understanding: [
+    "understand", "explain", "concept", "confused", "clarity", "learn how",
+    "what is", "how does", "how do I", "grasp", "comprehend", "model",
+    "framework", "make sense", "wrap my head", "get my head around",
+    "don't understand", "trying to figure out", "work out how",
+  ],
 };
 
 export function detectPillar(transcript: string): PillarType {
   const lower = transcript.toLowerCase();
+
   const scores: Record<PillarType, number> = {
-    Mode: 0, Algorithm: 0, Menu: 0, Memorisation: 0, Mindset: 0,
+    Memory: 0, Menus: 0, Mindset: 0, Mode: 0, Movement: 0, Understanding: 0,
   };
 
   for (const [pillar, keywords] of Object.entries(PILLAR_KEYWORDS) as [PillarType, string[]][]) {
@@ -44,6 +93,7 @@ export function detectPillar(transcript: string): PillarType {
   }
 
   const sorted = (Object.entries(scores) as [PillarType, number][]).sort((a, b) => b[1] - a[1]);
-  // Default to Mindset if no strong signal — most common entry state
+
+  // Default to Mindset if no signal — most common entry state
   return sorted[0][1] > 0 ? sorted[0][0] : "Mindset";
 }

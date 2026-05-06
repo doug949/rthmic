@@ -3,7 +3,7 @@
 // Set USE_MOCK = false to use Claude (claude-opus-4-7) for real interpretation.
 
 import Anthropic from "@anthropic-ai/sdk";
-import { detectPillar, loadTemplate } from "@/app/lib/templateEngine";
+import { detectPillar, loadTemplate, loadMaster } from "@/app/lib/templateEngine";
 import type { PillarType, StateSummary } from "@/app/types/pipeline";
 
 const USE_MOCK = false; // uses Claude claude-opus-4-7 via ANTHROPIC_API_KEY
@@ -65,11 +65,15 @@ Include "style": "A" or "style": "B" in your JSON response.`;
 
 // ─── System prompt builder ────────────────────────────────────────────────────
 
-function buildSystemPrompt(pillar: PillarType, template: string): string {
-  return `${LYRICS_SPEC}
+function buildSystemPrompt(pillar: PillarType, template: string, masterContext?: string): string {
+  const masterSection = masterContext
+    ? `\nSYSTEM:\n${masterContext}\n`
+    : "";
 
+  return `${LYRICS_SPEC}
+${masterSection}
 PILLAR: ${pillar}
-PILLAR TEMPLATE:
+
 ${template}
 
 Return a JSON object with this exact shape:
@@ -78,139 +82,34 @@ Return a JSON object with this exact shape:
   "style": "A",
   "title": "3–5 word song title",
   "stateSummary": {
-    "state": "one sentence describing the user's current psychological state",
-    "intent": "one sentence describing what they want to accomplish",
-    "friction": "one sentence describing the specific block or resistance"
+    "state": "one sentence describing the person's current psychological state — write in second person, e.g. 'You seem to be...' or 'You're feeling...'",
+    "intent": "one sentence describing what they want to accomplish — write in second person, e.g. 'You want to...' or 'You're trying to...'",
+    "friction": "one sentence describing the specific block or resistance — write in second person, e.g. 'What's stopping you is...' or 'You're finding it hard to...'"
   },
   "lyrics": "full song lyrics with [VERSE]/[CHORUS]/[BRIDGE] structure, including a clear conclusive ending section"
 }`;
 }
 
 // Style defaults per pillar (used in mock mode)
+// A = grounded energy / activation, B = calm focus / settling
 const PILLAR_STYLE_DEFAULTS: Record<PillarType, StyleChoice> = {
-  Mode:         "B",
-  Algorithm:    "A",
-  Menu:         "A",
-  Memorisation: "B",
-  Mindset:      "B",
+  Memory:       "B", // warm, melodic, unhurried
+  Menus:        "B", // ambient, gentle, looping
+  Mindset:      "B", // calm upward trajectory
+  Mode:         "B", // quick interruption → settling
+  Movement:     "A", // rhythmic forward momentum
+  Understanding: "B", // patient, clear, unhurried
 };
 
 // ─── Mock outputs ─────────────────────────────────────────────────────────────
 
 const MOCK_OUTPUTS: Record<PillarType, Omit<LLMResult, "pillar" | "style">> = {
-  Mindset: {
-    title: "Start Before You're Ready",
-    stateSummary: {
-      state: "Stuck in avoidance — circling the task without touching it.",
-      intent: "Break through the resistance and make contact with the work.",
-      friction: "The gap between sitting down and actually starting feels insurmountable.",
-    },
-    lyrics: `[VERSE]
-Heavy. That's the word.
-You've been here before — the same desk, the same open tab,
-the same negotiation with the part of you that doesn't want to begin.
-The task is real. The resistance is equally real.
-Neither one wins just by existing.
-
-[CHORUS]
-But you've started harder things than this.
-One breath. One line. One minute inside the work.
-The gap closes only when you move —
-not before you move, not after you decide to move.
-When you move.
-
-[BRIDGE]
-You're in it now.
-That's all it ever took.
-Not courage. Not perfect conditions. Just contact.
-You made contact. Stay here.`,
-  },
-  Mode: {
-    title: "One Window Open",
-    stateSummary: {
-      state: "Ready to work but not yet locked in — hovering at the entry threshold.",
-      intent: "Activate deep focus mode and eliminate distraction for a defined block.",
-      friction: "Transition cost between open-world thinking and single-task execution.",
-    },
-    lyrics: `[VERSE]
-Eyes forward. One task. Clock running.
-Not everything — this.
-The inbox doesn't exist right now.
-The notifications are noise from another frequency.
-This is the only channel open.
-
-[CHORUS]
-Enter the mode.
-One window. One thread. One direction.
-The work is the only signal —
-everything else is interference you've already filtered.
-Stay in it.
-
-[BRIDGE]
-You're locked.
-Keep the thread.
-Two hours. Go.
-That's the whole instruction. That's enough.`,
-  },
-  Algorithm: {
-    title: "First One Then Next",
-    stateSummary: {
-      state: "Inbox paralysis — avoidance building up over multiple days.",
-      intent: "Execute a single pass through the backlog using a clear decision rule.",
-      friction: "The pile feels large and unbounded — no clear entry point or exit condition.",
-    },
-    lyrics: `[VERSE]
-Inbox. Start here.
-Not the whole pile — the first one.
-Open it. Read it once.
-One read is enough to know what it needs.
-
-[CHORUS]
-Decide: reply, defer, or delete.
-Do it now. Move to the next.
-No second reads. No maybe folder.
-No weight-carrying.
-The rule is the algorithm — follow it until it's empty.
-
-[BRIDGE]
-Done. That's the inbox.
-Not a feeling — a completed pass.
-The pile is gone. You followed the rule.
-Same rule tomorrow. Same result.`,
-  },
-  Menu: {
-    title: "Pick One and Go",
-    stateSummary: {
-      state: "Paralysed by too many equally weighted options with no external forcing function.",
-      intent: "Collapse the option space and commit to one path forward.",
-      friction: "All options feel equal — no pressure is resolving the choice.",
-    },
-    lyrics: `[VERSE]
-Two roads. You've been standing at this fork long enough
-that the standing has become its own kind of motion —
-convincing movement while nothing moves.
-Deciding not to choose is still a decision.
-It just doesn't belong to you.
-
-[CHORUS]
-Option one: start small, iterate fast.
-Option two: go large, adjust in motion.
-Option three: ask someone who has already been here.
-Option four: wait — but name a date and name a trigger.
-Pick one. Right now.
-
-[BRIDGE]
-You can change it. That's allowed.
-But you have to be somewhere before you can change direction.
-Go.
-The road doesn't ask if you're sure. It only asks if you're moving.`,
-  },
-  Memorisation: {
+  Memory: {
     title: "Say It Out Loud",
     stateSummary: {
-      state: "Surface familiarity without recall depth — recognising without retrieving.",
-      intent: "Lock the sequence into working memory through rhythmic active repetition.",
-      friction: "Trying to remember passively; no encoding structure in place.",
+      state: "You have the information but it isn't sticking — recognition without retrieval.",
+      intent: "You want to encode the sequence so it's available under real conditions.",
+      friction: "You're reading passively; there's no structure to hang the information on.",
     },
     lyrics: `[VERSE]
 Say it out loud. First time.
@@ -229,14 +128,204 @@ that retrieval can follow back.
 All of it. One breath.
 You have it.
 Not perfectly — but you have it.
-That rough first pass was the work. Lock it.`,
+That rough first pass was the work. Lock it.
+
+[OUTRO]
+One more time. Start again.
+Each pass is easier than the last.
+The structure holds. You built it.`,
+  },
+  Menus: {
+    title: "Options in the Air",
+    stateSummary: {
+      state: "You're looking at too many tasks and none of them feel like a clear place to start.",
+      intent: "You want a way to move through your list without the weight of obligation.",
+      friction: "Everything feels equally important — and equally heavy.",
+    },
+    lyrics: `[VERSE]
+Morning light, open window.
+You could start with something small.
+You could clear the one thing that's been sitting there.
+Or you could leave it for the afternoon.
+
+[CHORUS]
+There's no right order. There's just what calls.
+Maybe this. Maybe that.
+One thing chosen is one thing done.
+The rest can wait their turn.
+
+[VERSE 2]
+Afternoon — you're in it now.
+There's the message you could send.
+There's the file you could finish.
+There's the call you've been putting off.
+
+[CHORUS]
+There's no right order. There's just what calls.
+Maybe this. Maybe that.
+One thing chosen is one thing done.
+The rest can wait their turn.
+
+[OUTRO]
+Nothing on this list is chasing you.
+Pick one. Begin.
+The list will still be here — and so will you.`,
+  },
+  Mindset: {
+    title: "You Are Moving Into This",
+    stateSummary: {
+      state: "You're in the space before something important — not yet in it, not quite settled.",
+      intent: "You want to arrive at the moment feeling prepared and grounded.",
+      friction: "The gap between now and then feels uncertain and exposed.",
+    },
+    lyrics: `[VERSE]
+Breathe. You are here before it begins.
+Not inside it yet — just here.
+This is the place you always come back from.
+You have been in rooms like this before.
+
+[CHORUS]
+You are moving into this.
+Not away from it. Into it.
+Whatever opens when the moment comes —
+you can meet it.
+
+[VERSE 2]
+You know more than you think you know.
+You have prepared more than you remember.
+The nerves are part of the signal — not the problem.
+Let them run. They don't run the room.
+
+[CHORUS]
+You are moving into this.
+Not away from it. Into it.
+Whatever opens when the moment comes —
+you can meet it.
+
+[OUTRO]
+When the door opens — walk in.
+You are already there.`,
+  },
+  Mode: {
+    title: "Stop Here",
+    stateSummary: {
+      state: "You're caught in a spiral — the feeling is running fast and you can't find the edge of it.",
+      intent: "You want it to slow down enough that you can get your footing back.",
+      friction: "The intensity is making it hard to locate anything steady.",
+    },
+    lyrics: `[VERSE]
+Stop here.
+Not to fix it. Just to stop.
+The thing that's running — let it run in place.
+You don't have to chase it.
+
+[CHORUS]
+Feet on the floor. That's real.
+Hands in your lap. That's real.
+The room is still around you.
+You are in it. That's enough.
+
+[VERSE 2]
+The feeling is loud. That's okay.
+Loud things pass.
+You don't have to argue with it —
+just let it move through the room.
+
+[CHORUS]
+Feet on the floor. That's real.
+Hands in your lap. That's real.
+The room is still around you.
+You are in it. That's enough.
+
+[OUTRO]
+Slower now. You're still here.
+The ground hasn't moved.
+You're still on it.`,
+  },
+  Movement: {
+    title: "Keep the Thread",
+    stateSummary: {
+      state: "You're stuck — not in crisis, but in friction. The thing you need to do isn't moving.",
+      intent: "You want to get inside the work and stay there long enough to find momentum.",
+      friction: "The start keeps not happening. Each pause makes the next start harder.",
+    },
+    lyrics: `[VERSE]
+One step. Just one.
+Not the whole thing — the first inch.
+The groove starts small.
+It always starts small.
+
+[CHORUS]
+Keep the thread.
+Don't drop the thread.
+One thing follows the next thing —
+let it follow.
+
+[VERSE 2]
+You were moving. You can be moving again.
+The ground is the same ground.
+The work is the same work.
+You just have to put your hands on it.
+
+[CHORUS]
+Keep the thread.
+Don't drop the thread.
+One thing follows the next thing —
+let it follow.
+
+[BRIDGE]
+Still here. Still going.
+The rhythm finds you if you stay in it.
+Stay in it.
+
+[OUTRO]
+Keep the thread.
+Keep the thread.
+Keep going.`,
+  },
+  Understanding: {
+    title: "One Clear Model",
+    stateSummary: {
+      state: "You're close to understanding something but it keeps slipping — you can feel the shape without the grip.",
+      intent: "You want it to become simple enough that you could explain it to someone else.",
+      friction: "There's too much coming in at once and no single frame to organise it around.",
+    },
+    lyrics: `[VERSE]
+Start with what you know for certain.
+One thing you can put down without doubt.
+That's the floor. Build from there.
+Don't try to hold the ceiling yet.
+
+[CHORUS]
+One model. Clear and simple.
+Not the whole thing — the shape of it.
+Once you have the shape —
+the rest has somewhere to go.
+
+[VERSE 2]
+First part: what it is.
+Second part: what it does.
+Third part: why it matters.
+That's the frame. Hang the rest on it.
+
+[CHORUS]
+One model. Clear and simple.
+Not the whole thing — the shape of it.
+Once you have the shape —
+the rest has somewhere to go.
+
+[OUTRO]
+Say it back in your own words.
+If you can say it — you have it.
+That's the signal.`,
   },
 };
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 
-export async function interpret(transcript: string): Promise<LLMResult> {
-  const pillar = detectPillar(transcript);
+export async function interpret(transcript: string, overridePillar?: PillarType): Promise<LLMResult> {
+  // User-selected pillar takes priority over auto-detection
+  const pillar = overridePillar ?? detectPillar(transcript);
 
   if (USE_MOCK) {
     await delay(1200 + Math.random() * 600);
@@ -245,7 +334,8 @@ export async function interpret(transcript: string): Promise<LLMResult> {
 
   const client = new Anthropic();
   const template = loadTemplate(pillar);
-  const systemPrompt = buildSystemPrompt(pillar, template);
+  const master = loadMaster();
+  const systemPrompt = buildSystemPrompt(pillar, template, master);
 
   const message = await client.messages.create({
     model: "claude-opus-4-7",
@@ -255,7 +345,7 @@ export async function interpret(transcript: string): Promise<LLMResult> {
     messages: [
       {
         role: "user",
-        content: `User's spoken state:\n"${transcript}"\n\nIdentify the pillar, summarise their state, and write the rhythm song lyrics.`,
+        content: `User's spoken state:\n"${transcript}"\n\nIdentify the pillar, summarise their state in second person (use "you"/"you're", not "the user"), and write the rhythm song lyrics.`,
       },
     ],
   });
