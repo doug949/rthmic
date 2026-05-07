@@ -1,8 +1,10 @@
 "use client";
 
-import Link from "next/link";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useSwipeNavigation } from "@/app/hooks/useSwipeBack";
+import { TransitionLink } from "@/app/components/TransitionLink";
+import { transitionTo } from "@/app/lib/pageTransition";
 
 const panels = [
   {
@@ -30,11 +32,21 @@ export default function UnderstandPage() {
 
   const goBack = () => {
     if (active > 0) setActive((a) => a - 1);
-    else router.push("/");
+    else transitionTo("/", router);
   };
 
+  const onSwipeLeft = useCallback(() => {
+    if (active < panels.length - 1) setActive((a) => a + 1);
+  }, [active]);
+  const onSwipeRight = useCallback(() => {
+    if (active > 0) setActive((a) => a - 1);
+    else transitionTo("/", router);
+  }, [active, router]);
+
+  useSwipeNavigation(onSwipeLeft, onSwipeRight);
+
   return (
-    <main className="min-h-screen bg-[#0d1628] flex flex-col px-6 pt-safe">
+    <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ animation: "page-enter 380ms ease forwards" }}>
       {/* Nav */}
       <header className="flex items-center gap-4 pt-12 pb-8">
         <button
@@ -44,7 +56,7 @@ export default function UnderstandPage() {
           ← Back
         </button>
         <span className="text-white/15 text-sm uppercase tracking-widest ml-auto">
-          Understand
+          About RTHMIC
         </span>
       </header>
 
@@ -79,19 +91,19 @@ export default function UnderstandPage() {
       <footer className="pb-10 flex gap-3">
         {isLast ? (
           <>
-            <Link
+            <TransitionLink
               href="/"
               className="flex-1 py-4 rounded-2xl bg-white/[0.06] border border-white/[0.08] text-white/70 text-sm font-medium tracking-wide text-center active:scale-[0.98] transition-all touch-manipulation"
             >
               Home
-            </Link>
-            <Link
+            </TransitionLink>
+            <TransitionLink
               href="/speak"
               className="flex-1 py-4 rounded-2xl text-sm font-semibold tracking-wide text-center active:scale-[0.98] transition-all touch-manipulation"
               style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.45)", color: "#c9a55a" }}
             >
               Start speaking
-            </Link>
+            </TransitionLink>
           </>
         ) : (
           <button

@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import Link from "next/link";
+import { TransitionLink } from "@/app/components/TransitionLink";
 import { useAudio } from "@/app/contexts/AudioContext";
 import { useGeneration } from "@/app/contexts/GenerationContext";
 import type { PillarType, StateSummary, Song, SongStatus, SongStatusMap } from "@/app/types/pipeline";
 import type { StyleChoice } from "@/app/services/llmService";
 import CustomStyleInput from "@/app/components/CustomStyleInput";
+import { RevealBlock } from "@/app/components/RevealBlock";
 
 type Phase = "module" | "priming" | "idle" | "recording" | "understanding" | "confirming" | "genre";
 
@@ -41,6 +42,7 @@ export default function SpeakPage() {
   const [understandResult, setUnderstandResult] = useState<UnderstandResult | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [songStatus, setSongStatus] = useState<SongStatusMap>({});
+  const [transitioning, setTransitioning] = useState(false);
 
   const {
     genPhase,
@@ -409,6 +411,16 @@ export default function SpeakPage() {
     setPhase("genre");
   }, [clearGeneration]);
 
+  // ─── Phase transition (fade to dark, swap phase, fade back) ──────────────
+
+  const transitionTo = useCallback((newPhase: Phase) => {
+    setTransitioning(true);
+    setTimeout(() => {
+      setPhase(newPhase);
+      setTimeout(() => setTransitioning(false), 50);
+    }, 200);
+  }, []);
+
   // ─── Reset ────────────────────────────────────────────────────────────────
 
   const reset = () => {
@@ -429,8 +441,10 @@ export default function SpeakPage() {
     allTranscriptsRef.current = [];
   };
 
-  // Always start fresh when entering the Speak page — context persists across navigation
+  // Start fresh when entering the Speak page — but don't wipe a completed generation
+  // the user may be returning from navigation to see their results.
   useEffect(() => {
+    if (genPhase === "ready" || genPhase === "generating") return;
     clearGeneration();
     setPhase("module");
     setSelectedPillar(null);
@@ -453,7 +467,7 @@ export default function SpeakPage() {
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <main className="min-h-screen bg-[#0d1628] flex flex-col px-6 pt-safe">
+    <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ animation: "page-enter 380ms ease forwards" }}>
       <audio
         ref={audioElRef}
         onEnded={() => { setRealIsPlaying(false); setRealCurrentTime(0); }}
@@ -464,13 +478,32 @@ export default function SpeakPage() {
         preload="metadata"
       />
 
+      {/* Phase-change overlay — fades to dark between screens */}
+      <div
+        className="fixed inset-0 z-50 pointer-events-none"
+        style={{
+          background: "#0d1628",
+          opacity: transitioning ? 1 : 0,
+          transition: "opacity 200ms ease",
+        }}
+      />
+
       <header className="flex items-center gap-4 pt-12 pb-8">
-        <Link
-          href="/"
-          className="text-white/30 hover:text-white/60 transition-colors text-sm tracking-widest uppercase"
-        >
-          ← Back
-        </Link>
+        {phase === "priming" ? (
+          <button
+            onClick={() => transitionTo("module")}
+            className="text-white/30 hover:text-white/60 transition-colors text-sm tracking-widest uppercase touch-manipulation"
+          >
+            ← Back
+          </button>
+        ) : (
+          <TransitionLink
+            href="/"
+            className="text-white/30 hover:text-white/60 transition-colors text-sm tracking-widest uppercase"
+          >
+            ← Back
+          </TransitionLink>
+        )}
         <span className="text-white/15 text-sm uppercase tracking-widest ml-auto">Speak</span>
       </header>
 
@@ -517,12 +550,12 @@ export default function SpeakPage() {
             <PillarView
               onSelect={(slug) => {
                 setSelectedPillar(slug);
-                setPhase("priming");
+                transitionTo("priming");
               }}
             />
           )}
           {phase === "priming" && (
-            <PrimingView pillar={selectedPillar} onReady={() => setPhase("idle")} />
+            <PrimingView pillar={selectedPillar} onReady={() => transitionTo("idle")} />
           )}
           {phase === "idle" && (
             <IdleView onRecord={startRecording} errorMsg={errorMsg} />
@@ -666,19 +699,21 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
 
   return (
     <section className="flex-1 flex flex-col pb-6 overflow-y-auto">
-      <div className="flex flex-col gap-1.5 pt-2 pb-5">
-        <p className="text-[10px] text-white/25 uppercase tracking-[0.3em]">Select a Pillar</p>
-        <p className="text-xl font-light text-white/70 leading-snug" style={{ fontFamily: "var(--font-display)" }}>
-          What do you want to work on?
-        </p>
-      </div>
+      <RevealBlock delay={0}>
+        <div className="flex flex-col gap-1.5 pt-2 pb-5">
+          <p className="text-[10px] text-white/25 uppercase tracking-[0.3em]">Select a Pillar</p>
+          <p className="text-xl font-light text-white/70 leading-snug" style={{ fontFamily: "var(--font-display)" }}>
+            What do you want to work on?
+          </p>
+        </div>
+      </RevealBlock>
 
       <div className="flex flex-col gap-2">
-        {PILLARS.map((p) => {
+        {PILLARS.map((p, index) => {
           const isOpen = openInfo === p.slug;
           return (
+            <RevealBlock key={p.slug} delay={index * 28}>
             <div
-              key={p.slug}
               className="rounded-2xl border border-white/[0.08] bg-white/[0.03] overflow-hidden"
             >
               {/* Main row — split: left selects, right toggles info */}
@@ -739,6 +774,7 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
                 </div>
               )}
             </div>
+            </RevealBlock>
           );
         })}
       </div>
@@ -751,6 +787,10 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
 function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: () => void }) {
   const pillarDef = PILLARS.find((p) => p.slug === pillar) ?? null;
   const p = pillarDef?.priming;
+  const instructions = p?.instructions ?? [
+    "Speak about your challenge — your hopes, what you think is stopping you, or what you want to learn.",
+    "Take your time. You don't need to know what you're going to say to begin.",
+  ];
 
   return (
     <section className="flex-1 flex flex-col justify-between pb-10">
@@ -758,47 +798,60 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: () =
 
         {/* Pillar badge */}
         {pillarDef && (
-          <span
-            className="self-start text-[10px] px-2.5 py-1 rounded-full uppercase tracking-widest font-medium"
-            style={{ background: "rgba(201,165,90,0.12)", color: "#c9a55a", border: "1px solid rgba(201,165,90,0.25)" }}
-          >
-            {pillarDef.label}
-          </span>
+          <RevealBlock delay={0}>
+            <span
+              className="self-start text-[10px] px-2.5 py-1 rounded-full uppercase tracking-widest font-medium"
+              style={{ background: "rgba(201,165,90,0.12)", color: "#c9a55a", border: "1px solid rgba(201,165,90,0.25)" }}
+            >
+              {pillarDef.label}
+            </span>
+          </RevealBlock>
         )}
 
         <div className="flex flex-col gap-3">
-          <p className="text-[10px] text-white/25 uppercase tracking-[0.3em]">Before you speak</p>
-          <h2 className="text-2xl font-light text-white leading-snug" style={{ fontFamily: "var(--font-display)" }}>
-            {p?.headline ?? "Be completely open."}
-          </h2>
-          <p className="text-base text-white/45 leading-relaxed">
-            {p?.subheadline ?? "The more honest you are, the better the result."}
-          </p>
+          <RevealBlock delay={30}>
+            <p className="text-[10px] text-white/25 uppercase tracking-[0.3em]">Before you speak</p>
+          </RevealBlock>
+          <RevealBlock delay={60}>
+            <h2 className="text-2xl font-light text-white leading-snug" style={{ fontFamily: "var(--font-display)" }}>
+              {p?.headline ?? "Be completely open."}
+            </h2>
+          </RevealBlock>
+          <RevealBlock delay={100}>
+            <p className="text-base text-white/45 leading-relaxed">
+              {p?.subheadline ?? "The more honest you are, the better the result."}
+            </p>
+          </RevealBlock>
         </div>
 
-        <div className="h-px bg-white/[0.06]" />
+        <RevealBlock delay={145}>
+          <div className="h-px bg-white/[0.06]" />
+        </RevealBlock>
 
         <div className="flex flex-col gap-4">
-          {(p?.instructions ?? [
-            "Speak about your challenge — your hopes, what you think is stopping you, or what you want to learn.",
-            "Take your time. You don't need to know what you're going to say to begin.",
-          ]).map((line, i) => (
-            <p key={i} className="text-sm text-white/50 leading-relaxed">{line}</p>
+          {instructions.map((line, i) => (
+            <RevealBlock key={i} delay={180 + i * 45}>
+              <p className="text-sm text-white/50 leading-relaxed">{line}</p>
+            </RevealBlock>
           ))}
         </div>
 
-        <p className="text-xs text-white/25 leading-relaxed border-t border-white/[0.06] pt-4">
-          {p?.footnote ?? "Most people speak for 1–3 minutes. After 5 minutes Rthmic will capture what you've said — you'll have the option to add more if it feels right."}
-        </p>
+        <RevealBlock delay={180 + instructions.length * 45}>
+          <p className="text-xs text-white/25 leading-relaxed border-t border-white/[0.06] pt-4">
+            {p?.footnote ?? "Most people speak for 1–3 minutes. After 5 minutes Rthmic will capture what you've said — you'll have the option to add more if it feels right."}
+          </p>
+        </RevealBlock>
       </div>
 
-      <button
-        onClick={onReady}
-        className="w-full py-5 rounded-2xl text-sm font-semibold tracking-wide active:scale-[0.98] transition-all touch-manipulation flex-shrink-0"
-        style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.45)", color: "#c9a55a" }}
-      >
-        Talk to Rthmic
-      </button>
+      <RevealBlock delay={180 + instructions.length * 45 + 50} className="flex-shrink-0">
+        <button
+          onClick={onReady}
+          className="w-full py-5 rounded-2xl text-sm font-semibold tracking-wide active:scale-[0.98] transition-all touch-manipulation"
+          style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.45)", color: "#c9a55a" }}
+        >
+          Talk to Rthmic
+        </button>
+      </RevealBlock>
     </section>
   );
 }
@@ -808,18 +861,22 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: () =
 function IdleView({ onRecord, errorMsg }: { onRecord: () => void; errorMsg: string }) {
   return (
     <section className="flex-1 flex flex-col items-center justify-center pb-24 gap-10">
-      <div className="text-center">
-        <h2 className="text-2xl font-light tracking-wide text-white leading-snug" style={{ fontFamily: "var(--font-display)" }}>Speak your state</h2>
-        <p className="text-sm text-white/35 mt-2">Two Rthms will be built for you.</p>
-      </div>
+      <RevealBlock delay={0}>
+        <div className="text-center">
+          <h2 className="text-2xl font-light tracking-wide text-white leading-snug" style={{ fontFamily: "var(--font-display)" }}>Speak your state</h2>
+          <p className="text-sm text-white/35 mt-2">Two Rthms will be built for you.</p>
+        </div>
+      </RevealBlock>
 
-      <button
-        onClick={onRecord}
-        className="w-28 h-28 rounded-full bg-white/[0.07] border border-white/[0.12] flex items-center justify-center active:scale-[0.96] transition-all touch-manipulation hover:bg-white/[0.12]"
-        aria-label="Start recording"
-      >
-        <MicIcon />
-      </button>
+      <RevealBlock delay={60}>
+        <button
+          onClick={onRecord}
+          className="w-28 h-28 rounded-full bg-white/[0.07] border border-white/[0.12] flex items-center justify-center active:scale-[0.96] transition-all touch-manipulation hover:bg-white/[0.12]"
+          aria-label="Start recording"
+        >
+          <MicIcon />
+        </button>
+      </RevealBlock>
 
       {errorMsg && (
         <p className="text-xs text-white/35 text-center max-w-xs">{errorMsg}</p>
@@ -880,11 +937,16 @@ function RecordingView({
 function UnderstandingView() {
   return (
     <section className="flex-1 flex flex-col items-center justify-center pb-24 gap-8">
-      <div className="text-center">
-        <h2 className="text-xl font-light tracking-wide text-white" style={{ fontFamily: "var(--font-display)" }}>Understanding you</h2>
-        <p className="text-sm text-white/30 mt-2">Reading your state…</p>
-      </div>
-      <div className="w-7 h-7 rounded-full border-2 border-white/15 border-t-white/55 animate-spin" />
+      <RevealBlock delay={0}>
+        <div className="text-center">
+          <h2 className="text-xl font-light tracking-wide text-white" style={{ fontFamily: "var(--font-display)" }}>Understanding you</h2>
+          <p className="text-sm text-white/30 mt-2">Reading your state…</p>
+          <p className="text-xs text-white/20 mt-3">This usually takes 10–20 seconds.</p>
+        </div>
+      </RevealBlock>
+      <RevealBlock delay={60}>
+        <div className="w-7 h-7 rounded-full border-2 border-white/15 border-t-white/55 animate-spin" />
+      </RevealBlock>
     </section>
   );
 }
@@ -925,7 +987,7 @@ function ConfirmingView({
 
   useEffect(() => {
     if (tick >= totalTicks) return;
-    const TOTAL_MS = 3400;
+    const TOTAL_MS = 1700;
     const delay = Math.max(40, TOTAL_MS / totalTicks);
     const id = setTimeout(() => setTick((t) => t + 1), delay);
     return () => clearTimeout(id);
@@ -943,31 +1005,37 @@ function ConfirmingView({
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto flex flex-col gap-5 pb-4">
         {wasAutoStopped && (
-          <div className="rounded-xl border border-amber-400/20 bg-amber-400/[0.05] px-4 py-3 flex gap-3 items-start">
-            <span className="text-amber-400/60 text-sm flex-shrink-0 mt-0.5">⏱</span>
-            <div>
-              <p className="text-sm text-amber-400/70 leading-snug">Recording captured at 5 minutes</p>
-              <p className="text-xs text-amber-400/40 mt-1 leading-relaxed">We captured everything you said. If there&apos;s more you want to add, tap <strong>Add more</strong> below.</p>
+          <RevealBlock delay={0}>
+            <div className="rounded-xl border border-amber-400/20 bg-amber-400/[0.05] px-4 py-3 flex gap-3 items-start">
+              <span className="text-amber-400/60 text-sm flex-shrink-0 mt-0.5">⏱</span>
+              <div>
+                <p className="text-sm text-amber-400/70 leading-snug">Recording captured at 5 minutes</p>
+                <p className="text-xs text-amber-400/40 mt-1 leading-relaxed">We captured everything you said. If there&apos;s more you want to add, tap <strong>Add more</strong> below.</p>
+              </div>
+            </div>
+          </RevealBlock>
+        )}
+        <RevealBlock delay={0}>
+          <div className="flex flex-col gap-2">
+            <h2 className="text-2xl font-light tracking-wide text-white" style={{ fontFamily: "var(--font-display)" }}>Is this right?</h2>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-white/20 border border-white/[0.08] rounded-full px-2.5 py-0.5 uppercase tracking-widest">
+                {result.pillar}
+              </span>
+              <span className="text-[10px] text-white/20 border border-white/[0.08] rounded-full px-2.5 py-0.5 uppercase tracking-widest">
+                {styleLabel}
+              </span>
             </div>
           </div>
-        )}
-        <div className="flex flex-col gap-2">
-          <h2 className="text-2xl font-light tracking-wide text-white" style={{ fontFamily: "var(--font-display)" }}>Is this right?</h2>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] text-white/20 border border-white/[0.08] rounded-full px-2.5 py-0.5 uppercase tracking-widest">
-              {result.pillar}
-            </span>
-            <span className="text-[10px] text-white/20 border border-white/[0.08] rounded-full px-2.5 py-0.5 uppercase tracking-widest">
-              {styleLabel}
-            </span>
-          </div>
-        </div>
+        </RevealBlock>
 
-        <div className="rounded-2xl border border-white/[0.09] bg-white/[0.03] px-5 py-5 flex flex-col gap-4">
-          <AnimatedConfirmRow label="State"    words={stateWords}    visibleCount={stateVisible} />
-          <AnimatedConfirmRow label="Intent"   words={intentWords}   visibleCount={intentVisible} />
-          <AnimatedConfirmRow label="Friction" words={frictionWords} visibleCount={frictionVisible} />
-        </div>
+        <RevealBlock delay={60}>
+          <div className="rounded-2xl border border-white/[0.09] bg-white/[0.03] px-5 py-5 flex flex-col gap-4">
+            <AnimatedConfirmRow label="State"    words={stateWords}    visibleCount={stateVisible} />
+            <AnimatedConfirmRow label="Intent"   words={intentWords}   visibleCount={intentVisible} />
+            <AnimatedConfirmRow label="Friction" words={frictionWords} visibleCount={frictionVisible} />
+          </div>
+        </RevealBlock>
 
         {errorMsg && (
           <p className="text-xs text-red-400/50 text-center">{errorMsg}</p>
@@ -975,27 +1043,29 @@ function ConfirmingView({
       </div>
 
       {/* Always-visible action buttons */}
-      <div className="flex flex-col gap-3 pt-4 pb-10 border-t border-white/[0.05] flex-shrink-0">
-        <button
-          onClick={onProceed}
-          className="w-full py-5 rounded-2xl text-sm font-semibold tracking-wide active:scale-[0.98] transition-all touch-manipulation"
-          style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.45)", color: "#c9a55a" }}
-        >
-          Yes — build my Rthms
-        </button>
-        <button
-          onClick={onAddMore}
-          className="w-full py-4 rounded-2xl bg-white/[0.04] border border-white/[0.08] text-white/45 text-sm font-medium tracking-wide active:scale-[0.98] transition-transform touch-manipulation"
-        >
-          Add more
-        </button>
-        <button
-          onClick={onDiscard}
-          className="w-full py-4 rounded-2xl bg-white/[0.03] border border-white/[0.08] text-white/25 text-sm font-medium tracking-wide active:scale-[0.98] transition-transform touch-manipulation"
-        >
-          Discard and start afresh
-        </button>
-      </div>
+      <RevealBlock delay={100} className="flex-shrink-0">
+        <div className="flex flex-col gap-3 pt-4 pb-10 border-t border-white/[0.05]">
+          <button
+            onClick={onProceed}
+            className="w-full py-5 rounded-2xl text-sm font-semibold tracking-wide active:scale-[0.98] transition-all touch-manipulation"
+            style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.45)", color: "#c9a55a" }}
+          >
+            Yes — build my Rthms
+          </button>
+          <button
+            onClick={onAddMore}
+            className="w-full py-4 rounded-2xl bg-white/[0.04] border border-white/[0.08] text-white/45 text-sm font-medium tracking-wide active:scale-[0.98] transition-transform touch-manipulation"
+          >
+            Add more
+          </button>
+          <button
+            onClick={onDiscard}
+            className="w-full py-4 rounded-2xl bg-white/[0.03] border border-white/[0.08] text-white/25 text-sm font-medium tracking-wide active:scale-[0.98] transition-transform touch-manipulation"
+          >
+            Discard and start afresh
+          </button>
+        </div>
+      </RevealBlock>
     </section>
   );
 }
@@ -1015,7 +1085,7 @@ function AnimatedConfirmRow({ label, words, visibleCount }: {
             key={i}
             style={{
               opacity: i < visibleCount ? 1 : 0,
-              transition: "opacity 380ms ease",
+              transition: "opacity 190ms ease",
               display: "inline",
             }}
           >
@@ -1030,6 +1100,18 @@ function AnimatedConfirmRow({ label, words, visibleCount }: {
 
 // ─── Genre picker ────────────────────────────────────────────────────────────
 
+// Helpers shared by GenreView and genre tile rendering
+function sunoPromptFor(g: string): string {
+  const idx = g.indexOf("|");
+  return idx > 0 ? g.slice(idx + 1) : g;
+}
+function displayNameFor(g: string): string {
+  const idx = g.indexOf("|");
+  if (idx > 0) return g.slice(0, idx);
+  const comma = g.indexOf(",");
+  return comma > 0 ? g.slice(0, comma) : g.slice(0, 42);
+}
+
 function GenreView({
   understandResult,
   onGenerate,
@@ -1039,132 +1121,172 @@ function GenreView({
   onGenerate: (genre: string) => void;
   onDiscard: () => void;
 }) {
-  const [genres, setGenres] = useState<string[]>([]);
+  const [builtInGenres, setBuiltInGenres] = useState<string[]>([]);
+  const [userGenres, setUserGenres]       = useState<string[]>([]);
+  const [loading, setLoading]             = useState(true);
   const [recommendedIndex, setRecommendedIndex] = useState<number | null>(null);
+  const [loadingRec, setLoadingRec]       = useState(false);
+  // selectedIndex indexes into the combined list: [...builtInGenres, ...userGenres]
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [loadingGenres, setLoadingGenres] = useState(true);
-  const [loadingRec, setLoadingRec] = useState(false);
 
   // Custom style
-  const [customStyle, setCustomStyle] = useState("");
+  const [customStyle, setCustomStyle]       = useState("");
   const [customSelected, setCustomSelected] = useState(false);
 
-  const selectPreset = (i: number) => {
-    setSelectedIndex(i);
-    setCustomSelected(false);
-  };
-
-  const selectCustom = () => {
-    if (!customStyle) return;
-    setCustomSelected(true);
-    setSelectedIndex(null);
-  };
+  const selectPreset = (i: number) => { setSelectedIndex(i); setCustomSelected(false); };
+  const selectCustom = () => { if (customStyle) { setCustomSelected(true); setSelectedIndex(null); } };
 
   useEffect(() => {
     fetch("/api/genres")
       .then((r) => r.json())
       .then((d) => {
-        if (d.genres) {
-          setGenres(d.genres);
-          setLoadingGenres(false);
-          setLoadingRec(true);
-          fetch("/api/recommend-genre", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              stateSummary: understandResult.stateSummary,
-              style: understandResult.style,
-              genres: d.genres,
-            }),
+        const bIn: string[] = Array.isArray(d.builtIn) ? d.builtIn : [];
+        const usr: string[] = Array.isArray(d.user)    ? d.user    : [];
+        setBuiltInGenres(bIn);
+        setUserGenres(usr);
+        setLoading(false);
+
+        const allGenres = [...bIn, ...usr];
+        if (allGenres.length === 0) return;
+
+        setLoadingRec(true);
+        fetch("/api/recommend-genre", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            stateSummary: understandResult.stateSummary,
+            style: understandResult.style,
+            genres: allGenres,
+          }),
+        })
+          .then((r) => r.json())
+          .then((rd) => {
+            if (typeof rd.recommendedIndex === "number") {
+              setRecommendedIndex(rd.recommendedIndex);
+              setSelectedIndex(rd.recommendedIndex);
+            }
           })
-            .then((r) => r.json())
-            .then((rd) => {
-              if (typeof rd.recommendedIndex === "number") {
-                setRecommendedIndex(rd.recommendedIndex);
-                setSelectedIndex(rd.recommendedIndex);
-              }
-            })
-            .catch(() => { setRecommendedIndex(0); setSelectedIndex(0); })
-            .finally(() => setLoadingRec(false));
-        }
+          .catch(() => { setRecommendedIndex(0); setSelectedIndex(0); })
+          .finally(() => setLoadingRec(false));
       })
-      .catch(() => setLoadingGenres(false));
+      .catch(() => setLoading(false));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const allGenres = [...builtInGenres, ...userGenres];
 
   const selectedGenre = customSelected && customStyle
     ? customStyle
-    : selectedIndex !== null ? genres[selectedIndex] ?? "" : "";
+    : selectedIndex !== null ? sunoPromptFor(allGenres[selectedIndex] ?? "") : "";
   const canProceed = selectedGenre.length > 0;
 
-  const buildLabel = selectedGenre
-    ? `Build with ${selectedGenre.split(",")[0].slice(0, 32)}${selectedGenre.length > 32 ? "…" : ""}`
+  const selectedDisplay = customSelected && customStyle
+    ? customStyle.split(",")[0].slice(0, 32)
+    : selectedIndex !== null ? displayNameFor(allGenres[selectedIndex] ?? "").slice(0, 32) : "";
+  const buildLabel = selectedDisplay
+    ? `Build with ${selectedDisplay}${selectedDisplay.length >= 32 ? "…" : ""}`
     : "Select a style";
+
+  const renderTile = (genre: string, globalIndex: number, stagger: number) => {
+    const isSelected   = !customSelected && selectedIndex === globalIndex;
+    const isRecommended = recommendedIndex === globalIndex;
+    const label = displayNameFor(genre);
+    return (
+      <RevealBlock key={globalIndex} delay={stagger}>
+        <button
+          onClick={() => selectPreset(globalIndex)}
+          className={`w-full text-left px-5 py-4 rounded-2xl border transition-all duration-150 active:scale-[0.98] touch-manipulation ${
+            isSelected
+              ? "border-[rgba(201,165,90,0.5)] bg-[rgba(201,165,90,0.08)]"
+              : "border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06]"
+          }`}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <span className={`text-sm font-medium leading-snug ${isSelected ? "text-[#c9a55a]" : "text-white/70"}`}>
+              {label}
+            </span>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {isRecommended && (
+                <span className="text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-full"
+                  style={{ background: "rgba(201,165,90,0.12)", color: "rgba(201,165,90,0.7)", border: "1px solid rgba(201,165,90,0.25)" }}>
+                  {loadingRec ? "…" : "Suggested"}
+                </span>
+              )}
+              <div className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${
+                isSelected ? "border-[rgba(201,165,90,0.7)] bg-[rgba(201,165,90,0.3)]" : "border-white/20"
+              }`}>
+                {isSelected && <div className="w-2 h-2 rounded-full bg-[#c9a55a]" />}
+              </div>
+            </div>
+          </div>
+        </button>
+      </RevealBlock>
+    );
+  };
 
   return (
     <section className="flex-1 flex flex-col pb-10 gap-5 overflow-y-auto">
-      <div className="flex-shrink-0">
+      <RevealBlock delay={0} className="flex-shrink-0">
         <h2 className="text-2xl font-light text-white leading-snug" style={{ fontFamily: "var(--font-display)" }}>
-          Choose your genre
+          Choose your style
         </h2>
         <p className="text-sm text-white/35 mt-2 leading-relaxed">
-          {loadingRec ? "Finding the best match for your state…" : recommendedIndex !== null ? "We've suggested one based on your state. You can override it." : "Select the genre for your Rthm."}
+          {loadingRec
+            ? "Finding the best match for your state…"
+            : recommendedIndex !== null
+              ? "We've suggested one based on your state. You can override it."
+              : "Select the style for your Rthm."}
         </p>
-      </div>
+      </RevealBlock>
 
-      {loadingGenres ? (
-        <div className="flex justify-center py-10">
-          <div className="w-7 h-7 rounded-full border-2 border-white/15 border-t-white/55 animate-spin" />
-        </div>
+      {loading ? (
+        <RevealBlock delay={40}>
+          <div className="flex justify-center py-10">
+            <div className="w-7 h-7 rounded-full border-2 border-white/15 border-t-white/55 animate-spin" />
+          </div>
+        </RevealBlock>
       ) : (
-        <div className="flex flex-col gap-3">
-          {genres.map((genre, i) => {
-            const isSelected = !customSelected && selectedIndex === i;
-            const isRecommended = recommendedIndex === i;
-            // Short label: text before the first comma (or first 40 chars)
-            const commaIdx = genre.indexOf(",");
-            const shortLabel = commaIdx > 0 ? genre.slice(0, commaIdx) : genre.slice(0, 42);
-            return (
-              <button
-                key={i}
-                onClick={() => selectPreset(i)}
-                className={`w-full text-left px-5 py-4 rounded-2xl border transition-all duration-150 active:scale-[0.98] touch-manipulation ${
-                  isSelected
-                    ? "border-[rgba(201,165,90,0.5)] bg-[rgba(201,165,90,0.08)]"
-                    : "border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06]"
-                }`}
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <span className={`text-sm font-medium leading-snug ${isSelected ? "text-[#c9a55a]" : "text-white/70"}`}>
-                    {shortLabel}
-                  </span>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {isRecommended && (
-                      <span className="text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-full"
-                        style={{ background: "rgba(201,165,90,0.12)", color: "rgba(201,165,90,0.7)", border: "1px solid rgba(201,165,90,0.25)" }}>
-                        {loadingRec ? "…" : "Suggested"}
-                      </span>
-                    )}
-                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${
-                      isSelected ? "border-[rgba(201,165,90,0.7)] bg-[rgba(201,165,90,0.3)]" : "border-white/20"
-                    }`}>
-                      {isSelected && <div className="w-2 h-2 rounded-full bg-[#c9a55a]" />}
-                    </div>
-                  </div>
-                </div>
-              </button>
-            );
-          })}
+        <div className="flex flex-col gap-5">
 
-          {/* Custom style */}
-          <CustomStyleInput
-            onStyleChange={(s) => { setCustomStyle(s); setCustomSelected(true); setSelectedIndex(null); }}
-            selected={customSelected}
-            onSelect={selectCustom}
-          />
+          {/* ── RTHMIC Styles (built-in, permanent) ── */}
+          {builtInGenres.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <RevealBlock delay={20}>
+                <p className="text-[10px] text-white/25 uppercase tracking-[0.25em]">RTHMIC Styles</p>
+              </RevealBlock>
+              <div className="flex flex-col gap-2">
+                {builtInGenres.map((genre, i) =>
+                  renderTile(genre, i, 40 + i * 20)
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── Your Styles (user-configured) ── */}
+          {userGenres.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <RevealBlock delay={40 + builtInGenres.length * 20}>
+                <p className="text-[10px] text-white/25 uppercase tracking-[0.25em]">Your Styles</p>
+              </RevealBlock>
+              <div className="flex flex-col gap-2">
+                {userGenres.map((genre, i) =>
+                  renderTile(genre, builtInGenres.length + i, 60 + (builtInGenres.length + i) * 20)
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── Custom one-off ── */}
+          <RevealBlock delay={60 + allGenres.length * 20}>
+            <CustomStyleInput
+              onStyleChange={(s) => { setCustomStyle(s); setCustomSelected(true); setSelectedIndex(null); }}
+              selected={customSelected}
+              onSelect={selectCustom}
+            />
+          </RevealBlock>
         </div>
       )}
 
-      <div className="flex flex-col gap-3 mt-auto flex-shrink-0">
+      <RevealBlock delay={80} className="flex flex-col gap-3 mt-auto flex-shrink-0">
         <button
           onClick={() => canProceed && onGenerate(selectedGenre)}
           disabled={!canProceed}
@@ -1179,7 +1301,7 @@ function GenreView({
         >
           Discard and start afresh
         </button>
-      </div>
+      </RevealBlock>
     </section>
   );
 }
@@ -1189,19 +1311,25 @@ function GenreView({
 function GeneratingView({ onCancel }: { onCancel: () => void }) {
   return (
     <section className="flex-1 flex flex-col items-center justify-center pb-24 gap-8">
-      <div className="text-center max-w-xs">
-        <h2 className="text-xl font-light tracking-wide text-white" style={{ fontFamily: "var(--font-display)" }}>Building your Rthms</h2>
-        <p className="text-sm text-white/30 mt-2 leading-relaxed">
-          This takes 1–2 minutes. You can navigate away — a notification will appear when they&apos;re ready.
-        </p>
-      </div>
-      <div className="w-7 h-7 rounded-full border-2 border-white/15 border-t-white/55 animate-spin" />
-      <button
-        onClick={onCancel}
-        className="text-xs text-white/15 hover:text-white/30 transition-colors touch-manipulation uppercase tracking-widest"
-      >
-        Cancel
-      </button>
+      <RevealBlock delay={0}>
+        <div className="text-center max-w-xs">
+          <h2 className="text-xl font-light tracking-wide text-white" style={{ fontFamily: "var(--font-display)" }}>Building your Rthms</h2>
+          <p className="text-sm text-white/30 mt-2 leading-relaxed">
+            This takes 1–2 minutes. You can navigate away — a notification will appear when they&apos;re ready.
+          </p>
+        </div>
+      </RevealBlock>
+      <RevealBlock delay={60}>
+        <div className="w-7 h-7 rounded-full border-2 border-white/15 border-t-white/55 animate-spin" />
+      </RevealBlock>
+      <RevealBlock delay={100}>
+        <button
+          onClick={onCancel}
+          className="text-xs text-white/15 hover:text-white/30 transition-colors touch-manipulation uppercase tracking-widest"
+        >
+          Cancel
+        </button>
+      </RevealBlock>
     </section>
   );
 }
@@ -1265,25 +1393,29 @@ function ResultsView({
   return (
     <section className="flex-1 flex flex-col gap-5 pb-32">
       {/* Saved notice */}
-      <Link
-        href="/library"
-        className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] transition-colors touch-manipulation"
-      >
-        <span className="text-xs text-white/40">✓</span>
-        <div className="flex-1 min-w-0">
-          <p className="text-xs text-white/50 leading-snug">Saved to your library — tap to manage</p>
-        </div>
-        <span className="text-white/20 text-sm flex-shrink-0">›</span>
-      </Link>
+      <RevealBlock delay={0}>
+        <TransitionLink
+          href="/library"
+          className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] transition-colors touch-manipulation"
+        >
+          <span className="text-xs text-white/40">✓</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs text-white/50 leading-snug">Saved to your library — tap to manage</p>
+          </div>
+          <span className="text-white/20 text-sm flex-shrink-0">›</span>
+        </TransitionLink>
+      </RevealBlock>
 
-      <div className="flex items-center gap-3">
-        <p className="text-[10px] text-white/25 uppercase tracking-[0.2em]">Generated for you</p>
-        {pillar && (
-          <span className="text-[10px] text-white/20 border border-white/[0.08] rounded-full px-2.5 py-0.5 uppercase tracking-widest">
-            {pillar}
-          </span>
-        )}
-      </div>
+      <RevealBlock delay={40}>
+        <div className="flex items-center gap-3">
+          <p className="text-[10px] text-white/25 uppercase tracking-[0.2em]">Generated for you</p>
+          {pillar && (
+            <span className="text-[10px] text-white/20 border border-white/[0.08] rounded-full px-2.5 py-0.5 uppercase tracking-widest">
+              {pillar}
+            </span>
+          )}
+        </div>
+      </RevealBlock>
 
       {debugMsg && <p className="text-[10px] text-red-400/60 break-all">{debugMsg}</p>}
 
@@ -1293,7 +1425,7 @@ function ResultsView({
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {songs.map((song) => {
+          {songs.map((song, songIndex) => {
             const status = songStatus[song.id] ?? null;
             const playing = isSongPlaying(song);
             const loading = isSongLoading(song);
@@ -1304,8 +1436,8 @@ function ResultsView({
                 : 0;
 
             return (
+              <RevealBlock key={song.id} delay={80 + songIndex * 40}>
               <div
-                key={song.id}
                 className={`rounded-2xl border transition-all duration-200
                   ${playing ? "bg-white/[0.08] border-white/20" : "bg-white/[0.03] border-white/[0.08]"}
                   ${status === "archived" ? "opacity-50" : ""}`}
@@ -1371,34 +1503,37 @@ function ResultsView({
                   />
                 </div>
               </div>
+              </RevealBlock>
             );
           })}
         </div>
       )}
 
       {/* Bottom navigation */}
-      <div className="flex flex-col gap-2 mt-2">
-        <button
-          onClick={onReset}
-          className="w-full py-4 rounded-2xl bg-white/[0.05] border border-white/[0.08] text-white/50 text-sm font-medium tracking-wide active:scale-[0.98] transition-transform touch-manipulation"
-        >
-          Speak again
-        </button>
-        <div className="flex gap-2">
-          <Link
-            href="/library"
-            className="flex-1 py-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] text-white/35 text-sm text-center font-medium tracking-wide active:scale-[0.98] transition-transform touch-manipulation"
+      <RevealBlock delay={160}>
+        <div className="flex flex-col gap-2 mt-2">
+          <button
+            onClick={onReset}
+            className="w-full py-4 rounded-2xl bg-white/[0.05] border border-white/[0.08] text-white/50 text-sm font-medium tracking-wide active:scale-[0.98] transition-transform touch-manipulation"
           >
-            Library
-          </Link>
-          <Link
-            href="/"
-            className="flex-1 py-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] text-white/35 text-sm text-center font-medium tracking-wide active:scale-[0.98] transition-transform touch-manipulation"
-          >
-            Home
-          </Link>
+            Speak again
+          </button>
+          <div className="flex gap-2">
+            <TransitionLink
+              href="/library"
+              className="flex-1 py-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] text-white/35 text-sm text-center font-medium tracking-wide active:scale-[0.98] transition-transform touch-manipulation"
+            >
+              Library
+            </TransitionLink>
+            <TransitionLink
+              href="/"
+              className="flex-1 py-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] text-white/35 text-sm text-center font-medium tracking-wide active:scale-[0.98] transition-transform touch-manipulation"
+            >
+              Home
+            </TransitionLink>
+          </div>
         </div>
-      </div>
+      </RevealBlock>
 
       {/* Full-screen player */}
       {showPlayer && playingSong && (

@@ -1,5 +1,7 @@
-// /api/recommend-genre — picks the best-fit genre from the user's set.
+// /api/recommend-genre — picks the best-fit genre from the full genre list.
 // Fast, cheap: uses claude-haiku-4-5 with a tight prompt.
+// Accepts any number of genres (built-ins + user styles combined).
+// Genre strings may be "Display Name|Suno prompt" — uses display name for matching.
 
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
@@ -8,6 +10,14 @@ import type { StyleChoice } from "@/app/services/llmService";
 
 export const maxDuration = 15;
 
+// Extract display name from "Name|Prompt" or fall back to truncating at comma/42 chars
+function displayName(genre: string): string {
+  const pipe = genre.indexOf("|");
+  if (pipe > 0) return genre.slice(0, pipe);
+  const comma = genre.indexOf(",");
+  return comma > 0 ? genre.slice(0, comma) : genre.slice(0, 42);
+}
+
 export async function POST(req: NextRequest) {
   const { stateSummary, style, genres } = (await req.json()) as {
     stateSummary: StateSummary;
@@ -15,7 +25,7 @@ export async function POST(req: NextRequest) {
     genres: string[];
   };
 
-  if (!Array.isArray(genres) || genres.length !== 4) {
+  if (!Array.isArray(genres) || genres.length < 1) {
     return NextResponse.json({ recommendedIndex: 0 });
   }
 
@@ -25,33 +35,36 @@ export async function POST(req: NextRequest) {
       ? "high energy, activation, breaking inertia, forward momentum"
       : "calm focus, settling, deep work, grounded momentum";
 
+    const genreList = genres
+      .map((g, i) => `${i}: ${displayName(g)}`)
+      .join("\n");
+
+    const maxIdx = genres.length - 1;
+
     const message = await client.messages.create({
       model: "claude-haiku-4-5",
       max_tokens: 10,
       messages: [
         {
           role: "user",
-          content: `You are matching a music genre to someone's emotional state.
+          content: `You are matching a music style to someone's emotional state.
 
 Their state: ${stateSummary.state}
 Their goal: ${stateSummary.intent}
 What's blocking them: ${stateSummary.friction}
 Energy needed: ${energyLabel}
 
-Available genres:
-0: ${genres[0]}
-1: ${genres[1]}
-2: ${genres[2]}
-3: ${genres[3]}
+Available styles:
+${genreList}
 
-Which single genre (0, 1, 2, or 3) would work best for this person right now? Reply with only the digit.`,
+Which single style (0–${maxIdx}) would work best for this person right now? Reply with only the number.`,
         },
       ],
     });
 
     const text = message.content.find((b) => b.type === "text")?.text?.trim() ?? "0";
-    const index = parseInt(text[0]);
-    const safeIndex = isNaN(index) || index < 0 || index > 3 ? 0 : index;
+    const index = parseInt(text);
+    const safeIndex = isNaN(index) || index < 0 || index > maxIdx ? 0 : index;
 
     return NextResponse.json({ recommendedIndex: safeIndex });
   } catch (err) {

@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useSwipeNavigation } from "@/app/hooks/useSwipeBack";
+import { transitionTo } from "@/app/lib/pageTransition";
 
 const SLOTS = [
   {
@@ -392,13 +394,22 @@ export default function SettingsPage() {
   const goBack = () => {
     setSaveError("");
     if (currentSlot > 0) setCurrentSlot((c) => c - 1);
-    else router.push("/");
+    else transitionTo("/", router);
   };
 
   const goNext = () => {
     setSaveError("");
     setCurrentSlot((c) => c + 1);
   };
+
+  const onSwipeLeft = useCallback(() => {
+    if (currentSlot < SLOTS.length - 1) { setSaveError(""); setCurrentSlot((c) => c + 1); }
+  }, [currentSlot]);
+  const onSwipeRight = useCallback(() => {
+    if (currentSlot > 0) { setSaveError(""); setCurrentSlot((c) => c - 1); }
+    else transitionTo("/", router);
+  }, [currentSlot, router]);
+  useSwipeNavigation(onSwipeLeft, onSwipeRight);
 
   const slot = SLOTS[currentSlot];
   const s = slots[currentSlot];
@@ -415,7 +426,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <main className="h-screen bg-[#0d1628] flex flex-col px-6 pt-safe overflow-hidden">
+    <main className="relative z-10 h-screen flex flex-col px-6 pt-safe overflow-hidden" style={{ animation: "page-enter 380ms ease forwards" }}>
 
       {/* Header */}
       <header className="flex items-center gap-4 pt-12 pb-6">
@@ -577,7 +588,7 @@ export default function SettingsPage() {
             style={{ borderColor: "rgba(201,165,90,0.2)", background: "rgba(201,165,90,0.04)" }}
           >
             <p className="text-[10px] text-white/25 uppercase tracking-widest mb-2">
-              Your Rthm style
+              Your Current Rthm Style
             </p>
             <textarea
               value={s.style}
@@ -588,7 +599,7 @@ export default function SettingsPage() {
               placeholder="Style description"
             />
             <p className="text-[10px] text-white/15 mt-1 leading-relaxed">
-              Tap to refine · this is what feeds the music engine
+              Adjust or redefine · this is what feeds the music engine
             </p>
           </div>
         )}
@@ -672,7 +683,7 @@ export default function SettingsPage() {
               ? "Refine with selected artists →"
               : s.committed
               ? "✓ Rthm Style committed"
-              : "Commit New Rthm Style"}
+              : "Commit Rthm Style"}
           </button>
         )}
 
@@ -702,7 +713,7 @@ export default function SettingsPage() {
       <div className="flex gap-3 pb-8 pt-4 border-t border-white/[0.05] flex-shrink-0">
         {isLastSlot ? (
           <button
-            onClick={() => router.push("/")}
+            onClick={() => transitionTo("/", router)}
             className="flex-1 py-4 rounded-2xl text-sm font-semibold tracking-wide active:scale-[0.98] transition-all touch-manipulation"
             style={{
               background: "rgba(255,255,255,0.04)",

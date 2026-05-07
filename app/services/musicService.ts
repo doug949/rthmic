@@ -93,7 +93,7 @@ export async function generateSongs(lyrics: string, pillar: PillarType): Promise
     body: JSON.stringify({
       customMode: true,
       instrumental: false,
-      model: "V4",
+      model: "V5",
       prompt: lyrics,                       // lyrics in custom mode
       style: PILLAR_STYLES[pillar],         // genre/mood tags
       title: `RTHM — ${pillar}`,

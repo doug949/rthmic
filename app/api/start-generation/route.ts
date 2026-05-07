@@ -8,15 +8,30 @@ import type { StyleChoice } from "@/app/services/llmService";
 const BASE_URL = "https://api.sunoapi.org/api/v1";
 const SUNO_CHAR_LIMIT = 5000;
 
-// Style modifiers — applied on top of the user's chosen genre.
-// "fade out ending" and "resolving outro" prevent abrupt cut-offs.
-const STYLE_MODIFIERS: Record<StyleChoice, string> = {
-  A: "uplifting vocal, motivational, grounded energy, human feel, positive, 95bpm, fade out ending, resolving outro",
-  B: "reflective vocal, calm focus, meditative, introspective, warm, 80bpm, fade out ending, resolving outro",
-};
+// Suno's style field rejects full sentences — convert periods to commas.
+// Also enforces a 200-char hard cap as a safety net, truncating at the
+// last comma so we don't cut mid-tag.
+const SUNO_STYLE_LIMIT = 200;
+const FADE_SUFFIX = ", fade out ending, resolving outro";
 
-function buildMusicStyle(style: StyleChoice, genre: string): string {
-  return `${genre}, ${STYLE_MODIFIERS[style]}`;
+function buildMusicStyle(_style: StyleChoice, genre: string): string {
+  // Convert sentence endings to comma-separated tags
+  const cleaned = genre
+    .replace(/\.\s*/g, ", ")
+    .replace(/,\s*,+/g, ",")
+    .trim()
+    .replace(/,\s*$/, "");
+
+  const full = `${cleaned}${FADE_SUFFIX}`;
+  if (full.length <= SUNO_STYLE_LIMIT) return full;
+
+  // Truncate: fit as many comma-separated tags as possible within the limit
+  const budget = SUNO_STYLE_LIMIT - FADE_SUFFIX.length;
+  const truncated = cleaned.slice(0, budget);
+  const lastComma = truncated.lastIndexOf(",");
+  const base = lastComma > 0 ? truncated.slice(0, lastComma) : truncated;
+  console.warn(`Style truncated from ${full.length} to ${(base + FADE_SUFFIX).length} chars`);
+  return `${base}${FADE_SUFFIX}`;
 }
 
 export const maxDuration = 15;
@@ -48,7 +63,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         customMode: true,
         instrumental: false,
-        model: "V4_5",
+        model: "V5",
         prompt: lyrics,
         style: buildMusicStyle(style, genre),
         title: songTitle,

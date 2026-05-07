@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import Link from "next/link";
+import { TransitionLink } from "@/app/components/TransitionLink";
+import { RevealBlock } from "@/app/components/RevealBlock";
 import type { SavedRhythm } from "@/app/api/library/route";
 import { useGeneration } from "@/app/contexts/GenerationContext";
 import CustomStyleInput from "@/app/components/CustomStyleInput";
+import { useSwipeBack } from "@/app/hooks/useSwipeBack";
 
 type LoadState = "loading" | "ready" | "error";
 
@@ -26,6 +28,7 @@ export default function LibraryPage() {
   // Recreate genre picker
   const [recreateRhythm, setRecreateRhythm] = useState<SavedRhythm | null>(null);
   const { startGeneration } = useGeneration();
+  useSwipeBack("/");
 
   const fetchLibrary = useCallback(async () => {
     try {
@@ -131,7 +134,7 @@ export default function LibraryPage() {
     mutate({ action: "update", id, status: "active" });
 
   return (
-    <main className="min-h-screen bg-[#0d1628] flex flex-col px-6 pt-safe">
+    <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ animation: "page-enter 380ms ease forwards" }}>
       <audio
         ref={audioElRef}
         onEnded={() => { setIsPlaying(false); setCurrentTime(0); }}
@@ -142,15 +145,17 @@ export default function LibraryPage() {
         preload="metadata"
       />
 
-      <header className="flex items-center gap-4 pt-12 pb-8">
-        <Link
-          href="/"
-          className="text-white/30 hover:text-white/60 transition-colors text-sm tracking-widest uppercase"
-        >
-          ← Back
-        </Link>
-        <span className="text-white/15 text-sm uppercase tracking-widest ml-auto">Library</span>
-      </header>
+      <RevealBlock delay={0}>
+        <header className="flex items-center gap-4 pt-12 pb-8">
+          <TransitionLink
+            href="/"
+            className="text-white/30 hover:text-white/60 transition-colors text-sm tracking-widest uppercase"
+          >
+            ← Back
+          </TransitionLink>
+          <span className="text-white/15 text-sm uppercase tracking-widest ml-auto">Library</span>
+        </header>
+      </RevealBlock>
 
       <section className="flex-1 flex flex-col gap-8 pb-16">
 
@@ -182,12 +187,12 @@ export default function LibraryPage() {
                   <p className="text-sm text-white/25 text-center leading-relaxed">
                     Rthms you generate will appear here.
                   </p>
-                  <Link
+                  <TransitionLink
                     href="/speak"
                     className="text-xs text-white/30 underline underline-offset-4 hover:text-white/50 transition-colors"
                   >
                     Speak your state →
-                  </Link>
+                  </TransitionLink>
                 </div>
               )}
 
@@ -231,7 +236,7 @@ export default function LibraryPage() {
             onToggle={() => setCuratedOpen((o) => !o)}
           />
           {curatedOpen && (
-            <Link
+            <TransitionLink
               href="/explore"
               className="flex items-center gap-5 px-6 py-6 rounded-2xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] active:scale-[0.98] transition-all touch-manipulation"
             >
@@ -241,7 +246,7 @@ export default function LibraryPage() {
                 <p className="text-sm text-white/35 mt-0.5">20 hand-selected Rthms</p>
               </div>
               <span className="text-white/20 text-lg flex-shrink-0">›</span>
-            </Link>
+            </TransitionLink>
           )}
         </div>
 
@@ -333,6 +338,20 @@ export default function LibraryPage() {
 
 // ─── Genre picker bottom sheet ────────────────────────────────────────────────
 
+// Extract display name from "Name|Suno prompt" or plain string
+function displayNameFor(g: string): string {
+  const pipe = g.indexOf("|");
+  if (pipe > 0) return g.slice(0, pipe);
+  const comma = g.indexOf(",");
+  return comma > 0 ? g.slice(0, comma) : g.slice(0, 42);
+}
+
+// Extract Suno prompt from "Name|Suno prompt" or plain string
+function sunoPromptFor(g: string): string {
+  const pipe = g.indexOf("|");
+  return pipe > 0 ? g.slice(pipe + 1) : g;
+}
+
 function LibraryGenrePicker({
   rhythm,
   onSelect,
@@ -354,7 +373,11 @@ function LibraryGenrePicker({
   useEffect(() => {
     fetch("/api/genres")
       .then((r) => r.json())
-      .then((d) => { if (d.genres) setGenres(d.genres); })
+      .then((d) => {
+        const builtIn: string[] = d.builtIn || [];
+        const user: string[] = d.user || [];
+        setGenres([...builtIn, ...user]);
+      })
       .catch(() => {})
       .finally(() => setLoadingGenres(false));
   }, []);
@@ -363,8 +386,9 @@ function LibraryGenrePicker({
     ? customStyle
     : selectedIndex !== null ? genres[selectedIndex] ?? "" : "";
   const canProceed = selectedGenre.length > 0;
+  const selectedLabel = canProceed ? displayNameFor(selectedGenre) : "";
   const buildLabel = canProceed
-    ? `Recreate with ${selectedGenre.split(",")[0].slice(0, 28)}${selectedGenre.length > 28 ? "…" : ""}`
+    ? `Recreate with ${selectedLabel.slice(0, 28)}${selectedLabel.length > 28 ? "…" : ""}`
     : "Select a style";
 
   return (
@@ -409,7 +433,7 @@ function LibraryGenrePicker({
                   >
                     <div className="flex items-center justify-between gap-3">
                       <span className={`text-sm font-medium leading-snug ${isSelected ? "text-[#c9a55a]" : "text-white/65"}`}>
-                        {genre}
+                        {displayNameFor(genre)}
                       </span>
                       <div
                         className="w-4 h-4 rounded-full border flex-shrink-0 flex items-center justify-center"
@@ -436,7 +460,7 @@ function LibraryGenrePicker({
 
         <div className="flex flex-col gap-2 pb-safe pt-2 flex-shrink-0">
           <button
-            onClick={() => canProceed && onSelect(selectedGenre)}
+            onClick={() => canProceed && onSelect(sunoPromptFor(selectedGenre))}
             disabled={!canProceed}
             className="w-full py-5 rounded-2xl text-sm font-semibold tracking-wide active:scale-[0.98] transition-all touch-manipulation disabled:opacity-30"
             style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.45)", color: "#c9a55a" }}

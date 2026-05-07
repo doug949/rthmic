@@ -8,6 +8,7 @@ import { GenerationProvider } from "@/app/contexts/GenerationContext";
 import MiniPlayer from "@/app/components/MiniPlayer";
 import GenerationBanner from "@/app/components/GenerationBanner";
 import PageFooter from "@/app/components/PageFooter";
+import { AmbientBackground } from "@/app/components/AmbientBackground";
 
 // Display font — wordmark, headings. Geometric, elegant, premium sans.
 const raleway = Raleway({
@@ -59,6 +60,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
       </head>
       <body className="min-h-full flex flex-col bg-[#0d1628]">
+        <AmbientBackground />
         <ServiceWorkerRegistration />
         <SplashScreen />
         <GenerationProvider>
