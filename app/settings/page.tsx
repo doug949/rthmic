@@ -57,6 +57,7 @@ function toSentenceCase(s: string) {
 export default function SettingsPage() {
   const router = useRouter();
   const [currentSlot, setCurrentSlot] = useState(0);
+  const [slotGeneration, setSlotGeneration] = useState(0);
   const [slots, setSlots] = useState<SlotState[]>([emptySlot(), emptySlot(), emptySlot(), emptySlot()]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -391,24 +392,32 @@ export default function SettingsPage() {
 
   // ─── Navigation ──────────────────────────────────────────────────────────────
 
+  const SLOT_FADE = 160;
+
+  const goToSlot = useCallback((index: number) => {
+    if (index === currentSlot) return;
+    setSaveError("");
+    setCurrentSlot(index);
+    setSlotGeneration((g) => g + 1);
+  }, [currentSlot]);
+
   const goBack = () => {
     setSaveError("");
-    if (currentSlot > 0) setCurrentSlot((c) => c - 1);
+    if (currentSlot > 0) goToSlot(currentSlot - 1);
     else transitionTo("/", router);
   };
 
   const goNext = () => {
-    setSaveError("");
-    setCurrentSlot((c) => c + 1);
+    goToSlot(currentSlot + 1);
   };
 
   const onSwipeLeft = useCallback(() => {
-    if (currentSlot < SLOTS.length - 1) { setSaveError(""); setCurrentSlot((c) => c + 1); }
-  }, [currentSlot]);
+    if (currentSlot < SLOTS.length - 1) goToSlot(currentSlot + 1);
+  }, [currentSlot, goToSlot]);
   const onSwipeRight = useCallback(() => {
-    if (currentSlot > 0) { setSaveError(""); setCurrentSlot((c) => c - 1); }
+    if (currentSlot > 0) goToSlot(currentSlot - 1);
     else transitionTo("/", router);
-  }, [currentSlot, router]);
+  }, [currentSlot, goToSlot, router]);
   useSwipeNavigation(onSwipeLeft, onSwipeRight);
 
   const slot = SLOTS[currentSlot];
@@ -428,15 +437,31 @@ export default function SettingsPage() {
   return (
     <main className="relative z-10 h-screen flex flex-col px-6 pt-safe overflow-hidden" style={{ animation: "page-enter 380ms ease forwards" }}>
 
+      {/* Swipe edge indicators */}
+      {currentSlot > 0 && (
+        <div className="fixed left-0 top-1/2 -translate-y-1/2 pointer-events-none" style={{ zIndex: 20 }}>
+          <div style={{ background: "linear-gradient(to right, rgba(13,22,40,0.55) 0%, transparent 100%)", padding: "28px 20px 28px 8px" }}>
+            <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "1.4rem" }}>‹</span>
+          </div>
+        </div>
+      )}
+      {currentSlot < SLOTS.length - 1 && (
+        <div className="fixed right-0 top-1/2 -translate-y-1/2 pointer-events-none" style={{ zIndex: 20 }}>
+          <div style={{ background: "linear-gradient(to left, rgba(13,22,40,0.55) 0%, transparent 100%)", padding: "28px 8px 28px 20px" }}>
+            <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "1.4rem" }}>›</span>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="flex items-center gap-4 pt-12 pb-6">
         <button
           onClick={goBack}
-          className="text-white/30 hover:text-white/60 transition-colors text-sm tracking-widest uppercase touch-manipulation"
+          className="text-white/45 hover:text-white/70 transition-colors text-sm tracking-widest uppercase touch-manipulation"
         >
           ← Back
         </button>
-        <span className="text-white/15 text-sm uppercase tracking-widest ml-auto">
+        <span className="text-white/25 text-sm uppercase tracking-widest ml-auto">
           RTHMIC Styles
         </span>
       </header>
@@ -446,7 +471,7 @@ export default function SettingsPage() {
         {SLOTS.map((_, i) => (
           <button
             key={i}
-            onClick={() => { setSaveError(""); setCurrentSlot(i); }}
+            onClick={() => goToSlot(i)}
             className="touch-manipulation"
             aria-label={`Go to style ${i + 1}`}
           >
@@ -466,13 +491,17 @@ export default function SettingsPage() {
             />
           </button>
         ))}
-        <span className="text-[10px] text-white/20 uppercase tracking-widest ml-auto">
+        <span className="text-[10px] text-white/35 uppercase tracking-widest ml-auto">
           {currentSlot + 1} of 4
         </span>
       </div>
 
-      {/* Scrollable content */}
-      <div className="flex-1 flex flex-col gap-6 overflow-y-auto pb-4">
+      {/* Scrollable content — key forces remount so panel-enter animation fires */}
+      <div
+        key={slotGeneration}
+        className="flex-1 flex flex-col gap-6 overflow-y-auto pb-4"
+        style={{ animation: "panel-enter 220ms ease both" }}
+      >
 
         {/* Slot label */}
         <span
@@ -494,7 +523,7 @@ export default function SettingsPage() {
           >
             {slot.question}
           </h2>
-          <p className="text-sm text-white/30 mt-2 leading-relaxed">{slot.hint}</p>
+          <p className="text-sm text-white/45 mt-2 leading-relaxed">{slot.hint}</p>
         </div>
 
         {/* ── PRIMARY: Voice input ── */}
@@ -546,7 +575,7 @@ export default function SettingsPage() {
                     <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
                     <p className="text-base text-white/80 font-medium">Listening…</p>
                   </div>
-                  <p className="text-xs text-white/30">Tap to stop</p>
+                  <p className="text-xs text-white/45">Tap to stop</p>
                 </>
               )}
               {voicePhase === "transcribing" && (
@@ -560,7 +589,7 @@ export default function SettingsPage() {
                   <p className="text-base font-medium" style={{ color: s.transcript ? "rgba(255,255,255,0.75)" : "#c9a55a" }}>
                     {s.transcript ? "Tap to re-record" : "Your Rthm style – tap to speak"}
                   </p>
-                  <p className="text-xs text-white/25 mt-0.5">
+                  <p className="text-xs text-white/40 mt-0.5">
                     {s.transcript ? "Your words will be replaced" : "Describe the feel, energy, what it does to you"}
                   </p>
                 </>
@@ -571,7 +600,7 @@ export default function SettingsPage() {
           {/* Transcript preview */}
           {s.transcript && voicePhase === "idle" && (
             <div className="px-5 pb-4 border-t border-white/[0.05] pt-3">
-              <p className="text-[10px] text-white/20 uppercase tracking-widest mb-1.5">What you said</p>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">What you said</p>
               <p className="text-sm text-white/50 leading-relaxed italic">&ldquo;{s.transcript}&rdquo;</p>
             </div>
           )}
@@ -587,7 +616,7 @@ export default function SettingsPage() {
             className="rounded-2xl border px-5 py-5"
             style={{ borderColor: "rgba(201,165,90,0.2)", background: "rgba(201,165,90,0.04)" }}
           >
-            <p className="text-[10px] text-white/25 uppercase tracking-widest mb-2">
+            <p className="text-[10px] text-white/40 uppercase tracking-widest mb-2">
               Your Current Rthm Style
             </p>
             <textarea
@@ -598,7 +627,7 @@ export default function SettingsPage() {
               style={{ color: "#c9a55a", fontFamily: "var(--font-display)" }}
               placeholder="Style description"
             />
-            <p className="text-[10px] text-white/15 mt-1 leading-relaxed">
+            <p className="text-[10px] text-white/25 mt-1 leading-relaxed">
               Adjust or redefine · this is what feeds the music engine
             </p>
           </div>
@@ -609,7 +638,7 @@ export default function SettingsPage() {
           <div>
             <button
               onClick={() => setShowAdvanced((v) => !v)}
-              className="flex items-center gap-2 text-[10px] text-white/20 uppercase tracking-widest touch-manipulation hover:text-white/35 transition-colors"
+              className="flex items-center gap-2 text-[10px] text-white/30 uppercase tracking-widest touch-manipulation hover:text-white/50 transition-colors"
             >
               <span>{showAdvanced ? "▾" : "▸"}</span>
               <span>Refine with artists</span>
@@ -617,7 +646,7 @@ export default function SettingsPage() {
 
             {showAdvanced && (
               <div className="mt-3">
-                <p className="text-xs text-white/25 mb-3 leading-relaxed">
+                <p className="text-xs text-white/40 mb-3 leading-relaxed">
                   These artists match your style. Select any, then tap &ldquo;Refine&rdquo; below to sharpen the result.
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -643,7 +672,7 @@ export default function SettingsPage() {
                 {s.selectedArtists.length > 0 && (
                   <button
                     onClick={() => updateSlot(currentSlot, { selectedArtists: [] })}
-                    className="mt-2 text-[10px] text-white/20 hover:text-white/40 transition-colors touch-manipulation"
+                    className="mt-2 text-[10px] text-white/30 hover:text-white/50 transition-colors touch-manipulation"
                   >
                     Clear selection
                   </button>
@@ -702,7 +731,7 @@ export default function SettingsPage() {
               <p className="text-sm font-medium" style={{ color: "rgba(201,165,90,0.6)" }}>
                 You&apos;re on the Pro plan
               </p>
-              <p className="text-xs text-white/20 mt-0.5">Unlimited Rthm Styles — create as many as you need</p>
+              <p className="text-xs text-white/35 mt-0.5">Unlimited Rthm Styles — create as many as you need</p>
             </div>
           </div>
         )}
@@ -718,7 +747,7 @@ export default function SettingsPage() {
             style={{
               background: "rgba(255,255,255,0.04)",
               border: "1px solid rgba(255,255,255,0.08)",
-              color: "rgba(255,255,255,0.35)",
+              color: "rgba(255,255,255,0.5)",
             }}
           >
             Done — back to home
@@ -730,7 +759,7 @@ export default function SettingsPage() {
             style={{
               background: s.committed ? "rgba(201,165,90,0.1)" : "rgba(255,255,255,0.04)",
               border: s.committed ? "1px solid rgba(201,165,90,0.45)" : "1px solid rgba(255,255,255,0.08)",
-              color: s.committed ? "#c9a55a" : "rgba(255,255,255,0.35)",
+              color: s.committed ? "#c9a55a" : "rgba(255,255,255,0.5)",
             }}
           >
             Next — {SLOTS[currentSlot + 1].label} →

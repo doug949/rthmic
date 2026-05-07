@@ -492,19 +492,19 @@ export default function SpeakPage() {
         {phase === "priming" ? (
           <button
             onClick={() => transitionTo("module")}
-            className="text-white/30 hover:text-white/60 transition-colors text-sm tracking-widest uppercase touch-manipulation"
+            className="text-white/45 hover:text-white/70 transition-colors text-sm tracking-widest uppercase touch-manipulation"
           >
             ← Back
           </button>
         ) : (
           <TransitionLink
             href="/"
-            className="text-white/30 hover:text-white/60 transition-colors text-sm tracking-widest uppercase"
+            className="text-white/45 hover:text-white/70 transition-colors text-sm tracking-widest uppercase"
           >
             ← Back
           </TransitionLink>
         )}
-        <span className="text-white/15 text-sm uppercase tracking-widest ml-auto">Speak</span>
+        <span className="text-white/25 text-sm uppercase tracking-widest ml-auto">Speak</span>
       </header>
 
       {/* Generation-context phases take priority */}
@@ -701,7 +701,7 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
     <section className="flex-1 flex flex-col pb-6 overflow-y-auto">
       <RevealBlock delay={0}>
         <div className="flex flex-col gap-1.5 pt-2 pb-5">
-          <p className="text-[10px] text-white/25 uppercase tracking-[0.3em]">Select a Pillar</p>
+          <p className="text-[10px] text-white/40 uppercase tracking-[0.3em]">Select a Pillar</p>
           <p className="text-xl font-light text-white/70 leading-snug" style={{ fontFamily: "var(--font-display)" }}>
             What do you want to work on?
           </p>
@@ -725,7 +725,7 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
                 >
                   <div className="min-w-0">
                     <p className="text-base font-semibold text-white/80 tracking-wide">{p.label}</p>
-                    <p className="text-xs text-white/35 mt-0.5">{p.tagline}</p>
+                    <p className="text-xs text-white/50 mt-0.5">{p.tagline}</p>
                   </div>
                 </button>
 
@@ -756,7 +756,7 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
                     className="rounded-lg px-3.5 py-3"
                     style={{ background: "rgba(201,165,90,0.06)", border: "1px solid rgba(201,165,90,0.12)" }}
                   >
-                    <p className="text-[10px] text-white/30 uppercase tracking-[0.2em] mb-1">How to speak</p>
+                    <p className="text-[10px] text-white/45 uppercase tracking-[0.2em] mb-1">How to speak</p>
                     <p className="text-xs text-white/45 leading-relaxed">{p.guidance}</p>
                   </div>
 
@@ -810,7 +810,7 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: () =
 
         <div className="flex flex-col gap-3">
           <RevealBlock delay={30}>
-            <p className="text-[10px] text-white/25 uppercase tracking-[0.3em]">Before you speak</p>
+            <p className="text-[10px] text-white/40 uppercase tracking-[0.3em]">Before you speak</p>
           </RevealBlock>
           <RevealBlock delay={60}>
             <h2 className="text-2xl font-light text-white leading-snug" style={{ fontFamily: "var(--font-display)" }}>
@@ -818,7 +818,7 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: () =
             </h2>
           </RevealBlock>
           <RevealBlock delay={100}>
-            <p className="text-base text-white/45 leading-relaxed">
+            <p className="text-base text-white/60 leading-relaxed">
               {p?.subheadline ?? "The more honest you are, the better the result."}
             </p>
           </RevealBlock>
@@ -831,13 +831,13 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: () =
         <div className="flex flex-col gap-4">
           {instructions.map((line, i) => (
             <RevealBlock key={i} delay={180 + i * 45}>
-              <p className="text-sm text-white/50 leading-relaxed">{line}</p>
+              <p className="text-sm text-white/65 leading-relaxed">{line}</p>
             </RevealBlock>
           ))}
         </div>
 
         <RevealBlock delay={180 + instructions.length * 45}>
-          <p className="text-xs text-white/25 leading-relaxed border-t border-white/[0.06] pt-4">
+          <p className="text-xs text-white/40 leading-relaxed border-t border-white/[0.06] pt-4">
             {p?.footnote ?? "Most people speak for 1–3 minutes. After 5 minutes Rthmic will capture what you've said — you'll have the option to add more if it feels right."}
           </p>
         </RevealBlock>
@@ -864,7 +864,7 @@ function IdleView({ onRecord, errorMsg }: { onRecord: () => void; errorMsg: stri
       <RevealBlock delay={0}>
         <div className="text-center">
           <h2 className="text-2xl font-light tracking-wide text-white leading-snug" style={{ fontFamily: "var(--font-display)" }}>Speak your state</h2>
-          <p className="text-sm text-white/35 mt-2">Two Rthms will be built for you.</p>
+          <p className="text-sm text-white/50 mt-2">Two Rthms will be built for you.</p>
         </div>
       </RevealBlock>
 
@@ -879,7 +879,7 @@ function IdleView({ onRecord, errorMsg }: { onRecord: () => void; errorMsg: stri
       </RevealBlock>
 
       {errorMsg && (
-        <p className="text-xs text-white/35 text-center max-w-xs">{errorMsg}</p>
+        <p className="text-xs text-white/50 text-center max-w-xs">{errorMsg}</p>
       )}
     </section>
   );
@@ -903,7 +903,7 @@ function RecordingView({
     >
       <div className="text-center pointer-events-none">
         <h2 className="text-2xl font-light tracking-wide text-white" style={{ fontFamily: "var(--font-display)" }}>Speak your state</h2>
-        <p className="text-sm text-white/35 mt-2">Tap to stop</p>
+        <p className="text-sm text-white/50 mt-2">Tap to stop</p>
       </div>
 
       <div className="relative flex items-center justify-center pointer-events-none">
@@ -940,8 +940,8 @@ function UnderstandingView() {
       <RevealBlock delay={0}>
         <div className="text-center">
           <h2 className="text-xl font-light tracking-wide text-white" style={{ fontFamily: "var(--font-display)" }}>Understanding you</h2>
-          <p className="text-sm text-white/30 mt-2">Reading your state…</p>
-          <p className="text-xs text-white/20 mt-3">This usually takes 10–20 seconds.</p>
+          <p className="text-sm text-white/45 mt-2">Reading your state…</p>
+          <p className="text-xs text-white/35 mt-3">This usually takes 10–20 seconds.</p>
         </div>
       </RevealBlock>
       <RevealBlock delay={60}>
@@ -1019,10 +1019,10 @@ function ConfirmingView({
           <div className="flex flex-col gap-2">
             <h2 className="text-2xl font-light tracking-wide text-white" style={{ fontFamily: "var(--font-display)" }}>Is this right?</h2>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] text-white/20 border border-white/[0.08] rounded-full px-2.5 py-0.5 uppercase tracking-widest">
+              <span className="text-[10px] text-white/35 border border-white/[0.10] rounded-full px-2.5 py-0.5 uppercase tracking-widest">
                 {result.pillar}
               </span>
-              <span className="text-[10px] text-white/20 border border-white/[0.08] rounded-full px-2.5 py-0.5 uppercase tracking-widest">
+              <span className="text-[10px] text-white/35 border border-white/[0.10] rounded-full px-2.5 py-0.5 uppercase tracking-widest">
                 {styleLabel}
               </span>
             </div>
@@ -1060,7 +1060,7 @@ function ConfirmingView({
           </button>
           <button
             onClick={onDiscard}
-            className="w-full py-4 rounded-2xl bg-white/[0.03] border border-white/[0.08] text-white/25 text-sm font-medium tracking-wide active:scale-[0.98] transition-transform touch-manipulation"
+            className="w-full py-4 rounded-2xl bg-white/[0.03] border border-white/[0.08] text-white/40 text-sm font-medium tracking-wide active:scale-[0.98] transition-transform touch-manipulation"
           >
             Discard and start afresh
           </button>
@@ -1078,7 +1078,7 @@ function AnimatedConfirmRow({ label, words, visibleCount }: {
 }) {
   return (
     <div>
-      <p className="text-[10px] text-white/25 uppercase tracking-[0.2em] mb-0.5">{label}</p>
+      <p className="text-[10px] text-white/40 uppercase tracking-[0.2em] mb-0.5">{label}</p>
       <p className="text-sm text-white/60 leading-relaxed">
         {words.map((word, i) => (
           <span
@@ -1229,7 +1229,7 @@ function GenreView({
         <h2 className="text-2xl font-light text-white leading-snug" style={{ fontFamily: "var(--font-display)" }}>
           Choose your style
         </h2>
-        <p className="text-sm text-white/35 mt-2 leading-relaxed">
+        <p className="text-sm text-white/50 mt-2 leading-relaxed">
           {loadingRec
             ? "Finding the best match for your state…"
             : recommendedIndex !== null
@@ -1251,7 +1251,7 @@ function GenreView({
           {builtInGenres.length > 0 && (
             <div className="flex flex-col gap-2">
               <RevealBlock delay={20}>
-                <p className="text-[10px] text-white/25 uppercase tracking-[0.25em]">RTHMIC Styles</p>
+                <p className="text-[10px] text-white/40 uppercase tracking-[0.25em]">RTHMIC Styles</p>
               </RevealBlock>
               <div className="flex flex-col gap-2">
                 {builtInGenres.map((genre, i) =>
@@ -1265,7 +1265,7 @@ function GenreView({
           {userGenres.length > 0 && (
             <div className="flex flex-col gap-2">
               <RevealBlock delay={40 + builtInGenres.length * 20}>
-                <p className="text-[10px] text-white/25 uppercase tracking-[0.25em]">Your Styles</p>
+                <p className="text-[10px] text-white/40 uppercase tracking-[0.25em]">Your Styles</p>
               </RevealBlock>
               <div className="flex flex-col gap-2">
                 {userGenres.map((genre, i) =>
@@ -1297,7 +1297,7 @@ function GenreView({
         </button>
         <button
           onClick={onDiscard}
-          className="w-full py-3 text-white/20 hover:text-white/40 text-sm tracking-wide transition-colors touch-manipulation"
+          className="w-full py-3 text-white/35 hover:text-white/55 text-sm tracking-wide transition-colors touch-manipulation"
         >
           Discard and start afresh
         </button>
@@ -1314,7 +1314,7 @@ function GeneratingView({ onCancel }: { onCancel: () => void }) {
       <RevealBlock delay={0}>
         <div className="text-center max-w-xs">
           <h2 className="text-xl font-light tracking-wide text-white" style={{ fontFamily: "var(--font-display)" }}>Building your Rthms</h2>
-          <p className="text-sm text-white/30 mt-2 leading-relaxed">
+          <p className="text-sm text-white/45 mt-2 leading-relaxed">
             This takes 1–2 minutes. You can navigate away — a notification will appear when they&apos;re ready.
           </p>
         </div>
@@ -1325,7 +1325,7 @@ function GeneratingView({ onCancel }: { onCancel: () => void }) {
       <RevealBlock delay={100}>
         <button
           onClick={onCancel}
-          className="text-xs text-white/15 hover:text-white/30 transition-colors touch-manipulation uppercase tracking-widest"
+          className="text-xs text-white/25 hover:text-white/45 transition-colors touch-manipulation uppercase tracking-widest"
         >
           Cancel
         </button>
@@ -1400,17 +1400,17 @@ function ResultsView({
         >
           <span className="text-xs text-white/40">✓</span>
           <div className="flex-1 min-w-0">
-            <p className="text-xs text-white/50 leading-snug">Saved to your library — tap to manage</p>
+            <p className="text-xs text-white/65 leading-snug">Saved to your library — tap to manage</p>
           </div>
-          <span className="text-white/20 text-sm flex-shrink-0">›</span>
+          <span className="text-white/35 text-sm flex-shrink-0">›</span>
         </TransitionLink>
       </RevealBlock>
 
       <RevealBlock delay={40}>
         <div className="flex items-center gap-3">
-          <p className="text-[10px] text-white/25 uppercase tracking-[0.2em]">Generated for you</p>
+          <p className="text-[10px] text-white/40 uppercase tracking-[0.2em]">Generated for you</p>
           {pillar && (
-            <span className="text-[10px] text-white/20 border border-white/[0.08] rounded-full px-2.5 py-0.5 uppercase tracking-widest">
+            <span className="text-[10px] text-white/35 border border-white/[0.10] rounded-full px-2.5 py-0.5 uppercase tracking-widest">
               {pillar}
             </span>
           )}
@@ -1421,7 +1421,7 @@ function ResultsView({
 
       {songs.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-5 py-16">
-          <p className="text-sm text-white/25 text-center">All Rthms removed.</p>
+          <p className="text-sm text-white/40 text-center">All Rthms removed.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
@@ -1463,7 +1463,7 @@ function ResultsView({
                       {song.title}
                     </p>
                     {status === "archived" && (
-                      <p className="text-[10px] text-white/25 mt-0.5 uppercase tracking-widest">Archived</p>
+                      <p className="text-[10px] text-white/40 mt-0.5 uppercase tracking-widest">Archived</p>
                     )}
                     {playing && (
                       <div className="flex items-end gap-[3px] h-3 mt-1.5">
@@ -1474,7 +1474,7 @@ function ResultsView({
                     )}
                   </div>
                   {playing && (
-                    <span className="flex-shrink-0 text-[10px] text-white/25 uppercase tracking-widest">expand ›</span>
+                    <span className="flex-shrink-0 text-[10px] text-white/40 uppercase tracking-widest">expand ›</span>
                   )}
                 </button>
 
@@ -1521,13 +1521,13 @@ function ResultsView({
           <div className="flex gap-2">
             <TransitionLink
               href="/library"
-              className="flex-1 py-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] text-white/35 text-sm text-center font-medium tracking-wide active:scale-[0.98] transition-transform touch-manipulation"
+              className="flex-1 py-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] text-white/50 text-sm text-center font-medium tracking-wide active:scale-[0.98] transition-transform touch-manipulation"
             >
               Library
             </TransitionLink>
             <TransitionLink
               href="/"
-              className="flex-1 py-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] text-white/35 text-sm text-center font-medium tracking-wide active:scale-[0.98] transition-transform touch-manipulation"
+              className="flex-1 py-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] text-white/50 text-sm text-center font-medium tracking-wide active:scale-[0.98] transition-transform touch-manipulation"
             >
               Home
             </TransitionLink>
@@ -1644,7 +1644,7 @@ function FullScreenPlayer({
       <div className="flex items-center px-6 pt-4 pb-3 flex-shrink-0">
         <button
           onClick={onClose}
-          className="flex items-center gap-2 text-white/35 hover:text-white/60 transition-colors touch-manipulation py-1"
+          className="flex items-center gap-2 text-white/50 hover:text-white/70 transition-colors touch-manipulation py-1"
           aria-label="Back to list"
         >
           <svg width="8" height="13" viewBox="0 0 8 13" fill="none">
@@ -1678,8 +1678,8 @@ function FullScreenPlayer({
           />
         </div>
         <div className="flex justify-between -mt-1 mb-6">
-          <span className="text-[11px] text-white/25 tabular-nums">{fmt(currentTime)}</span>
-          <span className="text-[11px] text-white/25 tabular-nums">{fmt(duration)}</span>
+          <span className="text-[11px] text-white/40 tabular-nums">{fmt(currentTime)}</span>
+          <span className="text-[11px] text-white/40 tabular-nums">{fmt(duration)}</span>
         </div>
       </div>
 
@@ -1688,7 +1688,7 @@ function FullScreenPlayer({
         {/* Restart */}
         <button
           onClick={handleRestart}
-          className="flex flex-col items-center gap-1 text-white/30 hover:text-white/60 active:scale-90 transition-all touch-manipulation"
+          className="flex flex-col items-center gap-1 text-white/45 hover:text-white/70 active:scale-90 transition-all touch-manipulation"
           aria-label="Restart"
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -1718,7 +1718,7 @@ function FullScreenPlayer({
         {/* Skip +10s */}
         <button
           onClick={handleSkip10}
-          className="flex flex-col items-center gap-1 text-white/30 hover:text-white/60 active:scale-90 transition-all touch-manipulation"
+          className="flex flex-col items-center gap-1 text-white/45 hover:text-white/70 active:scale-90 transition-all touch-manipulation"
           aria-label="Skip forward 10 seconds"
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -1776,7 +1776,7 @@ function FullScreenPlayer({
             {lyricLines.map((line, i) => {
               const isHeader = /^\[.*\]$/.test(line);
               return isHeader ? (
-                <p key={i} className="text-[10px] text-white/20 uppercase tracking-widest mt-6 mb-2 first:mt-0">
+                <p key={i} className="text-[10px] text-white/30 uppercase tracking-widest mt-6 mb-2 first:mt-0">
                   {line.replace(/^\[|\]$/g, "")}
                 </p>
               ) : (
@@ -1816,9 +1816,9 @@ function ActionBtn({
       onClick={onClick}
       className={`flex-1 flex flex-col items-center gap-0.5 py-3 text-xs tracking-wide touch-manipulation transition-colors
         ${confirming ? "text-red-400/80"
-          : danger ? "text-white/20 hover:text-red-400/50 active:text-red-400/70"
-          : active ? "text-white/60"
-          : "text-white/20 hover:text-white/40"}`}
+          : danger ? "text-white/30 hover:text-red-400/60 active:text-red-400/80"
+          : active ? "text-white/75"
+          : "text-white/35 hover:text-white/55"}`}
     >
       <span className="text-base leading-none">{icon}</span>
       <span className="uppercase tracking-widest text-[9px]">{label}</span>

@@ -12,7 +12,7 @@ export default function Home() {
           <h1 className="text-3xl tracking-[0.4em] uppercase" style={{ fontFamily: "var(--font-display)", fontWeight: 300, color: "#c9a55a" }}>
             RTHMIC
           </h1>
-          <p className="text-xs mt-1.5 tracking-widest uppercase" style={{ color: "#c9a55a", opacity: 0.45 }}>
+          <p className="text-xs mt-1.5 tracking-widest uppercase" style={{ color: "#c9a55a", opacity: 0.6 }}>
             Rthm-based action
           </p>
         </header>
@@ -102,11 +102,11 @@ function ModeCard({
       <div className="flex-1 min-w-0">
         <p
           className={`font-semibold tracking-wide ${subtle ? "text-base" : "text-lg"}`}
-          style={{ color: primary ? "#c9a55a" : subtle ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.8)" }}
+          style={{ color: primary ? "#c9a55a" : subtle ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.9)" }}
         >
           {label}
         </p>
-        <p className={`mt-0.5 leading-snug ${subtle ? "text-xs text-white/20" : "text-sm text-white/35"}`}>{description}</p>
+        <p className={`mt-0.5 leading-snug ${subtle ? "text-xs text-white/35" : "text-sm text-white/55"}`}>{description}</p>
       </div>
       <span className="flex-shrink-0 text-lg" style={{ color: primary ? "rgba(201,165,90,0.4)" : subtle ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.2)" }}>›</span>
     </TransitionLink>

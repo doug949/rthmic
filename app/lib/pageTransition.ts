@@ -1,19 +1,21 @@
-import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
+type Router = { push: (href: string) => void; back: () => void };
 
-const FADE_DURATION = 240; // ms — must match CSS transition duration
+// Module-level singleton — the overlay subscribes once at layout mount.
+let _onStart: (() => void) | null = null;
 
-/**
- * Fade the current page out, then navigate.
- * Pass "__back__" to use router.back() instead of router.push().
- */
-export function transitionTo(href: string, router: AppRouterInstance) {
-  document.documentElement.classList.add("page-leaving");
+export function subscribeToTransitions(onStart: () => void) {
+  _onStart = onStart;
+  return () => { _onStart = null; };
+}
+
+const FADE_OUT = 240; // ms — time for overlay to reach full black before navigating
+
+export function transitionTo(href: string, router: Router) {
+  _onStart?.();
   setTimeout(() => {
     if (href === "__back__") router.back();
     else router.push(href);
-    // Remove class immediately after push — old DOM is gone, new page uses page-enter
-    requestAnimationFrame(() => {
-      document.documentElement.classList.remove("page-leaving");
-    });
-  }, FADE_DURATION);
+    // Reveal is triggered by usePathname() change in PageTransitionLayer,
+    // not by a timer — so the overlay only lifts once the new page is actually mounted.
+  }, FADE_OUT);
 }

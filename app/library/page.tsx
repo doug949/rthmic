@@ -56,6 +56,7 @@ export default function LibraryPage() {
   }, [fetchLibrary]);
 
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
+  const [shareToastId, setShareToastId] = useState<string | null>(null);
   const [myRthmsOpen, setMyRthmsOpen] = useState(false);
   const [myRthmsExpanded, setMyRthmsExpanded] = useState(false);
   const [curatedOpen, setCuratedOpen] = useState(false);
@@ -109,6 +110,36 @@ export default function LibraryPage() {
     setRecreateRhythm(rhythm);
   };
 
+  const handleShare = async (rhythm: SavedRhythm) => {
+    try {
+      const res = await fetch("/api/share", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rhythmId: rhythm.id }),
+      });
+      if (!res.ok) throw new Error("share failed");
+      const { url } = await res.json();
+
+      if (navigator.share) {
+        await navigator.share({
+          title: rhythm.title,
+          text: `Listen to "${rhythm.title}" on RTHMIC`,
+          url,
+        });
+      } else {
+        await navigator.clipboard.writeText(url);
+        // Brief toast — we'll reuse the same confirmingRemove mechanism timing
+        setShareToastId(rhythm.id);
+        setTimeout(() => setShareToastId(id => id === rhythm.id ? null : id), 2500);
+      }
+    } catch (err) {
+      // User cancelled the share sheet — not an error worth surfacing
+      if (err instanceof Error && err.name !== "AbortError") {
+        console.error("Share failed:", err);
+      }
+    }
+  };
+
   const handleGenreSelected = (genre: string) => {
     if (!recreateRhythm) return;
     startGeneration({
@@ -149,11 +180,11 @@ export default function LibraryPage() {
         <header className="flex items-center gap-4 pt-12 pb-8">
           <TransitionLink
             href="/"
-            className="text-white/30 hover:text-white/60 transition-colors text-sm tracking-widest uppercase"
+            className="text-white/45 hover:text-white/70 transition-colors text-sm tracking-widest uppercase"
           >
             ← Back
           </TransitionLink>
-          <span className="text-white/15 text-sm uppercase tracking-widest ml-auto">Library</span>
+          <span className="text-white/25 text-sm uppercase tracking-widest ml-auto">Library</span>
         </header>
       </RevealBlock>
 
@@ -178,18 +209,18 @@ export default function LibraryPage() {
 
               {loadState === "error" && (
                 <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5 py-6 text-center">
-                  <p className="text-sm text-white/25">Couldn't load library. Check your connection.</p>
+                  <p className="text-sm text-white/40">Couldn't load library. Check your connection.</p>
                 </div>
               )}
 
               {loadState === "ready" && active.length === 0 && (
                 <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5 py-8 flex flex-col items-center gap-3">
-                  <p className="text-sm text-white/25 text-center leading-relaxed">
+                  <p className="text-sm text-white/40 text-center leading-relaxed">
                     Rthms you generate will appear here.
                   </p>
                   <TransitionLink
                     href="/speak"
-                    className="text-xs text-white/30 underline underline-offset-4 hover:text-white/50 transition-colors"
+                    className="text-xs text-white/45 underline underline-offset-4 hover:text-white/60 transition-colors"
                   >
                     Speak your state →
                   </TransitionLink>
@@ -211,13 +242,15 @@ export default function LibraryPage() {
                       onArchive={() => handleToggleArchive(rhythm)}
                       onRemove={() => handleRemove(rhythm.id)}
                       onRecreate={() => handleRecreate(rhythm)}
+                      onShare={() => handleShare(rhythm)}
                       confirmingRemove={confirmRemoveId === rhythm.id}
+                      shareToast={shareToastId === rhythm.id}
                     />
                   ))}
                   {active.length > MY_RTHMS_PREVIEW && (
                     <button
                       onClick={() => setMyRthmsExpanded((e) => !e)}
-                      className="text-[10px] text-white/25 uppercase tracking-widest py-2 touch-manipulation hover:text-white/40 transition-colors"
+                      className="text-[10px] text-white/40 uppercase tracking-widest py-2 touch-manipulation hover:text-white/55 transition-colors"
                     >
                       {myRthmsExpanded ? "Show less ↑" : `+${active.length - MY_RTHMS_PREVIEW} more ↓`}
                     </button>
@@ -240,12 +273,12 @@ export default function LibraryPage() {
               href="/explore"
               className="flex items-center gap-5 px-6 py-6 rounded-2xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] active:scale-[0.98] transition-all touch-manipulation"
             >
-              <span className="text-2xl flex-shrink-0 text-white/30" aria-hidden>◎</span>
+              <span className="text-2xl flex-shrink-0 text-white/45" aria-hidden>◎</span>
               <div className="flex-1 min-w-0">
                 <p className="text-base font-semibold text-white/80 tracking-wide">Explore</p>
-                <p className="text-sm text-white/35 mt-0.5">20 hand-selected Rthms</p>
+                <p className="text-sm text-white/50 mt-0.5">20 hand-selected Rthms</p>
               </div>
-              <span className="text-white/20 text-lg flex-shrink-0">›</span>
+              <span className="text-white/35 text-lg flex-shrink-0">›</span>
             </TransitionLink>
           )}
         </div>
@@ -275,7 +308,9 @@ export default function LibraryPage() {
                     onArchive={() => handleToggleArchive(rhythm)}
                     onRemove={() => handleRemove(rhythm.id)}
                     onRecreate={() => handleRecreate(rhythm)}
+                    onShare={() => handleShare(rhythm)}
                     confirmingRemove={confirmRemoveId === rhythm.id}
+                    shareToast={shareToastId === rhythm.id}
                     dimmed
                   />
                 ))}
@@ -310,7 +345,7 @@ export default function LibraryPage() {
                         </div>
                         <button
                           onClick={() => handleRestore(rhythm.id)}
-                          className="flex-shrink-0 text-[10px] uppercase tracking-widest text-white/30 hover:text-white/60 transition-colors touch-manipulation px-3 py-1.5 rounded-lg border border-white/[0.08] hover:border-white/20"
+                          className="flex-shrink-0 text-[10px] uppercase tracking-widest text-white/45 hover:text-white/70 transition-colors touch-manipulation px-3 py-1.5 rounded-lg border border-white/[0.08] hover:border-white/20"
                         >
                           Restore
                         </button>
@@ -404,7 +439,7 @@ function LibraryGenrePicker({
         </div>
 
         <div className="flex-shrink-0">
-          <p className="text-[10px] text-white/25 uppercase tracking-widest mb-1">Recreate in another genre</p>
+          <p className="text-[10px] text-white/40 uppercase tracking-widest mb-1">Recreate in another genre</p>
           <h3 className="text-lg font-light text-white leading-snug" style={{ fontFamily: "var(--font-display)" }}>
             {rhythm.title}
           </h3>
@@ -432,7 +467,7 @@ function LibraryGenrePicker({
                     }
                   >
                     <div className="flex items-center justify-between gap-3">
-                      <span className={`text-sm font-medium leading-snug ${isSelected ? "text-[#c9a55a]" : "text-white/65"}`}>
+                      <span className={`text-sm font-medium leading-snug ${isSelected ? "text-[#c9a55a]" : "text-white/75"}`}>
                         {displayNameFor(genre)}
                       </span>
                       <div
@@ -467,7 +502,7 @@ function LibraryGenrePicker({
           >
             {buildLabel}
           </button>
-          <button onClick={onClose} className="w-full py-3 text-white/25 text-sm tracking-wide touch-manipulation">
+          <button onClick={onClose} className="w-full py-3 text-white/40 text-sm tracking-wide touch-manipulation">
             Cancel
           </button>
         </div>
@@ -489,7 +524,9 @@ function RhythmRow({
   onArchive,
   onRemove,
   onRecreate,
+  onShare,
   confirmingRemove,
+  shareToast,
   dimmed,
 }: {
   rhythm: SavedRhythm;
@@ -502,7 +539,9 @@ function RhythmRow({
   onArchive: () => void;
   onRemove: () => void;
   onRecreate: () => void;
+  onShare: () => void;
   confirmingRemove?: boolean;
+  shareToast?: boolean;
   dimmed?: boolean;
 }) {
   const canPlay = !!rhythm.audioUrl;
@@ -536,9 +575,9 @@ function RhythmRow({
             {rhythm.title}
           </p>
           <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-[10px] text-white/35 uppercase tracking-wider">{rhythm.pillar}</span>
+            <span className="text-[10px] text-white/50 uppercase tracking-wider">{rhythm.pillar}</span>
             {mayBeExpired && !playing && canPlay && (
-              <span className="text-[10px] text-white/25 uppercase tracking-wider">· may have expired</span>
+              <span className="text-[10px] text-white/40 uppercase tracking-wider">· may have expired</span>
             )}
           </div>
         </div>
@@ -554,8 +593,8 @@ function RhythmRow({
             />
           </div>
           <div className="flex justify-between mt-1">
-            <span className="text-xs text-white/35 tabular-nums">{fmt(currentTime)}</span>
-            <span className="text-xs text-white/35 tabular-nums">{fmt(duration)}</span>
+            <span className="text-xs text-white/50 tabular-nums">{fmt(currentTime)}</span>
+            <span className="text-xs text-white/50 tabular-nums">{fmt(duration)}</span>
           </div>
         </div>
       )}
@@ -574,6 +613,13 @@ function RhythmRow({
         {rhythm.lyrics && (
           <SmallBtn onClick={onToggleLyrics} label="Lyrics" icon="≡" active={showLyrics} />
         )}
+        <SmallBtn
+          onClick={onShare}
+          label={shareToast ? "Copied!" : "Share"}
+          sublabel={shareToast ? "Link ready" : "Send link"}
+          icon="↗"
+          active={shareToast}
+        />
         <SmallBtn
           onClick={onRecreate}
           label="Recreate"
@@ -638,15 +684,15 @@ function LibraryLyricsView({
   return (
     <div className="px-6 pt-1 pb-5 flex flex-col items-center gap-1.5 text-center border-t border-white/[0.04]">
       {prevLine && (
-        <p className="text-[11px] text-white/20 leading-snug transition-all duration-500">{prevLine}</p>
+        <p className="text-[11px] text-white/30 leading-snug transition-all duration-500">{prevLine}</p>
       )}
       {currLine ? (
         <p className="text-sm text-white/80 font-medium leading-snug transition-all duration-300">{currLine}</p>
       ) : (
-        <p className="text-[11px] text-white/15 leading-snug italic">{nextLine}</p>
+        <p className="text-[11px] text-white/25 leading-snug italic">{nextLine}</p>
       )}
       {currLine && nextLine && (
-        <p className="text-[11px] text-white/20 leading-snug transition-all duration-500">{nextLine}</p>
+        <p className="text-[11px] text-white/30 leading-snug transition-all duration-500">{nextLine}</p>
       )}
     </div>
   );
@@ -662,9 +708,9 @@ function SmallBtn({ onClick, label, sublabel, icon, danger, confirming, active }
       onClick={onClick}
       className={`flex-1 flex flex-col items-center gap-1 py-3 touch-manipulation transition-colors
         ${confirming ? "text-red-400/90"
-          : danger ? "text-white/35 hover:text-red-400/70"
-          : active ? "text-white/70"
-          : "text-white/40 hover:text-white/60"}`}
+          : danger ? "text-white/45 hover:text-red-400/80"
+          : active ? "text-white/80"
+          : "text-white/55 hover:text-white/75"}`}
     >
       <span className="text-base leading-none">{icon}</span>
       <span className="uppercase tracking-wider text-[10px] font-medium">{label}</span>
@@ -712,18 +758,18 @@ function SectionHeader({
       className="flex items-baseline gap-2 touch-manipulation text-left w-full py-0.5"
     >
       <h2
-        className={`font-light tracking-wide ${dim ? "text-sm text-white/25 uppercase tracking-widest" : "text-lg text-white"}`}
+        className={`font-light tracking-wide ${dim ? "text-sm text-white/40 uppercase tracking-widest" : "text-lg text-white"}`}
         style={dim ? {} : { fontFamily: "var(--font-display)" }}
       >
         {title}
       </h2>
       {count !== undefined && count > 0 && (
-        <span className="text-xs text-white/35 tabular-nums">{count}</span>
+        <span className="text-xs text-white/50 tabular-nums">{count}</span>
       )}
       {subtitle && (
-        <span className="text-[10px] text-white/30 ml-1">{subtitle}</span>
+        <span className="text-[10px] text-white/45 ml-1">{subtitle}</span>
       )}
-      <span className="ml-auto text-[10px] text-white/35 uppercase tracking-widest">
+      <span className="ml-auto text-[10px] text-white/50 uppercase tracking-widest">
         {open ? "↑" : "↓"}
       </span>
     </button>

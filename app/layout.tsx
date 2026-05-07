@@ -9,6 +9,7 @@ import MiniPlayer from "@/app/components/MiniPlayer";
 import GenerationBanner from "@/app/components/GenerationBanner";
 import PageFooter from "@/app/components/PageFooter";
 import { AmbientBackground } from "@/app/components/AmbientBackground";
+import { PageTransitionLayer } from "@/app/components/PageTransitionLayer";
 
 // Display font — wordmark, headings. Geometric, elegant, premium sans.
 const raleway = Raleway({
@@ -61,6 +62,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col bg-[#0d1628]">
         <AmbientBackground />
+        <PageTransitionLayer />
         <ServiceWorkerRegistration />
         <SplashScreen />
         <GenerationProvider>

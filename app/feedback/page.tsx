@@ -158,7 +158,7 @@ export default function FeedbackPage() {
 
       <RevealBlock delay={0}>
         <header className="flex items-center gap-4 pt-12 pb-8">
-          <TransitionLink href="/" className="text-white/30 hover:text-white/60 transition-colors text-sm tracking-widest uppercase">
+          <TransitionLink href="/" className="text-white/45 hover:text-white/70 transition-colors text-sm tracking-widest uppercase">
             ← Back
           </TransitionLink>
         </header>
@@ -171,7 +171,7 @@ export default function FeedbackPage() {
           <section className="flex-1 flex flex-col justify-between pb-12">
             <div className="flex flex-col gap-6 pt-4">
               <RevealBlock delay={0}>
-                <p className="text-[10px] tracking-widest uppercase text-white/25">Beta feedback</p>
+                <p className="text-[10px] tracking-widest uppercase text-white/40">Beta feedback</p>
               </RevealBlock>
               <RevealBlock delay={30}>
                 <h1 className="text-2xl font-light text-white leading-snug" style={{ fontFamily: "var(--font-display)" }}>
@@ -179,7 +179,7 @@ export default function FeedbackPage() {
                 </h1>
               </RevealBlock>
               <RevealBlock delay={70}>
-                <p className="text-sm text-white/40 leading-relaxed">
+                <p className="text-sm text-white/55 leading-relaxed">
                   Speak freely — what worked, what didn't, what surprised you. Your voice note goes directly to the team.
                 </p>
               </RevealBlock>
@@ -212,7 +212,7 @@ export default function FeedbackPage() {
                   style={{ background: "radial-gradient(circle, rgba(201,165,90,0.35) 0%, rgba(201,165,90,0.08) 70%)", opacity: 0.55 }}
                 />
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-sm font-mono text-white/40">{fmtTime(seconds)}</span>
+                  <span className="text-sm font-mono text-white/55">{fmtTime(seconds)}</span>
                 </div>
               </div>
               <div className="w-48 h-0.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
@@ -221,7 +221,7 @@ export default function FeedbackPage() {
                   style={{ width: `${progress * 100}%`, background: "rgba(201,165,90,0.4)" }}
                 />
               </div>
-              <p className="text-sm text-white/30 tracking-wide">Speaking…</p>
+              <p className="text-sm text-white/45 tracking-wide">Speaking…</p>
             </div>
             <button
               onClick={stopRecording}
@@ -241,7 +241,7 @@ export default function FeedbackPage() {
                 <h2 className="text-xl font-light tracking-wide text-white" style={{ fontFamily: "var(--font-display)" }}>
                   {phase === "sending" ? "Sending your feedback" : "Transcribing…"}
                 </h2>
-                <p className="text-sm text-white/30 mt-2">
+                <p className="text-sm text-white/45 mt-2">
                   {phase === "sending" ? "Almost done" : "Reading what you said"}
                 </p>
               </div>
@@ -257,7 +257,7 @@ export default function FeedbackPage() {
           <section className="flex-1 flex flex-col justify-between pb-12">
             <div className="flex flex-col gap-5 pt-4">
               <RevealBlock delay={0}>
-                <p className="text-[10px] tracking-widest uppercase text-white/25">Review your feedback</p>
+                <p className="text-[10px] tracking-widest uppercase text-white/40">Review your feedback</p>
               </RevealBlock>
               <RevealBlock delay={30}>
                 <h1 className="text-2xl font-light text-white leading-snug" style={{ fontFamily: "var(--font-display)" }}>
@@ -265,7 +265,7 @@ export default function FeedbackPage() {
                 </h1>
               </RevealBlock>
               <RevealBlock delay={70}>
-                <p className="text-sm text-white/35 leading-relaxed">
+                <p className="text-sm text-white/50 leading-relaxed">
                   Edit anything before sending. This is exactly what the team will receive.
                 </p>
               </RevealBlock>
@@ -275,7 +275,7 @@ export default function FeedbackPage() {
                   className="rounded-2xl px-5 py-5 flex flex-col gap-3"
                   style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}
                 >
-                  <p className="text-[10px] text-white/20 tracking-widest uppercase">Transcription</p>
+                  <p className="text-[10px] text-white/30 tracking-widest uppercase">Transcription</p>
                   <textarea
                     value={editedTranscript}
                     onChange={(e) => setEditedTranscript(e.target.value)}
@@ -284,11 +284,11 @@ export default function FeedbackPage() {
                     placeholder="Your transcribed feedback…"
                   />
                   <div className="flex items-center justify-between">
-                    <p className="text-[10px] text-white/15">{wordCount} {wordCount === 1 ? "word" : "words"}</p>
+                    <p className="text-[10px] text-white/25">{wordCount} {wordCount === 1 ? "word" : "words"}</p>
                     {editedTranscript !== transcript && (
                       <button
                         onClick={() => setEditedTranscript(transcript)}
-                        className="text-[10px] text-white/20 hover:text-white/40 transition-colors tracking-wide"
+                        className="text-[10px] text-white/30 hover:text-white/50 transition-colors tracking-wide"
                       >
                         Reset to original
                       </button>
@@ -312,7 +312,7 @@ export default function FeedbackPage() {
               <RevealBlock delay={180}>
                 <button
                   onClick={() => { setTranscript(""); setEditedTranscript(""); transitionTo("idle"); }}
-                  className="w-full py-3 text-white/25 text-sm tracking-wide touch-manipulation"
+                  className="w-full py-3 text-white/40 text-sm tracking-wide touch-manipulation"
                 >
                   Re-record instead
                 </button>
@@ -326,7 +326,7 @@ export default function FeedbackPage() {
           <section className="flex-1 flex flex-col justify-between pb-12">
             <div className="flex flex-col gap-6 pt-4">
               <RevealBlock delay={0}>
-                <p className="text-[10px] tracking-widest uppercase text-white/25">Sent</p>
+                <p className="text-[10px] tracking-widest uppercase text-white/40">Sent</p>
               </RevealBlock>
               <RevealBlock delay={30}>
                 <h1 className="text-2xl font-light text-white leading-snug" style={{ fontFamily: "var(--font-display)" }}>
@@ -334,7 +334,7 @@ export default function FeedbackPage() {
                 </h1>
               </RevealBlock>
               <RevealBlock delay={70}>
-                <p className="text-sm text-white/40 leading-relaxed">
+                <p className="text-sm text-white/55 leading-relaxed">
                   Your feedback has been received by the team. It helps shape RTHMIC for everyone.
                 </p>
               </RevealBlock>
@@ -350,7 +350,7 @@ export default function FeedbackPage() {
                 </button>
               </RevealBlock>
               <RevealBlock delay={150}>
-                <TransitionLink href="/" className="block w-full py-3 text-center text-white/25 text-sm tracking-wide touch-manipulation">
+                <TransitionLink href="/" className="block w-full py-3 text-center text-white/40 text-sm tracking-wide touch-manipulation">
                   Back to RTHMIC
                 </TransitionLink>
               </RevealBlock>

@@ -4,8 +4,13 @@ import type { NextRequest } from "next/server";
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow login page and API auth route through
-  if (pathname.startsWith("/login") || pathname.startsWith("/api/auth")) {
+  // Allow login page, API auth route, and public share pages through
+  if (
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/r/") ||         // shared Rthm pages
+    pathname.startsWith("/api/share")     // share token lookup (POST is auth-gated at handler level)
+  ) {
     return NextResponse.next();
   }
 
