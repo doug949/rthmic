@@ -2,11 +2,10 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
-import { TransitionLink } from "@/app/components/TransitionLink";
 import { RevealBlock } from "@/app/components/RevealBlock";
 import type { SavedRhythm } from "@/app/api/library/route";
 
-type PageState = "loading" | "ready" | "notfound" | "saving" | "saved" | "error";
+type PageState = "loading" | "ready" | "notfound" | "error";
 
 function fmt(s: number) {
   const m = Math.floor(s / 60);
@@ -19,15 +18,13 @@ export default function SharePage() {
 
   const [state, setState] = useState<PageState>("loading");
   const [rhythm, setRhythm] = useState<SavedRhythm | null>(null);
+  const [aboutOpen, setAboutOpen] = useState(false);
 
   // Playback
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-
-  // Save feedback
-  const [saveMsg, setSaveMsg] = useState("");
 
   // ── Fetch the shared Rthm ──────────────────────────────────────────────────
   useEffect(() => {
@@ -72,25 +69,6 @@ export default function SharePage() {
     else           { el.play().catch(() => {}); setIsPlaying(true); }
   };
 
-  // ── Save to library ────────────────────────────────────────────────────────
-  const saveToLibrary = async () => {
-    if (!rhythm) return;
-    setState("saving");
-    try {
-      const res = await fetch("/api/library", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "save", rhythm }),
-      });
-      if (!res.ok) throw new Error("save failed");
-      setState("saved");
-      setSaveMsg("Saved to your library");
-    } catch {
-      setState("ready");
-      setSaveMsg("Couldn't save — are you logged in?");
-    }
-  };
-
   // ── Lyrics helper ──────────────────────────────────────────────────────────
   const lyricsLines = rhythm?.lyrics
     ? rhythm.lyrics.split("\n").map((l) => l.trim()).filter((l) => l && !l.match(/^\[.*\]$/))
@@ -103,7 +81,7 @@ export default function SharePage() {
     ? Math.min(Math.floor((currentTime - introGap) / lineTime), lyricsLines.length - 1)
     : -1;
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // ── Render: loading ────────────────────────────────────────────────────────
   if (state === "loading") {
     return (
       <main className="relative z-10 min-h-screen flex flex-col items-center justify-center px-6">
@@ -123,9 +101,9 @@ export default function SharePage() {
         <p className="text-sm text-white/50 leading-relaxed max-w-xs">
           Share links last 90 days. Ask the person who sent this for a fresh one.
         </p>
-        <TransitionLink href="/" className="mt-4 text-sm text-white/40 hover:text-white/70 transition-colors">
+        <a href="/login" className="mt-4 text-sm text-white/40 hover:text-white/70 transition-colors">
           Open RTHMIC →
-        </TransitionLink>
+        </a>
       </main>
     );
   }
@@ -135,9 +113,6 @@ export default function SharePage() {
       <main className="relative z-10 min-h-screen flex flex-col items-center justify-center px-6 gap-4 text-center"
         style={{ animation: "page-enter 380ms ease forwards" }}>
         <p className="text-white/50 text-sm">Something went wrong. Try again.</p>
-        <TransitionLink href="/" className="text-sm text-white/40 hover:text-white/70 transition-colors">
-          Open RTHMIC →
-        </TransitionLink>
       </main>
     );
   }
@@ -146,34 +121,37 @@ export default function SharePage() {
   const progress = duration > 0 ? currentTime / duration : 0;
 
   return (
-    <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe"
+    <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe pb-16"
       style={{ animation: "page-enter 380ms ease forwards" }}>
 
       <audio ref={audioRef} preload="metadata" />
 
-      {/* Header */}
+      {/* ── Header ──────────────────────────────────────────────────────────── */}
       <RevealBlock delay={0}>
         <header className="pt-14 pb-10">
-          <p className="text-xs tracking-[0.4em] uppercase mb-1" style={{ color: "#c9a55a", opacity: 0.6, fontFamily: "var(--font-display)" }}>
+          <p className="text-xs tracking-[0.4em] uppercase mb-1"
+            style={{ color: "#c9a55a", opacity: 0.6, fontFamily: "var(--font-display)" }}>
             RTHMIC
           </p>
-          <p className="text-xs text-white/40 tracking-widest uppercase">Someone shared a Rthm with you</p>
+          <p className="text-xs text-white/40 tracking-widest uppercase">
+            Someone shared a Rthm with you
+          </p>
         </header>
       </RevealBlock>
 
-      {/* Player card */}
+      {/* ── Player card ─────────────────────────────────────────────────────── */}
       <RevealBlock delay={60}>
         <div className="rounded-2xl border overflow-hidden"
           style={{ background: "rgba(201,165,90,0.05)", borderColor: "rgba(201,165,90,0.2)" }}>
 
-          {/* Play button + info */}
+          {/* Play / info row */}
           <button
             onClick={togglePlay}
             disabled={!canPlay}
             className="w-full flex items-center gap-5 px-6 py-6 text-left touch-manipulation active:scale-[0.99] transition-transform disabled:opacity-40"
           >
             <div
-              className="w-12 h-12 rounded-full flex items-center justify-center border flex-shrink-0"
+              className="w-12 h-12 rounded-full flex items-center justify-center border flex-shrink-0 transition-all"
               style={{
                 background: isPlaying ? "rgba(201,165,90,0.2)" : "rgba(201,165,90,0.08)",
                 borderColor: isPlaying ? "rgba(201,165,90,0.5)" : "rgba(201,165,90,0.25)",
@@ -205,7 +183,7 @@ export default function SharePage() {
             </div>
           )}
 
-          {/* Lyrics — show when playing */}
+          {/* Lyrics */}
           {lyricsLines.length > 0 && (
             <div className="px-6 pb-5 pt-1 flex flex-col items-center gap-1.5 text-center border-t"
               style={{ borderColor: "rgba(201,165,90,0.1)" }}>
@@ -225,44 +203,82 @@ export default function SharePage() {
         </div>
       </RevealBlock>
 
-      {/* Save / CTA */}
-      <RevealBlock delay={120}>
+      {/* ── CTAs ────────────────────────────────────────────────────────────── */}
+      <RevealBlock delay={140}>
         <div className="mt-6 flex flex-col gap-3">
-          {state === "saved" ? (
-            <div className="w-full py-5 rounded-2xl text-center text-sm font-medium"
-              style={{ background: "rgba(201,165,90,0.06)", border: "1px solid rgba(201,165,90,0.2)", color: "rgba(201,165,90,0.8)" }}>
-              ✓ {saveMsg}
-            </div>
-          ) : (
-            <button
-              onClick={saveToLibrary}
-              disabled={state === "saving"}
-              className="w-full py-5 rounded-2xl text-sm font-semibold tracking-wide active:scale-[0.98] transition-all touch-manipulation disabled:opacity-50"
-              style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.4)", color: "#c9a55a" }}
-            >
-              {state === "saving" ? "Saving…" : "Save to my library →"}
-            </button>
-          )}
-          {saveMsg && state !== "saved" && (
-            <p className="text-center text-xs text-white/45">{saveMsg}</p>
-          )}
-          <TransitionLink
-            href="/"
-            className="w-full py-4 text-center text-sm text-white/40 hover:text-white/65 transition-colors touch-manipulation tracking-wide"
+
+          {/* Primary — apply for beta */}
+          <a
+            href="/login"
+            className="w-full py-5 rounded-2xl text-sm font-semibold tracking-wide text-center active:scale-[0.98] transition-all touch-manipulation"
+            style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.4)", color: "#c9a55a" }}
           >
-            Open RTHMIC
-          </TransitionLink>
+            Apply for RTHMIC beta →
+          </a>
+
+          {/* Secondary — make your own */}
+          <a
+            href="/login"
+            className="w-full py-4 rounded-2xl text-sm font-medium tracking-wide text-center active:scale-[0.98] transition-all touch-manipulation"
+            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)" }}
+          >
+            Make a Rthm of your own
+          </a>
         </div>
       </RevealBlock>
 
-      {/* About blurb — only shown to people who might not know RTHMIC */}
+      {/* ── What is RTHMIC — expandable ─────────────────────────────────────── */}
       <RevealBlock delay={200}>
-        <div className="mt-10 pb-16 border-t border-white/[0.06] pt-8 flex flex-col gap-2">
-          <p className="text-[10px] text-white/35 uppercase tracking-[0.3em]">What is RTHMIC?</p>
-          <p className="text-sm text-white/50 leading-relaxed">
-            RTHMIC generates songs built for your exact moment — when you&apos;re stuck, overwhelmed, or need momentum.
-            Speak your state. Get a Rthm.
-          </p>
+        <div className="mt-6 rounded-2xl overflow-hidden"
+          style={{ border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.02)" }}>
+
+          <button
+            onClick={() => setAboutOpen((o) => !o)}
+            className="w-full flex items-center justify-between px-6 py-5 touch-manipulation text-left"
+          >
+            <span className="text-sm font-medium text-white/70 tracking-wide">What is RTHMIC?</span>
+            <span className="text-white/35 text-lg leading-none transition-transform duration-200"
+              style={{ transform: aboutOpen ? "rotate(45deg)" : "rotate(0deg)" }}>
+              +
+            </span>
+          </button>
+
+          {aboutOpen && (
+            <div className="px-6 pb-6 flex flex-col gap-4 border-t border-white/[0.06]">
+
+              <div className="pt-4 flex flex-col gap-1.5">
+                <p className="text-[10px] text-white/40 uppercase tracking-[0.3em]">What</p>
+                <p className="text-sm text-white/70 leading-relaxed">
+                  RTHMIC generates complete songs — built specifically for your immediate challenge in the moment.
+                  Each song is called a Rthm. Not background music. A tool.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <p className="text-[10px] text-white/40 uppercase tracking-[0.3em]">When</p>
+                <p className="text-sm text-white/70 leading-relaxed">
+                  Use it when you&apos;re stuck, overwhelmed, procrastinating, or frozen before a task.
+                  The moment you notice resistance — that&apos;s when RTHMIC works.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <p className="text-[10px] text-white/40 uppercase tracking-[0.3em]">How</p>
+                <p className="text-sm text-white/70 leading-relaxed">
+                  You speak your state. RTHMIC generates a Rthm built for exactly what you&apos;re facing.
+                  Over time you build a personal library — a toolkit of tracks that work specifically for you.
+                </p>
+              </div>
+
+              <a
+                href="/login"
+                className="mt-1 w-full py-4 rounded-xl text-sm font-semibold tracking-wide text-center active:scale-[0.98] transition-all touch-manipulation"
+                style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.35)", color: "#c9a55a" }}
+              >
+                Apply for access →
+              </a>
+            </div>
+          )}
         </div>
       </RevealBlock>
 

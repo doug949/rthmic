@@ -12,7 +12,7 @@ export function AmbientBackground() {
       {/* ── Vinyl texture — full-bleed static, very restrained ──────────────── */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="https://images.unsplash.com/photo-1668086682346-d98bf035f9c9?w=1400&q=85"
+        src="/vinyl.jpg"
         alt=""
         style={{
           position: "absolute",
