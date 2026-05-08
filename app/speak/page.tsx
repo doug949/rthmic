@@ -549,8 +549,13 @@ export default function SpeakPage() {
           {phase === "module" && (
             <PillarView
               onSelect={(slug) => {
-                setSelectedPillar(slug);
-                transitionTo("priming");
+                if (slug === "auto") {
+                  setSelectedPillar(null);
+                  transitionTo("priming");
+                } else {
+                  setSelectedPillar(slug);
+                  transitionTo("priming");
+                }
               }}
             />
           )}
@@ -777,6 +782,21 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
             </RevealBlock>
           );
         })}
+
+        {/* Let RTHMIC decide */}
+        <RevealBlock delay={PILLARS.length * 28}>
+          <button
+            onClick={() => onSelect("auto")}
+            className="w-full py-4 rounded-2xl text-sm font-medium tracking-wide text-center touch-manipulation active:scale-[0.98] transition-all mt-1"
+            style={{
+              background: "rgba(255,255,255,0.02)",
+              border: "1px dashed rgba(255,255,255,0.12)",
+              color: "rgba(255,255,255,0.35)",
+            }}
+          >
+            Let RTHMIC decide
+          </button>
+        </RevealBlock>
       </div>
     </section>
   );
