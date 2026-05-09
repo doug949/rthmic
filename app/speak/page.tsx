@@ -808,13 +808,28 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
           );
         })}
 
-        {/* ── Bridge: For someone else ── */}
+        {/* Let RTHMIC decide */}
         <RevealBlock delay={PILLARS.length * 28 + 10}>
+          <button
+            onClick={() => onSelect("auto")}
+            className="w-full py-4 rounded-2xl text-sm font-medium tracking-wide text-center touch-manipulation active:scale-[0.98] transition-all"
+            style={{
+              background: "rgba(255,255,255,0.02)",
+              border: "1px dashed rgba(255,255,255,0.12)",
+              color: "rgba(255,255,255,0.35)",
+            }}
+          >
+            Let RTHMIC decide
+          </button>
+        </RevealBlock>
+
+        {/* ── Bridge: For someone else ── */}
+        <RevealBlock delay={PILLARS.length * 28 + 24}>
           <div className="mt-3 mb-1">
             <p className="text-[10px] text-white/30 uppercase tracking-[0.3em]">For someone else</p>
           </div>
         </RevealBlock>
-        <RevealBlock delay={PILLARS.length * 28 + 24}>
+        <RevealBlock delay={PILLARS.length * 28 + 38}>
           {(() => {
             const p = BRIDGE_PILLAR;
             const isOpen = openInfo === p.slug;
@@ -865,20 +880,6 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
           })()}
         </RevealBlock>
 
-        {/* Let RTHMIC decide */}
-        <RevealBlock delay={PILLARS.length * 28 + 48}>
-          <button
-            onClick={() => onSelect("auto")}
-            className="w-full py-4 rounded-2xl text-sm font-medium tracking-wide text-center touch-manipulation active:scale-[0.98] transition-all mt-1"
-            style={{
-              background: "rgba(255,255,255,0.02)",
-              border: "1px dashed rgba(255,255,255,0.12)",
-              color: "rgba(255,255,255,0.35)",
-            }}
-          >
-            Let RTHMIC decide
-          </button>
-        </RevealBlock>
       </div>
     </section>
   );
