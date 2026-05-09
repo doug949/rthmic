@@ -726,6 +726,13 @@ const BRIDGE_PILLAR: PillarDefinition = {
 
 function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
   const [openInfo, setOpenInfo] = useState<string | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+
+  const openModal = (slug: string) => { setOpenInfo(slug); requestAnimationFrame(() => setModalVisible(true)); };
+  const closeModal = () => { setModalVisible(false); setTimeout(() => setOpenInfo(null), 220); };
+
+  const allPillars = [...PILLARS, BRIDGE_PILLAR];
+  const modalPillar = openInfo ? allPillars.find((p) => p.slug === openInfo) ?? null : null;
 
   return (
     <section className="flex-1 flex flex-col pb-6 overflow-y-auto">
@@ -743,7 +750,6 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
         </RevealBlock>
 
         {PILLARS.map((p, index) => {
-          const isOpen = openInfo === p.slug;
           return (
             <RevealBlock key={p.slug} delay={index * 28}>
             <div
@@ -765,44 +771,15 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
                 {/* Divider */}
                 <div className="w-px self-stretch my-3 bg-white/[0.06]" />
 
-                {/* Info toggle — does NOT select */}
+                {/* Info toggle — opens modal */}
                 <button
-                  onClick={() => setOpenInfo(isOpen ? null : p.slug)}
+                  onClick={() => openModal(p.slug)}
                   className="flex items-center justify-center w-14 touch-manipulation active:bg-white/[0.04] transition-colors"
-                  aria-label={isOpen ? "Close info" : "Learn more"}
+                  aria-label="Learn more"
                 >
-                  {isOpen
-                    ? <span className="text-sm" style={{ color: "rgba(201,165,90,0.7)" }}>✕</span>
-                    : <InfoIcon />}
+                  <InfoIcon />
                 </button>
               </div>
-
-              {/* Learn More panel */}
-              {isOpen && (
-                <div className="border-t border-white/[0.06] px-5 pt-4 pb-5 flex flex-col gap-4">
-                  <p className="text-sm text-white/50 leading-relaxed">{p.detail}</p>
-
-                  <div
-                    className="rounded-lg px-3.5 py-3"
-                    style={{ background: "rgba(201,165,90,0.06)", border: "1px solid rgba(201,165,90,0.12)" }}
-                  >
-                    <p className="text-[10px] text-white/45 uppercase tracking-[0.2em] mb-1">How to speak</p>
-                    <p className="text-xs text-white/45 leading-relaxed">{p.guidance}</p>
-                  </div>
-
-                  <button
-                    onClick={() => onSelect(p.slug)}
-                    className="w-full py-3.5 rounded-xl text-sm font-semibold tracking-wide touch-manipulation active:scale-[0.98] transition-all"
-                    style={{
-                      background: "rgba(201,165,90,0.12)",
-                      border: "1px solid rgba(201,165,90,0.35)",
-                      color: "#c9a55a",
-                    }}
-                  >
-                    Select {p.label} →
-                  </button>
-                </div>
-              )}
             </div>
             </RevealBlock>
           );
@@ -832,14 +809,13 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
         <RevealBlock delay={PILLARS.length * 28 + 38}>
           {(() => {
             const p = BRIDGE_PILLAR;
-            const isOpen = openInfo === p.slug;
             return (
               <div className="rounded-2xl overflow-hidden"
                 style={{ border: "1px solid rgba(201,165,90,0.18)", background: "rgba(201,165,90,0.03)" }}>
                 <div className="flex items-stretch">
-                  {/* Primary tap — opens explanation, not priming */}
+                  {/* Primary tap — opens modal */}
                   <button
-                    onClick={() => setOpenInfo(isOpen ? null : p.slug)}
+                    onClick={() => openModal(p.slug)}
                     className="flex-1 flex items-center gap-3 pl-5 pr-3 py-4 text-left touch-manipulation active:bg-white/[0.05] transition-colors"
                   >
                     <div className="min-w-0">
@@ -849,38 +825,87 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
                   </button>
                   <div className="w-px self-stretch my-3" style={{ background: "rgba(201,165,90,0.12)" }} />
                   <button
-                    onClick={() => setOpenInfo(isOpen ? null : p.slug)}
+                    onClick={() => openModal(p.slug)}
                     className="flex items-center justify-center w-14 touch-manipulation active:bg-white/[0.04] transition-colors"
-                    aria-label={isOpen ? "Close info" : "Learn more"}
+                    aria-label="Learn more"
                   >
-                    {isOpen
-                      ? <span className="text-sm" style={{ color: "rgba(201,165,90,0.7)" }}>✕</span>
-                      : <InfoIcon gold />}
+                    <InfoIcon gold />
                   </button>
                 </div>
-                {isOpen && (
-                  <div className="px-5 pt-4 pb-5 flex flex-col gap-4" style={{ borderTop: "1px solid rgba(201,165,90,0.1)" }}>
-                    <p className="text-sm text-white/50 leading-relaxed">{p.detail}</p>
-                    <div className="rounded-lg px-3.5 py-3"
-                      style={{ background: "rgba(201,165,90,0.06)", border: "1px solid rgba(201,165,90,0.12)" }}>
-                      <p className="text-[10px] text-white/45 uppercase tracking-[0.2em] mb-1">How to speak</p>
-                      <p className="text-xs text-white/45 leading-relaxed">{p.guidance}</p>
-                    </div>
-                    <button
-                      onClick={() => onSelect(p.slug)}
-                      className="w-full py-3.5 rounded-xl text-sm font-semibold tracking-wide touch-manipulation active:scale-[0.98] transition-all"
-                      style={{ background: "rgba(201,165,90,0.12)", border: "1px solid rgba(201,165,90,0.35)", color: "#c9a55a" }}
-                    >
-                      Create a Bridge →
-                    </button>
-                  </div>
-                )}
               </div>
             );
           })()}
         </RevealBlock>
 
       </div>
+
+      {/* ── Pillar info modal ─────────────────────────────────────────────────── */}
+      {openInfo && modalPillar && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center px-5"
+          style={{
+            background: `rgba(6,13,26,${modalVisible ? "0.85" : "0"})`,
+            transition: "background 220ms ease",
+          }}
+          onClick={closeModal}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl flex flex-col gap-4 p-6 relative"
+            style={{
+              background: "rgba(12,22,42,0.97)",
+              border: modalPillar.slug === "bridge"
+                ? "1px solid rgba(201,165,90,0.25)"
+                : "1px solid rgba(255,255,255,0.1)",
+              boxShadow: "0 24px 64px rgba(0,0,0,0.6)",
+              opacity: modalVisible ? 1 : 0,
+              transform: modalVisible ? "translateY(0)" : "translateY(16px)",
+              transition: "opacity 220ms ease, transform 220ms ease",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close */}
+            <button
+              onClick={closeModal}
+              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full text-white/40 hover:text-white/70 transition-colors touch-manipulation"
+              style={{ background: "rgba(255,255,255,0.06)" }}
+            >
+              ✕
+            </button>
+
+            {/* Header */}
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.3em] mb-1"
+                style={{ color: modalPillar.slug === "bridge" ? "rgba(201,165,90,0.6)" : "rgba(255,255,255,0.3)" }}>
+                {modalPillar.slug === "bridge" ? "For someone else" : "For You in the Moment"}
+              </p>
+              <p className="text-lg font-semibold text-white"
+                style={{ color: modalPillar.slug === "bridge" ? "#c9a55a" : "white" }}>
+                {modalPillar.label}
+              </p>
+              <p className="text-xs text-white/40 mt-0.5">{modalPillar.tagline}</p>
+            </div>
+
+            {/* Detail */}
+            <p className="text-sm text-white/55 leading-relaxed">{modalPillar.detail}</p>
+
+            {/* How to speak */}
+            <div className="rounded-xl px-4 py-3"
+              style={{ background: "rgba(201,165,90,0.05)", border: "1px solid rgba(201,165,90,0.12)" }}>
+              <p className="text-[10px] text-white/40 uppercase tracking-[0.2em] mb-1.5">How to speak</p>
+              <p className="text-xs text-white/45 leading-relaxed">{modalPillar.guidance}</p>
+            </div>
+
+            {/* CTA */}
+            <button
+              onClick={() => { closeModal(); setTimeout(() => onSelect(modalPillar.slug), 230); }}
+              className="w-full py-4 rounded-xl text-sm font-semibold tracking-wide touch-manipulation active:scale-[0.98] transition-all"
+              style={{ background: "rgba(201,165,90,0.12)", border: "1px solid rgba(201,165,90,0.35)", color: "#c9a55a" }}
+            >
+              {modalPillar.slug === "bridge" ? "Create a Bridge →" : `Select ${modalPillar.label} →`}
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -888,7 +913,7 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
 // ─── Priming ──────────────────────────────────────────────────────────────────
 
 function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: () => void }) {
-  const pillarDef = PILLARS.find((p) => p.slug === pillar) ?? null;
+  const pillarDef = PILLARS.find((p) => p.slug === pillar) ?? (pillar === "bridge" ? BRIDGE_PILLAR : null);
   const p = pillarDef?.priming;
   const instructions = p?.instructions ?? [
     "Speak about your challenge — your hopes, what you think is stopping you, or what you want to learn.",
