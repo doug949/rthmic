@@ -709,7 +709,7 @@ const PILLARS: PillarDefinition[] = [
 const BRIDGE_PILLAR: PillarDefinition = {
   slug: "bridge",
   label: "Rthmic Bridge",
-  tagline: "A Rthm made for someone else",
+  tagline: "A Rthm to communicate and connect",
   detail: "Use this when you want to reach someone — to say something you find hard to say, to help them through something, to celebrate them, or simply to let them know they're on your mind. RTHMIC builds a complete song shaped around that person and what you want them to feel. You send the link; they can play it from anywhere.",
   guidance: "Tell RTHMIC who this is for and what you want them to feel or know. You don't need to be poetic — just honest. The more specific you are about the person and the moment, the more the song will feel like it was made for them.",
   priming: {
