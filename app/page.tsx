@@ -24,7 +24,7 @@ export default function Home() {
             href="/speak"
             label="Speak"
             description="Tell Rthmic your state. Get a Rthm built for you."
-            symbol="◉"
+            icon={<MicIcon />}
             primary
           />
         </RevealBlock>
@@ -33,7 +33,7 @@ export default function Home() {
             href="/library"
             label="Listen"
             description="Your generated Rthms and the curated collection."
-            symbol="▤"
+            icon={<PlayIcon />}
           />
         </RevealBlock>
         <RevealBlock delay={180}>
@@ -41,7 +41,7 @@ export default function Home() {
             href="/understand"
             label="About RTHMIC"
             description="What it is and when to use it"
-            symbol="◎"
+            icon={<InfoIcon />}
           />
         </RevealBlock>
         <RevealBlock delay={240}>
@@ -49,7 +49,7 @@ export default function Home() {
             href="/settings"
             label="RTHMIC Styles"
             description="Configure your genre map and preferences"
-            symbol="⊙"
+            icon={<NoteIcon />}
           />
         </RevealBlock>
         <RevealBlock delay={300}>
@@ -57,7 +57,7 @@ export default function Home() {
             href="/feedback"
             label="Share Feedback"
             description="Speak your thoughts directly to the team"
-            symbol="◎"
+            icon={<BubbleIcon />}
             subtle
           />
         </RevealBlock>
@@ -70,14 +70,14 @@ function ModeCard({
   href,
   label,
   description,
-  symbol,
+  icon,
   primary,
   subtle,
 }: {
   href: string;
   label: string;
   description: string;
-  symbol: string;
+  icon: React.ReactNode;
   primary?: boolean;
   subtle?: boolean;
 }) {
@@ -93,11 +93,11 @@ function ModeCard({
       style={primary ? { background: "rgba(201,165,90,0.08)", borderColor: "rgba(201,165,90,0.35)" } : {}}
     >
       <span
-        className={`flex-shrink-0 ${subtle ? "text-lg" : "text-2xl"}`}
-        style={{ color: primary ? "#c9a55a" : subtle ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.4)" }}
+        className="flex-shrink-0"
+        style={{ color: primary ? "#c9a55a" : subtle ? "rgba(255,255,255,0.28)" : "rgba(255,255,255,0.45)" }}
         aria-hidden
       >
-        {symbol}
+        {icon}
       </span>
       <div className="flex-1 min-w-0">
         <p
@@ -110,5 +110,54 @@ function ModeCard({
       </div>
       <span className="flex-shrink-0 text-lg" style={{ color: primary ? "rgba(201,165,90,0.4)" : subtle ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.2)" }}>›</span>
     </TransitionLink>
+  );
+}
+
+// ─── Icons ────────────────────────────────────────────────────────────────────
+
+function MicIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <rect x="9" y="2" width="6" height="12" rx="3" fill="currentColor" />
+      <path d="M5 11a7 7 0 0 0 14 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <line x1="12" y1="18" x2="12" y2="22" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <line x1="8.5" y1="22" x2="15.5" y2="22" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function PlayIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <path d="M6 4.5L20 12L6 19.5V4.5Z" fill="currentColor" />
+    </svg>
+  );
+}
+
+function InfoIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.8" />
+      <line x1="12" y1="11" x2="12" y2="17" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+      <circle cx="12" cy="7.5" r="1.2" fill="currentColor" />
+    </svg>
+  );
+}
+
+function NoteIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <path d="M9 18V6l12-2v12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="6" cy="18" r="3" fill="currentColor" />
+      <circle cx="18" cy="16" r="3" fill="currentColor" />
+    </svg>
+  );
+}
+
+function BubbleIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }

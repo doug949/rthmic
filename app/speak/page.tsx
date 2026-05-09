@@ -708,7 +708,7 @@ const PILLARS: PillarDefinition[] = [
 // so it can be rendered with its own visual treatment.
 const BRIDGE_PILLAR: PillarDefinition = {
   slug: "bridge",
-  label: "Bridge",
+  label: "Rthmic Bridge",
   tagline: "A Rthm made for someone else",
   detail: "Use this when you want to reach someone — to say something you find hard to say, to help them through something, to celebrate them, or simply to let them know they're on your mind. RTHMIC builds a complete song shaped around that person and what you want them to feel. You send the link; they can play it from anywhere.",
   guidance: "Tell RTHMIC who this is for and what you want them to feel or know. You don't need to be poetic — just honest. The more specific you are about the person and the moment, the more the song will feel like it was made for them.",
@@ -816,8 +816,11 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
                   {/* Primary tap — opens modal */}
                   <button
                     onClick={() => openModal(p.slug)}
-                    className="flex-1 flex items-center gap-3 pl-5 pr-3 py-4 text-left touch-manipulation active:bg-white/[0.05] transition-colors"
+                    className="flex-1 flex items-center gap-4 pl-5 pr-3 py-4 text-left touch-manipulation active:bg-white/[0.05] transition-colors"
                   >
+                    <span className="flex-shrink-0" style={{ color: "rgba(201,165,90,0.65)" }} aria-hidden>
+                      <BridgeIcon />
+                    </span>
                     <div className="min-w-0">
                       <p className="text-base font-semibold tracking-wide" style={{ color: "rgba(201,165,90,0.85)" }}>{p.label}</p>
                       <p className="text-xs text-white/45 mt-0.5">{p.tagline}</p>
@@ -2100,6 +2103,24 @@ function InfoIcon({ gold }: { gold?: boolean }) {
       <circle cx="10" cy="10" r="8.5" stroke="currentColor" strokeWidth="1.4" />
       <line x1="10" y1="9" x2="10" y2="14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
       <circle cx="10" cy="6.5" r="0.9" fill="currentColor" />
+    </svg>
+  );
+}
+
+function BridgeIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+      {/* Deck */}
+      <line x1="2" y1="17" x2="22" y2="17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      {/* Arch cable */}
+      <path d="M4 17 Q12 5 20 17" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" />
+      {/* Vertical suspenders */}
+      <line x1="9"  y1="11" x2="9"  y2="17" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+      <line x1="12" y1="8"  x2="12" y2="17" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+      <line x1="15" y1="11" x2="15" y2="17" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+      {/* Piers */}
+      <line x1="4"  y1="17" x2="4"  y2="21" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <line x1="20" y1="17" x2="20" y2="21" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
 }
