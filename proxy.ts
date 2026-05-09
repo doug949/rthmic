@@ -9,7 +9,8 @@ export function proxy(request: NextRequest) {
     pathname.startsWith("/login") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/r/") ||         // shared Rthm pages
-    pathname.startsWith("/api/share")     // share token lookup (POST is auth-gated at handler level)
+    pathname.startsWith("/api/share") ||      // share token lookup (POST is auth-gated at handler level)
+    pathname.startsWith("/api/request-access") // beta access request — public, no session needed
   ) {
     return NextResponse.next();
   }

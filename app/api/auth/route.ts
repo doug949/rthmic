@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHash } from "crypto";
+import { createClient } from "redis";
 
 // Derive a stable, cross-device UID from the invite code.
 // All devices logging in with the same code share one library namespace.
@@ -8,6 +9,21 @@ function codeToUid(code: string): string {
     .update(`rthmic-lib-v1:${code}`)
     .digest("hex")
     .slice(0, 32);
+}
+
+/** Check Redis for a beta-issued code (from /api/request-access). */
+async function isBetaCode(code: string): Promise<boolean> {
+  if (!process.env.REDIS_URL) return false;
+  const client = createClient({ url: process.env.REDIS_URL });
+  try {
+    await client.connect();
+    const entry = await client.get(`beta-code:${code}`);
+    return entry !== null;
+  } catch {
+    return false;
+  } finally {
+    await client.disconnect().catch(() => {});
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -20,7 +36,11 @@ export async function POST(request: NextRequest) {
     .map(c => c.trim())
     .filter(Boolean);
 
-  if (!validCodes.includes(password)) {
+  // Accept env-var codes OR Redis-stored beta codes
+  const isEnvCode   = validCodes.includes(password);
+  const isBeta      = isEnvCode ? false : await isBetaCode(password);
+
+  if (!isEnvCode && !isBeta) {
     return NextResponse.json({ error: "Wrong password" }, { status: 401 });
   }
 

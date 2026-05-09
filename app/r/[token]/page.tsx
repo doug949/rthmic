@@ -6,11 +6,19 @@ import { RevealBlock } from "@/app/components/RevealBlock";
 import type { SavedRhythm } from "@/app/api/library/route";
 
 type PageState = "loading" | "ready" | "notfound" | "error";
+type AccessState = "idle" | "form" | "submitting" | "sent" | "err";
 
 function fmt(s: number) {
   const m = Math.floor(s / 60);
   const sec = Math.floor(s % 60);
   return `${m}:${sec.toString().padStart(2, "0")}`;
+}
+
+/** Read rthmic_code from document.cookie — works because it's not httpOnly. */
+function getSignedInCode(): string | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(/(?:^|;\s*)rthmic_code=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
 }
 
 export default function SharePage() {
@@ -19,6 +27,13 @@ export default function SharePage() {
   const [state, setState] = useState<PageState>("loading");
   const [rhythm, setRhythm] = useState<SavedRhythm | null>(null);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [isSignedIn, setIsSignedIn] = useState(false);
+
+  // Beta access form
+  const [accessState, setAccessState] = useState<AccessState>("idle");
+  const [email, setEmail] = useState("");
+  const [accessErr, setAccessErr] = useState("");
+  const emailRef = useRef<HTMLInputElement>(null);
 
   // Playback
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -26,7 +41,12 @@ export default function SharePage() {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
 
-  // ── Fetch the shared Rthm ──────────────────────────────────────────────────
+  // ── Detect sign-in ────────────────────────────────────────────────────────
+  useEffect(() => {
+    setIsSignedIn(!!getSignedInCode());
+  }, []);
+
+  // ── Fetch the shared Rthm ─────────────────────────────────────────────────
   useEffect(() => {
     fetch(`/api/share?token=${encodeURIComponent(token)}`)
       .then((res) => {
@@ -42,7 +62,7 @@ export default function SharePage() {
       .catch(() => setState("error"));
   }, [token]);
 
-  // ── Audio wiring ───────────────────────────────────────────────────────────
+  // ── Audio wiring ──────────────────────────────────────────────────────────
   useEffect(() => {
     const el = audioRef.current;
     if (!el || !rhythm?.audioUrl) return;
@@ -62,6 +82,13 @@ export default function SharePage() {
     };
   }, [rhythm]);
 
+  // Auto-focus email input when form opens
+  useEffect(() => {
+    if (accessState === "form") {
+      setTimeout(() => emailRef.current?.focus(), 80);
+    }
+  }, [accessState]);
+
   const togglePlay = () => {
     const el = audioRef.current;
     if (!el) return;
@@ -69,7 +96,37 @@ export default function SharePage() {
     else           { el.play().catch(() => {}); setIsPlaying(true); }
   };
 
-  // ── Lyrics helper ──────────────────────────────────────────────────────────
+  // ── Beta access request ───────────────────────────────────────────────────
+  const handleAccessRequest = async () => {
+    const trimmed = email.trim();
+    if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setAccessErr("Please enter a valid email address.");
+      return;
+    }
+
+    setAccessState("submitting");
+    setAccessErr("");
+
+    try {
+      const res = await fetch("/api/request-access", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmed }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error((data as { error?: string }).error ?? "Request failed");
+      }
+
+      setAccessState("sent");
+    } catch (err) {
+      setAccessErr(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setAccessState("form");
+    }
+  };
+
+  // ── Lyrics helper ─────────────────────────────────────────────────────────
   const lyricsLines = rhythm?.lyrics
     ? rhythm.lyrics.split("\n").map((l) => l.trim()).filter((l) => l && !l.match(/^\[.*\]$/))
     : [];
@@ -81,7 +138,7 @@ export default function SharePage() {
     ? Math.min(Math.floor((currentTime - introGap) / lineTime), lyricsLines.length - 1)
     : -1;
 
-  // ── Render: loading ────────────────────────────────────────────────────────
+  // ── Render: loading ───────────────────────────────────────────────────────
   if (state === "loading") {
     return (
       <main className="relative z-10 min-h-screen flex flex-col items-center justify-center px-6">
@@ -207,23 +264,106 @@ export default function SharePage() {
       <RevealBlock delay={140}>
         <div className="mt-6 flex flex-col gap-3">
 
-          {/* Primary — apply for beta */}
-          <a
-            href="/login"
-            className="w-full py-5 rounded-2xl text-sm font-semibold tracking-wide text-center active:scale-[0.98] transition-all touch-manipulation"
-            style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.4)", color: "#c9a55a" }}
-          >
-            Apply for RTHMIC beta →
-          </a>
+          {isSignedIn ? (
+            /* ── Signed-in CTAs ─────────────────────────────────────────── */
+            <>
+              <a
+                href="/speak"
+                className="w-full py-5 rounded-2xl text-sm font-semibold tracking-wide text-center active:scale-[0.98] transition-all touch-manipulation"
+                style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.4)", color: "#c9a55a" }}
+              >
+                Make a Rthm of Your Own →
+              </a>
+              <a
+                href={`/speak?bridge=1&replyTo=${encodeURIComponent(token)}`}
+                className="w-full py-4 rounded-2xl text-sm font-medium tracking-wide text-center active:scale-[0.98] transition-all touch-manipulation"
+                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)" }}
+              >
+                Respond With a Rthm
+              </a>
+            </>
+          ) : (
+            /* ── Not signed in — show access request flow ─────────────── */
+            <>
+              {/* Make your own — always visible */}
+              <a
+                href="/login"
+                className="w-full py-5 rounded-2xl text-sm font-semibold tracking-wide text-center active:scale-[0.98] transition-all touch-manipulation"
+                style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.4)", color: "#c9a55a" }}
+              >
+                Make a Rthm of Your Own →
+              </a>
 
-          {/* Secondary — make your own */}
-          <a
-            href="/login"
-            className="w-full py-4 rounded-2xl text-sm font-medium tracking-wide text-center active:scale-[0.98] transition-all touch-manipulation"
-            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)" }}
-          >
-            Make a Rthm of your own
-          </a>
+              {/* Beta access — idle → form → sent */}
+              {accessState === "sent" ? (
+                <div
+                  className="w-full rounded-2xl px-6 py-5 text-center"
+                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)" }}
+                >
+                  <p className="text-sm font-medium text-white/80 leading-snug">Code sent ✓</p>
+                  <p className="text-xs text-white/45 mt-1.5 leading-relaxed">
+                    You should receive an access code within the next several minutes. Please check your email.
+                  </p>
+                </div>
+              ) : accessState === "form" || accessState === "submitting" ? (
+                <div
+                  className="w-full rounded-2xl overflow-hidden"
+                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.12)" }}
+                >
+                  <div className="px-5 pt-5 pb-2">
+                    <p className="text-xs text-white/45 uppercase tracking-widest mb-3">Enter your email</p>
+                    <input
+                      ref={emailRef}
+                      type="email"
+                      inputMode="email"
+                      autoComplete="email"
+                      value={email}
+                      onChange={(e) => { setEmail(e.target.value); setAccessErr(""); }}
+                      onKeyDown={(e) => e.key === "Enter" && handleAccessRequest()}
+                      placeholder="you@example.com"
+                      disabled={accessState === "submitting"}
+                      className="w-full bg-transparent text-white/90 text-sm placeholder:text-white/25 outline-none border-b pb-2 mb-1 disabled:opacity-50"
+                      style={{ borderColor: "rgba(255,255,255,0.15)" }}
+                    />
+                    {accessErr && (
+                      <p className="text-xs text-red-400/80 mt-1">{accessErr}</p>
+                    )}
+                  </div>
+                  <div className="flex gap-0 border-t" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
+                    <button
+                      onClick={() => { setAccessState("idle"); setEmail(""); setAccessErr(""); }}
+                      disabled={accessState === "submitting"}
+                      className="flex-1 py-4 text-sm text-white/40 hover:text-white/60 transition-colors disabled:opacity-40 touch-manipulation"
+                    >
+                      Cancel
+                    </button>
+                    <div style={{ width: "1px", background: "rgba(255,255,255,0.08)" }} />
+                    <button
+                      onClick={handleAccessRequest}
+                      disabled={accessState === "submitting" || !email.trim()}
+                      className="flex-1 py-4 text-sm font-semibold transition-all touch-manipulation disabled:opacity-40"
+                      style={{ color: "#c9a55a" }}
+                    >
+                      {accessState === "submitting" ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <span className="w-3.5 h-3.5 rounded-full border border-amber-400/30 border-t-amber-400/80 animate-spin inline-block" />
+                          Sending…
+                        </span>
+                      ) : "Request Access"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setAccessState("form")}
+                  className="w-full py-4 rounded-2xl text-sm font-medium tracking-wide text-center active:scale-[0.98] transition-all touch-manipulation"
+                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)" }}
+                >
+                  Request RTHMIC Beta Access
+                </button>
+              )}
+            </>
+          )}
         </div>
       </RevealBlock>
 
@@ -270,13 +410,15 @@ export default function SharePage() {
                 </p>
               </div>
 
-              <a
-                href="/login"
-                className="mt-1 w-full py-4 rounded-xl text-sm font-semibold tracking-wide text-center active:scale-[0.98] transition-all touch-manipulation"
-                style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.35)", color: "#c9a55a" }}
-              >
-                Apply for access →
-              </a>
+              {!isSignedIn && (
+                <button
+                  onClick={() => { setAboutOpen(false); setAccessState("form"); setTimeout(() => window.scrollTo({ top: 9999, behavior: "smooth" }), 100); }}
+                  className="mt-1 w-full py-4 rounded-xl text-sm font-semibold tracking-wide text-center active:scale-[0.98] transition-all touch-manipulation"
+                  style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.35)", color: "#c9a55a" }}
+                >
+                  Request Beta Access →
+                </button>
+              )}
             </div>
           )}
         </div>
