@@ -397,6 +397,7 @@ function LibraryGenrePicker({
   onClose: () => void;
 }) {
   const [genres, setGenres] = useState<string[]>([]);
+  const [userGenres, setUserGenres] = useState<string[]>([]);
   const [loadingGenres, setLoadingGenres] = useState(true);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [customStyle, setCustomStyle] = useState("");
@@ -405,12 +406,30 @@ function LibraryGenrePicker({
   const selectPreset = (i: number) => { setSelectedIndex(i); setCustomSelected(false); };
   const selectCustom = () => { if (customStyle) { setCustomSelected(true); setSelectedIndex(null); } };
 
+  const persistCustomStyle = (style: string) => {
+    const trimmed = style.trim();
+    if (!trimmed) return;
+    const isDuplicate = userGenres.some(
+      (g) => g === trimmed || (g.indexOf("|") > 0 ? g.slice(g.indexOf("|") + 1) : g).toLowerCase() === trimmed.toLowerCase()
+    );
+    if (isDuplicate) return;
+    const updated = [...userGenres, trimmed];
+    setUserGenres(updated);
+    setGenres((prev) => [...prev, trimmed]);
+    fetch("/api/genres", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ genres: updated }),
+    }).catch(() => {});
+  };
+
   useEffect(() => {
     fetch("/api/genres")
       .then((r) => r.json())
       .then((d) => {
         const builtIn: string[] = d.builtIn || [];
         const user: string[] = d.user || [];
+        setUserGenres(user);
         setGenres([...builtIn, ...user]);
       })
       .catch(() => {})
@@ -488,6 +507,7 @@ function LibraryGenrePicker({
                 onStyleChange={(s) => { setCustomStyle(s); setCustomSelected(true); setSelectedIndex(null); }}
                 selected={customSelected}
                 onSelect={selectCustom}
+                onSave={persistCustomStyle}
               />
             </>
           )}
@@ -495,7 +515,11 @@ function LibraryGenrePicker({
 
         <div className="flex flex-col gap-2 pb-safe pt-2 flex-shrink-0">
           <button
-            onClick={() => canProceed && onSelect(sunoPromptFor(selectedGenre))}
+            onClick={() => {
+              if (!canProceed) return;
+              if (customSelected && customStyle) persistCustomStyle(customStyle);
+              onSelect(sunoPromptFor(selectedGenre));
+            }}
             disabled={!canProceed}
             className="w-full py-5 rounded-2xl text-sm font-semibold tracking-wide active:scale-[0.98] transition-all touch-manipulation disabled:opacity-30"
             style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.45)", color: "#c9a55a" }}

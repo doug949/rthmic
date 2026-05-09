@@ -1156,6 +1156,23 @@ function GenreView({
   const selectPreset = (i: number) => { setSelectedIndex(i); setCustomSelected(false); };
   const selectCustom = () => { if (customStyle) { setCustomSelected(true); setSelectedIndex(null); } };
 
+  // Save a custom style to the user's genre list (no-op if duplicate)
+  const persistCustomStyle = (style: string) => {
+    const trimmed = style.trim();
+    if (!trimmed) return;
+    const isDuplicate = userGenres.some(
+      (g) => g === trimmed || sunoPromptFor(g).toLowerCase() === trimmed.toLowerCase()
+    );
+    if (isDuplicate) return;
+    const updated = [...userGenres, trimmed];
+    setUserGenres(updated);
+    fetch("/api/genres", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ genres: updated }),
+    }).catch(() => {});
+  };
+
   useEffect(() => {
     fetch("/api/genres")
       .then((r) => r.json())
@@ -1301,6 +1318,7 @@ function GenreView({
               onStyleChange={(s) => { setCustomStyle(s); setCustomSelected(true); setSelectedIndex(null); }}
               selected={customSelected}
               onSelect={selectCustom}
+              onSave={persistCustomStyle}
             />
           </RevealBlock>
         </div>
@@ -1308,7 +1326,11 @@ function GenreView({
 
       <RevealBlock delay={80} className="flex flex-col gap-3 mt-auto flex-shrink-0">
         <button
-          onClick={() => canProceed && onGenerate(selectedGenre)}
+          onClick={() => {
+            if (!canProceed) return;
+            if (customSelected && customStyle) persistCustomStyle(customStyle);
+            onGenerate(selectedGenre);
+          }}
           disabled={!canProceed}
           className="w-full py-5 rounded-2xl text-sm font-semibold tracking-wide active:scale-[0.98] transition-all touch-manipulation disabled:opacity-30"
           style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.45)", color: "#c9a55a" }}

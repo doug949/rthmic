@@ -10,15 +10,17 @@ interface Props {
   onStyleChange: (style: string) => void;  // fires when interpreted style updates
   selected: boolean;
   onSelect: () => void;
+  onSave?: (style: string) => void;        // optional: save to user's style library
 }
 
 type VoicePhase = "idle" | "recording" | "transcribing";
 
-export default function CustomStyleInput({ onStyleChange, selected, onSelect }: Props) {
+export default function CustomStyleInput({ onStyleChange, selected, onSelect, onSave }: Props) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [style, setStyle] = useState("");
   const [interpreting, setInterpreting] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [voicePhase, setVoicePhase] = useState<VoicePhase>("idle");
   const [voiceError, setVoiceError] = useState("");
 
@@ -294,6 +296,16 @@ export default function CustomStyleInput({ onStyleChange, selected, onSelect }: 
               >
                 {selected ? "✓ Using this style" : "Use this style"}
               </button>
+              {onSave && (
+                <button
+                  onClick={() => { onSave(style); setSaved(true); }}
+                  disabled={saved}
+                  className="w-full mt-2 py-2.5 rounded-xl text-xs font-medium tracking-widest uppercase transition-all touch-manipulation active:scale-[0.98] disabled:opacity-60"
+                  style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", color: saved ? "rgba(201,165,90,0.6)" : "rgba(255,255,255,0.3)" }}
+                >
+                  {saved ? "✓ Saved to My Styles" : "Save to My Styles"}
+                </button>
+              )}
             </div>
           )}
         </div>
