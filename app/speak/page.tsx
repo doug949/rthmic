@@ -43,6 +43,7 @@ export default function SpeakPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [songStatus, setSongStatus] = useState<SongStatusMap>({});
   const [transitioning, setTransitioning] = useState(false);
+  const [isDedication, setIsDedication] = useState(false);
 
   const {
     genPhase,
@@ -438,6 +439,7 @@ export default function SpeakPage() {
     setSongStatus({});
     setRealPlayingId(null);
     setRealIsPlaying(false);
+    setIsDedication(false);
     allTranscriptsRef.current = [];
   };
 
@@ -529,6 +531,7 @@ export default function SpeakPage() {
           currentTime={realCurrentTime}
           duration={realDuration}
           onRecreateGenre={understandResult ? handleRecreateGenre : undefined}
+          isDedication={isDedication}
         />
       )}
 
@@ -551,9 +554,11 @@ export default function SpeakPage() {
               onSelect={(slug) => {
                 if (slug === "auto") {
                   setSelectedPillar(null);
+                  setIsDedication(false);
                   transitionTo("priming");
                 } else {
                   setSelectedPillar(slug);
+                  setIsDedication(slug === "bridge");
                   transitionTo("priming");
                 }
               }}
@@ -699,6 +704,26 @@ const PILLARS: PillarDefinition[] = [
   },
 ];
 
+// Bridge is a dedicated "for someone else" pillar — kept separate from the main list
+// so it can be rendered with its own visual treatment.
+const BRIDGE_PILLAR: PillarDefinition = {
+  slug: "bridge",
+  label: "Bridge",
+  tagline: "A Rthm made for someone else",
+  detail: "Use this when you want to reach someone — to say something you find hard to say, to help them through something, to celebrate them, or simply to let them know they're on your mind. RTHMIC builds a complete song shaped around that person and what you want them to feel. You send the link; they can play it from anywhere.",
+  guidance: "Tell RTHMIC who this is for and what you want them to feel or know. You don't need to be poetic — just honest. The more specific you are about the person and the moment, the more the song will feel like it was made for them.",
+  priming: {
+    headline: "Who is this for?",
+    subheadline: "And what do you want them to feel?",
+    instructions: [
+      "Describe the person — who they are to you, what they're going through, or what you want to say to them. You don't need to be eloquent. Just speak.",
+      "Tell RTHMIC what you want this song to do for them. Comfort? Celebrate? Push them forward? Say something you haven't been able to say out loud?",
+      "The more specific you are — a shared memory, a moment between you, something only they would recognise — the more the song will land.",
+    ],
+    footnote: "This doesn't need to be long. Even a minute of honest speaking gives RTHMIC everything it needs to build something real. You'll get a link to share directly with them.",
+  },
+};
+
 function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
   const [openInfo, setOpenInfo] = useState<string | null>(null);
 
@@ -783,8 +808,65 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
           );
         })}
 
+        {/* ── Bridge: For someone else ── */}
+        <RevealBlock delay={PILLARS.length * 28 + 10}>
+          <div className="mt-3 mb-1">
+            <p className="text-[10px] text-white/30 uppercase tracking-[0.3em]">For someone else</p>
+          </div>
+        </RevealBlock>
+        <RevealBlock delay={PILLARS.length * 28 + 24}>
+          {(() => {
+            const p = BRIDGE_PILLAR;
+            const isOpen = openInfo === p.slug;
+            return (
+              <div className="rounded-2xl overflow-hidden"
+                style={{ border: "1px solid rgba(201,165,90,0.18)", background: "rgba(201,165,90,0.03)" }}>
+                <div className="flex items-stretch">
+                  <button
+                    onClick={() => onSelect(p.slug)}
+                    className="flex-1 flex items-center gap-3 pl-5 pr-3 py-4 text-left touch-manipulation active:bg-white/[0.05] transition-colors"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-base font-semibold tracking-wide" style={{ color: "rgba(201,165,90,0.85)" }}>{p.label}</p>
+                      <p className="text-xs text-white/45 mt-0.5">{p.tagline}</p>
+                    </div>
+                  </button>
+                  <div className="w-px self-stretch my-3" style={{ background: "rgba(201,165,90,0.12)" }} />
+                  <button
+                    onClick={() => setOpenInfo(isOpen ? null : p.slug)}
+                    className="flex items-center justify-center w-14 touch-manipulation active:bg-white/[0.04] transition-colors"
+                    aria-label={isOpen ? "Close info" : "Learn more"}
+                  >
+                    <span className="text-xs font-medium transition-colors"
+                      style={{ color: isOpen ? "rgba(201,165,90,0.7)" : "rgba(255,255,255,0.2)" }}>
+                      {isOpen ? "✕" : "?"}
+                    </span>
+                  </button>
+                </div>
+                {isOpen && (
+                  <div className="px-5 pt-4 pb-5 flex flex-col gap-4" style={{ borderTop: "1px solid rgba(201,165,90,0.1)" }}>
+                    <p className="text-sm text-white/50 leading-relaxed">{p.detail}</p>
+                    <div className="rounded-lg px-3.5 py-3"
+                      style={{ background: "rgba(201,165,90,0.06)", border: "1px solid rgba(201,165,90,0.12)" }}>
+                      <p className="text-[10px] text-white/45 uppercase tracking-[0.2em] mb-1">How to speak</p>
+                      <p className="text-xs text-white/45 leading-relaxed">{p.guidance}</p>
+                    </div>
+                    <button
+                      onClick={() => onSelect(p.slug)}
+                      className="w-full py-3.5 rounded-xl text-sm font-semibold tracking-wide touch-manipulation active:scale-[0.98] transition-all"
+                      style={{ background: "rgba(201,165,90,0.12)", border: "1px solid rgba(201,165,90,0.35)", color: "#c9a55a" }}
+                    >
+                      Create a Bridge →
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </RevealBlock>
+
         {/* Let RTHMIC decide */}
-        <RevealBlock delay={PILLARS.length * 28}>
+        <RevealBlock delay={PILLARS.length * 28 + 48}>
           <button
             onClick={() => onSelect("auto")}
             className="w-full py-4 rounded-2xl text-sm font-medium tracking-wide text-center touch-manipulation active:scale-[0.98] transition-all mt-1"
@@ -1378,6 +1460,8 @@ function GeneratingView({ onCancel }: { onCancel: () => void }) {
 
 // ─── Results ─────────────────────────────────────────────────────────────────
 
+type ShareState = "idle" | "loading" | "done" | "copied";
+
 function ResultsView({
   songs,
   songStatus,
@@ -1394,6 +1478,7 @@ function ResultsView({
   currentTime,
   duration,
   onRecreateGenre,
+  isDedication,
 }: {
   songs: Song[];
   songStatus: SongStatusMap;
@@ -1410,9 +1495,37 @@ function ResultsView({
   currentTime: number;
   duration: number;
   onRecreateGenre?: () => void;
+  isDedication?: boolean;
 }) {
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const [showPlayer, setShowPlayer] = useState(false);
+  const [shareState, setShareState] = useState<ShareState>("idle");
+  const [sharingSongId, setSharingSongId] = useState<string | null>(null);
+
+  const handleShare = async (song: Song) => {
+    setSharingSongId(song.id);
+    setShareState("loading");
+    try {
+      const res = await fetch("/api/share", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rhythmId: song.id }),
+      });
+      if (!res.ok) throw new Error("share failed");
+      const { url } = await res.json();
+      if (navigator.share) {
+        await navigator.share({ title: song.title, text: `I made this Rthm for you`, url });
+        setShareState("done");
+      } else {
+        await navigator.clipboard.writeText(url);
+        setShareState("copied");
+        setTimeout(() => { setShareState("idle"); setSharingSongId(null); }, 3000);
+      }
+    } catch {
+      setShareState("idle");
+      setSharingSongId(null);
+    }
+  };
 
   // Auto-open full-screen player when a real audio track starts
   useEffect(() => {
@@ -1450,7 +1563,9 @@ function ResultsView({
 
       <RevealBlock delay={40}>
         <div className="flex items-center gap-3">
-          <p className="text-[10px] text-white/40 uppercase tracking-[0.2em]">Generated for you</p>
+          <p className="text-[10px] text-white/40 uppercase tracking-[0.2em]">
+            {isDedication ? "Your Bridge is ready" : "Generated for you"}
+          </p>
           {pillar && (
             <span className="text-[10px] text-white/35 border border-white/[0.10] rounded-full px-2.5 py-0.5 uppercase tracking-widest">
               {pillar}
@@ -1458,6 +1573,23 @@ function ResultsView({
           )}
         </div>
       </RevealBlock>
+
+      {/* Bridge: prominent share CTA */}
+      {isDedication && songs.length > 0 && !!songs[0].audioUrl && (
+        <RevealBlock delay={60}>
+          <button
+            onClick={() => handleShare(songs[0])}
+            disabled={shareState === "loading"}
+            className="w-full py-5 rounded-2xl text-sm font-semibold tracking-wide text-center active:scale-[0.98] transition-all touch-manipulation disabled:opacity-60"
+            style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.45)", color: "#c9a55a" }}
+          >
+            {shareState === "loading" && sharingSongId === songs[0].id ? "Creating link…"
+              : shareState === "copied" && sharingSongId === songs[0].id ? "✓ Link copied — ready to send"
+              : shareState === "done" && sharingSongId === songs[0].id ? "✓ Sent"
+              : "Send this Rthm →"}
+          </button>
+        </RevealBlock>
+      )}
 
       {debugMsg && <p className="text-[10px] text-red-400/60 break-all">{debugMsg}</p>}
 
@@ -1528,6 +1660,15 @@ function ResultsView({
                 )}
 
                 <div className="flex border-t border-white/[0.06]">
+                  {isDedication && !!song.audioUrl && (
+                    <ActionBtn
+                      onClick={() => handleShare(song)}
+                      label={shareState === "copied" && sharingSongId === song.id ? "Copied!" : shareState === "done" && sharingSongId === song.id ? "Sent!" : "Send"}
+                      sublabel="Share with them"
+                      icon="↗"
+                      active={sharingSongId === song.id && (shareState === "copied" || shareState === "done")}
+                    />
+                  )}
                   <ActionBtn
                     active={status === "archived"}
                     onClick={() => setStatus(song.id, status === "archived" ? null : "archived")}
@@ -1589,6 +1730,8 @@ function ResultsView({
           onTogglePlay={() => onTogglePlay(playingSong)}
           onClose={() => setShowPlayer(false)}
           onRecreateGenre={onRecreateGenre ? () => { setShowPlayer(false); onRecreateGenre!(); } : undefined}
+          onShare={isDedication && !!playingSong.audioUrl ? () => handleShare(playingSong) : undefined}
+          shareState={sharingSongId === playingSong.id ? shareState : "idle"}
         />
       )}
     </section>
@@ -1607,6 +1750,8 @@ function FullScreenPlayer({
   onTogglePlay,
   onClose,
   onRecreateGenre,
+  onShare,
+  shareState,
 }: {
   song: Song;
   currentTime: number;
@@ -1617,6 +1762,8 @@ function FullScreenPlayer({
   onTogglePlay: () => void;
   onClose: () => void;
   onRecreateGenre?: () => void;
+  onShare?: () => void;
+  shareState?: ShareState;
 }) {
   const [dragging, setDragging] = useState(false);
   const [dragProgress, setDragProgress] = useState(0);
@@ -1787,9 +1934,22 @@ function FullScreenPlayer({
         </button>
       </div>
 
-      {/* Recreate in another genre */}
-      {onRecreateGenre && (
-        <div className="flex justify-center px-8 mb-5 flex-shrink-0">
+      {/* Share (Bridge) / Recreate */}
+      <div className="flex flex-col items-center gap-2 px-8 mb-5 flex-shrink-0">
+        {onShare && (
+          <button
+            onClick={onShare}
+            disabled={shareState === "loading"}
+            className="w-full py-4 rounded-2xl text-sm font-semibold tracking-wide text-center active:scale-[0.98] transition-all touch-manipulation disabled:opacity-60"
+            style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.45)", color: "#c9a55a" }}
+          >
+            {shareState === "loading" ? "Creating link…"
+              : shareState === "copied" ? "✓ Link copied — ready to send"
+              : shareState === "done" ? "✓ Sent"
+              : "Send this Rthm →"}
+          </button>
+        )}
+        {onRecreateGenre && (
           <button
             onClick={onRecreateGenre}
             className="flex items-center gap-2 px-5 py-2.5 rounded-full text-xs tracking-widest uppercase transition-all touch-manipulation active:scale-95"
@@ -1807,8 +1967,8 @@ function FullScreenPlayer({
             </svg>
             Recreate in another genre
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Lyrics — scrollable, always visible */}
       {lyricLines.length > 0 && (

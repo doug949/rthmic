@@ -99,6 +99,7 @@ const PILLAR_STYLE_DEFAULTS: Record<PillarType, StyleChoice> = {
   Mode:         "B", // quick interruption → settling
   Movement:     "A", // rhythmic forward momentum
   Understanding: "B", // patient, clear, unhurried
+  Bridge:       "B", // warm, intimate, emotionally resonant
 };
 
 // ─── Mock outputs ─────────────────────────────────────────────────────────────
@@ -318,6 +319,42 @@ the rest has somewhere to go.
 Say it back in your own words.
 If you can say it — you have it.
 That's the signal.`,
+  },
+  Bridge: {
+    title: "This Is For You",
+    stateSummary: {
+      state: "You have something you want to say to someone — something warm, something real, something that's hard to say directly.",
+      intent: "You want them to feel it, to know you were thinking of them specifically.",
+      friction: "Words alone don't carry the weight. You want something they can hold.",
+    },
+    lyrics: `[VERSE]
+This one's for you.
+Not for anyone else — just you.
+I thought about what I wanted to say
+and I couldn't find the words on their own.
+So I made this instead.
+
+[CHORUS]
+I want you to hear something.
+Not advice. Not instructions.
+Just — I see you.
+And I wanted you to know that.
+
+[VERSE 2]
+I don't know what today's been like.
+But I know you. And I know this is for you.
+So press play when you're ready.
+This isn't going anywhere.
+
+[CHORUS]
+I want you to hear something.
+Not advice. Not instructions.
+Just — I see you.
+And I wanted you to know that.
+
+[OUTRO]
+This was made for you.
+All of it.`,
   },
 };
 
