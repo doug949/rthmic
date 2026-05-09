@@ -716,9 +716,9 @@ const BRIDGE_PILLAR: PillarDefinition = {
     headline: "Who is this for?",
     subheadline: "And what do you want them to feel?",
     instructions: [
-      "Describe the person — who they are to you, what they're going through, or what you want to say to them. You don't need to be eloquent. Just speak.",
-      "Tell RTHMIC what you want this song to do for them. Comfort? Celebrate? Push them forward? Say something you haven't been able to say out loud?",
-      "The more specific you are — a shared memory, a moment between you, something only they would recognise — the more the song will land.",
+      "Who is this for? Say their name, what they mean to you, and what's happening for them right now — or what you want to mark. It could be heavy: grief, distance, something you haven't been able to say. Or light: a birthday, a running joke, something that deserves its own song.",
+      "Tell RTHMIC what you want them to feel when they press play. Seen? Celebrated? Held? Laughed at in a good way? The tone shapes everything — don't second-guess it.",
+      "Specific details land better than general ones. The thing they always say, the trip you took, the phase they're going through, the joke only you two get — drop it all in. RTHMIC builds from exactly that.",
     ],
     footnote: "This doesn't need to be long. Even a minute of honest speaking gives RTHMIC everything it needs to build something real. You'll get a link to share directly with them.",
   },
