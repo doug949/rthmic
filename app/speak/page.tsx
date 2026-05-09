@@ -731,7 +731,6 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
     <section className="flex-1 flex flex-col pb-6 overflow-y-auto">
       <RevealBlock delay={0}>
         <div className="flex flex-col gap-1.5 pt-2 pb-5">
-          <p className="text-[10px] text-white/40 uppercase tracking-[0.3em]">Select a Pillar</p>
           <p className="text-xl font-light text-white/70 leading-snug" style={{ fontFamily: "var(--font-display)" }}>
             What do you want to work on?
           </p>
@@ -739,6 +738,10 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
       </RevealBlock>
 
       <div className="flex flex-col gap-2">
+        <RevealBlock delay={0}>
+          <p className="text-[10px] text-white/40 uppercase tracking-[0.3em] pb-1">For You in the Moment</p>
+        </RevealBlock>
+
         {PILLARS.map((p, index) => {
           const isOpen = openInfo === p.slug;
           return (
@@ -768,12 +771,9 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
                   className="flex items-center justify-center w-14 touch-manipulation active:bg-white/[0.04] transition-colors"
                   aria-label={isOpen ? "Close info" : "Learn more"}
                 >
-                  <span
-                    className="text-xs font-medium transition-colors"
-                    style={{ color: isOpen ? "rgba(201,165,90,0.7)" : "rgba(255,255,255,0.2)" }}
-                  >
-                    {isOpen ? "✕" : "?"}
-                  </span>
+                  {isOpen
+                    ? <span className="text-sm" style={{ color: "rgba(201,165,90,0.7)" }}>✕</span>
+                    : <InfoIcon />}
                 </button>
               </div>
 
@@ -822,8 +822,9 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
               <div className="rounded-2xl overflow-hidden"
                 style={{ border: "1px solid rgba(201,165,90,0.18)", background: "rgba(201,165,90,0.03)" }}>
                 <div className="flex items-stretch">
+                  {/* Primary tap — opens explanation, not priming */}
                   <button
-                    onClick={() => onSelect(p.slug)}
+                    onClick={() => setOpenInfo(isOpen ? null : p.slug)}
                     className="flex-1 flex items-center gap-3 pl-5 pr-3 py-4 text-left touch-manipulation active:bg-white/[0.05] transition-colors"
                   >
                     <div className="min-w-0">
@@ -837,10 +838,9 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
                     className="flex items-center justify-center w-14 touch-manipulation active:bg-white/[0.04] transition-colors"
                     aria-label={isOpen ? "Close info" : "Learn more"}
                   >
-                    <span className="text-xs font-medium transition-colors"
-                      style={{ color: isOpen ? "rgba(201,165,90,0.7)" : "rgba(255,255,255,0.2)" }}>
-                      {isOpen ? "✕" : "?"}
-                    </span>
+                    {isOpen
+                      ? <span className="text-sm" style={{ color: "rgba(201,165,90,0.7)" }}>✕</span>
+                      : <InfoIcon gold />}
                   </button>
                 </div>
                 {isOpen && (
@@ -2063,6 +2063,17 @@ function LoadingIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-white/60 animate-spin">
       <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="2" strokeDasharray="20 18" />
+    </svg>
+  );
+}
+
+function InfoIcon({ gold }: { gold?: boolean }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none"
+      style={{ color: gold ? "rgba(201,165,90,0.6)" : "rgba(255,255,255,0.55)" }}>
+      <circle cx="10" cy="10" r="8.5" stroke="currentColor" strokeWidth="1.4" />
+      <line x1="10" y1="9" x2="10" y2="14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <circle cx="10" cy="6.5" r="0.9" fill="currentColor" />
     </svg>
   );
 }
