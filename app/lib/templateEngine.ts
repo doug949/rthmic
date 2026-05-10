@@ -14,6 +14,7 @@ const PILLAR_FILE: Record<PillarType, string> = {
   Understanding: "understanding.md",
   Bridge:        "mindset.md", // Bridge uses Mindset template — emotionally warm, relational arc
   Invite:        "invite.md",  // Beta tester invite — personal, demonstrative, welcoming
+  Journal:       "journal.md", // Day capture — speak the day, keep it as a song
 };
 
 export function loadTemplate(pillar: PillarType): string {
@@ -90,13 +91,19 @@ const PILLAR_KEYWORDS: Record<PillarType, string[]> = {
     "join rthmic", "beta access", "tester", "onboard", "bring someone in",
     "introduce rthmic", "rthmic invite",
   ],
+  Journal: [
+    "journal", "diary", "day", "my day", "today", "log", "record",
+    "what happened", "capture", "remember today", "end of day", "evening",
+    "morning pages", "note to self", "replay", "write it down",
+    "things that happened", "how my day went",
+  ],
 };
 
 export function detectPillar(transcript: string): PillarType {
   const lower = transcript.toLowerCase();
 
   const scores: Record<PillarType, number> = {
-    Memory: 0, Menus: 0, Mindset: 0, Mode: 0, Movement: 0, Understanding: 0, Bridge: 0, Invite: 0,
+    Memory: 0, Menus: 0, Mindset: 0, Mode: 0, Movement: 0, Understanding: 0, Bridge: 0, Invite: 0, Journal: 0,
   };
 
   for (const [pillar, keywords] of Object.entries(PILLAR_KEYWORDS) as [PillarType, string[]][]) {

@@ -101,6 +101,7 @@ const PILLAR_STYLE_DEFAULTS: Record<PillarType, StyleChoice> = {
   Understanding: "B", // patient, clear, unhurried
   Bridge:       "B", // warm, intimate, emotionally resonant
   Invite:       "A", // arresting, forward energy — makes them stop and listen
+  Journal:      "B", // warm, reflective, acoustic — end-of-day feeling
 };
 
 // ─── Mock outputs ─────────────────────────────────────────────────────────────
@@ -358,47 +359,102 @@ This was made for you.
 All of it.`,
   },
   Invite: {
-    title: "Come In",
+    title: "Try It For a Week",
     stateSummary: {
-      state: "You want to bring someone into RTHMIC — someone specific, someone you think would get it immediately.",
-      intent: "You want them to feel the invitation before they even know what they're being invited to.",
-      friction: "You can't explain RTHMIC in words — the experience is the explanation. This song is that experience.",
+      state: "You want to invite someone specific to beta test RTHMIC — someone whose honest experience you'd trust.",
+      intent: "You want them to understand what RTHMIC actually is, try it sincerely, and tell you what they really think.",
+      friction: "You need them to understand the invitation clearly without it feeling like a pitch or a favour.",
     },
     lyrics: `[VERSE]
 [Recipient's name].
 
-You've been doing it the long way.
-The same resistance every morning —
-the gap between knowing what you need to do
-and actually doing it.
+I've been building something strange.
+An app that generates a complete song
+for whatever state you're actually in right now —
+stuck, overwhelmed, preparing for something,
+trying to remember something.
 
-You know that gap.
-You live in it more than you'd like.
+You describe it. It builds a Rthm.
+A song, made for that specific moment.
+That's RTHMIC. And I've been using it myself
+the whole time I've been building it.
 
 [CHORUS]
-This song was made for you.
-Not in general — specifically.
-The way you work. The way you get stuck.
-The way you move through it anyway.
+It's not finished.
+But it works.
+And I think you'd have an honest opinion about it —
+which is exactly what I need.
 
 [VERSE 2]
-There's something that builds a song around that gap.
-Not advice. Not a system.
-A song. Built for the exact moment you're in.
-It's called RTHMIC.
-And this is your invitation.
+Here's what I'm asking.
+Try it for a week.
+Not to be polite. Not to be supportive.
+To actually see whether it does anything for you —
+or whether it doesn't.
+
+If it's useful — tell me how.
+If it's confusing — tell me where.
+If it does nothing — that matters just as much.
+Your real experience is the experiment.
 
 [BRIDGE]
-You don't need to understand it first.
-You just needed to press play.
-The understanding comes after —
-the feeling is already happening.
+You don't have to like it.
+You don't have to be enthusiastic.
+The only thing that helps me
+is what actually happens when you use it.
 
 [OUTRO]
-Come in.
-We made something here.
-We made it for people exactly like you.
-Come in.`,
+This is an invitation to try something real.
+From someone who has been living inside it.
+Your name is in this Rthm because
+I think your perspective is worth having.
+
+Would you try it?
+Honestly. For a week.
+And tell me what you find.`,
+  },
+  Journal: {
+    title: "That Was Today",
+    stateSummary: {
+      state: "You're at the end of a day and you want to capture it — the events, the feelings, the things you might forget.",
+      intent: "You want to keep the day in a form that will still carry meaning when you return to it.",
+      friction: "Days disappear. The small things go first — the conversation, the quiet moment, the thing that surprised you.",
+    },
+    lyrics: `[VERSE]
+Today started the way Tuesdays do.
+Not quite ready. A little behind.
+The coffee was fine. The first call ran long.
+That's already four things you'll forget by Friday.
+
+[CHORUS]
+But you said it out loud.
+And now it's here.
+That was today —
+kept in a song, before it disappears.
+
+[VERSE 2]
+There was a moment around noon
+you almost didn't notice.
+Something small. Someone said something
+and you thought: I want to remember that.
+
+You remembered to say it here.
+So now you will.
+
+[BRIDGE]
+Not every day is significant.
+Most of them aren't.
+But every day is yours.
+And you were in it. Fully.
+
+[OUTRO]
+The day is done.
+You spoke it out.
+Play this back in six months
+and remember exactly what today felt like.
+
+That was today.
+It's kept now.`,
   },
 };
 

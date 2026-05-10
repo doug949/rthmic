@@ -750,6 +750,23 @@ const PILLARS: PillarDefinition[] = [
       footnote: "Most people speak for 1–3 minutes. Talk it through as if explaining to a friend. The places where you stumble or repeat yourself are where Rthmic does its best work.",
     },
   },
+  {
+    slug: "journal",
+    label: "Journal",
+    tagline: "Speak your day. Keep it as a Rthm.",
+    detail: "Use this at the end of a day — or any time you want to capture a stretch of time before it disappears. Speak the events, feelings, conversations, and small moments. Rthmic turns what you said into a song you can keep. Play it back in six months and remember exactly what today felt like.",
+    guidance: "Just talk. What happened today? How did it feel? What surprised you, frustrated you, made you laugh, or almost slipped by unnoticed? Nothing is too small — the mundane details are often the most valuable.",
+    priming: {
+      headline: "Speak your day.",
+      subheadline: "Don't filter. Just catch it before it goes.",
+      instructions: [
+        "Talk through your day as if you're catching someone up at the end of it. What happened? Who did you speak to? What took longer than you expected? What went differently than planned?",
+        "Include how you actually felt — not the polished version, the real one. Tired, surprisingly good, quietly frustrated, proud of something small, anxious about tomorrow. All of it is material.",
+        "Say the things you think you might forget. That's usually the most valuable part — the small moment, the overheard thing, the thought you had at lunch that already feels distant.",
+      ],
+      footnote: "There's no structure needed. Just talk until you feel like the day is out of your head and somewhere safe. Rthmic does the rest.",
+    },
+  },
 ];
 
 // Bridge is a dedicated "for someone else" pillar — kept separate from the main list

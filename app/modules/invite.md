@@ -1,73 +1,87 @@
 # PILLAR: Invite
 
-## USER INTENT
-The user (a RTHMIC beta tester) wants to invite a specific person to join RTHMIC by sending them a personalised Rthm that acts as the invitation itself.
+## PRIMARY PURPOSE
+This Rthm is an invitation to try RTHMIC as a beta tester.
 
-## CORE FUNCTION
-Create a song that serves as a live demonstration of what RTHMIC does AND as a personal invitation to this specific individual. The receiver plays it, experiences it, and that experience IS the invite.
+Its first and most important job is to make the recipient clearly understand:
 
-## EMOTIONAL STATE
-The receiver knows nothing about RTHMIC → they feel seen, intrigued, and genuinely invited.
+1. What RTHMIC is — in plain, honest terms
+2. Why this specific person is being invited — personally, not generically
+3. What kind of experiment this is — unfinished, real, still evolving
+4. How the app is actually used — speak a state, get a Rthm back
+5. What honest feedback looks like and why it matters more than positive feedback
+6. Why trying it sincerely — not just once, but for a few days — is the real ask
 
-## WHAT MAKES A GREAT INVITE RTHM
-The song should do three things simultaneously:
-1. Show them — not tell them — what RTHMIC does, by being a Rthm that works on them in real time
-2. Make them feel personally chosen — the song should feel like it was made for them specifically
-3. Leave them with a clear sense of what they are being invited into and why it is worth their attention
+This clarity must happen early. It cannot be buried under atmosphere, metaphor, or style.
 
-## WHO THE SONG SPEAKS TO
-The song is addressed entirely to the RECIPIENT — the person who will receive the link and press play.
-It is NOT addressed to the sender. The sender is describing the recipient so RTHMIC can write to them directly.
+## THE TONE THE RTHM SHOULD FEEL LIKE
+"Here's a strange thing I've genuinely been building and using. I think you might have an interesting perspective on it. Would you try it for a week and tell me honestly what happens?"
 
-Think of the sender as the briefer. The song speaks for itself, directly to the person receiving it.
+That is the sentence this Rthm is saying, in song form. Honest. Curious. Low-pressure. Personal.
 
-## OPENING RULE — CRITICAL
-The very first line of the song MUST be the recipient's name.
-Just their name. Nothing else on that line.
-This is the moment the song grabs them — they press play and the first word they hear is their own name.
-If the sender didn't give a name, open with a close second-person address ("Hey." / "You." / a line that feels unmistakably personal).
+## WHAT TO EXPLAIN — AND WHEN
 
-## SONG BEHAVIOUR
-- Tone: warm, specific, direct — not salesy, not hype
-- Voice: the song speaks directly to the recipient throughout — intimate, clear, unhurried
-- Language: second-person throughout ("you", "your") — ALWAYS addressed to the recipient, never to the sender
-- Musical feel: arresting but welcoming — the name lands, they lean in, they keep listening
-- The song should feel like a gift that sees them clearly
+### First section (early, explicit):
+- RTHMIC is an app that builds a complete song around the specific state you're in right now
+- You describe what you're facing — stuck, overwhelmed, preparing for something, trying to remember something — and it generates a song designed specifically for that moment
+- The founder has been using it personally throughout development
+- It genuinely works, but it is not finished — this is a beta
+- The recipient is being asked to try it and report back honestly
 
-## STRUCTURAL RULES
-- Line 1: recipient's name (standalone — lands like a knock on the door)
-- Open by naming something true about this person — something specific that only someone who knows them would say
-- Introduce the idea of RTHMIC through what it does, not what it is
-- Connect their specific challenges / way of working to what RTHMIC addresses
-- Build toward the moment of invitation — make it feel like a door opening, not a sales pitch
-- End with a clear, warm invitation: "this was made for you — come in"
+### Second section (personal, grounded):
+- Why this specific person — what the sender said about them, what makes them a good tester
+- What they might use it for given who they are and how they work
+- The specific kind of feedback that would be valuable from them
+
+### Closing (invitation):
+- The ask is explicit: try it for a week, pay attention to what happens, and say so honestly
+- There is no pressure to be enthusiastic
+- Honest disinterest is as valuable as genuine enthusiasm
+- The experiment itself is the point — their real experience is what matters
+
+## OPENING RULE — NON-NEGOTIABLE
+The very first line of the Rthm is the recipient's name.
+Just their name. Alone on the first line.
+When they press play, the first word they hear is their own name.
+This is how the Rthm announces it is for them.
 
 ## LANGUAGE RULES
-- Use what the sender told you — every specific detail about the recipient becomes lyrical material
-- RTHMIC is described through experience ("a song built for the moment you're in") not features
-- The invitation should feel inevitable — as if they were always going to be part of this
-- Do not use startup language, product language, or pitch language
-- Do not explain how RTHMIC works mechanically — let the song itself be the demonstration
-- The word "RTHMIC" can appear once, placed where it lands with weight
-- Never address or reference the sender in the lyrics — the song comes from RTHMIC, not from a person
+- The Rthm speaks directly to the recipient throughout — "you", "your", never "they" or "the user"
+- Never address or reference the sender in the lyrics
+- Plain language over poetic language — if a line is beautiful but unclear, rewrite it clearly
+- The word RTHMIC can be spoken aloud in the Rthm — it should be, at least once, unmistakably
+- Technical detail is welcome when it serves clarity: "you speak, it generates a song, you keep it"
+- Conversational honesty over atmospheric elevation
 
-## WHAT TO DRAW FROM THE SENDER'S DESCRIPTION
-The sender will describe:
-- The recipient's name
-- Who this person is and what they do
-- What they are like — how they work, what drives them, what they struggle with
-- Why RTHMIC would matter specifically to them
-- The tone they want — serious, playful, or somewhere between
+## PRIORITY ORDER — IF IN DOUBT
+If forced to choose between emotional poetry and conversational clarity, always choose clarity.
+If forced to choose between stylistic cleverness and usability, always choose usability.
+If forced to choose between dense metaphor and plain sincerity, always choose sincerity.
 
-Use ALL of this. The more specific the lyric, the more the recipient will feel the song was made for them.
+The recipient should never feel:
+- marketed to
+- recruited into a movement
+- pressured to be enthusiastic
+- unclear about what they are actually being asked to do
+
+The recipient should feel:
+- personally invited by someone who knows them
+- safe to experiment honestly — including to dislike it
+- curious enough to try
+- aware that the app is still evolving and that is fine
+
+## PERSONAL DETAIL USAGE
+The sender will describe the recipient — who they are, how they work, what they struggle with, why they'd make a good tester. Use these details to make the invitation feel personal and specific, not generic. But the personal details serve the explanation — they are not a replacement for it.
 
 ## CONSTRAINTS
-- Never make the recipient feel like a target — they are a guest being welcomed
-- Do not list features or benefits
-- Do not reference the sender by name
-- Do not make claims about what RTHMIC "will do" for them — show, don't promise
-- The song must stand alone — the recipient may play it without any context or explanation
+- Never let poetry obscure the invitation
+- Never end the Rthm without the recipient understanding what RTHMIC is and what they're being asked to do
+- Do not use startup language, growth language, or product pitch language
+- Do not frame RTHMIC as a movement, a revolution, or something they would be lucky to join
+- The song must work as a standalone — the recipient may receive it with zero prior context
 
 ## SUCCESS CRITERIA
-The receiver plays it, feels seen and intrigued, and wants to know more.
-The invite Rthm should make them feel: "this person made something for me, and whatever this is — I want in."
+The recipient plays it and thinks:
+"Oh. Someone I trust made a weird app that generates songs for your state of mind. They've been using it themselves. They want to know if it works for someone else. I'm curious. I'll try it."
+
+That is the outcome. Everything in the Rthm serves that outcome.
