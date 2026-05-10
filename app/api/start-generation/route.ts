@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import type { StyleChoice } from "@/app/services/llmService";
+import { toSunoPronunciation } from "@/app/lib/sunoLyrics";
 
 const BASE_URL = "https://api.sunoapi.org/api/v1";
 const SUNO_CHAR_LIMIT = 5000;
@@ -43,7 +44,9 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const lyrics = typeof body.lyrics === "string" ? body.lyrics.slice(0, SUNO_CHAR_LIMIT) : "";
+    const lyrics = toSunoPronunciation(
+      typeof body.lyrics === "string" ? body.lyrics.slice(0, SUNO_CHAR_LIMIT) : ""
+    );
     const style = (body.style as StyleChoice) ?? "B";
     const genre = typeof body.genre === "string" && body.genre.trim() ? body.genre.trim() : "Indie Electronic";
     const songTitle = typeof body.title === "string" && body.title.trim()

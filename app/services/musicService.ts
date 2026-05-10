@@ -4,6 +4,7 @@
 
 import { tracks } from "@/app/data/tracks";
 import type { Song, PillarType } from "@/app/types/pipeline";
+import { toSunoPronunciation } from "@/app/lib/sunoLyrics";
 
 const USE_MOCK = !process.env.SUNO_API_KEY;
 const BASE_URL = "https://api.sunoapi.org/api/v1";
@@ -97,7 +98,7 @@ export async function generateSongs(lyrics: string, pillar: PillarType): Promise
       customMode: true,
       instrumental: false,
       model: "V5",
-      prompt: lyrics,                       // lyrics in custom mode
+      prompt: toSunoPronunciation(lyrics),   // phonetic substitution for branded spellings
       style: PILLAR_STYLES[pillar],         // genre/mood tags
       title: `RTHM — ${pillar}`,
       callBackUrl: "https://rthmic.vercel.app/api/suno-webhook", // required by sunoapi.org; we use polling
