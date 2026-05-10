@@ -358,6 +358,43 @@ All of it.`,
   },
 };
 
+// ─── JSON extraction ──────────────────────────────────────────────────────────
+//
+// Claude sometimes wraps its JSON in a ```json … ``` code fence and may include
+// a sentence of prose before or after the fence. This helper tries three
+// strategies in order so we always get clean JSON regardless of formatting:
+//
+//   1. Strip a code fence wherever it appears in the response (not just ^).
+//   2. If that fails, pluck the outermost { … } block from the raw text.
+//   3. If that also fails, throw so the caller can surface the error.
+
+function extractJson(text: string): LLMResult {
+  // Strategy 1 — strip code fence (handles fence anywhere in the string)
+  const fenceStripped = text
+    .replace(/```json\s*/gi, "")
+    .replace(/```\s*/g, "")
+    .trim();
+
+  try {
+    return JSON.parse(fenceStripped) as LLMResult;
+  } catch {
+    // fall through to strategy 2
+  }
+
+  // Strategy 2 — extract the outermost { … } block
+  const start = text.indexOf("{");
+  const end   = text.lastIndexOf("}");
+  if (start !== -1 && end > start) {
+    try {
+      return JSON.parse(text.slice(start, end + 1)) as LLMResult;
+    } catch {
+      // fall through to throw
+    }
+  }
+
+  throw new Error("Could not extract JSON from LLM response");
+}
+
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export async function interpret(transcript: string, overridePillar?: PillarType): Promise<LLMResult> {
@@ -394,8 +431,7 @@ export async function interpret(transcript: string, overridePillar?: PillarType)
 
   let parsed: LLMResult;
   try {
-    const raw = textBlock.text.replace(/^```json\s*/i, "").replace(/```\s*$/, "").trim();
-    parsed = JSON.parse(raw);
+    parsed = extractJson(textBlock.text);
   } catch {
     throw new Error(`LLM returned unparseable JSON: ${textBlock.text.slice(0, 200)}`);
   }
