@@ -108,35 +108,55 @@ const PILLAR_STYLE_DEFAULTS: Record<PillarType, StyleChoice> = {
 
 const MOCK_OUTPUTS: Record<PillarType, Omit<LLMResult, "pillar" | "style">> = {
   Memory: {
-    title: "Say It Out Loud",
+    title: "Link to Link",
     stateSummary: {
-      state: "You have the information but it isn't sticking — recognition without retrieval.",
-      intent: "You want to encode the sequence so it's available under real conditions.",
-      friction: "You're reading passively; there's no structure to hang the information on.",
+      state: "You're trying to hold a sequence in your head but the items aren't connecting — each one feels separate and slippery.",
+      intent: "You want to encode the chain so that one item automatically pulls the next.",
+      friction: "You're memorising items in isolation; there's no bridge between them for retrieval to follow.",
     },
     lyrics: `[VERSE]
-Say it out loud. First time.
-Not in your head — out loud, in sequence, one item per beat.
-The voice anchors what the eye slides over.
-No skipping. No shortcuts.
-The first pass is always rough — that's the pass.
+Start where you already stand.
+The first one is solid — you know it.
+That's your anchor. That's the ground.
+Everything else hangs off what you already have.
+
+Now look at the second one.
+Not the whole word — the beginning.
+What does the start of it say?
+What do those first letters remind you of?
+Say it. Hear it. Let it land.
 
 [CHORUS]
-Group the first three. Say them faster.
-Group the next three. Say them together.
-You're not reading — you're building a structure in the brain
-that retrieval can follow back.
+Link to link to link.
+Each one holds the next.
+You don't memorise the list —
+you follow the chain.
+
+[VERSE 2]
+The ending of one word
+is often the beginning of the next.
+Or the sound shifts just enough
+to suggest something you already know.
+
+Find the fragment that fits.
+Spell it out. Say it loud.
+The bridge between them is already there —
+you just have to notice it.
 
 [BRIDGE]
-All of it. One breath.
-You have it.
-Not perfectly — but you have it.
-That rough first pass was the work. Lock it.
+This is the one that doesn't come easy.
+This is the link that keeps breaking.
+So make it bigger. Make it stranger.
+Give it a colour, a weight, a sound.
+The stranger the bridge — the harder it holds.
 
 [OUTRO]
-One more time. Start again.
-Each pass is easier than the last.
-The structure holds. You built it.`,
+First one. Anchor.
+Second one — through the bridge.
+Third. Fourth. Fifth.
+Follow the chain.
+You built it. Now run it.
+Link to link to link.`,
   },
   Menus: {
     title: "Options in the Air",
