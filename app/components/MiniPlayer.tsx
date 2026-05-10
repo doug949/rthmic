@@ -2,24 +2,39 @@
 
 import { useAudio } from "@/app/contexts/AudioContext";
 import { tracks } from "@/app/data/tracks";
+import { useState, useRef, useEffect, CSSProperties } from "react";
+
+const PLAYER_WIDTH = 300; // px — fixed width of the floating card
 
 export default function MiniPlayer() {
   const { currentTrackId, isPlaying, loadingId, currentTime, duration, handlePlay, restart, seek } = useAudio();
 
-  if (!currentTrackId) return null;
+  // pos: null = use CSS default (bottom-center); set after first mount or drag
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dragState = useRef<{
+    startX: number; startY: number;
+    origX: number; origY: number;
+    moved: boolean;
+  } | null>(null);
 
+  // Initialise position once the card is measurable
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const h = el.getBoundingClientRect().height || 80;
+    setPos({
+      x: Math.max(8, (window.innerWidth - PLAYER_WIDTH) / 2),
+      y: window.innerHeight - h - 16,
+    });
+  }, []); // only on first mount
+
+  if (!currentTrackId) return null;
   const track = tracks.find((t) => t.id === currentTrackId);
   if (!track) return null;
 
   const isLoading = loadingId === currentTrackId;
   const progress = duration > 0 ? currentTime / duration : 0;
-
-  const handleScrub = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (duration <= 0) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    seek(ratio * duration);
-  };
 
   const fmt = (s: number) => {
     const m = Math.floor(s / 60);
@@ -27,17 +42,77 @@ export default function MiniPlayer() {
     return `${m}:${sec.toString().padStart(2, "0")}`;
   };
 
+  const handleScrub = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (duration <= 0) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    seek(Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)) * duration);
+  };
+
+  // ── Drag handlers (pointer events — works for touch + mouse) ──────────────
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    // Only handle drags from the grip handle
+    if (!(e.target as HTMLElement).closest("[data-drag-handle]")) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const current = pos ?? {
+      x: Math.max(8, (window.innerWidth - PLAYER_WIDTH) / 2),
+      y: window.innerHeight - 96,
+    };
+    dragState.current = {
+      startX: e.clientX, startY: e.clientY,
+      origX: current.x, origY: current.y,
+      moved: false,
+    };
+  };
+
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragState.current) return;
+    const dx = e.clientX - dragState.current.startX;
+    const dy = e.clientY - dragState.current.startY;
+    if (Math.abs(dx) + Math.abs(dy) > 3) dragState.current.moved = true;
+
+    const el = containerRef.current;
+    const h = el?.getBoundingClientRect().height ?? 80;
+    setPos({
+      x: Math.max(8, Math.min(window.innerWidth - PLAYER_WIDTH - 8, dragState.current.origX + dx)),
+      y: Math.max(8, Math.min(window.innerHeight - h - 8, dragState.current.origY + dy)),
+    });
+  };
+
+  const onPointerUp = () => { dragState.current = null; };
+
+  // ── Position style ─────────────────────────────────────────────────────────
+  const posStyle: CSSProperties = pos
+    ? { left: pos.x, top: pos.y, bottom: "auto" }
+    : { left: "50%", bottom: 16, transform: "translateX(-50%)" };
+
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 pb-safe">
-      <div className="mx-4 mb-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 overflow-hidden">
+    <div
+      ref={containerRef}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+      className="fixed z-40 select-none"
+      style={{ width: PLAYER_WIDTH, ...posStyle }}
+    >
+      <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 overflow-hidden shadow-xl">
+
+        {/* Drag handle */}
+        <div
+          data-drag-handle
+          className="flex items-center justify-center pt-2 pb-1 cursor-grab active:cursor-grabbing touch-none"
+          aria-label="Drag to move player"
+        >
+          <DragGripIcon />
+        </div>
 
         {/* Progress bar */}
         <div
-          className="h-[3px] bg-white/10 cursor-pointer relative"
+          className="h-[3px] bg-white/10 cursor-pointer relative mx-3 rounded-full overflow-hidden"
           onClick={handleScrub}
         >
           <div
-            className="h-full bg-white/50 transition-none"
+            className="h-full bg-white/50 transition-none rounded-full"
             style={{ width: `${progress * 100}%` }}
           />
         </div>
@@ -90,6 +165,19 @@ export default function MiniPlayer() {
         </div>
       </div>
     </div>
+  );
+}
+
+function DragGripIcon() {
+  return (
+    <svg width="24" height="8" viewBox="0 0 24 8" fill="none" aria-hidden="true">
+      <circle cx="6"  cy="2" r="1.5" fill="white" fillOpacity="0.25" />
+      <circle cx="12" cy="2" r="1.5" fill="white" fillOpacity="0.25" />
+      <circle cx="18" cy="2" r="1.5" fill="white" fillOpacity="0.25" />
+      <circle cx="6"  cy="6" r="1.5" fill="white" fillOpacity="0.25" />
+      <circle cx="12" cy="6" r="1.5" fill="white" fillOpacity="0.25" />
+      <circle cx="18" cy="6" r="1.5" fill="white" fillOpacity="0.25" />
+    </svg>
   );
 }
 
