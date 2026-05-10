@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useSwipeNavigation } from "@/app/hooks/useSwipeBack";
 import { transitionTo } from "@/app/lib/pageTransition";
+import { AppHeader } from "@/app/components/AppHeader";
 
 const SLOTS = [
   {
@@ -454,17 +455,7 @@ export default function SettingsPage() {
       )}
 
       {/* Header */}
-      <header className="flex items-center gap-4 pt-12 pb-6">
-        <button
-          onClick={goBack}
-          className="text-white/45 hover:text-white/70 transition-colors text-sm tracking-widest uppercase touch-manipulation"
-        >
-          ← Back
-        </button>
-        <span className="text-white/25 text-sm uppercase tracking-widest ml-auto">
-          RTHMIC Styles
-        </span>
-      </header>
+      <AppHeader title="RTHMIC Styles" onBack={goBack} />
 
       {/* Progress dots */}
       <div className="flex items-center gap-2 mb-8">

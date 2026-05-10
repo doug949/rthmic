@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { TransitionLink } from "@/app/components/TransitionLink";
 import { RevealBlock } from "@/app/components/RevealBlock";
 import { useSwipeBack } from "@/app/hooks/useSwipeBack";
+import { AppHeader } from "@/app/components/AppHeader";
 
 type Phase = "idle" | "recording" | "processing" | "review" | "sending" | "done" | "error";
 
@@ -157,11 +158,14 @@ export default function FeedbackPage() {
       />
 
       <RevealBlock delay={0}>
-        <header className="flex items-center gap-4 pt-12 pb-8">
-          <TransitionLink href="/" className="text-white/45 hover:text-white/70 transition-colors text-sm tracking-widest uppercase">
-            ← Back
-          </TransitionLink>
-        </header>
+        <AppHeader
+          title="Feedback"
+          onBack={
+            phase === "processing" || phase === "sending"
+              ? null  // can't go back during async
+              : undefined // default: router.back()
+          }
+        />
       </RevealBlock>
 
       <div className="flex-1 flex flex-col">

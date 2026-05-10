@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { TransitionLink } from "@/app/components/TransitionLink";
+import { AppHeader } from "@/app/components/AppHeader";
 import { RevealBlock } from "@/app/components/RevealBlock";
 import type { SavedRhythm } from "@/app/api/library/route";
 import { useGeneration } from "@/app/contexts/GenerationContext";
@@ -177,15 +178,7 @@ export default function LibraryPage() {
       />
 
       <RevealBlock delay={0}>
-        <header className="flex items-center gap-4 pt-12 pb-8">
-          <TransitionLink
-            href="/"
-            className="text-white/45 hover:text-white/70 transition-colors text-sm tracking-widest uppercase"
-          >
-            ← Back
-          </TransitionLink>
-          <span className="text-white/25 text-sm uppercase tracking-widest ml-auto">Library</span>
-        </header>
+        <AppHeader title="Library" />
       </RevealBlock>
 
       <section className="flex-1 flex flex-col gap-8 pb-16">

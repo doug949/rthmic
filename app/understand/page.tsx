@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSwipeNavigation } from "@/app/hooks/useSwipeBack";
 import { TransitionLink } from "@/app/components/TransitionLink";
 import { transitionTo } from "@/app/lib/pageTransition";
+import { AppHeader } from "@/app/components/AppHeader";
 
 const panels = [
   {
@@ -76,17 +77,7 @@ export default function UnderstandPage() {
       )}
 
       {/* Nav */}
-      <header className="flex items-center gap-4 pt-12 pb-8">
-        <button
-          onClick={goBack}
-          className="text-white/40 hover:text-white/70 transition-colors text-sm tracking-widest uppercase touch-manipulation"
-        >
-          ← Back
-        </button>
-        <span className="text-white/25 text-sm uppercase tracking-widest ml-auto">
-          About RTHMIC
-        </span>
-      </header>
+      <AppHeader title="About RTHMIC" onBack={goBack} />
 
       {/* Panel content — key forces remount so panel-enter animation always fires */}
       <section className="flex-1 flex flex-col justify-center pb-8">

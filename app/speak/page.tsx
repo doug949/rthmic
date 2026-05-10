@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { TransitionLink } from "@/app/components/TransitionLink";
+import { transitionTo as navigateTo } from "@/app/lib/pageTransition";
+import { AppHeader } from "@/app/components/AppHeader";
 import { useAudio } from "@/app/contexts/AudioContext";
 import { useGeneration } from "@/app/contexts/GenerationContext";
 import type { PillarType, StateSummary, Song, SongStatus, SongStatusMap } from "@/app/types/pipeline";
@@ -37,6 +40,7 @@ interface UnderstandResult {
 }
 
 export default function SpeakPage() {
+  const router = useRouter();
   const [phase, setPhase] = useState<Phase>("module");
   const [selectedPillar, setSelectedPillar] = useState<string | null>(null);
   const [understandResult, setUnderstandResult] = useState<UnderstandResult | null>(null);
@@ -405,16 +409,11 @@ export default function SpeakPage() {
     return false;
   };
 
-  // ─── Recreate in another genre ───────────────────────────────────────────
-
-  const handleRecreateGenre = useCallback(() => {
-    clearGeneration(); // returns genPhase → "idle", keeps understandResult in local state
-    setPhase("genre");
-  }, [clearGeneration]);
-
   // ─── Phase transition (fade to dark, swap phase, fade back) ──────────────
+  //
+  // Named goToPhase to distinguish from navigateTo() which changes the URL.
 
-  const transitionTo = useCallback((newPhase: Phase) => {
+  const goToPhase = useCallback((newPhase: Phase) => {
     setTransitioning(true);
     setTimeout(() => {
       setPhase(newPhase);
@@ -424,7 +423,7 @@ export default function SpeakPage() {
 
   // ─── Reset ────────────────────────────────────────────────────────────────
 
-  const reset = () => {
+  const reset = useCallback(() => {
     clearRecordingTimers();
     if (audioElRef.current) {
       audioElRef.current.pause();
@@ -441,7 +440,65 @@ export default function SpeakPage() {
     setRealIsPlaying(false);
     setIsDedication(false);
     allTranscriptsRef.current = [];
-  };
+  }, [clearRecordingTimers, clearGeneration]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ─── Back navigation ──────────────────────────────────────────────────────
+  //
+  // Context-aware: always goes exactly one step back in the flow.
+  // Never jumps straight to Home from mid-flow.
+
+  const handleBack = useCallback(() => {
+    // During transcription — block back (async in flight, can't cancel)
+    if (phase === "understanding") return;
+
+    // During active music generation — block back
+    if (genPhase === "generating") return;
+
+    // From results or failed — return to speak-start so user can retry
+    if (genPhase === "ready" || genPhase === "failed") {
+      reset();
+      return;
+    }
+
+    // Local phase stack
+    switch (phase) {
+      case "module":
+        navigateTo("/", router);
+        break;
+      case "priming":
+        goToPhase("module");
+        break;
+      case "idle":
+        goToPhase("priming");
+        break;
+      case "recording": {
+        // Discard the in-progress recording without processing it
+        clearRecordingTimers();
+        const rec = mediaRecorderRef.current;
+        if (rec && rec.state === "recording") {
+          rec.ondataavailable = null;
+          rec.onstop = () => {};
+          rec.stop();
+        }
+        cleanupWebAudio();
+        setPhase("idle");
+        break;
+      }
+      case "confirming":
+        goToPhase("idle");
+        break;
+      case "genre":
+        goToPhase("confirming");
+        break;
+    }
+  }, [phase, genPhase, reset, goToPhase, clearRecordingTimers, cleanupWebAudio, router]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ─── Recreate in another genre ───────────────────────────────────────────
+
+  const handleRecreateGenre = useCallback(() => {
+    clearGeneration();
+    goToPhase("genre");
+  }, [clearGeneration, goToPhase]);
 
   // Start fresh when entering the Speak page — but don't wipe a completed generation
   // the user may be returning from navigation to see their results.
@@ -490,24 +547,14 @@ export default function SpeakPage() {
         }}
       />
 
-      <header className="flex items-center gap-4 pt-12 pb-8">
-        {phase === "priming" ? (
-          <button
-            onClick={() => transitionTo("module")}
-            className="text-white/45 hover:text-white/70 transition-colors text-sm tracking-widest uppercase touch-manipulation"
-          >
-            ← Back
-          </button>
-        ) : (
-          <TransitionLink
-            href="/"
-            className="text-white/45 hover:text-white/70 transition-colors text-sm tracking-widest uppercase"
-          >
-            ← Back
-          </TransitionLink>
-        )}
-        <span className="text-white/25 text-sm uppercase tracking-widest ml-auto">Speak</span>
-      </header>
+      <AppHeader
+        title="Speak"
+        onBack={
+          phase === "understanding" || genPhase === "generating"
+            ? null       // disabled during async operations
+            : handleBack // context-aware for all other states
+        }
+      />
 
       {/* Generation-context phases take priority */}
       {genPhase === "generating" && (
@@ -555,17 +602,17 @@ export default function SpeakPage() {
                 if (slug === "auto") {
                   setSelectedPillar(null);
                   setIsDedication(false);
-                  transitionTo("priming");
+                  goToPhase("priming");
                 } else {
                   setSelectedPillar(slug);
                   setIsDedication(slug === "bridge");
-                  transitionTo("priming");
+                  goToPhase("priming");
                 }
               }}
             />
           )}
           {phase === "priming" && (
-            <PrimingView pillar={selectedPillar} onReady={() => transitionTo("idle")} />
+            <PrimingView pillar={selectedPillar} onReady={() => goToPhase("idle")} />
           )}
           {phase === "idle" && (
             <IdleView onRecord={startRecording} errorMsg={errorMsg} />
@@ -578,7 +625,7 @@ export default function SpeakPage() {
             <ConfirmingView
               result={understandResult}
               onAddMore={addMore}
-              onProceed={() => setPhase("genre")}
+              onProceed={() => goToPhase("genre")}
               onDiscard={reset}
               errorMsg={errorMsg}
               wasAutoStopped={wasAutoStopped}
