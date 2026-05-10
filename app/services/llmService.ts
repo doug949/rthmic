@@ -359,59 +359,56 @@ This was made for you.
 All of it.`,
   },
   Invite: {
-    title: "Try It For a Week",
+    title: "Tell Me What You Find",
     stateSummary: {
       state: "You want to invite someone specific to beta test RTHMIC — someone whose honest experience you'd trust.",
-      intent: "You want them to understand what RTHMIC actually is, try it sincerely, and tell you what they really think.",
-      friction: "You need them to understand the invitation clearly without it feeling like a pitch or a favour.",
+      intent: "You want them to understand what RTHMIC is, know that this song proves it, and feel genuinely welcome to respond however they actually respond.",
+      friction: "You need the invitation to be clear and direct without feeling like a pitch.",
     },
     lyrics: `[VERSE]
 [Recipient's name].
 
-I've been building something strange.
-An app that generates a complete song
-for whatever state you're actually in right now —
-stuck, overwhelmed, preparing for something,
-trying to remember something.
-
-You describe it. It builds a Rthm.
-A song, made for that specific moment.
-That's RTHMIC. And I've been using it myself
-the whole time I've been building it.
+I made an app.
+It's called RTHMIC.
+Here's what it does —
+you describe the state you're in right now,
+and it builds you a song.
+Not a playlist. Not a suggestion.
+A song. For that specific moment.
+Stuck before something. Overwhelmed.
+Trying to get moving. Trying to remember.
+You speak. RTHMIC generates a Rthm.
 
 [CHORUS]
-It's not finished.
-But it works.
-And I think you'd have an honest opinion about it —
-which is exactly what I need.
+This song you're listening to right now —
+I made it using RTHMIC.
+Someone described wanting to invite you to try it.
+And this is what came out.
+That's the concept. You just heard it work.
 
 [VERSE 2]
-Here's what I'm asking.
-Try it for a week.
-Not to be polite. Not to be supportive.
-To actually see whether it does anything for you —
-or whether it doesn't.
+It's a beta.
+Still being built. Not finished.
+I've been using it myself the whole time
+I've been making it — and it does something real.
+But I don't know yet whether that's just me.
 
-If it's useful — tell me how.
-If it's confusing — tell me where.
-If it does nothing — that matters just as much.
-Your real experience is the experiment.
+Which is where you come in.
 
 [BRIDGE]
-You don't have to like it.
-You don't have to be enthusiastic.
-The only thing that helps me
-is what actually happens when you use it.
+Try it for a few days.
+Pay attention to what actually happens.
+Love it — I want to know.
+Hate it — I want to know.
+Find it strange, don't get it, feel nothing —
+all of that is useful.
+The only thing that doesn't help me
+is a polite non-answer.
 
 [OUTRO]
-This is an invitation to try something real.
-From someone who has been living inside it.
-Your name is in this Rthm because
-I think your perspective is worth having.
-
-Would you try it?
-Honestly. For a week.
-And tell me what you find.`,
+There's no right response here.
+Your honest experience is the experiment.
+Tell me what you find.`,
   },
   Journal: {
     title: "That Was Today",
