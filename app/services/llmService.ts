@@ -360,13 +360,59 @@ All of it.`,
 
 // ─── JSON extraction ──────────────────────────────────────────────────────────
 //
-// Claude sometimes wraps its JSON in a ```json … ``` code fence and may include
-// a sentence of prose before or after the fence. This helper tries three
-// strategies in order so we always get clean JSON regardless of formatting:
+// Claude may format its response in several ways that break a naive JSON.parse:
+//   • Wrap the object in a ```json … ``` code fence
+//   • Include a sentence of prose before or after the fence
+//   • Embed literal newline / carriage-return chars inside string values
+//     (lyrics are multiline; JSON requires them escaped as \n)
 //
-//   1. Strip a code fence wherever it appears in the response (not just ^).
-//   2. If that fails, pluck the outermost { … } block from the raw text.
-//   3. If that also fails, throw so the caller can surface the error.
+// We try increasingly tolerant strategies:
+//   1. Strip code fence → sanitize newlines in strings → parse
+//   2. Extract outermost { … } block → sanitize → parse
+//   3. Throw so the caller can surface the raw text in the error message
+
+/**
+ * Fix literal newlines/carriage-returns inside JSON string values.
+ * Works by walking the string character-by-character, tracking whether
+ * we're inside a quoted value, and escaping bare newlines we find there.
+ */
+function sanitizeJsonStrings(raw: string): string {
+  let out = "";
+  let inStr = false;
+  let escaped = false;
+
+  for (let i = 0; i < raw.length; i++) {
+    const ch = raw[i];
+
+    if (escaped) {
+      out += ch;
+      escaped = false;
+      continue;
+    }
+
+    if (ch === "\\") {
+      out += ch;
+      escaped = true;
+      continue;
+    }
+
+    if (ch === '"') {
+      inStr = !inStr;
+      out += ch;
+      continue;
+    }
+
+    if (inStr) {
+      if (ch === "\n") { out += "\\n"; continue; }
+      if (ch === "\r") { out += "\\r"; continue; }
+      if (ch === "\t") { out += "\\t"; continue; }
+    }
+
+    out += ch;
+  }
+
+  return out;
+}
 
 function extractJson(text: string): LLMResult {
   // Strategy 1 — strip code fence (handles fence anywhere in the string)
@@ -376,17 +422,17 @@ function extractJson(text: string): LLMResult {
     .trim();
 
   try {
-    return JSON.parse(fenceStripped) as LLMResult;
+    return JSON.parse(sanitizeJsonStrings(fenceStripped)) as LLMResult;
   } catch {
     // fall through to strategy 2
   }
 
-  // Strategy 2 — extract the outermost { … } block
+  // Strategy 2 — extract the outermost { … } block and sanitize
   const start = text.indexOf("{");
   const end   = text.lastIndexOf("}");
   if (start !== -1 && end > start) {
     try {
-      return JSON.parse(text.slice(start, end + 1)) as LLMResult;
+      return JSON.parse(sanitizeJsonStrings(text.slice(start, end + 1))) as LLMResult;
     } catch {
       // fall through to throw
     }
