@@ -365,46 +365,39 @@ All of it.`,
       friction: "You can't explain RTHMIC in words — the experience is the explanation. This song is that experience.",
     },
     lyrics: `[VERSE]
+[Recipient's name].
+
 You've been doing it the long way.
 The same resistance every morning —
 the gap between knowing what you need to do
 and actually doing it.
 
-You've learned to live inside that gap.
-Most people have.
+You know that gap.
+You live in it more than you'd like.
 
 [CHORUS]
-But there's something I want you to hear.
-Not a pitch. Not a product.
-Just a song.
-One that was made for exactly where you are.
-
-[VERSE 2]
-Someone thought about you.
+This song was made for you.
 Not in general — specifically.
 The way you work. The way you get stuck.
-The way you push through anyway.
+The way you move through it anyway.
 
-They built something around that.
+[VERSE 2]
+There's something that builds a song around that gap.
+Not advice. Not a system.
+A song. Built for the exact moment you're in.
 It's called RTHMIC.
 And this is your invitation.
 
 [BRIDGE]
-You don't need to understand it yet.
-You just need to press play.
+You don't need to understand it first.
+You just needed to press play.
 The understanding comes after —
-the feeling comes now.
-
-[CHORUS]
-This is something I want you to hear.
-Not a pitch. Not a product.
-Just a song built for you.
-A door that's already open.
+the feeling is already happening.
 
 [OUTRO]
 Come in.
 We made something here.
-We made it for people like you.
+We made it for people exactly like you.
 Come in.`,
   },
 };
