@@ -605,7 +605,8 @@ export default function SpeakPage() {
                   goToPhase("priming");
                 } else {
                   setSelectedPillar(slug);
-                  setIsDedication(slug === "bridge");
+                  // Bridge and Invite are both "send to someone" — share-first UX
+                  setIsDedication(slug === "bridge" || slug === "invite");
                   goToPhase("priming");
                 }
               }}
@@ -771,14 +772,54 @@ const BRIDGE_PILLAR: PillarDefinition = {
   },
 };
 
+// ─── Invite pillar ────────────────────────────────────────────────────────────
+//
+// Only visible to accounts in ADMIN_CODES. The code is read from the
+// non-httpOnly rthmic_code cookie so no API call is needed on the client.
+// This is visibility-only: the generation pipeline is gated server-side too.
+
+const ADMIN_CODES = ["doug2026"]; // add more codes here as needed
+
+function getSignedInCode(): string | null {
+  if (typeof document === "undefined") return null;
+  const m = document.cookie.match(/(?:^|;\s*)rthmic_code=([^;]+)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+const INVITE_PILLAR: PillarDefinition = {
+  slug: "invite",
+  label: "RTHMIC Invite",
+  tagline: "A Rthm that IS the invitation",
+  detail: "Use this to invite someone into RTHMIC. Describe who they are, how they work, and what you know about them — and RTHMIC will build a song that introduces itself through experience, not explanation. The song is the invite. Send them the link. They press play. They get it.",
+  guidance: "Tell RTHMIC who you're inviting and why they'd love this. The more specific you are about the person — how they think, what they struggle with, what drives them — the more the song will feel like it was made specifically for them.",
+  priming: {
+    headline: "Who are you inviting?",
+    subheadline: "Describe them. The song does the rest.",
+    instructions: [
+      "Start with who this person is — their name if you want, what they do, what they're like. How do they work? What do they struggle with? What drives them?",
+      "Tell RTHMIC why you think RTHMIC would matter to them specifically. What gap in their life or work does it fill? What would change for them if they had this?",
+      "Set the tone — is this a warm personal invitation from a friend? A professional nudge? Something playful? RTHMIC will match it.",
+    ],
+    footnote: "You don't need to explain what RTHMIC is — the song explains itself by being itself. Just give RTHMIC the person, and it will build the right door for them to walk through.",
+  },
+};
+
+// ─── Pillar view ──────────────────────────────────────────────────────────────
+
 function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
   const [openInfo, setOpenInfo] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [showInvite, setShowInvite] = useState(false);
+
+  useEffect(() => {
+    const code = getSignedInCode();
+    setShowInvite(code !== null && ADMIN_CODES.includes(code));
+  }, []);
 
   const openModal = (slug: string) => { setOpenInfo(slug); requestAnimationFrame(() => setModalVisible(true)); };
   const closeModal = () => { setModalVisible(false); setTimeout(() => setOpenInfo(null), 220); };
 
-  const allPillars = [...PILLARS, BRIDGE_PILLAR];
+  const allPillars = [...PILLARS, BRIDGE_PILLAR, INVITE_PILLAR];
   const modalPillar = openInfo ? allPillars.find((p) => p.slug === openInfo) ?? null : null;
 
   return (
@@ -847,12 +888,14 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
           </button>
         </RevealBlock>
 
-        {/* ── Bridge: For someone else ── */}
+        {/* ── For someone else: Bridge + (admin-only) Invite ── */}
         <RevealBlock delay={PILLARS.length * 28 + 24}>
           <div className="mt-3 mb-1">
             <p className="text-[10px] text-white/30 uppercase tracking-[0.3em]">For someone else</p>
           </div>
         </RevealBlock>
+
+        {/* Bridge */}
         <RevealBlock delay={PILLARS.length * 28 + 38}>
           {(() => {
             const p = BRIDGE_PILLAR;
@@ -860,7 +903,6 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
               <div className="rounded-2xl overflow-hidden"
                 style={{ border: "1px solid rgba(201,165,90,0.18)", background: "rgba(201,165,90,0.03)" }}>
                 <div className="flex items-stretch">
-                  {/* Primary tap — opens modal */}
                   <button
                     onClick={() => openModal(p.slug)}
                     className="flex-1 flex items-center gap-4 pl-5 pr-3 py-4 text-left touch-manipulation active:bg-white/[0.05] transition-colors"
@@ -887,6 +929,42 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
           })()}
         </RevealBlock>
 
+        {/* Invite — admin only */}
+        {showInvite && (
+          <RevealBlock delay={PILLARS.length * 28 + 52}>
+            {(() => {
+              const p = INVITE_PILLAR;
+              return (
+                <div className="rounded-2xl overflow-hidden"
+                  style={{ border: "1px solid rgba(120,160,255,0.22)", background: "rgba(120,160,255,0.03)" }}>
+                  <div className="flex items-stretch">
+                    <button
+                      onClick={() => openModal(p.slug)}
+                      className="flex-1 flex items-center gap-4 pl-5 pr-3 py-4 text-left touch-manipulation active:bg-white/[0.05] transition-colors"
+                    >
+                      <span className="flex-shrink-0" style={{ color: "rgba(120,160,255,0.7)" }} aria-hidden>
+                        <InviteIcon />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-base font-semibold tracking-wide" style={{ color: "rgba(140,175,255,0.9)" }}>{p.label}</p>
+                        <p className="text-xs text-white/45 mt-0.5">{p.tagline}</p>
+                      </div>
+                    </button>
+                    <div className="w-px self-stretch my-3" style={{ background: "rgba(120,160,255,0.12)" }} />
+                    <button
+                      onClick={() => openModal(p.slug)}
+                      className="flex items-center justify-center w-14 touch-manipulation active:bg-white/[0.04] transition-colors"
+                      aria-label="Learn more"
+                    >
+                      <InfoIcon />
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+          </RevealBlock>
+        )}
+
       </div>
 
       {/* ── Pillar info modal ─────────────────────────────────────────────────── */}
@@ -905,6 +983,8 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
               background: "rgba(12,22,42,0.97)",
               border: modalPillar.slug === "bridge"
                 ? "1px solid rgba(201,165,90,0.25)"
+                : modalPillar.slug === "invite"
+                ? "1px solid rgba(120,160,255,0.25)"
                 : "1px solid rgba(255,255,255,0.1)",
               boxShadow: "0 24px 64px rgba(0,0,0,0.6)",
               opacity: modalVisible ? 1 : 0,
@@ -923,36 +1003,59 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
             </button>
 
             {/* Header */}
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.3em] mb-1"
-                style={{ color: modalPillar.slug === "bridge" ? "rgba(201,165,90,0.6)" : "rgba(255,255,255,0.3)" }}>
-                {modalPillar.slug === "bridge" ? "For someone else" : "For You in the Moment"}
-              </p>
-              <p className="text-lg font-semibold text-white"
-                style={{ color: modalPillar.slug === "bridge" ? "#c9a55a" : "white" }}>
-                {modalPillar.label}
-              </p>
-              <p className="text-xs text-white/40 mt-0.5">{modalPillar.tagline}</p>
-            </div>
+            {(() => {
+              const isGold  = modalPillar.slug === "bridge" || modalPillar.slug === "invite";
+              const isBlue  = modalPillar.slug === "invite";
+              const accent  = isBlue ? "rgba(140,175,255," : "rgba(201,165,90,";
+              const sectionLabel =
+                modalPillar.slug === "bridge" || modalPillar.slug === "invite"
+                  ? "For someone else"
+                  : "For You in the Moment";
+              const ctaLabel =
+                modalPillar.slug === "bridge" ? "Create a Bridge →"
+                : modalPillar.slug === "invite" ? "Create an Invite →"
+                : `Select ${modalPillar.label} →`;
+              return (
+                <>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.3em] mb-1"
+                      style={{ color: isGold ? `${accent}0.6)` : "rgba(255,255,255,0.3)" }}>
+                      {sectionLabel}
+                    </p>
+                    <p className="text-lg font-semibold"
+                      style={{ color: isBlue ? "rgba(160,190,255,0.95)" : isGold ? "#c9a55a" : "white" }}>
+                      {modalPillar.label}
+                    </p>
+                    <p className="text-xs text-white/40 mt-0.5">{modalPillar.tagline}</p>
+                  </div>
 
-            {/* Detail */}
-            <p className="text-sm text-white/55 leading-relaxed">{modalPillar.detail}</p>
+                  {/* Detail */}
+                  <p className="text-sm text-white/55 leading-relaxed">{modalPillar.detail}</p>
 
-            {/* How to speak */}
-            <div className="rounded-xl px-4 py-3"
-              style={{ background: "rgba(201,165,90,0.05)", border: "1px solid rgba(201,165,90,0.12)" }}>
-              <p className="text-[10px] text-white/40 uppercase tracking-[0.2em] mb-1.5">How to speak</p>
-              <p className="text-xs text-white/45 leading-relaxed">{modalPillar.guidance}</p>
-            </div>
+                  {/* How to speak */}
+                  <div className="rounded-xl px-4 py-3"
+                    style={{
+                      background: isBlue ? "rgba(120,160,255,0.05)" : "rgba(201,165,90,0.05)",
+                      border: isBlue ? "1px solid rgba(120,160,255,0.12)" : "1px solid rgba(201,165,90,0.12)",
+                    }}>
+                    <p className="text-[10px] text-white/40 uppercase tracking-[0.2em] mb-1.5">How to speak</p>
+                    <p className="text-xs text-white/45 leading-relaxed">{modalPillar.guidance}</p>
+                  </div>
 
-            {/* CTA */}
-            <button
-              onClick={() => { closeModal(); setTimeout(() => onSelect(modalPillar.slug), 230); }}
-              className="w-full py-4 rounded-xl text-sm font-semibold tracking-wide touch-manipulation active:scale-[0.98] transition-all"
-              style={{ background: "rgba(201,165,90,0.12)", border: "1px solid rgba(201,165,90,0.35)", color: "#c9a55a" }}
-            >
-              {modalPillar.slug === "bridge" ? "Create a Bridge →" : `Select ${modalPillar.label} →`}
-            </button>
+                  {/* CTA */}
+                  <button
+                    onClick={() => { closeModal(); setTimeout(() => onSelect(modalPillar.slug), 230); }}
+                    className="w-full py-4 rounded-xl text-sm font-semibold tracking-wide touch-manipulation active:scale-[0.98] transition-all"
+                    style={isBlue
+                      ? { background: "rgba(120,160,255,0.1)", border: "1px solid rgba(120,160,255,0.35)", color: "rgba(160,195,255,0.95)" }
+                      : { background: "rgba(201,165,90,0.12)", border: "1px solid rgba(201,165,90,0.35)", color: "#c9a55a" }
+                    }
+                  >
+                    {ctaLabel}
+                  </button>
+                </>
+              );
+            })()}
           </div>
         </div>
       )}
@@ -963,7 +1066,9 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
 // ─── Priming ──────────────────────────────────────────────────────────────────
 
 function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: () => void }) {
-  const pillarDef = PILLARS.find((p) => p.slug === pillar) ?? (pillar === "bridge" ? BRIDGE_PILLAR : null);
+  const pillarDef = PILLARS.find((p) => p.slug === pillar)
+    ?? (pillar === "bridge" ? BRIDGE_PILLAR : null)
+    ?? (pillar === "invite" ? INVITE_PILLAR : null);
   const p = pillarDef?.priming;
   const instructions = p?.instructions ?? [
     "Speak about your challenge — your hopes, what you think is stopping you, or what you want to learn.",
@@ -2168,6 +2273,21 @@ function BridgeIcon() {
       {/* Piers */}
       <line x1="4"  y1="17" x2="4"  y2="21" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
       <line x1="20" y1="17" x2="20" y2="21" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function InviteIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+      {/* Envelope body */}
+      <rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="1.7" />
+      {/* Chevron fold */}
+      <path d="M2 7l10 7 10-7" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+      {/* Small star / spark — top right corner of envelope */}
+      <circle cx="19" cy="5" r="3" fill="rgba(120,160,255,0.35)" stroke="currentColor" strokeWidth="1.2" />
+      <line x1="19" y1="3.5" x2="19" y2="6.5" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
+      <line x1="17.5" y1="5" x2="20.5" y2="5" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
     </svg>
   );
 }

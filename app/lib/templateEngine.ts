@@ -6,13 +6,14 @@ import type { PillarType } from "@/app/types/pipeline";
 const MODULE_DIR = path.join(process.cwd(), "app", "modules");
 
 const PILLAR_FILE: Record<PillarType, string> = {
-  Memory:      "memory.md",
-  Menus:       "menus.md",
-  Mindset:     "mindset.md",
-  Mode:        "mode.md",
-  Movement:    "movement.md",
+  Memory:        "memory.md",
+  Menus:         "menus.md",
+  Mindset:       "mindset.md",
+  Mode:          "mode.md",
+  Movement:      "movement.md",
   Understanding: "understanding.md",
-  Bridge:      "mindset.md", // Bridge uses Mindset template — emotionally warm, relational arc
+  Bridge:        "mindset.md", // Bridge uses Mindset template — emotionally warm, relational arc
+  Invite:        "invite.md",  // Beta tester invite — personal, demonstrative, welcoming
 };
 
 export function loadTemplate(pillar: PillarType): string {
@@ -84,13 +85,18 @@ const PILLAR_KEYWORDS: Record<PillarType, string[]> = {
     "love you", "love them", "grateful for", "thank you", "to say to",
     "bridge", "gift", "for a friend", "for my partner", "for my mum", "for my dad",
   ],
+  Invite: [
+    "invite", "invitation", "beta invite", "invite someone", "invite a friend",
+    "join rthmic", "beta access", "tester", "onboard", "bring someone in",
+    "introduce rthmic", "rthmic invite",
+  ],
 };
 
 export function detectPillar(transcript: string): PillarType {
   const lower = transcript.toLowerCase();
 
   const scores: Record<PillarType, number> = {
-    Memory: 0, Menus: 0, Mindset: 0, Mode: 0, Movement: 0, Understanding: 0, Bridge: 0,
+    Memory: 0, Menus: 0, Mindset: 0, Mode: 0, Movement: 0, Understanding: 0, Bridge: 0, Invite: 0,
   };
 
   for (const [pillar, keywords] of Object.entries(PILLAR_KEYWORDS) as [PillarType, string[]][]) {

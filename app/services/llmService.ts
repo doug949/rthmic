@@ -100,6 +100,7 @@ const PILLAR_STYLE_DEFAULTS: Record<PillarType, StyleChoice> = {
   Movement:     "A", // rhythmic forward momentum
   Understanding: "B", // patient, clear, unhurried
   Bridge:       "B", // warm, intimate, emotionally resonant
+  Invite:       "A", // arresting, forward energy — makes them stop and listen
 };
 
 // ─── Mock outputs ─────────────────────────────────────────────────────────────
@@ -355,6 +356,56 @@ And I wanted you to know that.
 [OUTRO]
 This was made for you.
 All of it.`,
+  },
+  Invite: {
+    title: "Come In",
+    stateSummary: {
+      state: "You want to bring someone into RTHMIC — someone specific, someone you think would get it immediately.",
+      intent: "You want them to feel the invitation before they even know what they're being invited to.",
+      friction: "You can't explain RTHMIC in words — the experience is the explanation. This song is that experience.",
+    },
+    lyrics: `[VERSE]
+You've been doing it the long way.
+The same resistance every morning —
+the gap between knowing what you need to do
+and actually doing it.
+
+You've learned to live inside that gap.
+Most people have.
+
+[CHORUS]
+But there's something I want you to hear.
+Not a pitch. Not a product.
+Just a song.
+One that was made for exactly where you are.
+
+[VERSE 2]
+Someone thought about you.
+Not in general — specifically.
+The way you work. The way you get stuck.
+The way you push through anyway.
+
+They built something around that.
+It's called RTHMIC.
+And this is your invitation.
+
+[BRIDGE]
+You don't need to understand it yet.
+You just need to press play.
+The understanding comes after —
+the feeling comes now.
+
+[CHORUS]
+This is something I want you to hear.
+Not a pitch. Not a product.
+Just a song built for you.
+A door that's already open.
+
+[OUTRO]
+Come in.
+We made something here.
+We made it for people like you.
+Come in.`,
   },
 };
 

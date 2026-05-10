@@ -17,6 +17,7 @@ const PILLAR_STYLES: Record<PillarType, string> = {
   Movement:      "microhouse, hypnotic, 95bpm, steady groove, forward momentum",
   Understanding: "indie folk, acoustic, 78bpm, patient, clear melodic phrasing",
   Bridge:        "intimate indie pop, warm piano, 76bpm, tender, personal, close vocal",
+  Invite:        "indie electronic, uplifting male vocal, 92bpm, warm and arresting, forward energy, memorable hook",
 };
 
 function delay(ms: number) {
@@ -159,6 +160,7 @@ const TITLE_NOUNS: Record<PillarType, string[]> = {
   Movement:      ["Groove",   "Thread",     "Step",        "Forward",   "Loop"],
   Understanding: ["Model",    "Clarity",    "Frame",       "Shape",     "Map"],
   Bridge:        ["For You",  "With You",   "Between Us",  "To You",    "This One"],
+  Invite:        ["Come In",  "Open Door",  "First Listen", "Welcome In", "Your Invitation"],
 };
 
 function mockTitle(pillar: PillarType, seed: number): string {
