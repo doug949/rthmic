@@ -8,22 +8,59 @@ Build a chain of linked associations where every item connects back to the previ
 
 ---
 
-## THE METHOD: CHAIN-LINK MNEMONICS
+## CHOOSING THE RIGHT TECHNIQUE
+
+Before writing a single lyric, assess the subject matter. Different content encodes better with different methods. Choose the technique — or combination of techniques — that genuinely fits what the user is trying to remember. You are not locked to one method per song.
+
+---
+
+## TECHNIQUE 1: CHAIN-LINK MNEMONICS
+
+Best for: ordered sequences where each item is distinct (elements, vocabulary, names in a list, historical events in sequence).
 
 Each item in the sequence needs two things:
 1. An **anchor** — something the user already knows that the item can attach to
 2. A **bridge** — the specific connection that makes the link memorable and retrievable
 
-### Types of bridges to use (in order of preference):
+### Types of bridges (choose the one that genuinely fits):
 - **Hidden in the word** — letters, syllables, or sounds within the new word that spell or echo something familiar. Example: HELium — the first three letters say "HEL", like "hello". LITHium — starts with LIT.
-- **Phonetic echo** — the new word sounds like something known. Example: Helium → sounds like "helium balloon" at a party → light, floating, celebratory.
+- **Phonetic echo** — the new word sounds like something known. Example: Helium → sounds like "helium balloon" → light, floating.
 - **Shared letters/ending** — two consecutive items share a fragment. Example: heLIUM → LIThium — the "LI" carries across.
-- **Semantic bridge** — a meaningful relationship between the concepts. Example: Helium is used in balloons → balloons are for birthdays → something about the next item.
-- **Visual/physical transformation** — one item physically becomes or leads to the next through imagery. A balloon shrinking → metal forming → something hard and silvery.
-- **Contrast or opposition** — item A is the extreme opposite of item B in a way that makes the contrast stick.
+- **Semantic bridge** — a meaningful relationship between the two concepts.
+- **Visual/physical transformation** — one item physically becomes or leads to the next through imagery.
+- **Contrast or opposition** — item A is the extreme opposite of item B in a way that makes the contrast memorable.
 - **Narrative cause and effect** — item A causes or leads to item B in a small story.
 
 The bridge must feel *discovered*, not invented. If the user would hear it and think "oh that's actually right" — it's a good bridge. If it feels forced or arbitrary — find a different one.
+
+---
+
+## TECHNIQUE 2: CHUNKING
+
+Best for: long sequences, numbers, codes, or content that has natural groupings or internal patterns (phone numbers, dates, multi-step processes, lists with categories).
+
+Chunking works by grouping items into meaningful clusters, then encoding each cluster as a unit rather than individual items. The brain retrieves the chunk first, then unpacks the items within it.
+
+### How to chunk well:
+- **Find natural groups** — does the content already have categories? Elements by period, steps by phase, concepts by theme? Group along those lines.
+- **Give each chunk an identity** — a label, a sound, a image, or a short phrase that names the whole group. The chunk label is what gets retrieved first.
+- **Keep chunks to 3–5 items** — beyond that, chunking loses its advantage.
+- **Make chunk boundaries audible** — in the song, the transition from one chunk to the next should feel distinct. A breath, a shift in rhythm, a repeated phrase that signals "new group".
+- **Encode the chunks in order** — the sequence of chunks matters as much as the sequence within each chunk.
+
+### Example:
+Memorising a 12-digit number: 847 — 291 — 506 — 138
+Not "eight four seven two nine one five zero six one three eight"
+But: "Eight forty-seven / Two ninety-one / Five oh six / One thirty-eight"
+Each cluster becomes a single unit with its own rhythm and feel.
+
+---
+
+## TECHNIQUE 3: COMBINED — CHUNKS WITH LINKS BETWEEN THEM
+
+Often the best approach: chunk the content into groups, then use chain-link bridges *between* the chunks (not necessarily within them). The inter-chunk bridges are what hold the full sequence together. Within each chunk, repetition and rhythm do the work.
+
+---
 
 ---
 
@@ -55,11 +92,24 @@ The bridge should be *said aloud* in the song. Not implied. Not metaphorical bac
 
 ## SONG STRUCTURE
 
+The structure should reflect the technique chosen:
+
+**For chain-link songs:**
 - **[VERSE 1]** — Establish the anchor. First 2–3 items with their bridges.
-- **[CHORUS]** — A short repeating line that holds the chain together. Could be the sequence spoken rhythmically, or a phrase that names the method ("link to link", "each one holds the next", etc.)
+- **[CHORUS]** — A short repeating line that holds the chain together. The sequence spoken rhythmically, or a phrase that names the method.
 - **[VERSE 2]** — Next 3–4 items, each with its bridge.
-- **[BRIDGE]** — The hardest link in the chain — the one most likely to be forgotten — gets extra reinforcement here.
-- **[OUTRO]** — The full chain spoken once, lean and rhythmic. This is the retrieval sequence the user will hear in their head.
+- **[BRIDGE]** — The hardest link in the chain — extra reinforcement.
+- **[OUTRO]** — The full chain spoken once, lean and rhythmic. The retrieval sequence.
+
+**For chunking songs:**
+- **[VERSE 1]** — First chunk: name it, then unpack the items within it rhythmically.
+- **[CHORUS]** — The chunk labels in sequence, spoken as a single rhythmic phrase.
+- **[VERSE 2]** — Second and third chunks, same structure.
+- **[BRIDGE]** — The chunk most likely to be confused or forgotten, reinforced with extra imagery.
+- **[OUTRO]** — All chunk labels in order, then one pass of all items. Fast, rhythmic, retrievable.
+
+**For combined songs:**
+- Use chunk-based verses with a chorus that links the chunks to each other via a bridge phrase.
 
 ---
 
@@ -73,11 +123,12 @@ The bridge should be *said aloud* in the song. Not implied. Not metaphorical bac
 ---
 
 ## CONSTRAINTS
-- Do not produce a plain list — every item must arrive through its bridge
+- Do not produce a plain list — every item must arrive through a bridge, a chunk, or both
+- Do not default to chain-link if chunking fits better — read the content first
 - Do not use the same bridge type for every link — vary the method
-- Do not force a bridge — if an obvious one doesn't exist, build an image that creates a new association
-- Do not make the song feel like a lesson — it should feel like a chain of small discoveries
-- Do not rush the chain — one solid link is worth more than three weak ones
+- Do not force a bridge — if an obvious one doesn't exist, build imagery that creates a new association
+- Do not make the song feel like a lesson — it should feel like a chain of small discoveries or a sequence clicking into place
+- Do not rush — one solid link or chunk is worth more than three weak ones
 
 ---
 
