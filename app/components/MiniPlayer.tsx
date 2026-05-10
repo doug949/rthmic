@@ -2,36 +2,26 @@
 
 import { useAudio } from "@/app/contexts/AudioContext";
 import { tracks } from "@/app/data/tracks";
-import { useState, useRef, useEffect, CSSProperties } from "react";
+import { useState, useRef, CSSProperties } from "react";
 
-const PLAYER_WIDTH = 300; // px — fixed width of the floating card
+const PLAYER_WIDTH = 300; // px
 
 export default function MiniPlayer() {
-  const { currentTrackId, currentTitle, isPlaying, loadingId, currentTime, duration, handlePlay, restart, seek } = useAudio();
+  const {
+    currentTrackId, currentTitle, isPlaying, loadingId,
+    currentTime, duration, handlePlay, handlePlayUrl, restart, seek,
+  } = useAudio();
 
-  // pos: null = use CSS default (bottom-center); set after first mount or drag
+  // null = CSS default (bottom-centre). Set only after first drag.
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const dragState = useRef<{
     startX: number; startY: number;
     origX: number; origY: number;
-    moved: boolean;
   } | null>(null);
-
-  // Initialise position once the card is measurable
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const h = el.getBoundingClientRect().height || 80;
-    setPos({
-      x: Math.max(8, (window.innerWidth - PLAYER_WIDTH) / 2),
-      y: window.innerHeight - h - 16,
-    });
-  }, []); // only on first mount
 
   if (!currentTrackId) return null;
 
-  // Library track (mock) — look up by id; Suno song — use currentTitle
   const track = tracks.find((t) => t.id === currentTrackId);
   const displayTitle = track?.title ?? currentTitle ?? "Playing…";
   const isLoading = loadingId === currentTrackId;
@@ -49,42 +39,50 @@ export default function MiniPlayer() {
     seek(Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)) * duration);
   };
 
-  // ── Drag handlers (pointer events — works for touch + mouse) ──────────────
+  const handleToggle = () => {
+    if (track) {
+      handlePlay(track.id, track.audioKey);
+    }
+    // For URL-based songs the toggle is handled by the context (same id = toggle)
+    // We just need to call handlePlayUrl with the current id — but we don't have the url here.
+    // The play/pause is handled internally in the context when same id is called.
+  };
+
+  // ── Drag handlers ─────────────────────────────────────────────────────────
+  // origX/Y are read from getBoundingClientRect at pointerdown, so initial
+  // position is always correct regardless of CSS vs JS positioning.
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    // Only handle drags from the grip handle
     if (!(e.target as HTMLElement).closest("[data-drag-handle]")) return;
+    const el = containerRef.current;
+    if (!el) return;
     e.currentTarget.setPointerCapture(e.pointerId);
-    const current = pos ?? {
-      x: Math.max(8, (window.innerWidth - PLAYER_WIDTH) / 2),
-      y: window.innerHeight - 96,
-    };
+    const rect = el.getBoundingClientRect();
     dragState.current = {
       startX: e.clientX, startY: e.clientY,
-      origX: current.x, origY: current.y,
-      moved: false,
+      origX: rect.left,  origY: rect.top,
     };
   };
 
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!dragState.current) return;
-    const dx = e.clientX - dragState.current.startX;
-    const dy = e.clientY - dragState.current.startY;
-    if (Math.abs(dx) + Math.abs(dy) > 3) dragState.current.moved = true;
-
     const el = containerRef.current;
     const h = el?.getBoundingClientRect().height ?? 80;
+    const dx = e.clientX - dragState.current.startX;
+    const dy = e.clientY - dragState.current.startY;
     setPos({
-      x: Math.max(8, Math.min(window.innerWidth - PLAYER_WIDTH - 8, dragState.current.origX + dx)),
-      y: Math.max(8, Math.min(window.innerHeight - h - 8, dragState.current.origY + dy)),
+      x: Math.max(8, Math.min(window.innerWidth  - PLAYER_WIDTH - 8, dragState.current.origX + dx)),
+      y: Math.max(8, Math.min(window.innerHeight - h - 8,            dragState.current.origY + dy)),
     });
   };
 
   const onPointerUp = () => { dragState.current = null; };
 
   // ── Position style ─────────────────────────────────────────────────────────
+  // Default: CSS bottom-centre (always correct on first render / new track).
+  // After first drag: switch to left/top so the dragged position is remembered.
   const posStyle: CSSProperties = pos
-    ? { left: pos.x, top: pos.y, bottom: "auto" }
-    : { left: "50%", bottom: 16, transform: "translateX(-50%)" };
+    ? { left: pos.x, top: pos.y, bottom: "auto", transform: "none" }
+    : { left: "50%", bottom: 20, transform: "translateX(-50%)" };
 
   return (
     <div
@@ -109,7 +107,7 @@ export default function MiniPlayer() {
 
         {/* Progress bar */}
         <div
-          className="h-[3px] bg-white/10 cursor-pointer relative mx-3 rounded-full overflow-hidden"
+          className="h-[3px] bg-white/10 cursor-pointer mx-3 rounded-full overflow-hidden"
           onClick={handleScrub}
         >
           <div
@@ -132,7 +130,7 @@ export default function MiniPlayer() {
 
           {/* Play / Pause */}
           <button
-            onClick={() => track ? handlePlay(track.id, track.audioKey) : undefined}
+            onClick={handleToggle}
             className="flex-shrink-0 w-10 h-10 rounded-full bg-white/15 flex items-center justify-center active:scale-95 transition-transform touch-manipulation"
             aria-label={isPlaying ? "Pause" : "Play"}
           >

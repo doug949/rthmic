@@ -83,8 +83,14 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         setDuration(0);
       });
 
-      audio.play().catch(console.error);
+      // play() returns a promise — set isPlaying optimistically, revert on block
+      const playPromise = audio.play();
       setIsPlaying(true);
+      playPromise?.catch((err) => {
+        // Autoplay blocked (rare in PWA with user gesture, but handle gracefully)
+        console.warn("Autoplay blocked:", err.message);
+        setIsPlaying(false);
+      });
     },
     []
   );
