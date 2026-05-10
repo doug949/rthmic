@@ -80,14 +80,20 @@ export default function SpeakPage() {
   const animFrameRef = useRef<number>(0);
   const orbRef = useRef<HTMLDivElement>(null);
 
-  // Song playback
-  const audioElRef = useRef<HTMLAudioElement>(null);
-  const [realPlayingId, setRealPlayingId] = useState<string | null>(null);
-  const [realIsPlaying, setRealIsPlaying] = useState(false);
-  const [realCurrentTime, setRealCurrentTime] = useState(0);
-  const [realDuration, setRealDuration] = useState(0);
-
-  const { handlePlay: handleMockPlay, currentTrackId, isPlaying: mockIsPlaying, loadingId } = useAudio();
+  const {
+    handlePlay: handleMockPlay,
+    handlePlayUrl,
+    stop: stopAudio,
+    currentTrackId,
+    isPlaying,
+    currentTime,
+    duration,
+    loadingId,
+    seek,
+    skip,
+    restart: restartAudio,
+    setLoop,
+  } = useAudio();
 
   const setStatus = (id: string, status: SongStatus) => {
     setSongStatus((prev) => ({ ...prev, [id]: status }));
@@ -367,46 +373,22 @@ export default function SpeakPage() {
 
   const togglePlay = useCallback((song: Song) => {
     if (song.audioUrl) {
-      const el = audioElRef.current;
-      if (!el) return;
-
-      if (realPlayingId === song.id) {
-        if (realIsPlaying) {
-          el.pause();
-          setRealIsPlaying(false);
-        } else {
-          el.play().catch(console.error);
-          setRealIsPlaying(true);
-        }
-        return;
-      }
-
-      el.pause();
-      el.src = song.audioUrl;
-      setRealPlayingId(song.id); // set ID first so player opens immediately
-      setRealIsPlaying(false);   // wait for play() to confirm
-      el.play()
-        .then(() => setRealIsPlaying(true))
-        .catch((err) => {
-          console.warn("Play failed:", err.message);
-          setRealIsPlaying(false);
-        });
+      handlePlayUrl(song.id, song.audioUrl, song.title);
       return;
     }
     if (song.trackId && song.trackAudioKey) {
       handleMockPlay(song.trackId, song.trackAudioKey);
     }
-  }, [realPlayingId, realIsPlaying, handleMockPlay]);
+  }, [handlePlayUrl, handleMockPlay]);
 
   const isSongPlaying = (song: Song): boolean => {
-    if (song.audioUrl) return realPlayingId === song.id && realIsPlaying;
-    if (song.trackId) return currentTrackId === song.trackId && mockIsPlaying;
-    return false;
+    const id = song.audioUrl ? song.id : song.trackId ?? null;
+    return currentTrackId === id && isPlaying;
   };
 
   const isSongLoading = (song: Song): boolean => {
-    if (song.trackId) return loadingId === song.trackId;
-    return false;
+    const id = song.audioUrl ? song.id : song.trackId ?? null;
+    return loadingId === id;
   };
 
   // ─── Phase transition (fade to dark, swap phase, fade back) ──────────────
@@ -425,10 +407,7 @@ export default function SpeakPage() {
 
   const reset = useCallback(() => {
     clearRecordingTimers();
-    if (audioElRef.current) {
-      audioElRef.current.pause();
-      audioElRef.current.src = "";
-    }
+    stopAudio();
     clearGeneration();
     setPhase("module");
     setSelectedPillar(null);
@@ -436,11 +415,9 @@ export default function SpeakPage() {
     setErrorMsg("");
     setWasAutoStopped(false);
     setSongStatus({});
-    setRealPlayingId(null);
-    setRealIsPlaying(false);
     setIsDedication(false);
     allTranscriptsRef.current = [];
-  }, [clearRecordingTimers, clearGeneration]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [clearRecordingTimers, stopAudio, clearGeneration]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Back navigation ──────────────────────────────────────────────────────
   //
@@ -517,7 +494,6 @@ export default function SpeakPage() {
     return () => {
       clearRecordingTimers();
       cleanupWebAudio();
-      audioElRef.current?.pause();
     };
   }, [cleanupWebAudio, clearRecordingTimers]);
 
@@ -527,15 +503,6 @@ export default function SpeakPage() {
 
   return (
     <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ animation: "page-enter 380ms ease forwards" }}>
-      <audio
-        ref={audioElRef}
-        onEnded={() => { setRealIsPlaying(false); setRealCurrentTime(0); }}
-        onError={() => setRealIsPlaying(false)}
-        onTimeUpdate={(e) => setRealCurrentTime(e.currentTarget.currentTime)}
-        onDurationChange={(e) => setRealDuration(isFinite(e.currentTarget.duration) ? e.currentTarget.duration : 0)}
-        onLoadedMetadata={(e) => setRealDuration(isFinite(e.currentTarget.duration) ? e.currentTarget.duration : 0)}
-        preload="metadata"
-      />
 
       {/* Phase-change overlay — fades to dark between screens */}
       <div
@@ -573,10 +540,13 @@ export default function SpeakPage() {
           pillar={genPillar ?? undefined}
           lyrics={genLyrics}
           debugMsg={errorMsg}
-          audioEl={audioElRef}
-          playingId={realPlayingId}
-          currentTime={realCurrentTime}
-          duration={realDuration}
+          playingId={currentTrackId}
+          currentTime={currentTime}
+          duration={duration}
+          onSeek={seek}
+          onSkip={skip}
+          onRestart={restartAudio}
+          onSetLoop={setLoop}
           onRecreateGenre={understandResult ? handleRecreateGenre : undefined}
           isDedication={isDedication}
         />
@@ -1671,10 +1641,13 @@ function ResultsView({
   pillar,
   lyrics,
   debugMsg,
-  audioEl,
   playingId,
   currentTime,
   duration,
+  onSeek,
+  onSkip,
+  onRestart,
+  onSetLoop,
   onRecreateGenre,
   isDedication,
 }: {
@@ -1688,10 +1661,13 @@ function ResultsView({
   pillar?: PillarType;
   lyrics?: string;
   debugMsg?: string;
-  audioEl: React.RefObject<HTMLAudioElement | null>;
   playingId: string | null;
   currentTime: number;
   duration: number;
+  onSeek: (time: number) => void;
+  onSkip: (seconds: number) => void;
+  onRestart: () => void;
+  onSetLoop: (enabled: boolean) => void;
   onRecreateGenre?: () => void;
   isDedication?: boolean;
 }) {
@@ -1924,7 +1900,10 @@ function ResultsView({
           duration={duration}
           isPlaying={isSongPlaying(playingSong)}
           lyrics={lyrics}
-          audioEl={audioEl}
+          onSeek={onSeek}
+          onSkip={onSkip}
+          onRestart={onRestart}
+          onSetLoop={onSetLoop}
           onTogglePlay={() => onTogglePlay(playingSong)}
           onClose={() => setShowPlayer(false)}
           onRecreateGenre={onRecreateGenre ? () => { setShowPlayer(false); onRecreateGenre!(); } : undefined}
@@ -1944,7 +1923,10 @@ function FullScreenPlayer({
   duration,
   isPlaying,
   lyrics,
-  audioEl,
+  onSeek,
+  onSkip,
+  onRestart,
+  onSetLoop,
   onTogglePlay,
   onClose,
   onRecreateGenre,
@@ -1956,7 +1938,10 @@ function FullScreenPlayer({
   duration: number;
   isPlaying: boolean;
   lyrics?: string;
-  audioEl: React.RefObject<HTMLAudioElement | null>;
+  onSeek: (time: number) => void;
+  onSkip: (seconds: number) => void;
+  onRestart: () => void;
+  onSetLoop: (enabled: boolean) => void;
   onTogglePlay: () => void;
   onClose: () => void;
   onRecreateGenre?: () => void;
@@ -1968,11 +1953,10 @@ function FullScreenPlayer({
   const [loopEnabled, setLoopEnabled] = useState(false);
   const barRef = useRef<HTMLDivElement>(null);
 
-  // Sync loop state to audio element
+  // Sync loop state to audio element via context
   useEffect(() => {
-    const el = audioEl.current;
-    if (el) el.loop = loopEnabled;
-  }, [loopEnabled, audioEl]);
+    onSetLoop(loopEnabled);
+  }, [loopEnabled, onSetLoop]);
 
   const fmt = (s: number) => {
     const m = Math.floor(s / 60);
@@ -2001,21 +1985,11 @@ function FullScreenPlayer({
     if (!dragging) return;
     const ratio = getRatioFromPointer(e.clientX);
     setDragging(false);
-    if (audioEl.current && duration > 0) audioEl.current.currentTime = ratio * duration;
+    if (duration > 0) onSeek(ratio * duration);
   };
 
-  const handleRestart = () => {
-    const el = audioEl.current;
-    if (!el) return;
-    el.currentTime = 0;
-    el.play().catch(console.error);
-  };
-
-  const handleSkip10 = () => {
-    const el = audioEl.current;
-    if (!el) return;
-    el.currentTime = Math.min(duration, (el.currentTime || 0) + 10);
-  };
+  const handleRestart = () => { onRestart(); };
+  const handleSkip10 = () => { onSkip(10); };
 
   const progress = duration > 0 ? (dragging ? dragProgress : currentTime / duration) : 0;
 

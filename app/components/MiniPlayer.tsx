@@ -7,7 +7,7 @@ import { useState, useRef, useEffect, CSSProperties } from "react";
 const PLAYER_WIDTH = 300; // px — fixed width of the floating card
 
 export default function MiniPlayer() {
-  const { currentTrackId, isPlaying, loadingId, currentTime, duration, handlePlay, restart, seek } = useAudio();
+  const { currentTrackId, currentTitle, isPlaying, loadingId, currentTime, duration, handlePlay, restart, seek } = useAudio();
 
   // pos: null = use CSS default (bottom-center); set after first mount or drag
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
@@ -30,9 +30,10 @@ export default function MiniPlayer() {
   }, []); // only on first mount
 
   if (!currentTrackId) return null;
-  const track = tracks.find((t) => t.id === currentTrackId);
-  if (!track) return null;
 
+  // Library track (mock) — look up by id; Suno song — use currentTitle
+  const track = tracks.find((t) => t.id === currentTrackId);
+  const displayTitle = track?.title ?? currentTitle ?? "Playing…";
   const isLoading = loadingId === currentTrackId;
   const progress = duration > 0 ? currentTime / duration : 0;
 
@@ -131,7 +132,7 @@ export default function MiniPlayer() {
 
           {/* Play / Pause */}
           <button
-            onClick={() => handlePlay(track.id, track.audioKey)}
+            onClick={() => track ? handlePlay(track.id, track.audioKey) : undefined}
             className="flex-shrink-0 w-10 h-10 rounded-full bg-white/15 flex items-center justify-center active:scale-95 transition-transform touch-manipulation"
             aria-label={isPlaying ? "Pause" : "Play"}
           >
@@ -141,7 +142,7 @@ export default function MiniPlayer() {
           {/* Title + time */}
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-white truncate tracking-wide">
-              {track.title}
+              {displayTitle}
             </p>
             {duration > 0 && (
               <p className="text-[10px] text-white/30 mt-0.5 tabular-nums">

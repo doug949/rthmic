@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { TransitionLink } from "@/app/components/TransitionLink";
 import { AppHeader } from "@/app/components/AppHeader";
 import { RevealBlock } from "@/app/components/RevealBlock";
 import type { SavedRhythm } from "@/app/api/library/route";
 import { useGeneration } from "@/app/contexts/GenerationContext";
+import { useAudio } from "@/app/contexts/AudioContext";
 import CustomStyleInput from "@/app/components/CustomStyleInput";
 import { useSwipeBack } from "@/app/hooks/useSwipeBack";
 
@@ -19,12 +20,8 @@ function inferStyle(pillar: string): "A" | "B" {
 export default function LibraryPage() {
   const [rhythms, setRhythms] = useState<SavedRhythm[]>([]);
   const [loadState, setLoadState] = useState<LoadState>("loading");
-  const [playingId, setPlayingId] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
   const [showLyricsId, setShowLyricsId] = useState<string | null>(null);
-  const audioElRef = useRef<HTMLAudioElement>(null);
+  const { currentTrackId, isPlaying, currentTime, duration, handlePlayUrl } = useAudio();
 
   // Recreate genre picker
   const [recreateRhythm, setRecreateRhythm] = useState<SavedRhythm | null>(null);
@@ -83,29 +80,9 @@ export default function LibraryPage() {
     });
 
   const togglePlay = useCallback((rhythm: SavedRhythm) => {
-    const el = audioElRef.current;
-    if (!el || !rhythm.audioUrl) return;
-
-    if (playingId === rhythm.id) {
-      if (isPlaying) {
-        el.pause();
-        setIsPlaying(false);
-      } else {
-        el.play().catch(console.error);
-        setIsPlaying(true);
-      }
-      return;
-    }
-
-    el.pause();
-    setCurrentTime(0);
-    setDuration(0);
-    el.src = rhythm.audioUrl;
-    setPlayingId(rhythm.id);
-    el.play()
-      .then(() => setIsPlaying(true))
-      .catch(() => setIsPlaying(false));
-  }, [playingId, isPlaying]);
+    if (!rhythm.audioUrl) return;
+    handlePlayUrl(rhythm.id, rhythm.audioUrl, rhythm.title);
+  }, [handlePlayUrl]);
 
   const handleRecreate = (rhythm: SavedRhythm) => {
     setRecreateRhythm(rhythm);
@@ -167,15 +144,6 @@ export default function LibraryPage() {
 
   return (
     <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ animation: "page-enter 380ms ease forwards" }}>
-      <audio
-        ref={audioElRef}
-        onEnded={() => { setIsPlaying(false); setCurrentTime(0); }}
-        onError={() => setIsPlaying(false)}
-        onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
-        onDurationChange={(e) => setDuration(isFinite(e.currentTarget.duration) ? e.currentTarget.duration : 0)}
-        onLoadedMetadata={(e) => setDuration(isFinite(e.currentTarget.duration) ? e.currentTarget.duration : 0)}
-        preload="metadata"
-      />
 
       <RevealBlock delay={0}>
         <AppHeader title="Library" />
@@ -226,9 +194,9 @@ export default function LibraryPage() {
                     <RhythmRow
                       key={rhythm.id}
                       rhythm={rhythm}
-                      playing={playingId === rhythm.id && isPlaying}
-                      currentTime={playingId === rhythm.id ? currentTime : 0}
-                      duration={playingId === rhythm.id ? duration : 0}
+                      playing={currentTrackId === rhythm.id && isPlaying}
+                      currentTime={currentTrackId === rhythm.id ? currentTime : 0}
+                      duration={currentTrackId === rhythm.id ? duration : 0}
                       showLyrics={showLyricsId === rhythm.id}
                       onToggleLyrics={() => setShowLyricsId(showLyricsId === rhythm.id ? null : rhythm.id)}
                       onPlay={() => togglePlay(rhythm)}
@@ -292,9 +260,9 @@ export default function LibraryPage() {
                   <RhythmRow
                     key={rhythm.id}
                     rhythm={rhythm}
-                    playing={playingId === rhythm.id && isPlaying}
-                    currentTime={playingId === rhythm.id ? currentTime : 0}
-                    duration={playingId === rhythm.id ? duration : 0}
+                    playing={currentTrackId === rhythm.id && isPlaying}
+                    currentTime={currentTrackId === rhythm.id ? currentTime : 0}
+                    duration={currentTrackId === rhythm.id ? duration : 0}
                     showLyrics={showLyricsId === rhythm.id}
                     onToggleLyrics={() => setShowLyricsId(showLyricsId === rhythm.id ? null : rhythm.id)}
                     onPlay={() => togglePlay(rhythm)}
