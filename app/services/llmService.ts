@@ -562,7 +562,7 @@ export async function interpret(transcript: string, overridePillar?: PillarType)
     messages: [
       {
         role: "user",
-        content: `User's spoken state:\n"${transcript}"\n\nIdentify the pillar, summarise their state in second person (use "you"/"you're", not "the user"), and write the rhythm song lyrics.`,
+        content: `User's spoken state:\n"${transcript}"\n\nThe pillar is already determined: ${pillar}. Summarise the user's state in second person (use "you"/"you're", not "the user") and write the rhythm song lyrics for the ${pillar} pillar.`,
       },
     ],
   });
@@ -578,6 +578,9 @@ export async function interpret(transcript: string, overridePillar?: PillarType)
   } catch {
     throw new Error(`LLM returned unparseable JSON: ${textBlock.text.slice(0, 200)}`);
   }
+
+  // Always enforce the pillar we determined — never let the LLM override it
+  parsed.pillar = pillar;
 
   return parsed;
 }
