@@ -431,46 +431,48 @@ Your honest experience is the experiment.
 Tell me what you find.`,
   },
   Journal: {
-    title: "That Was Today",
+    title: "Saturday, May 10th",
     stateSummary: {
       state: "You're at the end of a day and you want to capture it — the events, the feelings, the things you might forget.",
       intent: "You want to keep the day in a form that will still carry meaning when you return to it.",
       friction: "Days disappear. The small things go first — the conversation, the quiet moment, the thing that surprised you.",
     },
     lyrics: `[VERSE]
-Today started the way Tuesdays do.
-Not quite ready. A little behind.
-The coffee was fine. The first call ran long.
-That's already four things you'll forget by Friday.
+You woke up before you were ready.
+The morning was slow — slower than you wanted it to be.
+There was that thing you kept putting off.
+It sat there the whole day, not quite urgent, not quite done.
+
+You talked to someone and they said something
+that stayed with you longer than you expected.
+You're not sure if it was good or just honest.
+Maybe both.
 
 [CHORUS]
-But you said it out loud.
-And now it's here.
-That was today —
-kept in a song, before it disappears.
+You were in it.
+The whole complicated day of it.
+Not all of it made sense.
+Not all of it had to.
 
 [VERSE 2]
-There was a moment around noon
-you almost didn't notice.
-Something small. Someone said something
-and you thought: I want to remember that.
+Sometime in the afternoon something shifted —
+you can't say exactly when.
+A small thing. Someone's expression.
+The light coming through a window at a certain angle.
 
-You remembered to say it here.
-So now you will.
+You almost didn't notice.
+But you're saying it now, so now it's kept.
 
 [BRIDGE]
-Not every day is significant.
-Most of them aren't.
-But every day is yours.
-And you were in it. Fully.
+There were parts of today you wouldn't choose again.
+There were parts you wanted more of.
+Neither of those things cancels the other.
+That's just how today was.
 
 [OUTRO]
 The day is done.
-You spoke it out.
-Play this back in six months
-and remember exactly what today felt like.
-
-That was today.
+You spoke it out before it could disappear.
+Play this back when you've forgotten what this felt like.
 It's kept now.`,
   },
 };
@@ -558,6 +560,33 @@ function extractJson(text: string): LLMResult {
   throw new Error("Could not extract JSON from LLM response");
 }
 
+// ─── User prompt builder ──────────────────────────────────────────────────────
+
+function formatJournalDate(): string {
+  const now = new Date();
+  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const months = ["January", "February", "March", "April", "May", "June",
+                  "July", "August", "September", "October", "November", "December"];
+  const day = days[now.getDay()];
+  const month = months[now.getMonth()];
+  const date = now.getDate();
+  const suffix = date === 1 || date === 21 || date === 31 ? "st"
+               : date === 2 || date === 22 ? "nd"
+               : date === 3 || date === 23 ? "rd" : "th";
+  return `${day}, ${month} ${date}${suffix}`;
+}
+
+function buildUserPrompt(pillar: PillarType, transcript: string): string {
+  const base = `User's spoken state:\n"${transcript}"\n\nThe pillar is already determined: ${pillar}. Summarise the user's state in second person (use "you"/"you're", not "the user") and write the rhythm song lyrics for the ${pillar} pillar.`;
+
+  if (pillar === "Journal") {
+    const dateStr = formatJournalDate();
+    return `${base}\n\nToday's date: ${dateStr}. The song title MUST use this date (e.g. "${dateStr}" or "${dateStr.split(",")[0]} Morning, ${dateStr.split(", ")[1]}"). Do not use a poetic title instead.`;
+  }
+
+  return base;
+}
+
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export async function interpret(transcript: string, overridePillar?: PillarType): Promise<LLMResult> {
@@ -582,7 +611,7 @@ export async function interpret(transcript: string, overridePillar?: PillarType)
     messages: [
       {
         role: "user",
-        content: `User's spoken state:\n"${transcript}"\n\nThe pillar is already determined: ${pillar}. Summarise the user's state in second person (use "you"/"you're", not "the user") and write the rhythm song lyrics for the ${pillar} pillar.`,
+        content: buildUserPrompt(pillar, transcript),
       },
     ],
   });
