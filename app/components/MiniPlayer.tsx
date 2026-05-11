@@ -2,23 +2,12 @@
 
 import { useAudio } from "@/app/contexts/AudioContext";
 import { tracks } from "@/app/data/tracks";
-import { useState, useRef, CSSProperties } from "react";
-
-const PLAYER_WIDTH = 300; // px
 
 export default function MiniPlayer() {
   const {
     currentTrackId, currentTitle, isPlaying, loadingId,
-    currentTime, duration, handlePlay, handlePlayUrl, restart, seek,
+    currentTime, duration, handlePlay, restart, seek,
   } = useAudio();
-
-  // null = CSS default (bottom-centre). Set only after first drag.
-  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const dragState = useRef<{
-    startX: number; startY: number;
-    origX: number; origY: number;
-  } | null>(null);
 
   if (!currentTrackId) return null;
 
@@ -40,78 +29,21 @@ export default function MiniPlayer() {
   };
 
   const handleToggle = () => {
-    if (track) {
-      handlePlay(track.id, track.audioKey);
-    }
-    // For URL-based songs the toggle is handled by the context (same id = toggle)
-    // We just need to call handlePlayUrl with the current id — but we don't have the url here.
-    // The play/pause is handled internally in the context when same id is called.
+    if (track) handlePlay(track.id, track.audioKey);
+    // URL-based songs: toggle is handled internally by context (same id = pause/resume)
   };
-
-  // ── Drag handlers ─────────────────────────────────────────────────────────
-  // origX/Y are read from getBoundingClientRect at pointerdown, so initial
-  // position is always correct regardless of CSS vs JS positioning.
-  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!(e.target as HTMLElement).closest("[data-drag-handle]")) return;
-    const el = containerRef.current;
-    if (!el) return;
-    e.currentTarget.setPointerCapture(e.pointerId);
-    const rect = el.getBoundingClientRect();
-    dragState.current = {
-      startX: e.clientX, startY: e.clientY,
-      origX: rect.left,  origY: rect.top,
-    };
-  };
-
-  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragState.current) return;
-    const el = containerRef.current;
-    const h = el?.getBoundingClientRect().height ?? 80;
-    const dx = e.clientX - dragState.current.startX;
-    const dy = e.clientY - dragState.current.startY;
-    setPos({
-      x: Math.max(8, Math.min(window.innerWidth  - PLAYER_WIDTH - 8, dragState.current.origX + dx)),
-      y: Math.max(8, Math.min(window.innerHeight - h - 8,            dragState.current.origY + dy)),
-    });
-  };
-
-  const onPointerUp = () => { dragState.current = null; };
-
-  // ── Position style ─────────────────────────────────────────────────────────
-  // Default: CSS bottom-centre (always correct on first render / new track).
-  // After first drag: switch to left/top so the dragged position is remembered.
-  const posStyle: CSSProperties = pos
-    ? { left: pos.x, top: pos.y, bottom: "auto", transform: "none" }
-    : { left: "50%", bottom: 20, transform: "translateX(-50%)" };
 
   return (
-    <div
-      ref={containerRef}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerCancel={onPointerUp}
-      className="fixed z-40 select-none"
-      style={{ width: PLAYER_WIDTH, ...posStyle }}
-    >
-      <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 overflow-hidden shadow-xl">
-
-        {/* Drag handle */}
-        <div
-          data-drag-handle
-          className="flex items-center justify-center pt-2 pb-1 cursor-grab active:cursor-grabbing touch-none"
-          aria-label="Drag to move player"
-        >
-          <DragGripIcon />
-        </div>
+    <div className="fixed bottom-0 left-0 right-0 z-40 pb-safe">
+      <div className="mx-4 mb-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 overflow-hidden shadow-lg">
 
         {/* Progress bar */}
         <div
-          className="h-[3px] bg-white/10 cursor-pointer mx-3 rounded-full overflow-hidden"
+          className="h-[3px] bg-white/10 cursor-pointer relative"
           onClick={handleScrub}
         >
           <div
-            className="h-full bg-white/50 transition-none rounded-full"
+            className="h-full bg-white/50 transition-none"
             style={{ width: `${progress * 100}%` }}
           />
         </div>
@@ -164,19 +96,6 @@ export default function MiniPlayer() {
         </div>
       </div>
     </div>
-  );
-}
-
-function DragGripIcon() {
-  return (
-    <svg width="24" height="8" viewBox="0 0 24 8" fill="none" aria-hidden="true">
-      <circle cx="6"  cy="2" r="1.5" fill="white" fillOpacity="0.25" />
-      <circle cx="12" cy="2" r="1.5" fill="white" fillOpacity="0.25" />
-      <circle cx="18" cy="2" r="1.5" fill="white" fillOpacity="0.25" />
-      <circle cx="6"  cy="6" r="1.5" fill="white" fillOpacity="0.25" />
-      <circle cx="12" cy="6" r="1.5" fill="white" fillOpacity="0.25" />
-      <circle cx="18" cy="6" r="1.5" fill="white" fillOpacity="0.25" />
-    </svg>
   );
 }
 
