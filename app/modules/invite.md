@@ -43,6 +43,9 @@ That's the whole concept.
 
 [PERSONAL SENTENCE: one sentence about this specific person and why RTHMIC would be useful or interesting to them. Drawn directly from what the sender said in the transcript.]
 
+It does a lot of things — more than one song can hold.
+But here are a few of the ones I reach for most.
+
 [VERSE 2]
 When you need to hold something in your head —
 a speech, a list, a name, a sequence —

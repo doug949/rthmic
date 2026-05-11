@@ -15,15 +15,15 @@
 const PRONUNCIATION_MAP: [RegExp, string][] = [
   // All-caps variants (LLM often writes RTHMIC in lyrics)
   [/\bRTHMIX\b/g,  "Rith-mix"],
-  [/\bRTHMIC\b/g,  "Rith-mic"],
+  [/\bRTHMIC\b/g,  "Rith-mick"],
   [/\bRTHM\b/g,    "Rith-um"],
   // Title-case variants
   [/\bRthmix\b/g,  "Rith-mix"],
-  [/\bRthmic\b/g,  "Rith-mic"],
+  [/\bRthmic\b/g,  "Rith-mick"],
   [/\bRthm\b/g,    "Rith-um"],
   // Lowercase variants
   [/\brthmix\b/g,  "rith-mix"],
-  [/\brthmic\b/g,  "rith-mic"],
+  [/\brthmic\b/g,  "rith-mick"],
   [/\brthm\b/g,    "rith-um"],
 ];
 
