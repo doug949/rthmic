@@ -10,19 +10,21 @@
 //
 // Order matters: longest match first (Rthmix before Rthmic before Rthm).
 
+// Hyphenated forms give Suno explicit syllable breaks — it sings these
+// far more cleanly than whole words like "Rhythmic" or "Rhythm".
 const PRONUNCIATION_MAP: [RegExp, string][] = [
   // All-caps variants (LLM often writes RTHMIC in lyrics)
   [/\bRTHMIX\b/g,  "Rith-mix"],
-  [/\bRTHMIC\b/g,  "Rhythmic"],
-  [/\bRTHM\b/g,    "Rhythm"],
+  [/\bRTHMIC\b/g,  "Rith-mic"],
+  [/\bRTHM\b/g,    "Rith-um"],
   // Title-case variants
   [/\bRthmix\b/g,  "Rith-mix"],
-  [/\bRthmic\b/g,  "Rhythmic"],
-  [/\bRthm\b/g,    "Rhythm"],
+  [/\bRthmic\b/g,  "Rith-mic"],
+  [/\bRthm\b/g,    "Rith-um"],
   // Lowercase variants
   [/\brthmix\b/g,  "rith-mix"],
-  [/\brthmic\b/g,  "rhythmic"],
-  [/\brthm\b/g,    "rhythm"],
+  [/\brthmic\b/g,  "rith-mic"],
+  [/\brthm\b/g,    "rith-um"],
 ];
 
 export function toSunoPronunciation(lyrics: string): string {
