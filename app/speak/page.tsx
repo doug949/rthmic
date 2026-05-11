@@ -359,11 +359,16 @@ export default function SpeakPage() {
   const runGenerate = (genre = "Indie Electronic") => {
     if (!understandResult) return;
     setErrorMsg("");
+    // selectedPillar is the authoritative source — if explicitly chosen, never allow
+    // understandResult.pillar (which came from the LLM) to override it.
+    const finalPillar = selectedPillar
+      ? normalisePillar(selectedPillar)
+      : understandResult.pillar;
     startGeneration({
       lyrics: understandResult.lyrics,
       style: understandResult.style,
       title: understandResult.title,
-      pillar: understandResult.pillar,
+      pillar: finalPillar,
       genre,
     });
   };
