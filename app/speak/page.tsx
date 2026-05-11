@@ -63,6 +63,12 @@ export default function SpeakPage() {
   const allTranscriptsRef = useRef<string[]>([]);
   const [wasAutoStopped, setWasAutoStopped] = useState(false);
 
+  // Ref mirror of selectedPillar — always current, safe to read from stale closures
+  // (startRecording / recorder.onstop are memoised and capture selectedPillar at
+  // creation time; reading the ref avoids that stale-closure bug entirely)
+  const selectedPillarRef = useRef<string | null>(null);
+  useEffect(() => { selectedPillarRef.current = selectedPillar; }, [selectedPillar]);
+
   // MediaRecorder
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -323,8 +329,11 @@ export default function SpeakPage() {
         form.append("previousContext", allTranscriptsRef.current.join(" "));
       }
 
-      if (selectedPillar) {
-        form.append("pillar", selectedPillar);
+      // Use the ref — not the state variable — so we always get the current pillar
+      // even if this function was captured in a stale closure by recorder.onstop
+      const pillarAtRecordTime = selectedPillarRef.current;
+      if (pillarAtRecordTime) {
+        form.append("pillar", pillarAtRecordTime);
       }
 
       const res = await fetch("/api/understand", { method: "POST", body: form });
@@ -336,9 +345,9 @@ export default function SpeakPage() {
       }
 
       const data: UnderstandResult = await res.json();
-      // If the user explicitly selected a pillar, enforce it — never let interpretation override it
-      if (selectedPillar) {
-        data.pillar = normalisePillar(selectedPillar);
+      // Hard-pin: enforce the pillar the user selected, never let the LLM override it
+      if (pillarAtRecordTime) {
+        data.pillar = normalisePillar(pillarAtRecordTime);
       }
       allTranscriptsRef.current.push(data.transcript);
       setUnderstandResult(data);
@@ -361,8 +370,8 @@ export default function SpeakPage() {
     setErrorMsg("");
     // selectedPillar is the authoritative source — if explicitly chosen, never allow
     // understandResult.pillar (which came from the LLM) to override it.
-    const finalPillar = selectedPillar
-      ? normalisePillar(selectedPillar)
+    const finalPillar = (selectedPillarRef.current ?? selectedPillar)
+      ? normalisePillar((selectedPillarRef.current ?? selectedPillar)!)
       : understandResult.pillar;
     startGeneration({
       lyrics: understandResult.lyrics,
