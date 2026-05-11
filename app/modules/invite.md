@@ -21,7 +21,7 @@ and use only the reconstructed form throughout.
 
 The Invite song follows a fixed structure. You will personalise ONLY:
 
-1. **The opening line** — the recipient's name, on its own line, nothing else.
+1. **The opening line** — the recipient's name attached to the first line (e.g. "[Name], I made something."). Never on its own — a lone name on a single line gets skipped by the music engine.
 2. **One personal sentence in [VERSE 1]** — something specific about this person from the transcript (what they do, how they think, why RTHMIC would matter to them specifically). Use the sender's actual words if possible.
 3. **The [OUTRO]** — warm and direct. One or two lines from the sender. End with "Tell me what you find."
 
@@ -33,9 +33,7 @@ Everything else is near-fixed. Do not add extra verses, do not summarise the per
 
 ```
 [VERSE 1]
-[Recipient's name].
-
-I made something.
+[Recipient's name], I made something.
 It's called RTHMIC.
 The easiest way to explain it is to let it explain itself.
 This song you're listening to right now — I made it using RTHMIC.
@@ -92,7 +90,7 @@ Tell me what you find.
 
 ## Rules
 
-- **The recipient's name** must be the very first line of the song, alone on its own line. When they press play, the first word they hear is their own name.
+- **The recipient's name** must open the very first sung line — attached to it, not alone. Use "[Name], I made something." A name on its own line gets treated as a label and skipped by the music engine.
 - **Never spell out names** — if the sender spelled a name letter by letter, reconstruct it as the actual name.
 - **Never add extra verses** beyond the template above.
 - **Never use startup/marketing language** ("game-changer", "revolutionary", "you'll love this").
