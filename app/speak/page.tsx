@@ -43,7 +43,7 @@ interface UnderstandResult {
 export default function SpeakPage() {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("module");
-  const [selectedPillar, setSelectedPillar] = useState<string | null>(null);
+  const [selectedPillar, _setSelectedPillar] = useState<string | null>(null);
   const [understandResult, setUnderstandResult] = useState<UnderstandResult | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [songStatus, setSongStatus] = useState<SongStatusMap>({});
@@ -63,11 +63,15 @@ export default function SpeakPage() {
   const allTranscriptsRef = useRef<string[]>([]);
   const [wasAutoStopped, setWasAutoStopped] = useState(false);
 
-  // Ref mirror of selectedPillar — always current, safe to read from stale closures
-  // (startRecording / recorder.onstop are memoised and capture selectedPillar at
-  // creation time; reading the ref avoids that stale-closure bug entirely)
+  // Ref mirror of selectedPillar — updated synchronously so stale closures
+  // (recorder.onstop, memoised callbacks) always read the live value.
+  // useEffect is NOT used here — it runs after the render and can still be
+  // stale if something reads the ref before the effect fires.
   const selectedPillarRef = useRef<string | null>(null);
-  useEffect(() => { selectedPillarRef.current = selectedPillar; }, [selectedPillar]);
+  const setSelectedPillar = (pillar: string | null) => {
+    selectedPillarRef.current = pillar;      // sync — immediately visible everywhere
+    _setSelectedPillar(pillar);              // async — triggers re-render
+  };
 
   // MediaRecorder
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
