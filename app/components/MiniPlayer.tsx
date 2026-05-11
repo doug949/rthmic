@@ -1,15 +1,21 @@
 "use client";
 
 import { useAudio } from "@/app/contexts/AudioContext";
+import { usePathname } from "next/navigation";
 import { tracks } from "@/app/data/tracks";
+
+// Pages with their own inline playback UI — MiniPlayer is redundant there
+const SUPPRESS_ON = ["/library", "/speak"];
 
 export default function MiniPlayer() {
   const {
     currentTrackId, currentTitle, isPlaying, loadingId,
     currentTime, duration, handlePlay, restart, seek,
   } = useAudio();
+  const pathname = usePathname();
 
   if (!currentTrackId) return null;
+  if (SUPPRESS_ON.some((p) => pathname.startsWith(p))) return null;
 
   const track = tracks.find((t) => t.id === currentTrackId);
   const displayTitle = track?.title ?? currentTitle ?? "Playing…";
