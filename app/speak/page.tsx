@@ -480,6 +480,28 @@ export default function SpeakPage() {
     }
   }, [phase, genPhase, reset, goToPhase, clearRecordingTimers, cleanupWebAudio, router]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ─── Paste lyrics bypass ──────────────────────────────────────────────────
+  //
+  // User has their own lyrics — skip transcription and interpretation entirely.
+  // Synthesise a minimal UnderstandResult and jump straight to genre selection.
+
+  const runWithPastedLyrics = useCallback((lyrics: string, title: string) => {
+    const pillar = selectedPillar ? normalisePillar(selectedPillar) : ("Mindset" as const);
+    setUnderstandResult({
+      transcript: "Pasted lyrics",
+      pillar,
+      stateSummary: {
+        state: "You have your own lyrics ready to set to music.",
+        intent: "You want to create a Rthm from words you've already written.",
+        friction: "",
+      },
+      title,
+      lyrics,
+      style: "A",
+    });
+    goToPhase("genre");
+  }, [selectedPillar, goToPhase]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ─── Recreate in another genre ───────────────────────────────────────────
 
   const handleRecreateGenre = useCallback(() => {
@@ -596,7 +618,7 @@ export default function SpeakPage() {
             <PrimingView pillar={selectedPillar} onReady={() => goToPhase("idle")} />
           )}
           {phase === "idle" && (
-            <IdleView onRecord={startRecording} errorMsg={errorMsg} />
+            <IdleView onRecord={startRecording} onPaste={runWithPastedLyrics} errorMsg={errorMsg} />
           )}
           {phase === "recording" && (
             <RecordingView orbRef={orbRef} onStop={stopRecording} seconds={recordingSeconds} maxSeconds={MAX_RECORDING_SECONDS} />
@@ -745,6 +767,23 @@ const PILLARS: PillarDefinition[] = [
         "Say the things you think you might forget. The small observation. The thing someone said at lunch. The moment you almost didn't notice. Those are exactly what this is for.",
       ],
       footnote: "No structure needed. Just talk until the day feels like it's somewhere safe. These details may seem small now — but they're what makes the song feel real when you come back to it later.",
+    },
+  },
+  {
+    slug: "epiphany",
+    label: "Epiphany",
+    tagline: "Capture the idea before it slips",
+    detail: "Use this when an idea, insight, or realisation just arrived and you don't want to lose it. Rthmic crystallises the thought in song form — the shape of it, what it changes, why it matters. The song becomes a container for the exact moment of understanding, so you can return to it with full fidelity.",
+    guidance: "Describe the idea as clearly as you can — what you realised, what triggered it, what it changes. Say the version that surprised you, not the safe summary. The raw form of the thought is the most valuable input.",
+    priming: {
+      headline: "Say the idea before it softens.",
+      subheadline: "The version that just arrived — not the tidied one.",
+      instructions: [
+        "Describe the realisation, insight, or idea as precisely as you can right now. What did you just understand? What clicked? What's the thing you're afraid will blur if you don't catch it?",
+        "Say what it changes. What did you think before that you no longer think? What does this now make possible that wasn't possible before?",
+        "Include what triggered it if you can — sometimes the context is part of the idea. And say it in your own language, not polished language. Rthmic works best with the raw version.",
+      ],
+      footnote: "Speak while the clarity is still sharp. Even 30 seconds is enough to lock in the essence. The song will hold the idea in the exact form it arrived — not the revised version.",
     },
   },
 ];
@@ -1138,7 +1177,80 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: () =
 
 // ─── Idle ─────────────────────────────────────────────────────────────────────
 
-function IdleView({ onRecord, errorMsg }: { onRecord: () => void; errorMsg: string }) {
+function IdleView({ onRecord, onPaste, errorMsg }: { onRecord: () => void; onPaste: (lyrics: string, title: string) => void; errorMsg: string }) {
+  const [showPaste, setShowPaste] = useState(false);
+  const [pastedLyrics, setPastedLyrics] = useState("");
+  const [pastedTitle, setPastedTitle] = useState("");
+
+  if (showPaste) {
+    return (
+      <section className="flex-1 flex flex-col px-0 pt-6 pb-8 gap-5">
+        <RevealBlock delay={0}>
+          <div>
+            <h2 className="text-xl font-light tracking-wide text-white leading-snug" style={{ fontFamily: "var(--font-display)" }}>Paste your lyrics</h2>
+            <p className="text-sm text-white/50 mt-1">Your words, set to music.</p>
+          </div>
+        </RevealBlock>
+
+        <RevealBlock delay={40}>
+          <textarea
+            value={pastedLyrics}
+            onChange={(e) => setPastedLyrics(e.target.value)}
+            placeholder="Paste or type your lyrics here…"
+            rows={12}
+            className="w-full rounded-2xl px-4 py-3 text-sm text-white/80 placeholder-white/20 resize-none focus:outline-none"
+            style={{
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              fontFamily: "inherit",
+              lineHeight: "1.6",
+            }}
+            autoFocus
+          />
+        </RevealBlock>
+
+        <RevealBlock delay={60}>
+          <input
+            type="text"
+            value={pastedTitle}
+            onChange={(e) => setPastedTitle(e.target.value)}
+            placeholder="Song title (optional)"
+            className="w-full rounded-2xl px-4 py-3 text-sm text-white/80 placeholder-white/25 focus:outline-none"
+            style={{
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              fontFamily: "inherit",
+            }}
+          />
+        </RevealBlock>
+
+        <RevealBlock delay={80}>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowPaste(false)}
+              className="flex-1 py-3.5 rounded-2xl text-sm text-white/40 touch-manipulation"
+              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}
+            >
+              Back
+            </button>
+            <button
+              onClick={() => {
+                const lyrics = pastedLyrics.trim();
+                if (!lyrics) return;
+                onPaste(lyrics, pastedTitle.trim() || "My Rthm");
+              }}
+              disabled={!pastedLyrics.trim()}
+              className="flex-1 py-3.5 rounded-2xl text-sm font-medium text-white touch-manipulation active:scale-[0.98] transition-all disabled:opacity-30"
+              style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.15)" }}
+            >
+              Create Rthm →
+            </button>
+          </div>
+        </RevealBlock>
+      </section>
+    );
+  }
+
   return (
     <section className="flex-1 flex flex-col items-center justify-center pb-24 gap-10">
       <RevealBlock delay={0}>
@@ -1155,6 +1267,15 @@ function IdleView({ onRecord, errorMsg }: { onRecord: () => void; errorMsg: stri
           aria-label="Start recording"
         >
           <MicIcon />
+        </button>
+      </RevealBlock>
+
+      <RevealBlock delay={100}>
+        <button
+          onClick={() => setShowPaste(true)}
+          className="text-xs text-white/30 hover:text-white/50 transition-colors touch-manipulation tracking-wide"
+        >
+          or paste your own lyrics
         </button>
       </RevealBlock>
 

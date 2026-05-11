@@ -1,4 +1,4 @@
-export type PillarType = "Memory" | "Menus" | "Mindset" | "Mode" | "Movement" | "Understanding" | "Bridge" | "Invite" | "Journal";
+export type PillarType = "Memory" | "Menus" | "Mindset" | "Mode" | "Movement" | "Understanding" | "Bridge" | "Invite" | "Journal" | "Epiphany";
 
 // Legacy pillar names stored in older Redis entries.
 // Map at read-time only — never produce these from new generation.
@@ -27,6 +27,7 @@ export const LEGACY_PILLAR_MAP: Record<string, PillarType> = {
   bridge: "Bridge",
   invite: "Invite",
   journal: "Journal",
+  epiphany: "Epiphany",
 };
 
 export function normalisePillar(raw: string): PillarType {

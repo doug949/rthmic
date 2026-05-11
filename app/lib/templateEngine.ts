@@ -13,8 +13,9 @@ const PILLAR_FILE: Record<PillarType, string> = {
   Movement:      "movement.md",
   Understanding: "understanding.md",
   Bridge:        "mindset.md", // Bridge uses Mindset template — emotionally warm, relational arc
-  Invite:        "invite.md",  // Beta tester invite — personal, demonstrative, welcoming
-  Journal:       "journal.md", // Day capture — speak the day, keep it as a song
+  Invite:        "invite.md",    // Beta tester invite — personal, demonstrative, welcoming
+  Journal:       "journal.md",   // Day capture — speak the day, keep it as a song
+  Epiphany:      "epiphany.md",  // Idea/insight capture — crystallise the spark in song
 };
 
 export function loadTemplate(pillar: PillarType): string {
@@ -97,13 +98,21 @@ const PILLAR_KEYWORDS: Record<PillarType, string[]> = {
     "morning pages", "note to self", "replay", "write it down",
     "things that happened", "how my day went",
   ],
+  Epiphany: [
+    "epiphany", "idea", "insight", "realised", "realized", "just thought of",
+    "just had", "just occurred", "just clicked", "breakthrough", "aha",
+    "lightbulb", "sparked", "inspiration", "inspired", "suddenly understood",
+    "figured out", "hit me", "came to me", "flash of", "concept", "vision",
+    "capture this", "don't want to forget", "want to remember this idea",
+    "want to capture", "keep this idea", "hold onto this",
+  ],
 };
 
 export function detectPillar(transcript: string): PillarType {
   const lower = transcript.toLowerCase();
 
   const scores: Record<PillarType, number> = {
-    Memory: 0, Menus: 0, Mindset: 0, Mode: 0, Movement: 0, Understanding: 0, Bridge: 0, Invite: 0, Journal: 0,
+    Memory: 0, Menus: 0, Mindset: 0, Mode: 0, Movement: 0, Understanding: 0, Bridge: 0, Invite: 0, Journal: 0, Epiphany: 0,
   };
 
   for (const [pillar, keywords] of Object.entries(PILLAR_KEYWORDS) as [PillarType, string[]][]) {

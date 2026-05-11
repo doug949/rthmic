@@ -102,6 +102,7 @@ const PILLAR_STYLE_DEFAULTS: Record<PillarType, StyleChoice> = {
   Bridge:       "B", // warm, intimate, emotionally resonant
   Invite:       "A", // arresting, forward energy — makes them stop and listen
   Journal:      "B", // warm, reflective, acoustic — end-of-day feeling
+  Epiphany:     "A", // electric, excited — the energy of a spark landing
 };
 
 // ─── Mock outputs ─────────────────────────────────────────────────────────────
@@ -430,6 +431,57 @@ There's no right response here.
 Your honest experience is the experiment.
 Tell me what you find.`,
   },
+  Epiphany: {
+    title: "Write It Before It Goes",
+    stateSummary: {
+      state: "You've just had a sharp, clear idea — the kind that feels obvious the moment it arrives but slips if you don't catch it.",
+      intent: "You want to lock it in place before the clarity fades, in a form that will still carry its meaning later.",
+      friction: "Ideas are fragile. The feeling of understanding is not the same as having captured the understanding.",
+    },
+    lyrics: `[VERSE]
+It just came to you.
+Not from searching — from somewhere else.
+The kind of thought that shows up fully formed
+and says: you have exactly this long to catch me.
+
+Write it down.
+Not the summary. The real thing.
+The part that surprised you — write that first.
+The part that doesn't fit the way you already thought — write that especially.
+
+[CHORUS]
+The idea is here right now.
+It won't feel this clear in an hour.
+The shape of it is sharp right now.
+Don't paraphrase. Don't wait. Write it now.
+
+[VERSE 2]
+There's a version of this you already half-believe.
+And there's the part that broke that version open.
+That break is the thing.
+That's where the new understanding lives.
+
+What does this change?
+What does it now make possible?
+What did you think before that you no longer think?
+Say that. Exactly that.
+
+[BRIDGE]
+You don't have to know what to do with it yet.
+You just have to get it out of the air
+and into a form that has weight.
+Words. A diagram. Whatever it takes.
+
+The idea isn't safe in your head.
+Your head will revise it before morning
+into something more comfortable and less true.
+
+[OUTRO]
+Write it before it goes.
+Write the version that surprised you.
+Write the thing you aren't sure you believe yet.
+That's the one worth keeping.`,
+  },
   Journal: {
     title: "Saturday, May 10th",
     stateSummary: {
@@ -560,6 +612,40 @@ function extractJson(text: string): LLMResult {
   throw new Error("Could not extract JSON from LLM response");
 }
 
+// ─── Invite: spelled-name normalisation ──────────────────────────────────────
+//
+// Users often spell out recipient names when speaking (e.g. "K-A-T-H" or "K A T H").
+// Whisper transcribes these as isolated letters. We reconstruct them before the
+// LLM sees the text so the transcript contains "Kath" not "K-A-T-H".
+//
+// Patterns caught:
+//   • Dash-separated:  K-A-T-H  →  Kath
+//   • Space-separated: K A T H  (two or more single-letter tokens)  →  Kath
+// Only uppercase single letters — avoid false positives with abbreviations.
+
+function reconstructSpelledNames(text: string): string {
+  // Pass 1: dash-separated sequences like K-A-T-H-Y  (2+ letters)
+  let result = text.replace(
+    /\b([A-Z])(?:-[A-Z]){1,}\b/g,
+    (match) => {
+      const letters = match.split("-").join("");
+      return letters.charAt(0).toUpperCase() + letters.slice(1).toLowerCase();
+    },
+  );
+
+  // Pass 2: space-separated single uppercase letters like K A T H
+  // Must be at least 2 consecutive single-letter tokens to trigger.
+  result = result.replace(
+    /(?<!\S)([A-Z])(?:\s+([A-Z])){1,}(?!\S)/g,
+    (match) => {
+      const letters = match.replace(/\s+/g, "");
+      return letters.charAt(0).toUpperCase() + letters.slice(1).toLowerCase();
+    },
+  );
+
+  return result;
+}
+
 // ─── User prompt builder ──────────────────────────────────────────────────────
 
 function formatJournalDate(): string {
@@ -589,9 +675,13 @@ function buildUserPrompt(pillar: PillarType, transcript: string): string {
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 
-export async function interpret(transcript: string, overridePillar?: PillarType): Promise<LLMResult> {
+export async function interpret(rawTranscript: string, overridePillar?: PillarType): Promise<LLMResult> {
   // User-selected pillar takes priority over auto-detection
-  const pillar = overridePillar ?? detectPillar(transcript);
+  const pillar = overridePillar ?? detectPillar(rawTranscript);
+
+  // For Invite: reconstruct any spelled-out names before the LLM sees the transcript
+  // (e.g. "K-A-T-H" → "Kath" so the lyrics never contain letter-by-letter spellings)
+  const transcript = pillar === "Invite" ? reconstructSpelledNames(rawTranscript) : rawTranscript;
 
   if (USE_MOCK) {
     await delay(1200 + Math.random() * 600);

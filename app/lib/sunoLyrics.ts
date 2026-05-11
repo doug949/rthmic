@@ -11,9 +11,14 @@
 // Order matters: longest match first (Rthmix before Rthmic before Rthm).
 
 const PRONUNCIATION_MAP: [RegExp, string][] = [
-  [/\bRthmix\b/g,  "Rith-mix"],   // Rthmix  → Rith-mix
-  [/\bRthmic\b/g,  "Rhythmic"],   // Rthmic  → Rhythmic
-  [/\bRthm\b/g,    "Rhythm"],     // Rthm    → Rhythm
+  // All-caps variants (LLM often writes RTHMIC in lyrics)
+  [/\bRTHMIX\b/g,  "Rith-mix"],
+  [/\bRTHMIC\b/g,  "Rhythmic"],
+  [/\bRTHM\b/g,    "Rhythm"],
+  // Title-case variants
+  [/\bRthmix\b/g,  "Rith-mix"],
+  [/\bRthmic\b/g,  "Rhythmic"],
+  [/\bRthm\b/g,    "Rhythm"],
   // Lowercase variants
   [/\brthmix\b/g,  "rith-mix"],
   [/\brthmic\b/g,  "rhythmic"],
