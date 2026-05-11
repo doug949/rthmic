@@ -52,13 +52,15 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Email ─────────────────────────────────────────────────────────────────
+  // Resend v2+ returns { data, error } rather than throwing on failure.
+  // We must check error explicitly — try/catch alone will not catch API errors.
   if (process.env.RESEND_API_KEY) {
     try {
       const resend = new Resend(process.env.RESEND_API_KEY);
       const date = new Date(entry.submittedAt).toLocaleString("en-GB", {
         timeZone: "UTC", dateStyle: "full", timeStyle: "short",
       });
-      await resend.emails.send({
+      const { data, error } = await resend.emails.send({
         from: process.env.RTHMIC_FROM_EMAIL ?? "RTHMIC <noreply@rthmic.app>",
         to: FEEDBACK_TO,
         subject: `RTHMIC Feedback — ${date}`,
@@ -73,12 +75,18 @@ export async function POST(req: NextRequest) {
           <p style="font-size:16px;line-height:1.6;white-space:pre-wrap">${entry.transcript.replace(/</g, "&lt;")}</p>
         `,
       });
+      if (error) {
+        // Resend returned an API error (e.g. unverified domain, invalid API key)
+        console.error("Feedback email failed (Resend error):", error.name, error.message, error.statusCode);
+      } else {
+        console.log("Feedback email sent:", data?.id);
+      }
     } catch (err) {
-      // Email failure is non-fatal — entry is already in Redis
-      console.error("Feedback email failed:", err);
+      // Network-level error
+      console.error("Feedback email failed (network):", err);
     }
   } else {
-    console.log("Feedback email skipped (no RESEND_API_KEY):", entry.transcript.slice(0, 100));
+    console.log("Feedback email skipped — RESEND_API_KEY not set");
   }
 
   return NextResponse.json({ ok: true });
