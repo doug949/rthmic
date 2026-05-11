@@ -8,6 +8,7 @@ import { AppHeader } from "@/app/components/AppHeader";
 import { useAudio } from "@/app/contexts/AudioContext";
 import { useGeneration } from "@/app/contexts/GenerationContext";
 import type { PillarType, StateSummary, Song, SongStatus, SongStatusMap } from "@/app/types/pipeline";
+import { normalisePillar } from "@/app/types/pipeline";
 import type { StyleChoice } from "@/app/services/llmService";
 import CustomStyleInput from "@/app/components/CustomStyleInput";
 import { RevealBlock } from "@/app/components/RevealBlock";
@@ -335,6 +336,10 @@ export default function SpeakPage() {
       }
 
       const data: UnderstandResult = await res.json();
+      // If the user explicitly selected a pillar, enforce it — never let interpretation override it
+      if (selectedPillar) {
+        data.pillar = normalisePillar(selectedPillar);
+      }
       allTranscriptsRef.current.push(data.transcript);
       setUnderstandResult(data);
       setPhase("confirming");

@@ -53,9 +53,20 @@ export async function POST(req: NextRequest) {
       ? normalisePillar(selectedPillarSlug)
       : undefined;
 
-    const { pillar, stateSummary, title, lyrics, style } = await interpret(fullTranscript, overridePillar);
+    const result = await interpret(fullTranscript, overridePillar);
 
-    return NextResponse.json({ transcript: newTranscript, pillar, stateSummary, title, lyrics, style });
+    // Hard-pin: if the user explicitly chose a pillar, it cannot be overridden
+    // by anything the LLM returns — enforce at the API boundary as a final guarantee.
+    const finalPillar = overridePillar ?? result.pillar;
+
+    return NextResponse.json({
+      transcript: newTranscript,
+      pillar: finalPillar,
+      stateSummary: result.stateSummary,
+      title: result.title,
+      lyrics: result.lyrics,
+      style: result.style,
+    });
   } catch (err) {
     console.error("Understand error:", err);
     return NextResponse.json(
