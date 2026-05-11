@@ -799,6 +799,23 @@ const PILLARS: PillarDefinition[] = [
       footnote: "Speak while the clarity is still sharp. Even 30 seconds is enough to lock in the essence. The song will hold the idea in the exact form it arrived — not the revised version.",
     },
   },
+  {
+    slug: "explain",
+    label: "Explain",
+    tagline: "Make an idea land for someone else",
+    detail: "Use this when you want to communicate something clearly — a concept, a workflow, a system, a feature — to someone who doesn't have it yet. RTHMIC builds a song structured around the idea itself: what it is, how it works, where it usually trips people up, and how it clicks. The listener finishes and thinks: I understand this now.",
+    guidance: "Describe what you want to explain and who you're explaining it to. Include what usually confuses people about it, any examples or analogies that help, and what you want them to be able to do or say after they've understood it.",
+    priming: {
+      headline: "What do you want someone to understand?",
+      subheadline: "Describe the idea, not just the topic.",
+      instructions: [
+        "Explain the concept as if talking to someone smart who's never heard of it. What is it? What does it do? What's the core thing they need to grasp first?",
+        "Tell RTHMIC where it usually goes wrong — the part that confuses people, the place where explanations normally break down. That's where the song will do its best work.",
+        "Give a concrete example if you have one. An analogy, a real scenario, something tangible. Abstract explanations are harder to retain than specific ones.",
+      ],
+      footnote: "You don't need to have the perfect explanation ready — just talk through it. The rougher edges of your explanation are often the most useful input. RTHMIC finds the structure in what you say.",
+    },
+  },
 ];
 
 // Bridge is a dedicated "for someone else" pillar — kept separate from the main list

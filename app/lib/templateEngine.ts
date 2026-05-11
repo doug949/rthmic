@@ -16,6 +16,7 @@ const PILLAR_FILE: Record<PillarType, string> = {
   Invite:        "invite.md",    // Beta tester invite — personal, demonstrative, welcoming
   Journal:       "journal.md",   // Day capture — speak the day, keep it as a song
   Epiphany:      "epiphany.md",  // Idea/insight capture — crystallise the spark in song
+  Explain:       "explain.md",   // Communication clarity — make an idea land for someone else
 };
 
 export function loadTemplate(pillar: PillarType): string {
@@ -98,6 +99,12 @@ const PILLAR_KEYWORDS: Record<PillarType, string[]> = {
     "morning pages", "note to self", "replay", "write it down",
     "things that happened", "how my day went",
   ],
+  Explain: [
+    "explain", "explaining", "explanation", "how to explain", "communicate", "help someone understand",
+    "make sense of", "describe", "walk through", "introduce", "onboard", "onboarding",
+    "teach", "show how", "break it down", "make it clear", "clarify", "how it works",
+    "for someone else", "so they get it", "so they understand", "getting across",
+  ],
   Epiphany: [
     "epiphany", "idea", "insight", "realised", "realized", "just thought of",
     "just had", "just occurred", "just clicked", "breakthrough", "aha",
@@ -112,7 +119,7 @@ export function detectPillar(transcript: string): PillarType {
   const lower = transcript.toLowerCase();
 
   const scores: Record<PillarType, number> = {
-    Memory: 0, Menus: 0, Mindset: 0, Mode: 0, Movement: 0, Understanding: 0, Bridge: 0, Invite: 0, Journal: 0, Epiphany: 0,
+    Memory: 0, Menus: 0, Mindset: 0, Mode: 0, Movement: 0, Understanding: 0, Bridge: 0, Invite: 0, Journal: 0, Epiphany: 0, Explain: 0,
   };
 
   for (const [pillar, keywords] of Object.entries(PILLAR_KEYWORDS) as [PillarType, string[]][]) {

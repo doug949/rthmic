@@ -103,6 +103,7 @@ const PILLAR_STYLE_DEFAULTS: Record<PillarType, StyleChoice> = {
   Invite:       "A", // arresting, forward energy — makes them stop and listen
   Journal:      "B", // warm, reflective, acoustic — end-of-day feeling
   Epiphany:     "A", // electric, excited — the energy of a spark landing
+  Explain:      "B", // calm, clear, unhurried — optimised for comprehension not atmosphere
 };
 
 // ─── Mock outputs ─────────────────────────────────────────────────────────────
@@ -430,6 +431,53 @@ is a polite non-answer.
 There's no right response here.
 Your honest experience is the experiment.
 Tell me what you find.`,
+  },
+  Explain: {
+    title: "Here's How It Works",
+    stateSummary: {
+      state: "You want to communicate something clearly to someone — an idea, a system, a concept — and you need it to actually land.",
+      intent: "You want them to finish listening and think: I understand this now.",
+      friction: "The idea is clear to you but explaining it in a way that makes sense to someone else is harder than it looks.",
+    },
+    lyrics: `[VERSE]
+Here's the thing.
+Not the whole thing — the core of it.
+The part that, once you have it, makes the rest make sense.
+Start there. Everything else builds from that.
+
+There's a shape to this idea.
+Three parts, or maybe two.
+One thing leads to the next.
+Follow the sequence and you'll see why it works.
+
+[CHORUS]
+This is how it works.
+Not complicated — just sequential.
+One piece at a time.
+By the end of the song you'll have it.
+
+[VERSE 2]
+The part most people miss:
+it's not about memorising the steps.
+It's about seeing the logic underneath them.
+Once you see why, you'll never need to be told what again.
+
+Here's an example — a real one, not an abstract one.
+You've probably seen something like this before.
+That's the connection. That's the bridge.
+What you already know is the way in.
+
+[BRIDGE]
+Questions are good here.
+If it's not clear yet, that's information.
+The place it stops making sense
+is the exact place we need to look.
+
+[OUTRO]
+You have it now.
+Not just the surface — the structure.
+That's what stays.
+That's what you'll be able to explain to someone else tomorrow.`,
   },
   Epiphany: {
     title: "Write It Before It Goes",
