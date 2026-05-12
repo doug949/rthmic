@@ -13,7 +13,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "redis";
-import type { PillarType } from "@/app/types/pipeline";
+import type { PillarType, TimedSegment } from "@/app/types/pipeline";
 import { normalisePillar } from "@/app/types/pipeline";
 
 export interface SavedRhythm {
@@ -26,6 +26,8 @@ export interface SavedRhythm {
   status: "active" | "favourite" | "archived" | "deleted";
   deletedAt?: number;
   tags?: string[];
+  sunoClipId?: string;       // raw Suno clip ID for re-fetching
+  timedLyrics?: TimedSegment[]; // synchronized lyric segments from Suno
 }
 
 const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
@@ -143,8 +145,9 @@ export async function POST(request: NextRequest) {
         updated = current.map((r) => {
           if (r.id !== body.id) return r;
           const next: SavedRhythm = { ...r };
-          if (body.status !== undefined) next.status = body.status as SavedRhythm["status"];
-          if (body.tags !== undefined) next.tags = body.tags as string[];
+          if (body.status      !== undefined) next.status      = body.status as SavedRhythm["status"];
+          if (body.tags        !== undefined) next.tags        = body.tags as string[];
+          if (body.timedLyrics !== undefined) next.timedLyrics = body.timedLyrics as TimedSegment[];
           if (next.status !== "deleted") delete next.deletedAt;
           return next;
         });

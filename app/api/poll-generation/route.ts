@@ -112,10 +112,12 @@ export async function GET(req: NextRequest) {
     if (playableClips.length > 0 && !stillWaiting) {
       const toSong = (clip: SunoClip, idx: number): Song => {
         const baseTitle = String(clip.title ?? `RTHM ${idx + 1}`);
+        const rawClipId = String(clip.id ?? "");
         return {
-          id: `${String(clip.id ?? "suno")}-${idx}`,
+          id: `${rawClipId || "suno"}-${idx}`,
           title: idx === 0 ? baseTitle : `${baseTitle} (Variation)`,
           audioUrl: getAudioUrl(clip),
+          sunoClipId: rawClipId || undefined,
         };
       };
 

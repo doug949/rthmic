@@ -7,6 +7,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useAudio } from "@/app/contexts/AudioContext";
 import { useGeneration } from "@/app/contexts/GenerationContext";
 import type { SavedRhythm } from "@/app/api/library/route";
+import type { TimedSegment } from "@/app/types/pipeline";
 import CustomStyleInput from "@/app/components/CustomStyleInput";
 
 function inferStyle(pillar: string): "A" | "B" {
@@ -171,6 +172,7 @@ export default function FullScreenPlayer() {
             currentTime={currentTime}
             duration={duration}
             isPlaying={isPlaying}
+            timedLyrics={rhythm.timedLyrics}
           />
         ) : (
           <div className="flex items-center justify-center h-full">
@@ -301,42 +303,54 @@ export default function FullScreenPlayer() {
 }
 
 // ─── Full lyrics display with current-line highlight ──────────────────────────
+//
+// Uses real timed segments from Suno when available (timedLyrics prop).
+// Falls back to equal-division estimation when not.
 
 function FullLyricsView({
   lyrics,
   currentTime,
   duration,
   isPlaying,
+  timedLyrics,
 }: {
   lyrics: string;
   currentTime: number;
   duration: number;
   isPlaying: boolean;
+  timedLyrics?: TimedSegment[];
 }) {
-  const lineRefs = useRef<(HTMLElement | null)[]>([]);
-
   const lines = lyrics
     .split("\n")
     .map((l) => l.trim())
     .filter(Boolean);
 
-  // Determine current line index
   const nonTagLines = lines.filter((l) => !l.match(/^\[.*\]$/));
-  const introGap = duration > 0 ? Math.min(10, duration * 0.07) : 0;
-  const lyricSpan = Math.max(0, duration - introGap);
-  const lineTime  = nonTagLines.length > 1 ? lyricSpan / nonTagLines.length : lyricSpan;
 
-  let currentNonTagIdx = -1;
-  if (isPlaying && duration > 0 && currentTime >= introGap) {
-    currentNonTagIdx = Math.min(
-      Math.floor((currentTime - introGap) / lineTime),
-      nonTagLines.length - 1
+  // ── Current-line resolution ────────────────────────────────────────────────
+  let currentLineText: string | null = null;
+
+  if (timedLyrics && timedLyrics.length > 0) {
+    // Real timestamps from Suno — find the segment whose window contains now
+    const nowMs = currentTime * 1000;
+    const active = timedLyrics.find(
+      (seg) => nowMs >= seg.startMs && nowMs < seg.endMs
     );
+    if (active) currentLineText = active.text.trim();
+  } else {
+    // Estimated: divide duration equally across non-tag lines
+    const introGap = duration > 0 ? Math.min(10, duration * 0.07) : 0;
+    const lyricSpan = Math.max(0, duration - introGap);
+    const lineTime  = nonTagLines.length > 1 ? lyricSpan / nonTagLines.length : lyricSpan;
+    let currentNonTagIdx = -1;
+    if (isPlaying && duration > 0 && currentTime >= introGap) {
+      currentNonTagIdx = Math.min(
+        Math.floor((currentTime - introGap) / lineTime),
+        nonTagLines.length - 1
+      );
+    }
+    currentLineText = nonTagLines[currentNonTagIdx] ?? null;
   }
-
-  // Build map from nonTagLine index → global line index
-  let nonTagCount = 0;
-  const currentLineText = nonTagLines[currentNonTagIdx] ?? null;
 
   // Auto-scroll current line into view
   const currentRef = useRef<HTMLParagraphElement | null>(null);
@@ -344,10 +358,15 @@ function FullLyricsView({
     if (currentRef.current && isPlaying) {
       currentRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
     }
-  }, [currentNonTagIdx, isPlaying]);
+  }, [currentLineText, isPlaying]);
 
   return (
     <div className="px-6 py-6 flex flex-col gap-0.5">
+      {timedLyrics && (
+        <p className="text-[9px] uppercase tracking-widest text-white/15 mb-3 text-center">
+          Synced
+        </p>
+      )}
       {lines.map((line, i) => {
         const isTag = line.match(/^\[.*\]$/);
         if (isTag) {
@@ -362,8 +381,7 @@ function FullLyricsView({
           );
         }
 
-        const isCurrentLine = line === currentLineText && currentLineText !== null;
-        if (!isTag) nonTagCount++;
+        const isCurrentLine = currentLineText !== null && line.trim() === currentLineText;
 
         return (
           <p

@@ -84,7 +84,8 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
           setGenSongs(songs);
           setGenPhase("ready");
 
-          // Auto-save to library sequentially to avoid Redis read-write race
+          // Auto-save to library sequentially to avoid Redis read-write race,
+          // then background-fetch timed lyrics and attach them.
           const saveAll = async () => {
             for (const song of songs) {
               await fetch("/api/library", {
@@ -98,9 +99,35 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
                     pillar: params.pillar,
                     audioUrl: song.audioUrl,
                     lyrics: params.lyrics,
+                    sunoClipId: song.sunoClipId,
                   },
                 }),
               });
+            }
+
+            // Background: fetch timed lyrics for each clip and patch into library.
+            // Non-blocking — failures are silently swallowed.
+            for (const song of songs) {
+              if (!song.sunoClipId) continue;
+              try {
+                const lr = await fetch(
+                  `/api/timed-lyrics?clipId=${encodeURIComponent(song.sunoClipId)}`
+                );
+                if (!lr.ok) continue;
+                const ld = await lr.json() as { timedLyrics?: unknown };
+                if (!ld.timedLyrics) continue;
+
+                await fetch("/api/library", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    action: "update",
+                    id: song.id,
+                    timedLyrics: ld.timedLyrics,
+                  }),
+                });
+                console.log(`[gen] attached timed lyrics for ${song.id}`);
+              } catch { /* non-critical */ }
             }
           };
           saveAll().catch(console.error);
