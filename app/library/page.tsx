@@ -55,6 +55,7 @@ export default function LibraryPage() {
 
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const [shareToastId, setShareToastId] = useState<string | null>(null);
+  const [graduatedItems, setGraduatedItems] = useState<Array<{ id: string; title: string }>>([]);
   const [myRthmsOpen, setMyRthmsOpen] = useState(false);
   const [myRthmsExpanded, setMyRthmsExpanded] = useState(false);
   const [myFavouritesOpen, setMyFavouritesOpen] = useState(false);
@@ -81,8 +82,14 @@ export default function LibraryPage() {
       status: rhythm.status === "archived" ? "active" : "archived",
     });
 
-  const handleGraduate = (id: string) =>
+  const handleGraduate = (id: string) => {
+    const rhythm = myRthms.find((r) => r.id === id);
+    if (rhythm) setGraduatedItems((prev) => [{ id, title: rhythm.title }, ...prev]);
     mutate({ action: "update", id, status: "favourite" });
+  };
+
+  const dismissGraduated = (id: string) =>
+    setGraduatedItems((prev) => prev.filter((g) => g.id !== id));
 
   const handleUngraduate = (id: string) =>
     mutate({ action: "update", id, status: "active" });
@@ -183,7 +190,7 @@ export default function LibraryPage() {
                   <p className="text-sm text-white/50">Couldn't load library. Check your connection.</p>
                 </div>
               )}
-              {loadState === "ready" && myRthms.length === 0 && (
+              {loadState === "ready" && myRthms.length === 0 && graduatedItems.length === 0 && (
                 <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5 py-8 flex flex-col items-center gap-3">
                   <p className="text-sm text-white/50 text-center leading-relaxed">
                     Rthms you generate will appear here.
@@ -193,8 +200,21 @@ export default function LibraryPage() {
                   </TransitionLink>
                 </div>
               )}
-              {loadState === "ready" && myRthms.length > 0 && (
+              {loadState === "ready" && (myRthms.length > 0 || graduatedItems.length > 0) && (
                 <div className="flex flex-col gap-2">
+                  {/* Graduated placeholders — appear at top, fade in */}
+                  {graduatedItems.map((item) => (
+                    <GraduatedPlaceholder
+                      key={item.id}
+                      title={item.title}
+                      onView={() => {
+                        setMyFavouritesOpen(true);
+                        dismissGraduated(item.id);
+                      }}
+                      onDismiss={() => dismissGraduated(item.id)}
+                    />
+                  ))}
+                  {/* Remaining songs */}
                   {(myRthmsExpanded ? myRthms : myRthms.slice(0, MY_RTHMS_PREVIEW)).map((rhythm) => (
                     <RhythmRow
                       key={rhythm.id}
@@ -811,6 +831,63 @@ function LibraryLyricsView({
 }
 
 // ─── Micro components ─────────────────────────────────────────────────────────
+
+// ─── Graduated placeholder ────────────────────────────────────────────────────
+
+function GraduatedPlaceholder({
+  title,
+  onView,
+  onDismiss,
+}: {
+  title: string;
+  onView: () => void;
+  onDismiss: () => void;
+}) {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setVisible(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  return (
+    <div
+      className="rounded-2xl overflow-hidden"
+      style={{
+        border: "1px solid rgba(201,165,90,0.28)",
+        background: "rgba(201,165,90,0.04)",
+        opacity: visible ? 1 : 0,
+        transform: visible ? "translateY(0)" : "translateY(-6px)",
+        transition: "opacity 380ms ease, transform 380ms ease",
+      }}
+    >
+      <div className="flex items-center gap-3 px-5 py-4">
+        <span style={{ color: "rgba(201,165,90,0.75)", fontSize: "15px", flexShrink: 0 }}>★</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium truncate" style={{ color: "rgba(201,165,90,0.9)" }}>
+            {title}
+          </p>
+          <p className="text-[11px] text-white/40 mt-0.5">Graduated to My Favourites</p>
+        </div>
+        <button
+          onClick={onDismiss}
+          className="text-white/25 hover:text-white/50 transition-colors touch-manipulation text-xl leading-none pl-2"
+          aria-label="Dismiss"
+        >
+          ×
+        </button>
+      </div>
+      <div className="border-t px-5 py-3" style={{ borderColor: "rgba(201,165,90,0.12)" }}>
+        <button
+          onClick={onView}
+          className="text-xs tracking-wide touch-manipulation transition-colors hover:opacity-80"
+          style={{ color: "rgba(201,165,90,0.7)" }}
+        >
+          View in My Favourites →
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function SmallBtn({ onClick, label, sublabel, icon, danger, confirming, active, gold }: {
   onClick: () => void; label: string; sublabel?: string; icon: string; danger?: boolean; confirming?: boolean; active?: boolean; gold?: boolean;
