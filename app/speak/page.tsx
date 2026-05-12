@@ -826,6 +826,24 @@ const PILLARS: PillarDefinition[] = [
       footnote: "You don't need to have the perfect explanation ready — just talk through it. The rougher edges of your explanation are often the most useful input. RTHMIC finds the structure in what you say.",
     },
   },
+  {
+    slug: "booksummary",
+    label: "Book Summary",
+    tagline: "The one big idea from a nonfiction book",
+    icon: <BookSummaryIcon />,
+    detail: "Use this when you want to understand — or share — the core concept from a popular nonfiction book. RTHMIC builds a song around the book's ONE big idea: the premise, how it works, what most people miss, and why it matters. Works for books you've read, books you want to understand, or ideas you want to pass on. Works best for 'one big idea' books — Atomic Habits, Sapiens, Thinking Fast and Slow, and their kind.",
+    guidance: "Just name the book. RTHMIC knows the core idea. If you want the song to focus on a particular aspect — a chapter, a concept, how it applies to your life — say that too. The more specific you are, the more personal the song becomes.",
+    priming: {
+      headline: "Which book?",
+      subheadline: "Name it. RTHMIC knows the idea.",
+      instructions: [
+        "Say the book title. That's the main thing. RTHMIC will identify the central concept and build the song around it.",
+        "If you want it to focus on a specific part of the book — a particular concept, chapter, or framework — say that.",
+        "If you want the song to connect the idea to something specific in your life or work, describe that too. It makes the song feel personal rather than generic.",
+      ],
+      footnote: "Works best with 'one big idea' nonfiction — the kind where the title becomes shorthand for a whole way of thinking. Atomic Habits, Sapiens, Deep Work, Thinking Fast and Slow, The Power of Habit, and anything like them.",
+    },
+  },
 ];
 
 // Bridge is a dedicated "for someone else" pillar — kept separate from the main list
@@ -2610,6 +2628,19 @@ function ExplainIcon() {
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" fill="none" />
       <line x1="8" y1="9" x2="16" y2="9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
       <line x1="8" y1="13" x2="13" y2="13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function BookSummaryIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      {/* Closed book spine + pages */}
+      <rect x="4" y="3" width="14" height="18" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
+      <line x1="8" y1="3" x2="8" y2="21" stroke="currentColor" strokeWidth="1.4" />
+      {/* Small spark top-right — the big idea inside */}
+      <line x1="17" y1="5" x2="17" y2="8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+      <line x1="15.5" y1="6.5" x2="18.5" y2="6.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
     </svg>
   );
 }

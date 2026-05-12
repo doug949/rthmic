@@ -104,6 +104,7 @@ const PILLAR_STYLE_DEFAULTS: Record<PillarType, StyleChoice> = {
   Journal:      "B", // warm, reflective, acoustic — end-of-day feeling
   Epiphany:     "A", // electric, excited — the energy of a spark landing
   Explain:      "B", // calm, clear, unhurried — optimised for comprehension not atmosphere
+  BookSummary:  "B", // same as Explain — clear, confident, the energy of a good recommendation
 };
 
 // ─── Mock outputs ─────────────────────────────────────────────────────────────
@@ -529,6 +530,58 @@ Write it before it goes.
 Write the version that surprised you.
 Write the thing you aren't sure you believe yet.
 That's the one worth keeping.`,
+  },
+  BookSummary: {
+    title: "Tiny Things, Big Change",
+    stateSummary: {
+      state: "You want to understand the core idea from Atomic Habits — the one thing the book is actually saying.",
+      intent: "You want to finish listening and be able to explain it to someone else.",
+      friction: "Most book summaries give you a chapter list. This gives you the idea.",
+    },
+    lyrics: `[VERSE]
+You don't rise to the level of your goals.
+You fall to the level of your systems.
+That's the thing James Clear is saying.
+Goals are temporary. Systems are what stay.
+
+Everyone wants to get fit or write every day.
+But wanting isn't what makes it happen.
+What makes it happen is what you built into your life
+when no one was watching and nothing felt urgent.
+
+[CHORUS]
+Atomic Habits.
+Small actions. Compound effect.
+One percent better every single day
+is 37 times better by the end of the year.
+
+[VERSE 2]
+Every habit has four parts —
+cue, craving, response, reward.
+That's the loop. That's the machine.
+Change the cue and you change the loop.
+
+Make it obvious. Make it attractive.
+Make it easy. Make it satisfying.
+The book isn't telling you to try harder.
+It's telling you to design smarter.
+
+[BRIDGE]
+Here's the counterintuitive part:
+identity comes after the behaviour, not before.
+You don't become a runner then start running.
+You start running and then become a runner.
+
+Cast votes for the person you want to be.
+One rep. One page. One minute.
+The habit is proof.
+The proof builds the identity.
+
+[OUTRO]
+Tiny actions.
+Trusted systems.
+You don't need to change who you are.
+You need to change what you repeatedly do.`,
   },
   Journal: {
     title: "Saturday, May 10th",

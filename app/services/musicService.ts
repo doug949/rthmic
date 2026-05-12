@@ -22,6 +22,7 @@ const PILLAR_STYLES: Record<PillarType, string> = {
   Journal:       "acoustic indie folk, warm male vocal, 74bpm, intimate, reflective, end-of-day, understated",
   Epiphany:      "indie electronic, bright acoustic guitar, 96bpm, electric, excited, forward momentum, ideas landing",
   Explain:       "indie folk, acoustic guitar, clear male vocal, 78bpm, calm, conversational, unhurried, patient, instructional",
+  BookSummary:   "indie folk, acoustic guitar, clear vocal, 82bpm, confident, warm, conversational, the energy of a good recommendation",
 };
 
 function delay(ms: number) {
@@ -168,6 +169,7 @@ const TITLE_NOUNS: Record<PillarType, string[]> = {
   Journal:       ["That Was Today", "End of Day", "Before I Forget", "Kept Now", "This One Day"],
   Epiphany:      ["The Spark", "That Thought", "Write It Down", "Before It Shifts", "The Click"],
   Explain:       ["How It Works", "The Clear One", "Step by Step", "Now You Have It", "The Logic"],
+  BookSummary:   ["The Big Idea", "The Core", "One Big Thing", "What It Says", "The Premise"],
 };
 
 function mockTitle(pillar: PillarType, seed: number): string {
