@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { TransitionLink } from "@/app/components/TransitionLink";
 import { AppHeader } from "@/app/components/AppHeader";
 import { RevealBlock } from "@/app/components/RevealBlock";
@@ -63,6 +63,11 @@ export default function LibraryPage() {
   const [rthmixAlbumsOpen, setRthmixAlbumsOpen] = useState(false);
   const [archivedOpen, setArchivedOpen] = useState(false);
   const [deletedOpen, setDeletedOpen] = useState(false);
+  const [favExploreOpen, setFavExploreOpen] = useState(false);
+  const [favTagsOpen, setFavTagsOpen] = useState(false);
+  const [favPillarsOpen, setFavPillarsOpen] = useState(false);
+  const [selectedFavTag, setSelectedFavTag] = useState<string | null>(null);
+  const [selectedFavPillar, setSelectedFavPillar] = useState<string | null>(null);
   const MY_RTHMS_PREVIEW = 5;
 
   const handleRemove = (id: string) => {
@@ -161,6 +166,15 @@ export default function LibraryPage() {
   const handleRestore = (id: string) =>
     mutate({ action: "update", id, status: "active" });
 
+  const allFavTags = [...new Set(favourites.flatMap((r) => r.tags ?? []))].sort();
+  const allFavPillars = [...new Set(favourites.map((r) => r.pillar))].sort();
+  const filteredByTag = selectedFavTag !== null
+    ? favourites.filter((r) => r.tags?.includes(selectedFavTag as string))
+    : favourites;
+  const filteredByPillar = selectedFavPillar !== null
+    ? favourites.filter((r) => r.pillar === selectedFavPillar)
+    : favourites;
+
   return (
     <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ animation: "page-enter 380ms ease forwards" }}>
 
@@ -172,8 +186,10 @@ export default function LibraryPage() {
 
         {/* ── My Rthms ─────────────────────────────────────────────────────────── */}
         <div className="flex flex-col gap-3">
-          <SectionHeader
+          <MainSectionHeader
+            icon={<MyRthmsIcon />}
             title="My Rthms"
+            description="Every Rthm you've made. Graduate the ones that stick."
             count={myRthms.length > 0 ? myRthms.length : undefined}
             open={myRthmsOpen}
             onToggle={() => setMyRthmsOpen((o) => !o)}
@@ -251,8 +267,10 @@ export default function LibraryPage() {
 
         {/* ── My Favourites ────────────────────────────────────────────────────── */}
         <div className="flex flex-col gap-3">
-          <SectionHeader
+          <MainSectionHeader
+            icon={<MyFavouritesIcon />}
             title="My Favourites"
+            description="Your best Rthms. Browse by tag, pillar, or all at once."
             count={favourites.length > 0 ? favourites.length : undefined}
             open={myFavouritesOpen}
             onToggle={() => setMyFavouritesOpen((o) => !o)}
@@ -270,28 +288,148 @@ export default function LibraryPage() {
                   </p>
                 </div>
               ) : (
-                <div className="flex flex-col gap-2">
-                  {favourites.map((rhythm) => (
-                    <RhythmRow
-                      key={rhythm.id}
-                      rhythm={rhythm}
-                      playing={currentTrackId === rhythm.id && isPlaying}
-                      currentTime={currentTrackId === rhythm.id ? currentTime : 0}
-                      duration={currentTrackId === rhythm.id ? duration : 0}
-                      showLyrics={showLyricsId === rhythm.id}
-                      onToggleLyrics={() => setShowLyricsId(showLyricsId === rhythm.id ? null : rhythm.id)}
-                      onPlay={() => togglePlay(rhythm)}
-                      onUngraduate={() => handleUngraduate(rhythm.id)}
-                      onArchive={() => handleArchive(rhythm)}
-                      onRemove={() => handleRemove(rhythm.id)}
-                      onRecreate={() => handleRecreate(rhythm)}
-                      onShare={() => handleShare(rhythm)}
-                      onTag={(tags) => handleTag(rhythm.id, tags)}
-                      confirmingRemove={confirmRemoveId === rhythm.id}
-                      shareToast={shareToastId === rhythm.id}
-                      favourite
-                    />
-                  ))}
+                <div className="flex flex-col gap-3">
+
+                  {/* Explore All */}
+                  <SubsectionCard
+                    icon={<ExploreAllIcon />}
+                    title="Explore All"
+                    description={`${favourites.length} Rthm${favourites.length !== 1 ? "s" : ""}`}
+                    open={favExploreOpen}
+                    onToggle={() => setFavExploreOpen((o) => !o)}
+                  >
+                    <div className="flex flex-col gap-2 pt-2">
+                      {favourites.map((rhythm) => (
+                        <RhythmRow
+                          key={rhythm.id}
+                          rhythm={rhythm}
+                          playing={currentTrackId === rhythm.id && isPlaying}
+                          currentTime={currentTrackId === rhythm.id ? currentTime : 0}
+                          duration={currentTrackId === rhythm.id ? duration : 0}
+                          showLyrics={showLyricsId === rhythm.id}
+                          onToggleLyrics={() => setShowLyricsId(showLyricsId === rhythm.id ? null : rhythm.id)}
+                          onPlay={() => togglePlay(rhythm)}
+                          onUngraduate={() => handleUngraduate(rhythm.id)}
+                          onArchive={() => handleArchive(rhythm)}
+                          onRemove={() => handleRemove(rhythm.id)}
+                          onRecreate={() => handleRecreate(rhythm)}
+                          onShare={() => handleShare(rhythm)}
+                          onTag={(tags) => handleTag(rhythm.id, tags)}
+                          confirmingRemove={confirmRemoveId === rhythm.id}
+                          shareToast={shareToastId === rhythm.id}
+                          favourite
+                        />
+                      ))}
+                    </div>
+                  </SubsectionCard>
+
+                  {/* Tags */}
+                  <SubsectionCard
+                    icon={<TagsIcon />}
+                    title="Tags"
+                    description={allFavTags.length > 0 ? `${allFavTags.length} tag${allFavTags.length !== 1 ? "s" : ""}` : "No tags yet"}
+                    open={favTagsOpen}
+                    onToggle={() => setFavTagsOpen((o) => !o)}
+                    disabled={allFavTags.length === 0}
+                  >
+                    <div className="flex flex-col gap-3 pt-2">
+                      <div className="flex flex-wrap gap-2">
+                        {allFavTags.map((tag) => (
+                          <button
+                            key={tag}
+                            onClick={() => setSelectedFavTag(selectedFavTag === tag ? null : tag)}
+                            className="text-[11px] px-3 py-1.5 rounded-full touch-manipulation transition-all"
+                            style={
+                              selectedFavTag === tag
+                                ? { background: "rgba(201,165,90,0.2)", color: "rgba(201,165,90,0.9)", border: "1px solid rgba(201,165,90,0.4)" }
+                                : { background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.6)", border: "1px solid rgba(255,255,255,0.08)" }
+                            }
+                          >
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
+                      {selectedFavTag && (
+                        <div className="flex flex-col gap-2">
+                          {filteredByTag.map((rhythm) => (
+                            <RhythmRow
+                              key={rhythm.id}
+                              rhythm={rhythm}
+                              playing={currentTrackId === rhythm.id && isPlaying}
+                              currentTime={currentTrackId === rhythm.id ? currentTime : 0}
+                              duration={currentTrackId === rhythm.id ? duration : 0}
+                              showLyrics={showLyricsId === rhythm.id}
+                              onToggleLyrics={() => setShowLyricsId(showLyricsId === rhythm.id ? null : rhythm.id)}
+                              onPlay={() => togglePlay(rhythm)}
+                              onUngraduate={() => handleUngraduate(rhythm.id)}
+                              onArchive={() => handleArchive(rhythm)}
+                              onRemove={() => handleRemove(rhythm.id)}
+                              onRecreate={() => handleRecreate(rhythm)}
+                              onShare={() => handleShare(rhythm)}
+                              onTag={(tags) => handleTag(rhythm.id, tags)}
+                              confirmingRemove={confirmRemoveId === rhythm.id}
+                              shareToast={shareToastId === rhythm.id}
+                              favourite
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </SubsectionCard>
+
+                  {/* Pillars */}
+                  <SubsectionCard
+                    icon={<PillarsIcon />}
+                    title="Pillars"
+                    description={`${allFavPillars.length} pillar${allFavPillars.length !== 1 ? "s" : ""}`}
+                    open={favPillarsOpen}
+                    onToggle={() => setFavPillarsOpen((o) => !o)}
+                  >
+                    <div className="flex flex-col gap-3 pt-2">
+                      <div className="flex flex-wrap gap-2">
+                        {allFavPillars.map((pillar) => (
+                          <button
+                            key={pillar}
+                            onClick={() => setSelectedFavPillar(selectedFavPillar === pillar ? null : pillar)}
+                            className="text-[11px] px-3 py-1.5 rounded-full touch-manipulation transition-all"
+                            style={
+                              selectedFavPillar === pillar
+                                ? { background: "rgba(201,165,90,0.2)", color: "rgba(201,165,90,0.9)", border: "1px solid rgba(201,165,90,0.4)" }
+                                : { background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.6)", border: "1px solid rgba(255,255,255,0.08)" }
+                            }
+                          >
+                            {pillar}
+                          </button>
+                        ))}
+                      </div>
+                      {selectedFavPillar && (
+                        <div className="flex flex-col gap-2">
+                          {filteredByPillar.map((rhythm) => (
+                            <RhythmRow
+                              key={rhythm.id}
+                              rhythm={rhythm}
+                              playing={currentTrackId === rhythm.id && isPlaying}
+                              currentTime={currentTrackId === rhythm.id ? currentTime : 0}
+                              duration={currentTrackId === rhythm.id ? duration : 0}
+                              showLyrics={showLyricsId === rhythm.id}
+                              onToggleLyrics={() => setShowLyricsId(showLyricsId === rhythm.id ? null : rhythm.id)}
+                              onPlay={() => togglePlay(rhythm)}
+                              onUngraduate={() => handleUngraduate(rhythm.id)}
+                              onArchive={() => handleArchive(rhythm)}
+                              onRemove={() => handleRemove(rhythm.id)}
+                              onRecreate={() => handleRecreate(rhythm)}
+                              onShare={() => handleShare(rhythm)}
+                              onTag={(tags) => handleTag(rhythm.id, tags)}
+                              confirmingRemove={confirmRemoveId === rhythm.id}
+                              shareToast={shareToastId === rhythm.id}
+                              favourite
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </SubsectionCard>
+
                 </div>
               )}
             </>
@@ -300,8 +438,10 @@ export default function LibraryPage() {
 
         {/* ── The RTHMIC Library ───────────────────────────────────────────────── */}
         <div className="flex flex-col gap-3">
-          <SectionHeader
+          <MainSectionHeader
+            icon={<RthmicLibraryIcon />}
             title="The RTHMIC Library"
+            description="Hand-curated Rthms from the RTHMIC team."
             open={rthmicLibraryOpen}
             onToggle={() => setRthmicLibraryOpen((o) => !o)}
           />
@@ -310,7 +450,7 @@ export default function LibraryPage() {
               href="/explore"
               className="flex items-center gap-5 px-6 py-6 rounded-2xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] active:scale-[0.98] transition-all touch-manipulation"
             >
-              <span className="text-2xl flex-shrink-0 text-white/45" aria-hidden>◎</span>
+              <span className="flex-shrink-0 text-white/45" aria-hidden><ExploreAllIcon /></span>
               <div className="flex-1 min-w-0">
                 <p className="text-base font-semibold text-white/80 tracking-wide">Explore</p>
                 <p className="text-sm text-white/50 mt-0.5">20 hand-selected Rthms</p>
@@ -966,5 +1106,200 @@ function SectionHeader({
         {open ? "↑" : "↓"}
       </span>
     </button>
+  );
+}
+
+// ─── Main section header (icon + title + description) ─────────────────────────
+
+function MainSectionHeader({
+  icon,
+  title,
+  description,
+  count,
+  open,
+  onToggle,
+  gold,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description?: string;
+  count?: number;
+  open: boolean;
+  onToggle: () => void;
+  gold?: boolean;
+}) {
+  const goldColor = "rgba(201,165,90,0.85)";
+  const goldDim = "rgba(201,165,90,0.45)";
+
+  return (
+    <button
+      onClick={onToggle}
+      className="flex items-center gap-4 touch-manipulation text-left w-full py-1"
+    >
+      {/* Icon circle */}
+      <div
+        className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
+        style={
+          gold
+            ? { background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.2)" }
+            : { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }
+        }
+      >
+        <span style={{ color: gold ? goldColor : "rgba(255,255,255,0.6)" }}>{icon}</span>
+      </div>
+
+      {/* Text */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline gap-2">
+          <h2
+            className="text-base font-medium leading-snug"
+            style={{ color: gold ? goldColor : "rgba(255,255,255,0.88)", fontFamily: "var(--font-display)" }}
+          >
+            {title}
+          </h2>
+          {count !== undefined && count > 0 && (
+            <span className="text-xs tabular-nums" style={{ color: gold ? goldDim : "rgba(255,255,255,0.4)" }}>
+              {count}
+            </span>
+          )}
+        </div>
+        {description && (
+          <p className="text-[11px] mt-0.5 leading-snug" style={{ color: gold ? "rgba(201,165,90,0.45)" : "rgba(255,255,255,0.38)" }}>
+            {description}
+          </p>
+        )}
+      </div>
+
+      {/* Chevron */}
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 16 16"
+        fill="none"
+        className="flex-shrink-0 transition-transform duration-200"
+        style={{ color: gold ? goldDim : "rgba(255,255,255,0.3)", transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
+      >
+        <path d="M3 6L8 11L13 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </button>
+  );
+}
+
+// ─── Subsection card (expandable, matches Explore card style) ─────────────────
+
+function SubsectionCard({
+  icon,
+  title,
+  description,
+  open,
+  onToggle,
+  disabled,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description?: string;
+  open: boolean;
+  onToggle: () => void;
+  disabled?: boolean;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl border overflow-hidden" style={{ borderColor: "rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.02)" }}>
+      <button
+        onClick={disabled ? undefined : onToggle}
+        className={`flex items-center gap-4 px-5 py-4 w-full text-left touch-manipulation transition-colors ${disabled ? "opacity-40 cursor-default" : "hover:bg-white/[0.02] active:scale-[0.99]"}`}
+      >
+        <span className="text-white/40 flex-shrink-0">{icon}</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-white/75 leading-snug">{title}</p>
+          {description && (
+            <p className="text-[11px] text-white/35 mt-0.5">{description}</p>
+          )}
+        </div>
+        {!disabled && (
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 16 16"
+            fill="none"
+            className="flex-shrink-0 transition-transform duration-200"
+            style={{ color: "rgba(255,255,255,0.28)", transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
+          >
+            <path d="M3 6L8 11L13 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        )}
+      </button>
+      {open && children && (
+        <div className="px-5 pb-4 border-t border-white/[0.05]">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Section icons ─────────────────────────────────────────────────────────────
+
+function MyRthmsIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+      <rect x="2" y="12" width="3" height="6" rx="1" fill="currentColor" opacity="0.6" />
+      <rect x="6.5" y="8" width="3" height="10" rx="1" fill="currentColor" opacity="0.8" />
+      <rect x="11" y="4" width="3" height="14" rx="1" fill="currentColor" />
+      <rect x="15.5" y="9" width="3" height="9" rx="1" fill="currentColor" opacity="0.7" />
+    </svg>
+  );
+}
+
+function MyFavouritesIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+      <path
+        d="M10 3.5L11.9 7.6L16.4 8.27L13.2 11.4L13.97 15.9L10 13.77L6.03 15.9L6.8 11.4L3.6 8.27L8.1 7.6L10 3.5Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function RthmicLibraryIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+      <rect x="3" y="4" width="4" height="13" rx="1.5" fill="currentColor" opacity="0.5" />
+      <rect x="8.5" y="4" width="4" height="13" rx="1.5" fill="currentColor" opacity="0.75" />
+      <rect x="14" y="4" width="4" height="13" rx="1.5" fill="currentColor" />
+    </svg>
+  );
+}
+
+function ExploreAllIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+      <circle cx="10" cy="10" r="7" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="10" cy="10" r="2.5" fill="currentColor" opacity="0.6" />
+    </svg>
+  );
+}
+
+function TagsIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+      <text x="3" y="15" fontSize="15" fontWeight="500" fill="currentColor" style={{ fontFamily: "system-ui, sans-serif" }}>#</text>
+    </svg>
+  );
+}
+
+function PillarsIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+      <rect x="3" y="14" width="14" height="2" rx="1" fill="currentColor" opacity="0.5" />
+      <rect x="4" y="5" width="2.5" height="9" rx="1" fill="currentColor" />
+      <rect x="8.75" y="5" width="2.5" height="9" rx="1" fill="currentColor" />
+      <rect x="13.5" y="5" width="2.5" height="9" rx="1" fill="currentColor" />
+      <rect x="3" y="4" width="14" height="2" rx="1" fill="currentColor" opacity="0.5" />
+    </svg>
   );
 }
