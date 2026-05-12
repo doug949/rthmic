@@ -532,7 +532,7 @@ Write the thing you aren't sure you believe yet.
 That's the one worth keeping.`,
   },
   BookSummary: {
-    title: "Tiny Things, Big Change",
+    title: `"Atomic Habits" — James Clear`,
     stateSummary: {
       state: "You want to understand the core idea from Atomic Habits — the one thing the book is actually saying.",
       intent: "You want to finish listening and be able to explain it to someone else.",
@@ -769,6 +769,10 @@ function buildUserPrompt(pillar: PillarType, transcript: string): string {
   if (pillar === "Journal") {
     const dateStr = formatJournalDate();
     return `${base}\n\nToday's date: ${dateStr}. The song title MUST use this date (e.g. "${dateStr}" or "${dateStr.split(",")[0]} Morning, ${dateStr.split(", ")[1]}"). Do not use a poetic title instead.`;
+  }
+
+  if (pillar === "BookSummary") {
+    return `${base}\n\nThe song title MUST be the book title and author name in this exact format: "[Book Title]" — [Author Name]. Extract both from the user's transcript. Example: if the user mentions Atomic Habits by James Clear, the title is: "Atomic Habits" — James Clear. Do not use a poetic or invented title.`;
   }
 
   return base;
