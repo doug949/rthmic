@@ -23,8 +23,9 @@ export interface SavedRhythm {
   audioUrl?: string;
   lyrics?: string;
   savedAt: number;
-  status: "active" | "archived" | "deleted";
+  status: "active" | "favourite" | "archived" | "deleted";
   deletedAt?: number;
+  tags?: string[];
 }
 
 const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
@@ -97,9 +98,9 @@ export async function GET(request: NextRequest) {
 
 // POST /api/library — mutate the library
 // Body shapes:
-//   { action: "save",    rhythm: SavedRhythm }               — upsert
-//   { action: "remove",  id: string }                         — soft-delete (30-day recovery)
-//   { action: "update",  id: string, status: "active"|"archived" } — update status / restore
+//   { action: "save",    rhythm: SavedRhythm }                           — upsert
+//   { action: "remove",  id: string }                                     — soft-delete (30-day recovery)
+//   { action: "update",  id: string, status?, tags? }                     — update status and/or tags
 export async function POST(request: NextRequest) {
   const uid = requireAuth(request);
   if (!uid) {
@@ -138,11 +139,13 @@ export async function POST(request: NextRequest) {
           r.id === body.id ? { ...r, status: "deleted" as const, deletedAt: Date.now() } : r
         );
       } else {
-        // update — also clears deletedAt when restoring
+        // update — status and/or tags; clears deletedAt when un-deleting
         updated = current.map((r) => {
           if (r.id !== body.id) return r;
-          const next = { ...r, status: body.status as SavedRhythm["status"] };
-          if (body.status !== "deleted") delete next.deletedAt;
+          const next: SavedRhythm = { ...r };
+          if (body.status !== undefined) next.status = body.status as SavedRhythm["status"];
+          if (body.tags !== undefined) next.tags = body.tags as string[];
+          if (next.status !== "deleted") delete next.deletedAt;
           return next;
         });
       }
