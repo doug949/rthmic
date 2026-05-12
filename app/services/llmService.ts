@@ -532,7 +532,7 @@ Write the thing you aren't sure you believe yet.
 That's the one worth keeping.`,
   },
   BookSummary: {
-    title: `"Atomic Habits" — James Clear`,
+    title: `Tiny Things, Big Change — Summary of "Atomic Habits" by James Clear`,
     stateSummary: {
       state: "You want to understand the core idea from Atomic Habits — the one thing the book is actually saying.",
       intent: "You want to finish listening and be able to explain it to someone else.",
@@ -772,7 +772,7 @@ function buildUserPrompt(pillar: PillarType, transcript: string): string {
   }
 
   if (pillar === "BookSummary") {
-    return `${base}\n\nThe song title MUST be the book title and author name in this exact format: "[Book Title]" — [Author Name]. Extract both from the user's transcript. Example: if the user mentions Atomic Habits by James Clear, the title is: "Atomic Habits" — James Clear. Do not use a poetic or invented title.`;
+    return `${base}\n\nThe song title MUST follow this exact format: [Poetic Song Name] — Summary of "[Book Title]" by [Author Name]. Generate a short evocative song name (3–5 words) first, then append the book attribution. Extract the book title and author from the user's transcript. Example: "Tiny Things, Big Change — Summary of \\"Atomic Habits\\" by James Clear". Do not omit the attribution.`;
   }
 
   return base;
