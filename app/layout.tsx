@@ -6,6 +6,7 @@ import SplashScreen from "@/app/components/SplashScreen";
 import { AudioProvider } from "@/app/contexts/AudioContext";
 import { GenerationProvider } from "@/app/contexts/GenerationContext";
 import MiniPlayer from "@/app/components/MiniPlayer";
+import FullScreenPlayer from "@/app/components/FullScreenPlayer";
 import GenerationBanner from "@/app/components/GenerationBanner";
 import PageFooter from "@/app/components/PageFooter";
 import { AmbientBackground } from "@/app/components/AmbientBackground";
@@ -70,6 +71,7 @@ export default function RootLayout({
             <GenerationBanner />
             {children}
             <MiniPlayer />
+            <FullScreenPlayer />
             {/* Spacer so fixed PageFooter never overlaps page content */}
             <div className="h-12 flex-shrink-0" aria-hidden="true" />
             <PageFooter />

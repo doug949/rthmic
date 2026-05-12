@@ -34,17 +34,10 @@ export default function Home() {
             label="Listen"
             description="Your generated Rthms and the curated collection."
             icon={<PlayIcon />}
+            blue
           />
         </RevealBlock>
         <RevealBlock delay={180}>
-          <ModeCard
-            href="/understand"
-            label="About RTHMIC"
-            description="What it is and when to use it"
-            icon={<InfoIcon />}
-          />
-        </RevealBlock>
-        <RevealBlock delay={240}>
           <ModeCard
             href="/settings"
             label="RTHMIC Styles"
@@ -52,12 +45,21 @@ export default function Home() {
             icon={<NoteIcon />}
           />
         </RevealBlock>
-        <RevealBlock delay={300}>
+        <RevealBlock delay={240}>
           <ModeCard
             href="/feedback"
             label="Share Feedback"
             description="Speak your thoughts directly to the team"
             icon={<BubbleIcon />}
+            subtle
+          />
+        </RevealBlock>
+        <RevealBlock delay={300}>
+          <ModeCard
+            href="/understand"
+            label="About RTHMIC"
+            description="What it is and when to use it"
+            icon={<InfoIcon />}
             subtle
           />
         </RevealBlock>
@@ -72,6 +74,7 @@ function ModeCard({
   description,
   icon,
   primary,
+  blue,
   subtle,
 }: {
   href: string;
@@ -79,36 +82,39 @@ function ModeCard({
   description: string;
   icon: React.ReactNode;
   primary?: boolean;
+  blue?: boolean;
   subtle?: boolean;
 }) {
+  const iconColor  = primary ? "#c9a55a" : blue ? "rgba(120,160,255,0.75)" : subtle ? "rgba(255,255,255,0.28)" : "rgba(255,255,255,0.45)";
+  const labelColor = primary ? "#c9a55a" : blue ? "rgba(140,175,255,0.92)" : subtle ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.9)";
+  const arrowColor = primary ? "rgba(201,165,90,0.4)" : blue ? "rgba(120,160,255,0.35)" : subtle ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.2)";
+
   return (
     <TransitionLink
       href={href}
       className={`
         flex items-center gap-5 px-6 rounded-2xl border transition-all duration-150
         active:scale-[0.98] touch-manipulation
-        ${primary ? "py-7" : subtle ? "py-4" : "py-7"}
-        ${primary ? "" : "bg-white/[0.03] border-white/[0.08] hover:bg-white/[0.07]"}
+        ${primary || blue ? "py-7" : subtle ? "py-4" : "py-7"}
+        ${primary || blue ? "" : "bg-white/[0.03] border-white/[0.08] hover:bg-white/[0.07]"}
       `}
-      style={primary ? { background: "rgba(201,165,90,0.08)", borderColor: "rgba(201,165,90,0.35)" } : {}}
+      style={
+        primary ? { background: "rgba(201,165,90,0.08)", borderColor: "rgba(201,165,90,0.35)" }
+        : blue   ? { background: "rgba(100,140,255,0.06)", borderColor: "rgba(120,160,255,0.28)" }
+        : {}
+      }
     >
-      <span
-        className="flex-shrink-0"
-        style={{ color: primary ? "#c9a55a" : subtle ? "rgba(255,255,255,0.28)" : "rgba(255,255,255,0.45)" }}
-        aria-hidden
-      >
-        {icon}
-      </span>
+      <span className="flex-shrink-0" style={{ color: iconColor }} aria-hidden>{icon}</span>
       <div className="flex-1 min-w-0">
         <p
           className={`font-semibold tracking-wide ${subtle ? "text-base" : "text-lg"}`}
-          style={{ color: primary ? "#c9a55a" : subtle ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.9)" }}
+          style={{ color: labelColor }}
         >
           {label}
         </p>
         <p className={`mt-0.5 leading-snug ${subtle ? "text-xs text-white/35" : "text-sm text-white/55"}`}>{description}</p>
       </div>
-      <span className="flex-shrink-0 text-lg" style={{ color: primary ? "rgba(201,165,90,0.4)" : subtle ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.2)" }}>›</span>
+      <span className="flex-shrink-0 text-lg" style={{ color: arrowColor }}>›</span>
     </TransitionLink>
   );
 }

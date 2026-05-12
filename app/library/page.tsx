@@ -12,20 +12,25 @@ import {
   RthmicLibraryIcon,
   RthmixIcon,
   ExploreAllIcon,
+  TagsIcon,
+  PillarsIcon,
 } from "./_components";
 
-export default function LibraryPage() {
-  const [rhythms, setRhythms] = useState<SavedRhythm[]>([]);
+export default function CatalogPage() {
+  const [rhythms, setRhythms]                 = useState<SavedRhythm[]>([]);
+  const [myRthmsOpen, setMyRthmsOpen]         = useState(false);
+  const [myFavouritesOpen, setMyFavouritesOpen] = useState(false);
+  const [rthmicLibraryOpen, setRthmicLibraryOpen] = useState(false);
+  const [rthmixAlbumsOpen, setRthmixAlbumsOpen]   = useState(false);
   useSwipeBack("/");
 
-  // Fetch counts — lightweight, non-blocking
   const fetchCounts = useCallback(async () => {
     try {
       const res = await fetch("/api/library");
       if (!res.ok) return;
       const data = await res.json();
       setRhythms(data.rhythms ?? []);
-    } catch { /* counts are optional */ }
+    } catch { /* counts optional */ }
   }, []);
 
   useEffect(() => { fetchCounts(); }, [fetchCounts]);
@@ -39,167 +44,205 @@ export default function LibraryPage() {
       style={{ animation: "page-enter 380ms ease forwards" }}
     >
       <RevealBlock delay={0}>
-        <AppHeader title="Library" />
+        <AppHeader title="Catalog" />
       </RevealBlock>
 
-      <section className="flex-1 flex flex-col gap-3 pb-16">
+      <section className="flex-1 flex flex-col gap-5 pb-16">
 
-        {/* My Rthms */}
-        <SectionTile
-          href="/library/my-rthms"
-          icon={<MyRthmsIcon />}
-          title="My Rthms"
-          description="Every Rthm you've made. Graduate the ones that stick."
-          count={myRthmsCount || undefined}
-        />
+        {/* ── My Rthms ─────────────────────────────────────────────────── */}
+        <div className="flex flex-col gap-2">
+          <SectionAccordionHeader
+            icon={<MyRthmsIcon />}
+            title="My Rthms"
+            description="Every Rthm you've made. Graduate the ones that stick."
+            count={myRthmsCount || undefined}
+            open={myRthmsOpen}
+            onToggle={() => setMyRthmsOpen((o) => !o)}
+          />
+          {myRthmsOpen && (
+            <div className="flex flex-col gap-2 pl-1">
+              <SubNavCard
+                href="/library/my-rthms"
+                icon={<MyRthmsIcon />}
+                label="All Rthms"
+                detail={myRthmsCount > 0 ? `${myRthmsCount} saved` : undefined}
+              />
+            </div>
+          )}
+        </div>
 
-        {/* My Favourites */}
-        <SectionTile
-          href="/library/my-favourites"
-          icon={<MyFavouritesIcon />}
-          title="My Favourites"
-          description="Your best Rthms. Browse by tag, pillar, or all at once."
-          count={favouritesCount || undefined}
-          gold
-        />
+        {/* ── My Favourites ─────────────────────────────────────────────── */}
+        <div className="flex flex-col gap-2">
+          <SectionAccordionHeader
+            icon={<MyFavouritesIcon />}
+            title="My Favourites"
+            description="Your best Rthms. Browse by tag, pillar, or all at once."
+            count={favouritesCount || undefined}
+            open={myFavouritesOpen}
+            onToggle={() => setMyFavouritesOpen((o) => !o)}
+            gold
+          />
+          {myFavouritesOpen && (
+            <div className="flex flex-col gap-2 pl-1">
+              <SubNavCard href="/library/my-favourites" icon={<ExploreAllIcon />}  label="Explore All" detail={favouritesCount > 0 ? `${favouritesCount} Rthms` : undefined} gold />
+              <SubNavCard href="/library/my-favourites" icon={<TagsIcon />}        label="Tags"        detail="Browse by tag"   gold />
+              <SubNavCard href="/library/my-favourites" icon={<PillarsIcon />}     label="Pillars"     detail="Browse by pillar" gold />
+            </div>
+          )}
+        </div>
 
-        {/* The RTHMIC Library */}
-        <SectionTile
-          href="/explore"
-          icon={<RthmicLibraryIcon />}
-          title="The RTHMIC Library"
-          description="Hand-curated Rthms from the RTHMIC team."
-          subsectionLabel="Explore"
-          subsectionIcon={<ExploreAllIcon />}
-        />
+        {/* ── The RTHMIC Library ────────────────────────────────────────── */}
+        <div className="flex flex-col gap-2">
+          <SectionAccordionHeader
+            icon={<RthmicLibraryIcon />}
+            title="The RTHMIC Library"
+            description="Hand-curated Rthms from the RTHMIC team."
+            open={rthmicLibraryOpen}
+            onToggle={() => setRthmicLibraryOpen((o) => !o)}
+          />
+          {rthmicLibraryOpen && (
+            <div className="flex flex-col gap-2 pl-1">
+              <SubNavCard href="/explore" icon={<ExploreAllIcon />} label="Explore" detail="20 hand-selected Rthms" />
+            </div>
+          )}
+        </div>
 
-        {/* Rthmix Albums */}
-        <SectionTile
-          icon={<RthmixIcon />}
-          title="Rthmix Albums"
-          description="Ordered Rthm sequences — coming soon."
-          dim
-        />
+        {/* ── Rthmix Albums ─────────────────────────────────────────────── */}
+        <div className="flex flex-col gap-2">
+          <SectionAccordionHeader
+            icon={<RthmixIcon />}
+            title="Rthmix Albums"
+            description="Ordered Rthm sequences — coming soon."
+            open={rthmixAlbumsOpen}
+            onToggle={() => setRthmixAlbumsOpen((o) => !o)}
+            dim
+          />
+          {rthmixAlbumsOpen && (
+            <div className="rounded-2xl border border-white/[0.05] bg-white/[0.015] px-5 py-5 ml-1">
+              <p className="text-xs text-white/35 leading-relaxed">
+                Albums let you build ordered playlists of Rthms — like a personal album. Coming soon.
+              </p>
+            </div>
+          )}
+        </div>
 
       </section>
     </main>
   );
 }
 
-// ─── Section tile ─────────────────────────────────────────────────────────────
+// ─── Section accordion header ─────────────────────────────────────────────────
 
-function SectionTile({
-  href,
+function SectionAccordionHeader({
   icon,
   title,
   description,
   count,
-  subsectionLabel,
-  subsectionIcon,
+  open,
+  onToggle,
   gold,
   dim,
 }: {
-  href?: string;
   icon: React.ReactNode;
   title: string;
   description?: string;
   count?: number;
-  subsectionLabel?: string;
-  subsectionIcon?: React.ReactNode;
+  open: boolean;
+  onToggle: () => void;
   gold?: boolean;
   dim?: boolean;
 }) {
-  const goldColor   = "rgba(201,165,90,0.85)";
-  const goldDim     = "rgba(201,165,90,0.45)";
-  const goldBg      = "rgba(201,165,90,0.08)";
-  const goldBorder  = "rgba(201,165,90,0.18)";
-  const goldIconBg  = "rgba(201,165,90,0.10)";
-  const goldIconBorder = "rgba(201,165,90,0.20)";
+  const goldColor = "rgba(201,165,90,0.85)";
+  const goldDim   = "rgba(201,165,90,0.45)";
 
-  const inner = (
-    <div
-      className={`rounded-2xl border flex flex-col overflow-hidden transition-all duration-150 ${!dim && href ? "active:scale-[0.985]" : ""}`}
-      style={
-        gold
-          ? { background: goldBg, borderColor: goldBorder }
-          : dim
-          ? { background: "rgba(255,255,255,0.015)", borderColor: "rgba(255,255,255,0.05)" }
-          : { background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.08)" }
-      }
+  return (
+    <button
+      onClick={onToggle}
+      className="flex items-center gap-4 touch-manipulation text-left w-full py-1"
     >
-      {/* Main row */}
-      <div className="flex items-center gap-4 px-5 py-5">
-        {/* Icon */}
-        <div
-          className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
-          style={
-            gold
-              ? { background: goldIconBg, border: `1px solid ${goldIconBorder}` }
-              : dim
-              ? { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }
-              : { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }
-          }
-        >
-          <span style={{ color: gold ? goldColor : dim ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.55)" }}>
-            {icon}
-          </span>
-        </div>
+      {/* Icon */}
+      <div
+        className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
+        style={
+          gold
+            ? { background: "rgba(201,165,90,0.09)", border: "1px solid rgba(201,165,90,0.18)" }
+            : dim
+            ? { background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.05)" }
+            : { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }
+        }
+      >
+        <span style={{ color: gold ? goldColor : dim ? "rgba(255,255,255,0.28)" : "rgba(255,255,255,0.55)" }}>
+          {icon}
+        </span>
+      </div>
 
-        {/* Text */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-baseline gap-2">
-            <p
-              className="text-base font-medium leading-snug"
-              style={{ color: gold ? goldColor : dim ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.85)", fontFamily: "var(--font-display)" }}
-            >
-              {title}
-            </p>
-            {count !== undefined && count > 0 && (
-              <span className="text-xs tabular-nums" style={{ color: gold ? goldDim : "rgba(255,255,255,0.35)" }}>
-                {count}
-              </span>
-            )}
-          </div>
-          {description && (
-            <p className="text-[11px] mt-0.5 leading-snug" style={{ color: gold ? "rgba(201,165,90,0.42)" : dim ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.38)" }}>
-              {description}
-            </p>
+      {/* Text */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline gap-2">
+          <h2
+            className="text-base font-medium leading-snug"
+            style={{ color: gold ? goldColor : dim ? "rgba(255,255,255,0.38)" : "rgba(255,255,255,0.88)", fontFamily: "var(--font-display)" }}
+          >
+            {title}
+          </h2>
+          {count !== undefined && count > 0 && (
+            <span className="text-xs tabular-nums" style={{ color: gold ? goldDim : "rgba(255,255,255,0.35)" }}>
+              {count}
+            </span>
           )}
         </div>
-
-        {/* Chevron — only when tappable */}
-        {href && !subsectionLabel && (
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="flex-shrink-0">
-            <path d="M5 3L11 8L5 13" stroke={gold ? goldDim : "rgba(255,255,255,0.28)"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+        {description && (
+          <p className="text-[11px] mt-0.5 leading-snug" style={{ color: gold ? "rgba(201,165,90,0.42)" : dim ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.38)" }}>
+            {description}
+          </p>
         )}
       </div>
 
-      {/* Optional subsection row (e.g. Explore for RTHMIC Library) */}
-      {subsectionLabel && href && (
-        <div
-          className="flex items-center gap-4 px-5 py-4 border-t"
-          style={{ borderColor: "rgba(255,255,255,0.06)" }}
-        >
-          <span className="text-white/35 flex-shrink-0">{subsectionIcon}</span>
-          <p className="text-sm font-medium text-white/65 flex-1">{subsectionLabel}</p>
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="flex-shrink-0">
-            <path d="M5 3L11 8L5 13" stroke="rgba(255,255,255,0.28)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </div>
-      )}
-    </div>
+      {/* Chevron */}
+      <svg
+        width="14" height="14" viewBox="0 0 16 16" fill="none"
+        className="flex-shrink-0 transition-transform duration-200"
+        style={{ color: gold ? goldDim : "rgba(255,255,255,0.28)", transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
+      >
+        <path d="M3 6L8 11L13 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </button>
   );
-
-  // Wrap in link only when navigable
-  if (href) {
-    return (
-      <TransitionLink href={href} className="block touch-manipulation">
-        {inner}
-      </TransitionLink>
-    );
-  }
-
-  return inner;
 }
 
+// ─── Sub-navigation card (opens a page) ──────────────────────────────────────
+
+function SubNavCard({
+  href,
+  icon,
+  label,
+  detail,
+  gold,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  label: string;
+  detail?: string;
+  gold?: boolean;
+}) {
+  return (
+    <TransitionLink
+      href={href}
+      className="flex items-center gap-4 px-5 py-4 rounded-2xl border touch-manipulation active:scale-[0.985] transition-all"
+      style={
+        gold
+          ? { background: "rgba(201,165,90,0.04)", borderColor: "rgba(201,165,90,0.14)" }
+          : { background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.07)" }
+      }
+    >
+      <span style={{ color: gold ? "rgba(201,165,90,0.6)" : "rgba(255,255,255,0.38)" }}>{icon}</span>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium leading-snug" style={{ color: gold ? "rgba(201,165,90,0.85)" : "rgba(255,255,255,0.75)" }}>{label}</p>
+        {detail && <p className="text-[11px] mt-0.5" style={{ color: gold ? "rgba(201,165,90,0.42)" : "rgba(255,255,255,0.38)" }}>{detail}</p>}
+      </div>
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className="flex-shrink-0">
+        <path d="M5 3L11 8L5 13" stroke={gold ? "rgba(201,165,90,0.4)" : "rgba(255,255,255,0.25)"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </TransitionLink>
+  );
+}

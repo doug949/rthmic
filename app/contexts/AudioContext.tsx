@@ -16,6 +16,10 @@ interface AudioContextValue {
   loadingId: string | null;
   currentTime: number;
   duration: number;
+  /** Full-screen player visibility */
+  playerOpen: boolean;
+  openPlayer: () => void;
+  closePlayer: () => void;
   /** Play a library track via signed URL fetch from /api/stream */
   handlePlay: (trackId: string, audioKey: string) => Promise<void>;
   /** Play any song via a direct audio URL (Suno-generated, share page, etc.) */
@@ -32,14 +36,18 @@ const AudioCtx = createContext<AudioContextValue | null>(null);
 
 export function AudioProvider({ children }: { children: ReactNode }) {
   const [currentTrackId, setCurrentTrackId] = useState<string | null>(null);
-  const [currentTitle, setCurrentTitle] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [loadingId, setLoadingId] = useState<string | null>(null);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+  const [currentTitle, setCurrentTitle]     = useState<string | null>(null);
+  const [isPlaying, setIsPlaying]           = useState(false);
+  const [loadingId, setLoadingId]           = useState<string | null>(null);
+  const [currentTime, setCurrentTime]       = useState(0);
+  const [duration, setDuration]             = useState(0);
+  const [playerOpen, setPlayerOpen]         = useState(false);
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioRef      = useRef<HTMLAudioElement | null>(null);
   const generationRef = useRef(0);
+
+  const openPlayer  = useCallback(() => setPlayerOpen(true),  []);
+  const closePlayer = useCallback(() => setPlayerOpen(false), []);
 
   const stopCurrent = useCallback(() => {
     if (audioRef.current) {
@@ -60,7 +68,6 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     setLoadingId(null);
   }, [stopCurrent]);
 
-  // Shared setup for any audio element after URL is resolved
   const attachAndPlay = useCallback(
     (id: string, url: string, generation: number) => {
       if (generation !== generationRef.current) return;
@@ -69,13 +76,9 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       const audio = new Audio(url);
       audioRef.current = audio;
 
-      audio.addEventListener("timeupdate", () => setCurrentTime(audio.currentTime));
-      audio.addEventListener("durationchange", () =>
-        setDuration(isFinite(audio.duration) ? audio.duration : 0)
-      );
-      audio.addEventListener("loadedmetadata", () =>
-        setDuration(isFinite(audio.duration) ? audio.duration : 0)
-      );
+      audio.addEventListener("timeupdate",     () => setCurrentTime(audio.currentTime));
+      audio.addEventListener("durationchange", () => setDuration(isFinite(audio.duration) ? audio.duration : 0));
+      audio.addEventListener("loadedmetadata", () => setDuration(isFinite(audio.duration) ? audio.duration : 0));
       audio.addEventListener("ended", () => {
         setIsPlaying(false);
         setCurrentTrackId(null);
@@ -83,11 +86,9 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         setDuration(0);
       });
 
-      // play() returns a promise — set isPlaying optimistically, revert on block
       const playPromise = audio.play();
       setIsPlaying(true);
       playPromise?.catch((err) => {
-        // Autoplay blocked (rare in PWA with user gesture, but handle gracefully)
         console.warn("Autoplay blocked:", err.message);
         setIsPlaying(false);
       });
@@ -105,6 +106,8 @@ export function AudioProvider({ children }: { children: ReactNode }) {
           audioRef.current?.play().catch(console.error);
           setIsPlaying(true);
         }
+        // Re-open player if it was dismissed
+        setPlayerOpen(true);
         return;
       }
 
@@ -113,6 +116,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       setLoadingId(trackId);
       setCurrentTrackId(trackId);
       setIsPlaying(false);
+      setPlayerOpen(true); // auto-open full-screen player
 
       const res = await fetch(`/api/stream?key=${encodeURIComponent(audioKey)}`);
       const { url } = await res.json();
@@ -132,6 +136,8 @@ export function AudioProvider({ children }: { children: ReactNode }) {
           audioRef.current?.play().catch(console.error);
           setIsPlaying(true);
         }
+        // Re-open player if dismissed
+        setPlayerOpen(true);
         return;
       }
 
@@ -141,6 +147,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       setCurrentTrackId(id);
       setCurrentTitle(title ?? null);
       setIsPlaying(false);
+      setPlayerOpen(true); // auto-open full-screen player
 
       attachAndPlay(id, url, generation);
     },
@@ -186,6 +193,9 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         loadingId,
         currentTime,
         duration,
+        playerOpen,
+        openPlayer,
+        closePlayer,
         handlePlay,
         handlePlayUrl,
         stop,
