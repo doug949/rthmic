@@ -170,13 +170,13 @@ export default function LibraryPage() {
 
               {loadState === "error" && (
                 <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5 py-6 text-center">
-                  <p className="text-sm text-white/40">Couldn't load library. Check your connection.</p>
+                  <p className="text-sm text-white/50">Couldn't load library. Check your connection.</p>
                 </div>
               )}
 
               {loadState === "ready" && active.length === 0 && (
                 <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5 py-8 flex flex-col items-center gap-3">
-                  <p className="text-sm text-white/40 text-center leading-relaxed">
+                  <p className="text-sm text-white/50 text-center leading-relaxed">
                     Rthms you generate will appear here.
                   </p>
                   <TransitionLink
@@ -211,7 +211,7 @@ export default function LibraryPage() {
                   {active.length > MY_RTHMS_PREVIEW && (
                     <button
                       onClick={() => setMyRthmsExpanded((e) => !e)}
-                      className="text-[10px] text-white/40 uppercase tracking-widest py-2 touch-manipulation hover:text-white/55 transition-colors"
+                      className="text-[10px] text-white/50 uppercase tracking-widest py-2 touch-manipulation hover:text-white/65 transition-colors"
                     >
                       {myRthmsExpanded ? "Show less ↑" : `+${active.length - MY_RTHMS_PREVIEW} more ↓`}
                     </button>
@@ -239,7 +239,7 @@ export default function LibraryPage() {
                 <p className="text-base font-semibold text-white/80 tracking-wide">Explore</p>
                 <p className="text-sm text-white/50 mt-0.5">20 hand-selected Rthms</p>
               </div>
-              <span className="text-white/35 text-lg flex-shrink-0">›</span>
+              <span className="text-white/50 text-lg flex-shrink-0">›</span>
             </TransitionLink>
           )}
         </div>
@@ -300,7 +300,7 @@ export default function LibraryPage() {
                       <div className="flex items-center gap-4 px-5 py-4">
                         <div className="flex-1 min-w-0">
                           <p className="text-sm text-white/50 truncate">{rhythm.title}</p>
-                          <p className="text-[10px] text-white/35 uppercase tracking-wider mt-0.5">
+                          <p className="text-[10px] text-white/50 uppercase tracking-wider mt-0.5">
                             {daysLeft} day{daysLeft !== 1 ? "s" : ""} left to restore
                           </p>
                         </div>
@@ -487,7 +487,7 @@ function LibraryGenrePicker({
           >
             {buildLabel}
           </button>
-          <button onClick={onClose} className="w-full py-3 text-white/40 text-sm tracking-wide touch-manipulation">
+          <button onClick={onClose} className="w-full py-3 text-white/50 text-sm tracking-wide touch-manipulation">
             Cancel
           </button>
         </div>
@@ -562,7 +562,7 @@ function RhythmRow({
           <div className="flex items-center gap-2 mt-0.5">
             <span className="text-[10px] text-white/50 uppercase tracking-wider">{rhythm.pillar}</span>
             {mayBeExpired && !playing && canPlay && (
-              <span className="text-[10px] text-white/40 uppercase tracking-wider">· may have expired</span>
+              <span className="text-[10px] text-white/50 uppercase tracking-wider">· may have expired</span>
             )}
           </div>
         </div>
@@ -743,7 +743,7 @@ function SectionHeader({
       className="flex items-baseline gap-2 touch-manipulation text-left w-full py-0.5"
     >
       <h2
-        className={`font-light tracking-wide ${dim ? "text-sm text-white/40 uppercase tracking-widest" : "text-lg text-white"}`}
+        className={`font-light tracking-wide ${dim ? "text-sm text-white/50 uppercase tracking-widest" : "text-lg text-white"}`}
         style={dim ? {} : { fontFamily: "var(--font-display)" }}
       >
         {title}

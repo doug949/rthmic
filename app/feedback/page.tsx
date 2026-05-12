@@ -175,7 +175,7 @@ export default function FeedbackPage() {
           <section className="flex-1 flex flex-col justify-between pb-12">
             <div className="flex flex-col gap-6 pt-4">
               <RevealBlock delay={0}>
-                <p className="text-[10px] tracking-widest uppercase text-white/40">Beta feedback</p>
+                <p className="text-[10px] tracking-widest uppercase text-white/50">Beta feedback</p>
               </RevealBlock>
               <RevealBlock delay={30}>
                 <h1 className="text-2xl font-light text-white leading-snug" style={{ fontFamily: "var(--font-display)" }}>
@@ -261,7 +261,7 @@ export default function FeedbackPage() {
           <section className="flex-1 flex flex-col justify-between pb-12">
             <div className="flex flex-col gap-5 pt-4">
               <RevealBlock delay={0}>
-                <p className="text-[10px] tracking-widest uppercase text-white/40">Review your feedback</p>
+                <p className="text-[10px] tracking-widest uppercase text-white/50">Review your feedback</p>
               </RevealBlock>
               <RevealBlock delay={30}>
                 <h1 className="text-2xl font-light text-white leading-snug" style={{ fontFamily: "var(--font-display)" }}>
@@ -279,7 +279,7 @@ export default function FeedbackPage() {
                   className="rounded-2xl px-5 py-5 flex flex-col gap-3"
                   style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}
                 >
-                  <p className="text-[10px] text-white/30 tracking-widest uppercase">Transcription</p>
+                  <p className="text-[10px] text-white/45 tracking-widest uppercase">Transcription</p>
                   <textarea
                     value={editedTranscript}
                     onChange={(e) => setEditedTranscript(e.target.value)}
@@ -288,11 +288,11 @@ export default function FeedbackPage() {
                     placeholder="Your transcribed feedback…"
                   />
                   <div className="flex items-center justify-between">
-                    <p className="text-[10px] text-white/25">{wordCount} {wordCount === 1 ? "word" : "words"}</p>
+                    <p className="text-[10px] text-white/45">{wordCount} {wordCount === 1 ? "word" : "words"}</p>
                     {editedTranscript !== transcript && (
                       <button
                         onClick={() => setEditedTranscript(transcript)}
-                        className="text-[10px] text-white/30 hover:text-white/50 transition-colors tracking-wide"
+                        className="text-[10px] text-white/45 hover:text-white/60 transition-colors tracking-wide"
                       >
                         Reset to original
                       </button>
@@ -316,7 +316,7 @@ export default function FeedbackPage() {
               <RevealBlock delay={180}>
                 <button
                   onClick={() => { setTranscript(""); setEditedTranscript(""); transitionTo("idle"); }}
-                  className="w-full py-3 text-white/40 text-sm tracking-wide touch-manipulation"
+                  className="w-full py-3 text-white/50 text-sm tracking-wide touch-manipulation"
                 >
                   Re-record instead
                 </button>
@@ -330,7 +330,7 @@ export default function FeedbackPage() {
           <section className="flex-1 flex flex-col justify-between pb-12">
             <div className="flex flex-col gap-6 pt-4">
               <RevealBlock delay={0}>
-                <p className="text-[10px] tracking-widest uppercase text-white/40">Sent</p>
+                <p className="text-[10px] tracking-widest uppercase text-white/50">Sent</p>
               </RevealBlock>
               <RevealBlock delay={30}>
                 <h1 className="text-2xl font-light text-white leading-snug" style={{ fontFamily: "var(--font-display)" }}>
@@ -354,7 +354,7 @@ export default function FeedbackPage() {
                 </button>
               </RevealBlock>
               <RevealBlock delay={150}>
-                <TransitionLink href="/" className="block w-full py-3 text-center text-white/40 text-sm tracking-wide touch-manipulation">
+                <TransitionLink href="/" className="block w-full py-3 text-center text-white/50 text-sm tracking-wide touch-manipulation">
                   Back to RTHMIC
                 </TransitionLink>
               </RevealBlock>

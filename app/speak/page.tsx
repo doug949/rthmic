@@ -876,7 +876,7 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
   const [openInfo, setOpenInfo] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
-  const [forYouOpen, setForYouOpen] = useState(true);
+  const [forYouOpen, setForYouOpen] = useState(false);
 
   useEffect(() => {
     const code = getSignedInCode();
@@ -894,23 +894,23 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
       <RevealBlock delay={0}>
         <div className="flex flex-col gap-1.5 pt-2 pb-5">
           <p className="text-xl font-light text-white/70 leading-snug" style={{ fontFamily: "var(--font-display)" }}>
-            What do you want to work on?
+            What do you want to create?
           </p>
         </div>
       </RevealBlock>
 
       <div className="flex flex-col gap-2">
-        {/* ── For You in the Moment — collapsible ── */}
+        {/* ── For You in the Moment — collapsible, starts collapsed ── */}
         <RevealBlock delay={0}>
           <button
             onClick={() => setForYouOpen((v) => !v)}
-            className="w-full flex items-center justify-between pb-1 touch-manipulation active:opacity-70 transition-opacity"
+            className="w-full flex items-center justify-between py-1 touch-manipulation active:opacity-70 transition-opacity"
           >
-            <p className="text-[10px] text-white/40 uppercase tracking-[0.3em]">For You in the Moment</p>
+            <p className="text-[10px] text-white/55 uppercase tracking-[0.3em]">For You in the Moment</p>
             <svg
               width="12" height="12" viewBox="0 0 12 12" fill="none"
               style={{
-                color: "rgba(255,255,255,0.25)",
+                color: "rgba(255,255,255,0.50)",
                 transform: forYouOpen ? "rotate(0deg)" : "rotate(-90deg)",
                 transition: "transform 220ms ease",
                 flexShrink: 0,
@@ -959,25 +959,10 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
           </div>
         </div>
 
-        {/* Let RTHMIC decide */}
-        <RevealBlock delay={PILLARS.length * 28 + 10}>
-          <button
-            onClick={() => onSelect("auto")}
-            className="w-full py-4 rounded-2xl text-sm font-medium tracking-wide text-center touch-manipulation active:scale-[0.98] transition-all"
-            style={{
-              background: "rgba(255,255,255,0.02)",
-              border: "1px dashed rgba(255,255,255,0.12)",
-              color: "rgba(255,255,255,0.35)",
-            }}
-          >
-            Let RTHMIC decide
-          </button>
-        </RevealBlock>
-
         {/* ── For someone else: Bridge + (admin-only) Invite ── */}
-        <RevealBlock delay={PILLARS.length * 28 + 24}>
+        <RevealBlock delay={PILLARS.length * 28 + 10}>
           <div className="mt-3 mb-1">
-            <p className="text-[10px] text-white/30 uppercase tracking-[0.3em]">For someone else</p>
+            <p className="text-[10px] text-white/55 uppercase tracking-[0.3em]">For someone else</p>
           </div>
         </RevealBlock>
 
@@ -1050,6 +1035,24 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
             })()}
           </RevealBlock>
         )}
+
+        {/* Let RTHMIC decide — at the bottom */}
+        <RevealBlock delay={PILLARS.length * 28 + 66}>
+          <div className="mt-4">
+            <button
+              onClick={() => onSelect("auto")}
+              className="w-full py-4 rounded-2xl text-sm font-medium tracking-wide text-center touch-manipulation active:scale-[0.98] transition-all"
+              style={{
+                background: "rgba(255,255,255,0.02)",
+                border: "1px dashed rgba(255,255,255,0.15)",
+                color: "rgba(255,255,255,0.50)",
+              }}
+            >
+              Let RTHMIC decide
+            </button>
+            <p className="text-center text-[10px] text-white/35 mt-2 tracking-widest uppercase">Beta</p>
+          </div>
+        </RevealBlock>
 
       </div>
 

@@ -482,7 +482,7 @@ export default function SettingsPage() {
             />
           </button>
         ))}
-        <span className="text-[10px] text-white/35 uppercase tracking-widest ml-auto">
+        <span className="text-[10px] text-white/50 uppercase tracking-widest ml-auto">
           {currentSlot + 1} of 4
         </span>
       </div>
@@ -580,7 +580,7 @@ export default function SettingsPage() {
                   <p className="text-base font-medium" style={{ color: s.transcript ? "rgba(255,255,255,0.75)" : "#c9a55a" }}>
                     {s.transcript ? "Tap to re-record" : "Your Rthm style – tap to speak"}
                   </p>
-                  <p className="text-xs text-white/40 mt-0.5">
+                  <p className="text-xs text-white/50 mt-0.5">
                     {s.transcript ? "Your words will be replaced" : "Describe the feel, energy, what it does to you"}
                   </p>
                 </>
@@ -591,7 +591,7 @@ export default function SettingsPage() {
           {/* Transcript preview */}
           {s.transcript && voicePhase === "idle" && (
             <div className="px-5 pb-4 border-t border-white/[0.05] pt-3">
-              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">What you said</p>
+              <p className="text-[10px] text-white/45 uppercase tracking-widest mb-1.5">What you said</p>
               <p className="text-sm text-white/50 leading-relaxed italic">&ldquo;{s.transcript}&rdquo;</p>
             </div>
           )}
@@ -607,7 +607,7 @@ export default function SettingsPage() {
             className="rounded-2xl border px-5 py-5"
             style={{ borderColor: "rgba(201,165,90,0.2)", background: "rgba(201,165,90,0.04)" }}
           >
-            <p className="text-[10px] text-white/40 uppercase tracking-widest mb-2">
+            <p className="text-[10px] text-white/50 uppercase tracking-widest mb-2">
               Your Current Rthm Style
             </p>
             <textarea
@@ -618,7 +618,7 @@ export default function SettingsPage() {
               style={{ color: "#c9a55a", fontFamily: "var(--font-display)" }}
               placeholder="Style description"
             />
-            <p className="text-[10px] text-white/25 mt-1 leading-relaxed">
+            <p className="text-[10px] text-white/45 mt-1 leading-relaxed">
               Adjust or redefine · this is what feeds the music engine
             </p>
           </div>
@@ -629,7 +629,7 @@ export default function SettingsPage() {
           <div>
             <button
               onClick={() => setShowAdvanced((v) => !v)}
-              className="flex items-center gap-2 text-[10px] text-white/30 uppercase tracking-widest touch-manipulation hover:text-white/50 transition-colors"
+              className="flex items-center gap-2 text-[10px] text-white/45 uppercase tracking-widest touch-manipulation hover:text-white/60 transition-colors"
             >
               <span>{showAdvanced ? "▾" : "▸"}</span>
               <span>Refine with artists</span>
@@ -637,7 +637,7 @@ export default function SettingsPage() {
 
             {showAdvanced && (
               <div className="mt-3">
-                <p className="text-xs text-white/40 mb-3 leading-relaxed">
+                <p className="text-xs text-white/50 mb-3 leading-relaxed">
                   These artists match your style. Select any, then tap &ldquo;Refine&rdquo; below to sharpen the result.
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -663,7 +663,7 @@ export default function SettingsPage() {
                 {s.selectedArtists.length > 0 && (
                   <button
                     onClick={() => updateSlot(currentSlot, { selectedArtists: [] })}
-                    className="mt-2 text-[10px] text-white/30 hover:text-white/50 transition-colors touch-manipulation"
+                    className="mt-2 text-[10px] text-white/45 hover:text-white/60 transition-colors touch-manipulation"
                   >
                     Clear selection
                   </button>
@@ -722,7 +722,7 @@ export default function SettingsPage() {
               <p className="text-sm font-medium" style={{ color: "rgba(201,165,90,0.6)" }}>
                 You&apos;re on the Pro plan
               </p>
-              <p className="text-xs text-white/35 mt-0.5">Unlimited Rthm Styles — create as many as you need</p>
+              <p className="text-xs text-white/50 mt-0.5">Unlimited Rthm Styles — create as many as you need</p>
             </div>
           </div>
         )}
