@@ -29,6 +29,7 @@ interface PillarDefinition {
   detail: string;        // fuller "what this is" shown in Learn More
   guidance: string;      // how to speak, shown in Learn More panel
   priming: PillarPriming; // full copy shown on Before You Speak screen
+  icon?: React.ReactNode; // small SVG icon shown on the tile
 }
 
 interface UnderstandResult {
@@ -667,6 +668,7 @@ const PILLARS: PillarDefinition[] = [
     slug: "memory",
     label: "Memory",
     tagline: "Imprint through association",
+    icon: <MemoryIcon />,
     detail: "Use this when you need to memorise something — a speech, a script, a sequence, a list of names, or any content you need to recall under real conditions. Rthmic encodes the information into a song using linked images, scenes, and sensory anchors so retrieval feels natural rather than effortful.",
     guidance: "Describe what you're trying to remember and where it's slipping. Name the specific items if you can — the more concrete, the better the Rthm.",
     priming: {
@@ -684,6 +686,7 @@ const PILLARS: PillarDefinition[] = [
     slug: "menus",
     label: "Menus",
     tagline: "Ambient selection of actions",
+    icon: <MenusIcon />,
     detail: "Use this when you have a list of tasks and need to move through them without pressure. Rthmic turns your to-do list into a gentle, ambient field of options — no obligation, no fixed order. You hear the possibilities and choose what calls to you. Works for morning routines, afternoon catch-ups, and winding down at night.",
     guidance: "Tell Rthmic your list of tasks or actions — as many as you like. Describe what you need to get through today, this morning, or tonight.",
     priming: {
@@ -701,6 +704,7 @@ const PILLARS: PillarDefinition[] = [
     slug: "mindset",
     label: "Mindset",
     tagline: "Preparation before events",
+    icon: <MindsetIcon />,
     detail: "Use this before something important — a presentation, a difficult conversation, a performance, a meeting, or any moment that requires you to show up at your best. Rthmic builds a calm upward trajectory that moves you from unsettled to ready, grounded rather than hyped.",
     guidance: "Describe what's coming and how you're feeling about it. Be specific about the moment you're preparing for — the more detail, the better.",
     priming: {
@@ -718,6 +722,7 @@ const PILLARS: PillarDefinition[] = [
     slug: "mode",
     label: "Mode",
     tagline: "In-the-moment rescue",
+    icon: <ModeIcon />,
     detail: "Use this when you're already inside a difficult state — overwhelm, freeze, anxiety, spiral, anger, or shutdown. Rthmic interrupts the pattern quickly, acknowledges exactly where you are, and guides you back to steady ground. It doesn't argue with how you feel. It meets you there.",
     guidance: "Describe exactly what you're feeling right now. Don't soften it — the more honestly you name the state, the better the song can meet you there.",
     priming: {
@@ -735,6 +740,7 @@ const PILLARS: PillarDefinition[] = [
     slug: "movement",
     label: "Movement",
     tagline: "Cut-through via rhythmic repetition",
+    icon: <MovementIcon />,
     detail: "Use this when you're stuck — not in emotional crisis, but in friction. The work isn't moving. You keep not starting, or you start and stall. Rthmic uses a steady rhythmic loop to carry you through the resistance. The groove does the work that willpower can't.",
     guidance: "Describe what you're trying to do and what's blocking you. Name the specific task or work — what keeps not starting, or where you keep stalling.",
     priming: {
@@ -752,6 +758,7 @@ const PILLARS: PillarDefinition[] = [
     slug: "understanding",
     label: "Understanding",
     tagline: "Onramps to clarity",
+    icon: <UnderstandingIcon />,
     detail: "Use this when you're trying to grasp something — a concept, a system, a skill, an idea — and it keeps slipping. Rthmic builds a simple mental model in song form, breaking the concept into its key parts with concrete examples. By the end you should be able to explain it simply.",
     guidance: "Describe the thing you're trying to understand. Tell Rthmic where it gets confusing or what feels just out of reach.",
     priming: {
@@ -769,6 +776,7 @@ const PILLARS: PillarDefinition[] = [
     slug: "journal",
     label: "Journal",
     tagline: "Speak your day. Keep it as a Rthm.",
+    icon: <JournalIcon />,
     detail: "Use this at the end of a day — or any time you want to capture a moment before it disappears. Speak what happened, how it felt, the small things you might forget. Rthmic turns it into a song you can keep. Play it back in six months and remember exactly what today felt like.",
     guidance: "Just talk. What happened today? Who did you speak to? What surprised you, frustrated you, made you laugh, or sat with you longer than expected? The mundane details are often the most valuable — those are what memory loses first.",
     priming: {
@@ -786,6 +794,7 @@ const PILLARS: PillarDefinition[] = [
     slug: "epiphany",
     label: "Epiphany",
     tagline: "Capture the idea before it slips",
+    icon: <EpiphanyIcon />,
     detail: "Use this when an idea, insight, or realisation just arrived and you don't want to lose it. Rthmic crystallises the thought in song form — the shape of it, what it changes, why it matters. The song becomes a container for the exact moment of understanding, so you can return to it with full fidelity.",
     guidance: "Describe the idea as clearly as you can — what you realised, what triggered it, what it changes. Say the version that surprised you, not the safe summary. The raw form of the thought is the most valuable input.",
     priming: {
@@ -803,6 +812,7 @@ const PILLARS: PillarDefinition[] = [
     slug: "explain",
     label: "Explain",
     tagline: "Make an idea land for someone else",
+    icon: <ExplainIcon />,
     detail: "Use this when you want to communicate something clearly — a concept, a workflow, a system, a feature — to someone who doesn't have it yet. RTHMIC builds a song structured around the idea itself: what it is, how it works, where it usually trips people up, and how it clicks. The listener finishes and thinks: I understand this now.",
     guidance: "Describe what you want to explain and who you're explaining it to. Include what usually confuses people about it, any examples or analogies that help, and what you want them to be able to do or say after they've understood it.",
     priming: {
@@ -877,6 +887,7 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
   const [modalVisible, setModalVisible] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [forYouOpen, setForYouOpen] = useState(false);
+  const [forSomeoneElseOpen, setForSomeoneElseOpen] = useState(false);
 
   useEffect(() => {
     const code = getSignedInCode();
@@ -904,9 +915,12 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
         <RevealBlock delay={0}>
           <button
             onClick={() => setForYouOpen((v) => !v)}
-            className="w-full flex items-center justify-between py-1 touch-manipulation active:opacity-70 transition-opacity"
+            className="w-full flex items-center justify-between py-2.5 touch-manipulation active:opacity-70 transition-opacity"
           >
-            <p className="text-[10px] text-white/55 uppercase tracking-[0.3em]">For You in the Moment</p>
+            <div className="flex items-center gap-2.5">
+              <span className="text-white/45"><ForYouIcon /></span>
+              <p className="text-sm font-medium text-white/80 tracking-wide">For you in the moment</p>
+            </div>
             <svg
               width="12" height="12" viewBox="0 0 12 12" fill="none"
               style={{
@@ -936,8 +950,11 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
                     <div className="flex items-stretch">
                       <button
                         onClick={() => onSelect(p.slug)}
-                        className="flex-1 flex items-center gap-3 pl-5 pr-3 py-4 text-left touch-manipulation active:bg-white/[0.05] transition-colors"
+                        className="flex-1 flex items-center gap-3.5 pl-5 pr-3 py-4 text-left touch-manipulation active:bg-white/[0.05] transition-colors"
                       >
+                        {p.icon && (
+                          <span className="flex-shrink-0 text-white/35">{p.icon}</span>
+                        )}
                         <div className="min-w-0">
                           <p className="text-base font-semibold text-white/80 tracking-wide">{p.label}</p>
                           <p className="text-xs text-white/50 mt-0.5">{p.tagline}</p>
@@ -959,82 +976,105 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
           </div>
         </div>
 
-        {/* ── For someone else: Bridge + (admin-only) Invite ── */}
+        {/* ── For Someone Else — collapsible, starts collapsed ── */}
         <RevealBlock delay={PILLARS.length * 28 + 10}>
-          <div className="mt-3 mb-1">
-            <p className="text-[10px] text-white/55 uppercase tracking-[0.3em]">For someone else</p>
-          </div>
+          <button
+            onClick={() => setForSomeoneElseOpen((v) => !v)}
+            className="w-full flex items-center justify-between py-2.5 mt-2 touch-manipulation active:opacity-70 transition-opacity"
+          >
+            <div className="flex items-center gap-2.5">
+              <span style={{ color: "rgba(201,165,90,0.65)" }}><ForSomeoneElseIcon /></span>
+              <p className="text-sm font-medium tracking-wide" style={{ color: "rgba(201,165,90,0.85)" }}>For someone else</p>
+            </div>
+            <svg
+              width="12" height="12" viewBox="0 0 12 12" fill="none"
+              style={{
+                color: "rgba(201,165,90,0.55)",
+                transform: forSomeoneElseOpen ? "rotate(0deg)" : "rotate(-90deg)",
+                transition: "transform 220ms ease",
+                flexShrink: 0,
+              }}
+            >
+              <path d="M2 4L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
         </RevealBlock>
 
-        {/* Bridge */}
-        <RevealBlock delay={PILLARS.length * 28 + 38}>
-          {(() => {
-            const p = BRIDGE_PILLAR;
-            return (
-              <div className="rounded-2xl overflow-hidden"
-                style={{ border: "1px solid rgba(201,165,90,0.18)", background: "rgba(201,165,90,0.03)" }}>
-                <div className="flex items-stretch">
-                  <button
-                    onClick={() => openModal(p.slug)}
-                    className="flex-1 flex items-center gap-4 pl-5 pr-3 py-4 text-left touch-manipulation active:bg-white/[0.05] transition-colors"
-                  >
-                    <span className="flex-shrink-0" style={{ color: "rgba(201,165,90,0.65)" }} aria-hidden>
-                      <BridgeIcon />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-base font-semibold tracking-wide" style={{ color: "rgba(201,165,90,0.85)" }}>{p.label}</p>
-                      <p className="text-xs text-white/45 mt-0.5">{p.tagline}</p>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateRows: forSomeoneElseOpen ? "1fr" : "0fr",
+            transition: "grid-template-rows 260ms ease",
+          }}
+        >
+          <div style={{ overflow: "hidden" }}>
+            <div className="flex flex-col gap-2 pb-1">
+              {/* Bridge */}
+              {(() => {
+                const p = BRIDGE_PILLAR;
+                return (
+                  <div className="rounded-2xl overflow-hidden"
+                    style={{ border: "1px solid rgba(201,165,90,0.18)", background: "rgba(201,165,90,0.03)" }}>
+                    <div className="flex items-stretch">
+                      <button
+                        onClick={() => openModal(p.slug)}
+                        className="flex-1 flex items-center gap-4 pl-5 pr-3 py-4 text-left touch-manipulation active:bg-white/[0.05] transition-colors"
+                      >
+                        <span className="flex-shrink-0" style={{ color: "rgba(201,165,90,0.65)" }} aria-hidden>
+                          <BridgeIcon />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-base font-semibold tracking-wide" style={{ color: "rgba(201,165,90,0.85)" }}>{p.label}</p>
+                          <p className="text-xs text-white/45 mt-0.5">{p.tagline}</p>
+                        </div>
+                      </button>
+                      <div className="w-px self-stretch my-3" style={{ background: "rgba(201,165,90,0.12)" }} />
+                      <button
+                        onClick={() => openModal(p.slug)}
+                        className="flex items-center justify-center w-14 touch-manipulation active:bg-white/[0.04] transition-colors"
+                        aria-label="Learn more"
+                      >
+                        <InfoIcon gold />
+                      </button>
                     </div>
-                  </button>
-                  <div className="w-px self-stretch my-3" style={{ background: "rgba(201,165,90,0.12)" }} />
-                  <button
-                    onClick={() => openModal(p.slug)}
-                    className="flex items-center justify-center w-14 touch-manipulation active:bg-white/[0.04] transition-colors"
-                    aria-label="Learn more"
-                  >
-                    <InfoIcon gold />
-                  </button>
-                </div>
-              </div>
-            );
-          })()}
-        </RevealBlock>
-
-        {/* Invite — admin only */}
-        {showInvite && (
-          <RevealBlock delay={PILLARS.length * 28 + 52}>
-            {(() => {
-              const p = INVITE_PILLAR;
-              return (
-                <div className="rounded-2xl overflow-hidden"
-                  style={{ border: "1px solid rgba(120,160,255,0.22)", background: "rgba(120,160,255,0.03)" }}>
-                  <div className="flex items-stretch">
-                    <button
-                      onClick={() => openModal(p.slug)}
-                      className="flex-1 flex items-center gap-4 pl-5 pr-3 py-4 text-left touch-manipulation active:bg-white/[0.05] transition-colors"
-                    >
-                      <span className="flex-shrink-0" style={{ color: "rgba(120,160,255,0.7)" }} aria-hidden>
-                        <InviteIcon />
-                      </span>
-                      <div className="min-w-0">
-                        <p className="text-base font-semibold tracking-wide" style={{ color: "rgba(140,175,255,0.9)" }}>{p.label}</p>
-                        <p className="text-xs text-white/45 mt-0.5">{p.tagline}</p>
-                      </div>
-                    </button>
-                    <div className="w-px self-stretch my-3" style={{ background: "rgba(120,160,255,0.12)" }} />
-                    <button
-                      onClick={() => openModal(p.slug)}
-                      className="flex items-center justify-center w-14 touch-manipulation active:bg-white/[0.04] transition-colors"
-                      aria-label="Learn more"
-                    >
-                      <InfoIcon />
-                    </button>
                   </div>
-                </div>
-              );
-            })()}
-          </RevealBlock>
-        )}
+                );
+              })()}
+
+              {/* Invite — admin only */}
+              {showInvite && (() => {
+                const p = INVITE_PILLAR;
+                return (
+                  <div className="rounded-2xl overflow-hidden"
+                    style={{ border: "1px solid rgba(120,160,255,0.22)", background: "rgba(120,160,255,0.03)" }}>
+                    <div className="flex items-stretch">
+                      <button
+                        onClick={() => openModal(p.slug)}
+                        className="flex-1 flex items-center gap-4 pl-5 pr-3 py-4 text-left touch-manipulation active:bg-white/[0.05] transition-colors"
+                      >
+                        <span className="flex-shrink-0" style={{ color: "rgba(120,160,255,0.7)" }} aria-hidden>
+                          <InviteIcon />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-base font-semibold tracking-wide" style={{ color: "rgba(140,175,255,0.9)" }}>{p.label}</p>
+                          <p className="text-xs text-white/45 mt-0.5">{p.tagline}</p>
+                        </div>
+                      </button>
+                      <div className="w-px self-stretch my-3" style={{ background: "rgba(120,160,255,0.12)" }} />
+                      <button
+                        onClick={() => openModal(p.slug)}
+                        className="flex items-center justify-center w-14 touch-manipulation active:bg-white/[0.04] transition-colors"
+                        aria-label="Learn more"
+                      >
+                        <InfoIcon />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
 
         {/* Let RTHMIC decide — at the bottom */}
         <RevealBlock delay={PILLARS.length * 28 + 66}>
@@ -2451,6 +2491,125 @@ function InfoIcon({ gold }: { gold?: boolean }) {
       <circle cx="10" cy="10" r="8.5" stroke="currentColor" strokeWidth="1.4" />
       <line x1="10" y1="9" x2="10" y2="14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
       <circle cx="10" cy="6.5" r="0.9" fill="currentColor" />
+    </svg>
+  );
+}
+
+// ─── Section header icons ─────────────────────────────────────────────────────
+
+function ForYouIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      {/* Person silhouette */}
+      <circle cx="12" cy="7" r="3.5" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M5 20c0-3.87 3.13-7 7-7s7 3.13 7 7" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ForSomeoneElseIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      {/* Two people */}
+      <circle cx="9" cy="7" r="3" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M2 20c0-3.31 3.13-6 7-6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <circle cx="17" cy="7" r="3" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M15 14c3.87 0 7 2.69 7 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// ─── Pillar tile icons ────────────────────────────────────────────────────────
+
+function MemoryIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      {/* Concentric rings — memory imprint */}
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+    </svg>
+  );
+}
+
+function MenusIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      {/* Dot-and-line list */}
+      <circle cx="5" cy="7" r="1.3" fill="currentColor" />
+      <line x1="9" y1="7" x2="19" y2="7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <circle cx="5" cy="12" r="1.3" fill="currentColor" />
+      <line x1="9" y1="12" x2="19" y2="12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <circle cx="5" cy="17" r="1.3" fill="currentColor" />
+      <line x1="9" y1="17" x2="15" y2="17" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function MindsetIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      {/* Mountain peak — preparation, upward */}
+      <path d="M3 19L9 8L13.5 14L17 10L21 19" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ModeIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      {/* Lightning bolt — interrupt and rescue */}
+      <path d="M13 2L4 14h8l-1 8 9-12h-8l1-8z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    </svg>
+  );
+}
+
+function MovementIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      {/* Double forward chevron — unstuck, momentum */}
+      <path d="M5 8L11 12L5 16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M13 8L19 12L13 16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function UnderstandingIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      {/* Magnifying glass — finding clarity */}
+      <circle cx="10.5" cy="10.5" r="6" stroke="currentColor" strokeWidth="1.7" />
+      <line x1="15.5" y1="15.5" x2="20" y2="20" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function JournalIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      {/* Open book */}
+      <path d="M12 20V6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M4 5C4 5 8 6 12 6C16 6 20 5 20 5V19C20 19 16 18 12 18C8 18 4 19 4 19V5Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function EpiphanyIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      {/* Spark — sudden insight */}
+      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ExplainIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      {/* Speech bubble with text lines */}
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" fill="none" />
+      <line x1="8" y1="9" x2="16" y2="9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="8" y1="13" x2="13" y2="13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
     </svg>
   );
 }
