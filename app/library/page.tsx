@@ -84,9 +84,9 @@ export default function CatalogPage() {
           />
           {myFavouritesOpen && (
             <div className="flex flex-col gap-2 pl-1">
-              <SubNavCard href="/library/my-favourites" icon={<ExploreAllIcon />}  label="Explore All" detail={favouritesCount > 0 ? `${favouritesCount} Rthms` : undefined} gold />
-              <SubNavCard href="/library/my-favourites" icon={<TagsIcon />}        label="Tags"        detail="Browse by tag"   gold />
-              <SubNavCard href="/library/my-favourites" icon={<PillarsIcon />}     label="Pillars"     detail="Browse by pillar" gold />
+              <SubNavCard href="/library/my-favourites?open=explore" icon={<ExploreAllIcon />}  label="Explore All" detail={favouritesCount > 0 ? `${favouritesCount} Rthms` : undefined} gold />
+              <SubNavCard href="/library/my-favourites?open=tags"    icon={<TagsIcon />}        label="Tags"        detail="Browse by tag"   gold />
+              <SubNavCard href="/library/my-favourites?open=pillars" icon={<PillarsIcon />}     label="Pillars"     detail="Browse by pillar" gold />
             </div>
           )}
         </div>

@@ -18,8 +18,7 @@ export default function FullScreenPlayer() {
     currentTrackId, currentTitle, isPlaying,
     currentTime, duration,
     playerOpen, closePlayer, stop,
-    restart, seek, skip,
-    handlePlayUrl,
+    togglePlayPause, restart, seek, skip,
   } = useAudio();
   const { startGeneration } = useGeneration();
 
@@ -30,9 +29,9 @@ export default function FullScreenPlayer() {
   const [tagInput, setTagInput]       = useState("");
   const [recreateOpen, setRecreateOpen] = useState(false);
 
-  // ── Fetch rhythm from library whenever track or player opens ──────────────
+  // ── Fetch rhythm once per track (persists across player open/close) ───────
   useEffect(() => {
-    if (!playerOpen || !currentTrackId) return;
+    if (!currentTrackId) { setRhythm(null); return; }
     let cancelled = false;
     fetch("/api/library")
       .then((r) => r.json())
@@ -45,7 +44,7 @@ export default function FullScreenPlayer() {
       })
       .catch(() => {});
     return () => { cancelled = true; };
-  }, [playerOpen, currentTrackId]);
+  }, [currentTrackId]); // intentionally NOT including playerOpen
 
   // Reset transient state when track changes
   useEffect(() => {
@@ -121,12 +120,7 @@ export default function FullScreenPlayer() {
     }
   };
 
-  const handleTogglePlay = () => {
-    if (!rhythm?.audioUrl && !currentTrackId) return;
-    if (rhythm?.audioUrl) {
-      handlePlayUrl(rhythm.id, rhythm.audioUrl, rhythm.title);
-    }
-  };
+  const handleTogglePlay = () => togglePlayPause();
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   const fmt = (s: number) => {
@@ -265,10 +259,10 @@ export default function FullScreenPlayer() {
             <ActionBtn onClick={() => setRecreateOpen(true)} icon="↺" label="Recreate" />
             <ActionBtn onClick={() => setTagEditOpen((v) => !v)} icon="⌗" label="Tags" sublabel={tags.length > 0 ? `${tags.length}` : undefined} active={tagEditOpen} />
             {rhythm.status === "active" && (
-              <ActionBtn onClick={handleGraduate} icon="★" label="Graduate" gold />
+              <ActionBtn onClick={handleGraduate} icon="★" label="Favourite" gold />
             )}
             {rhythm.status === "favourite" && (
-              <ActionBtn onClick={handleUngraduate} icon="↓" label="Move back" />
+              <ActionBtn onClick={handleUngraduate} icon="★" label="Unfavourite" />
             )}
             <ActionBtn onClick={handleArchive} icon="⊙" label={rhythm.status === "archived" ? "Restore" : "Archive"} />
             <ActionBtn

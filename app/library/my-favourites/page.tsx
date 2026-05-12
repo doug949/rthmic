@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { AppHeader } from "@/app/components/AppHeader";
 import { RevealBlock } from "@/app/components/RevealBlock";
 import { useSwipeBack } from "@/app/hooks/useSwipeBack";
@@ -30,10 +31,13 @@ export default function MyFavouritesPage() {
   const [shareToastId, setShareToastId]       = useState<string | null>(null);
   const [recreateRhythm, setRecreateRhythm]   = useState<SavedRhythm | null>(null);
 
-  // Subsection state
-  const [favExploreOpen, setFavExploreOpen]   = useState(false);
-  const [favTagsOpen, setFavTagsOpen]         = useState(false);
-  const [favPillarsOpen, setFavPillarsOpen]   = useState(false);
+  const searchParams = useSearchParams();
+  const openParam    = searchParams.get("open"); // "explore" | "tags" | "pillars"
+
+  // Subsection state — pre-open the section specified by the ?open= param
+  const [favExploreOpen, setFavExploreOpen]   = useState(openParam === "explore" || !openParam);
+  const [favTagsOpen, setFavTagsOpen]         = useState(openParam === "tags");
+  const [favPillarsOpen, setFavPillarsOpen]   = useState(openParam === "pillars");
   const [selectedFavTag, setSelectedFavTag]     = useState<string | null>(null);
   const [selectedFavPillar, setSelectedFavPillar] = useState<string | null>(null);
 

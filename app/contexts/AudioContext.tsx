@@ -24,6 +24,8 @@ interface AudioContextValue {
   handlePlay: (trackId: string, audioKey: string) => Promise<void>;
   /** Play any song via a direct audio URL (Suno-generated, share page, etc.) */
   handlePlayUrl: (id: string, url: string, title?: string) => Promise<void>;
+  /** Toggle play/pause for the currently loaded track (no URL needed) */
+  togglePlayPause: () => void;
   /** Stop playback and clear state */
   stop: () => void;
   restart: () => void;
@@ -154,6 +156,17 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     [currentTrackId, isPlaying, stopCurrent, attachAndPlay]
   );
 
+  const togglePlayPause = useCallback(() => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play().catch(console.error);
+      setIsPlaying(true);
+    }
+  }, [isPlaying]);
+
   const restart = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.currentTime = 0;
@@ -196,6 +209,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         playerOpen,
         openPlayer,
         closePlayer,
+        togglePlayPause,
         handlePlay,
         handlePlayUrl,
         stop,

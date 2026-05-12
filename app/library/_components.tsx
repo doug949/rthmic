@@ -180,10 +180,10 @@ export function RhythmRow({
           <SmallBtn onClick={() => setTagEditOpen((v) => !v)} label="Tags" sublabel={tags.length > 0 ? `${tags.length} tag${tags.length > 1 ? "s" : ""}` : "Add tag"} icon="⌗" active={tagEditOpen} />
         )}
         {onGraduate && (
-          <SmallBtn onClick={onGraduate} label="Graduate" sublabel="To Favourites" icon="★" gold />
+          <SmallBtn onClick={onGraduate} label="Favourite" sublabel="Add to Favs" icon="★" gold />
         )}
         {onUngraduate && (
-          <SmallBtn onClick={onUngraduate} label="Move back" sublabel="To My Rthms" icon="↓" />
+          <SmallBtn onClick={onUngraduate} label="Unfavourite" sublabel="Remove" icon="★" />
         )}
         <SmallBtn
           onClick={onArchive}
