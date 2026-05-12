@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { AppHeader } from "@/app/components/AppHeader";
 import { RevealBlock } from "@/app/components/RevealBlock";
@@ -24,6 +24,14 @@ function inferStyle(pillar: string): "A" | "B" {
 }
 
 export default function MyFavouritesPage() {
+  return (
+    <Suspense fallback={<div className="relative z-10 min-h-screen flex items-center justify-center"><div className="w-6 h-6 rounded-full border-2 border-white/15 border-t-white/40 animate-spin" /></div>}>
+      <MyFavouritesInner />
+    </Suspense>
+  );
+}
+
+function MyFavouritesInner() {
   const [rhythms, setRhythms]     = useState<SavedRhythm[]>([]);
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [showLyricsId, setShowLyricsId]     = useState<string | null>(null);
