@@ -67,6 +67,8 @@ export default function FullScreenPlayer() {
       setRhythm(
         (data.rhythms ?? []).find((r: SavedRhythm) => r.id === currentTrackId) ?? null
       );
+      // Notify list pages so they re-fetch and show fresh data (e.g. new tags)
+      window.dispatchEvent(new CustomEvent("library-mutated"));
     },
     [currentTrackId]
   );

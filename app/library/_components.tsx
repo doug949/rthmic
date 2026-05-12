@@ -461,3 +461,13 @@ export function RthmixIcon() {
     </svg>
   );
 }
+
+export function ArchiveIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+      <rect x="2" y="4" width="16" height="3.5" rx="1" fill="currentColor" opacity="0.45" />
+      <path d="M3 7.5h14v8.5a1 1 0 01-1 1H4a1 1 0 01-1-1V7.5z" fill="currentColor" opacity="0.3" />
+      <path d="M7 12h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}

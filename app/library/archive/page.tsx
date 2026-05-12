@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useSearchParams } from "next/navigation";
 import { AppHeader } from "@/app/components/AppHeader";
 import { RevealBlock } from "@/app/components/RevealBlock";
 import { useSwipeBack } from "@/app/hooks/useSwipeBack";
@@ -9,13 +8,7 @@ import { useGeneration } from "@/app/contexts/GenerationContext";
 import { useAudio } from "@/app/contexts/AudioContext";
 import CustomStyleInput from "@/app/components/CustomStyleInput";
 import type { SavedRhythm } from "@/app/api/library/route";
-import {
-  RhythmRow,
-  SubsectionCard,
-  ExploreAllIcon,
-  TagsIcon,
-  PillarsIcon,
-} from "../_components";
+import { RhythmRow } from "../_components";
 
 type LoadState = "loading" | "ready" | "error";
 
@@ -23,23 +16,13 @@ function inferStyle(pillar: string): "A" | "B" {
   return (pillar || "").toLowerCase() === "movement" ? "A" : "B";
 }
 
-export default function MyFavouritesPage() {
-  const [rhythms, setRhythms]     = useState<SavedRhythm[]>([]);
-  const [loadState, setLoadState] = useState<LoadState>("loading");
-  const [showLyricsId, setShowLyricsId]     = useState<string | null>(null);
+export default function ArchivePage() {
+  const [rhythms, setRhythms]         = useState<SavedRhythm[]>([]);
+  const [loadState, setLoadState]     = useState<LoadState>("loading");
+  const [showLyricsId, setShowLyricsId]       = useState<string | null>(null);
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const [shareToastId, setShareToastId]       = useState<string | null>(null);
   const [recreateRhythm, setRecreateRhythm]   = useState<SavedRhythm | null>(null);
-
-  const searchParams = useSearchParams();
-  const openParam    = searchParams.get("open"); // "explore" | "tags" | "pillars"
-
-  // Subsection state — pre-open the section specified by the ?open= param
-  const [favExploreOpen, setFavExploreOpen]   = useState(openParam === "explore" || !openParam);
-  const [favTagsOpen, setFavTagsOpen]         = useState(openParam === "tags");
-  const [favPillarsOpen, setFavPillarsOpen]   = useState(openParam === "pillars");
-  const [selectedFavTag, setSelectedFavTag]     = useState<string | null>(null);
-  const [selectedFavPillar, setSelectedFavPillar] = useState<string | null>(null);
 
   const { currentTrackId, isPlaying, currentTime, duration, handlePlayUrl } = useAudio();
   const { startGeneration } = useGeneration();
@@ -59,6 +42,7 @@ export default function MyFavouritesPage() {
 
   useEffect(() => {
     fetchLibrary();
+    // Refresh when another part of the app mutates the library
     const onMutated = () => fetchLibrary();
     window.addEventListener("library-mutated", onMutated);
     return () => window.removeEventListener("library-mutated", onMutated);
@@ -74,13 +58,7 @@ export default function MyFavouritesPage() {
     window.dispatchEvent(new CustomEvent("library-mutated"));
   }, [fetchLibrary]);
 
-  const favourites = rhythms.filter((r) => r.status === "favourite");
-
-  const allFavTags    = [...new Set(favourites.flatMap((r) => r.tags ?? []))].sort();
-  const allFavPillars = [...new Set(favourites.map((r) => r.pillar))].sort();
-
-  const filteredByTag    = selectedFavTag    !== null ? favourites.filter((r) => r.tags?.includes(selectedFavTag as string))    : favourites;
-  const filteredByPillar = selectedFavPillar !== null ? favourites.filter((r) => r.pillar === selectedFavPillar) : favourites;
+  const archived = rhythms.filter((r) => r.status === "archived");
 
   const handleRemove = (id: string) => {
     if (confirmRemoveId === id) {
@@ -92,11 +70,9 @@ export default function MyFavouritesPage() {
     }
   };
 
-  const handleArchive = (rhythm: SavedRhythm) =>
-    mutate({ action: "update", id: rhythm.id, status: rhythm.status === "archived" ? "active" : "archived" });
-
-  const handleUngraduate = (id: string) =>
-    mutate({ action: "update", id, status: "active" });
+  // Restore an archived rhythm back to active
+  const handleRestore = (rhythm: SavedRhythm) =>
+    mutate({ action: "update", id: rhythm.id, status: "active" });
 
   const handleTag = (id: string, tags: string[]) =>
     mutate({ action: "update", id, tags });
@@ -139,150 +115,64 @@ export default function MyFavouritesPage() {
     setRecreateRhythm(null);
   };
 
-  // Shared row props builder
-  const rowProps = (rhythm: SavedRhythm) => ({
-    rhythm,
-    playing: currentTrackId === rhythm.id && isPlaying,
-    currentTime: currentTrackId === rhythm.id ? currentTime : 0,
-    duration: currentTrackId === rhythm.id ? duration : 0,
-    showLyrics: showLyricsId === rhythm.id,
-    onToggleLyrics: () => setShowLyricsId(showLyricsId === rhythm.id ? null : rhythm.id),
-    onPlay: () => togglePlay(rhythm),
-    onUngraduate: () => handleUngraduate(rhythm.id),
-    onArchive: () => handleArchive(rhythm),
-    onRemove: () => handleRemove(rhythm.id),
-    onRecreate: () => setRecreateRhythm(rhythm),
-    onShare: () => handleShare(rhythm),
-    onTag: (tags: string[]) => handleTag(rhythm.id, tags),
-    confirmingRemove: confirmRemoveId === rhythm.id,
-    shareToast: shareToastId === rhythm.id,
-    favourite: true as const,
-  });
-
   return (
     <main
       className="relative z-10 min-h-screen flex flex-col px-6 pt-safe"
       style={{ animation: "page-enter 380ms ease forwards" }}
     >
       <RevealBlock delay={0}>
-        <AppHeader title="My Favourites" />
+        <AppHeader title="The Archive" />
       </RevealBlock>
 
-      <section className="flex-1 flex flex-col gap-3 pb-16">
+      <section className="flex-1 flex flex-col gap-2 pb-16">
 
-        {/* Loading / error */}
         {loadState === "loading" && (
           <div className="flex justify-center py-16">
             <div className="w-6 h-6 rounded-full border-2 border-white/15 border-t-white/40 animate-spin" />
           </div>
         )}
+
         {loadState === "error" && (
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5 py-6 text-center">
-            <p className="text-sm text-white/50">Couldn't load library. Check your connection.</p>
+            <p className="text-sm text-white/50">Couldn't load archive. Check your connection.</p>
           </div>
         )}
 
-        {loadState === "ready" && favourites.length === 0 && (
-          <div
-            className="rounded-2xl px-5 py-12 flex flex-col items-center gap-3 text-center"
-            style={{ border: "1px solid rgba(201,165,90,0.12)", background: "rgba(201,165,90,0.03)" }}
-          >
-            <p className="text-sm leading-relaxed" style={{ color: "rgba(201,165,90,0.5)" }}>
-              Graduate a Rthm to add it here.
+        {loadState === "ready" && archived.length === 0 && (
+          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5 py-12 flex flex-col items-center gap-3 text-center">
+            <p className="text-sm text-white/40 leading-relaxed">
+              Nothing archived yet.
             </p>
-            <p className="text-xs" style={{ color: "rgba(201,165,90,0.35)" }}>
-              Tap ★ on any Rthm in My Rthms to graduate it.
+            <p className="text-xs text-white/30 leading-relaxed">
+              Tap ⊙ Archive on any Rthm to keep it but hide it everywhere else.
             </p>
           </div>
         )}
 
-        {loadState === "ready" && favourites.length > 0 && (
+        {loadState === "ready" && archived.length > 0 && (
           <>
-            {/* Explore All */}
-            <SubsectionCard
-              icon={<ExploreAllIcon />}
-              title="Explore All"
-              description={`${favourites.length} Rthm${favourites.length !== 1 ? "s" : ""}`}
-              open={favExploreOpen}
-              onToggle={() => setFavExploreOpen((o) => !o)}
-            >
-              <div className="flex flex-col gap-2 pt-2">
-                {favourites.map((rhythm) => (
-                  <RhythmRow key={rhythm.id} {...rowProps(rhythm)} />
-                ))}
-              </div>
-            </SubsectionCard>
-
-            {/* Tags */}
-            <SubsectionCard
-              icon={<TagsIcon />}
-              title="Tags"
-              description={allFavTags.length > 0 ? `${allFavTags.length} tag${allFavTags.length !== 1 ? "s" : ""}` : "No tags yet"}
-              open={favTagsOpen}
-              onToggle={() => setFavTagsOpen((o) => !o)}
-              disabled={allFavTags.length === 0}
-            >
-              <div className="flex flex-col gap-3 pt-2">
-                <div className="flex flex-wrap gap-2">
-                  {allFavTags.map((tag) => (
-                    <button
-                      key={tag}
-                      onClick={() => setSelectedFavTag(selectedFavTag === tag ? null : tag)}
-                      className="text-[11px] px-3 py-1.5 rounded-full touch-manipulation transition-all"
-                      style={
-                        selectedFavTag === tag
-                          ? { background: "rgba(201,165,90,0.2)", color: "rgba(201,165,90,0.9)", border: "1px solid rgba(201,165,90,0.4)" }
-                          : { background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.6)", border: "1px solid rgba(255,255,255,0.08)" }
-                      }
-                    >
-                      {tag}
-                    </button>
-                  ))}
-                </div>
-                {selectedFavTag && (
-                  <div className="flex flex-col gap-2">
-                    {filteredByTag.map((rhythm) => (
-                      <RhythmRow key={rhythm.id} {...rowProps(rhythm)} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </SubsectionCard>
-
-            {/* Pillars */}
-            <SubsectionCard
-              icon={<PillarsIcon />}
-              title="Pillars"
-              description={`${allFavPillars.length} pillar${allFavPillars.length !== 1 ? "s" : ""}`}
-              open={favPillarsOpen}
-              onToggle={() => setFavPillarsOpen((o) => !o)}
-            >
-              <div className="flex flex-col gap-3 pt-2">
-                <div className="flex flex-wrap gap-2">
-                  {allFavPillars.map((pillar) => (
-                    <button
-                      key={pillar}
-                      onClick={() => setSelectedFavPillar(selectedFavPillar === pillar ? null : pillar)}
-                      className="text-[11px] px-3 py-1.5 rounded-full touch-manipulation transition-all"
-                      style={
-                        selectedFavPillar === pillar
-                          ? { background: "rgba(201,165,90,0.2)", color: "rgba(201,165,90,0.9)", border: "1px solid rgba(201,165,90,0.4)" }
-                          : { background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.6)", border: "1px solid rgba(255,255,255,0.08)" }
-                      }
-                    >
-                      {pillar}
-                    </button>
-                  ))}
-                </div>
-                {selectedFavPillar && (
-                  <div className="flex flex-col gap-2">
-                    {filteredByPillar.map((rhythm) => (
-                      <RhythmRow key={rhythm.id} {...rowProps(rhythm)} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </SubsectionCard>
+            <p className="text-[11px] text-white/30 pb-1 leading-relaxed">
+              Archived Rthms are hidden everywhere else. Tap Restore to bring one back.
+            </p>
+            {archived.map((rhythm) => (
+              <RhythmRow
+                key={rhythm.id}
+                rhythm={rhythm}
+                playing={currentTrackId === rhythm.id && isPlaying}
+                currentTime={currentTrackId === rhythm.id ? currentTime : 0}
+                duration={currentTrackId === rhythm.id ? duration : 0}
+                showLyrics={showLyricsId === rhythm.id}
+                onToggleLyrics={() => setShowLyricsId(showLyricsId === rhythm.id ? null : rhythm.id)}
+                onPlay={() => togglePlay(rhythm)}
+                onArchive={() => handleRestore(rhythm)}
+                onRemove={() => handleRemove(rhythm.id)}
+                onRecreate={() => setRecreateRhythm(rhythm)}
+                onShare={() => handleShare(rhythm)}
+                onTag={(tags) => handleTag(rhythm.id, tags)}
+                confirmingRemove={confirmRemoveId === rhythm.id}
+                shareToast={shareToastId === rhythm.id}
+              />
+            ))}
           </>
         )}
 
@@ -290,7 +180,7 @@ export default function MyFavouritesPage() {
 
       {/* Genre picker overlay */}
       {recreateRhythm && (
-        <FavGenrePicker
+        <ArchiveGenrePicker
           rhythm={recreateRhythm}
           onSelect={handleGenreSelected}
           onClose={() => setRecreateRhythm(null)}
@@ -300,7 +190,7 @@ export default function MyFavouritesPage() {
   );
 }
 
-// ─── Genre picker (same as My Rthms, scoped here) ────────────────────────────
+// ─── Genre picker ─────────────────────────────────────────────────────────────
 
 function displayNameFor(g: string): string {
   const pipe = g.indexOf("|");
@@ -314,7 +204,7 @@ function sunoPromptFor(g: string): string {
   return pipe > 0 ? g.slice(pipe + 1) : g;
 }
 
-function FavGenrePicker({
+function ArchiveGenrePicker({
   rhythm,
   onSelect,
   onClose,
@@ -323,11 +213,11 @@ function FavGenrePicker({
   onSelect: (genre: string) => void;
   onClose: () => void;
 }) {
-  const [genres, setGenres]         = useState<string[]>([]);
-  const [userGenres, setUserGenres] = useState<string[]>([]);
+  const [genres, setGenres]             = useState<string[]>([]);
+  const [userGenres, setUserGenres]     = useState<string[]>([]);
   const [loadingGenres, setLoadingGenres] = useState(true);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [customStyle, setCustomStyle]     = useState("");
+  const [customStyle, setCustomStyle]   = useState("");
   const [customSelected, setCustomSelected] = useState(false);
 
   const persistCustomStyle = (style: string) => {
@@ -340,7 +230,11 @@ function FavGenrePicker({
     const updated = [...userGenres, trimmed];
     setUserGenres(updated);
     setGenres((prev) => [...prev, trimmed]);
-    fetch("/api/genres", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ genres: updated }) }).catch(() => {});
+    fetch("/api/genres", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ genres: updated }),
+    }).catch(() => {});
   };
 
   useEffect(() => {
@@ -374,17 +268,17 @@ function FavGenrePicker({
           ) : (
             <>
               {genres.map((genre, i) => {
-                const isSelected = !customSelected && selectedIndex === i;
+                const isSel = !customSelected && selectedIndex === i;
                 return (
                   <button key={i} onClick={() => { setSelectedIndex(i); setCustomSelected(false); }}
                     className="w-full text-left px-5 py-4 rounded-2xl border transition-all duration-150 active:scale-[0.98] touch-manipulation"
-                    style={isSelected ? { borderColor: "rgba(201,165,90,0.5)", background: "rgba(201,165,90,0.08)" } : { borderColor: "rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }}
+                    style={isSel ? { borderColor: "rgba(201,165,90,0.5)", background: "rgba(201,165,90,0.08)" } : { borderColor: "rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }}
                   >
                     <div className="flex items-center justify-between gap-3">
-                      <span className={`text-sm font-medium leading-snug ${isSelected ? "text-[#c9a55a]" : "text-white/75"}`}>{displayNameFor(genre)}</span>
+                      <span className={`text-sm font-medium ${isSel ? "text-[#c9a55a]" : "text-white/75"}`}>{displayNameFor(genre)}</span>
                       <div className="w-4 h-4 rounded-full border flex-shrink-0 flex items-center justify-center"
-                        style={isSelected ? { borderColor: "rgba(201,165,90,0.7)", background: "rgba(201,165,90,0.3)" } : { borderColor: "rgba(255,255,255,0.2)" }}>
-                        {isSelected && <div className="w-2 h-2 rounded-full bg-[#c9a55a]" />}
+                        style={isSel ? { borderColor: "rgba(201,165,90,0.7)", background: "rgba(201,165,90,0.3)" } : { borderColor: "rgba(255,255,255,0.2)" }}>
+                        {isSel && <div className="w-2 h-2 rounded-full bg-[#c9a55a]" />}
                       </div>
                     </div>
                   </button>

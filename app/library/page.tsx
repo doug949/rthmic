@@ -14,12 +14,14 @@ import {
   ExploreAllIcon,
   TagsIcon,
   PillarsIcon,
+  ArchiveIcon,
 } from "./_components";
 
 export default function CatalogPage() {
   const [rhythms, setRhythms]                 = useState<SavedRhythm[]>([]);
   const [myRthmsOpen, setMyRthmsOpen]         = useState(false);
   const [myFavouritesOpen, setMyFavouritesOpen] = useState(false);
+  const [archiveOpen, setArchiveOpen]         = useState(false);
   const [rthmicLibraryOpen, setRthmicLibraryOpen] = useState(false);
   const [rthmixAlbumsOpen, setRthmixAlbumsOpen]   = useState(false);
   useSwipeBack("/");
@@ -37,6 +39,7 @@ export default function CatalogPage() {
 
   const myRthmsCount    = rhythms.filter((r) => r.status === "active").length;
   const favouritesCount = rhythms.filter((r) => r.status === "favourite").length;
+  const archiveCount    = rhythms.filter((r) => r.status === "archived").length;
 
   return (
     <main
@@ -87,6 +90,29 @@ export default function CatalogPage() {
               <SubNavCard href="/library/my-favourites?open=explore" icon={<ExploreAllIcon />}  label="Explore All" detail={favouritesCount > 0 ? `${favouritesCount} Rthms` : undefined} gold />
               <SubNavCard href="/library/my-favourites?open=tags"    icon={<TagsIcon />}        label="Tags"        detail="Browse by tag"   gold />
               <SubNavCard href="/library/my-favourites?open=pillars" icon={<PillarsIcon />}     label="Pillars"     detail="Browse by pillar" gold />
+            </div>
+          )}
+        </div>
+
+        {/* ── The Archive ───────────────────────────────────────────────── */}
+        <div className="flex flex-col gap-2">
+          <SectionAccordionHeader
+            icon={<ArchiveIcon />}
+            title="The Archive"
+            description="Rthms you're keeping but hiding everywhere else."
+            count={archiveCount || undefined}
+            open={archiveOpen}
+            onToggle={() => setArchiveOpen((o) => !o)}
+            dim
+          />
+          {archiveOpen && (
+            <div className="flex flex-col gap-2 pl-1">
+              <SubNavCard
+                href="/library/archive"
+                icon={<ArchiveIcon />}
+                label="Archived Rthms"
+                detail={archiveCount > 0 ? `${archiveCount} kept` : "Empty"}
+              />
             </div>
           )}
         </div>

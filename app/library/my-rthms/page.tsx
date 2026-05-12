@@ -28,7 +28,6 @@ export default function MyRthmsPage() {
   const [shareToastId, setShareToastId]       = useState<string | null>(null);
   const [graduatedItems, setGraduatedItems]   = useState<Array<{ id: string; title: string }>>([]);
   const [expanded, setExpanded]     = useState(false);
-  const [archivedOpen, setArchivedOpen] = useState(false);
   const [deletedOpen, setDeletedOpen]   = useState(false);
   const [recreateRhythm, setRecreateRhythm] = useState<SavedRhythm | null>(null);
 
@@ -48,7 +47,12 @@ export default function MyRthmsPage() {
     }
   }, []);
 
-  useEffect(() => { fetchLibrary(); }, [fetchLibrary]);
+  useEffect(() => {
+    fetchLibrary();
+    const onMutated = () => fetchLibrary();
+    window.addEventListener("library-mutated", onMutated);
+    return () => window.removeEventListener("library-mutated", onMutated);
+  }, [fetchLibrary]);
 
   const mutate = useCallback(async (body: Record<string, unknown>) => {
     await fetch("/api/library", {
@@ -57,11 +61,11 @@ export default function MyRthmsPage() {
       body: JSON.stringify(body),
     });
     fetchLibrary();
+    window.dispatchEvent(new CustomEvent("library-mutated"));
   }, [fetchLibrary]);
 
   const now = Date.now();
   const myRthms       = rhythms.filter((r) => r.status === "active");
-  const archived      = rhythms.filter((r) => r.status === "archived");
   const recentlyDeleted = rhythms.filter(
     (r) => r.status === "deleted" && r.deletedAt !== undefined && now - r.deletedAt < THIRTY_DAYS
   );
@@ -77,7 +81,7 @@ export default function MyRthmsPage() {
   };
 
   const handleArchive = (rhythm: SavedRhythm) =>
-    mutate({ action: "update", id: rhythm.id, status: rhythm.status === "archived" ? "active" : "archived" });
+    mutate({ action: "update", id: rhythm.id, status: "archived" });
 
   const handleGraduate = (id: string) => {
     const rhythm = myRthms.find((r) => r.id === id);
@@ -209,38 +213,6 @@ export default function MyRthmsPage() {
             </>
           )}
         </div>
-
-        {/* ── Archived ─────────────────────────────────────────────────────────── */}
-        {archived.length > 0 && (
-          <div className="flex flex-col gap-2">
-            <DimHeader
-              title="Archived"
-              count={archived.length}
-              open={archivedOpen}
-              onToggle={() => setArchivedOpen((o) => !o)}
-            />
-            {archivedOpen && archived.map((rhythm) => (
-              <RhythmRow
-                key={rhythm.id}
-                rhythm={rhythm}
-                playing={currentTrackId === rhythm.id && isPlaying}
-                currentTime={currentTrackId === rhythm.id ? currentTime : 0}
-                duration={currentTrackId === rhythm.id ? duration : 0}
-                showLyrics={showLyricsId === rhythm.id}
-                onToggleLyrics={() => setShowLyricsId(showLyricsId === rhythm.id ? null : rhythm.id)}
-                onPlay={() => togglePlay(rhythm)}
-                onArchive={() => handleArchive(rhythm)}
-                onRemove={() => handleRemove(rhythm.id)}
-                onRecreate={() => setRecreateRhythm(rhythm)}
-                onShare={() => handleShare(rhythm)}
-                onTag={(tags) => handleTag(rhythm.id, tags)}
-                confirmingRemove={confirmRemoveId === rhythm.id}
-                shareToast={shareToastId === rhythm.id}
-                dimmed
-              />
-            ))}
-          </div>
-        )}
 
         {/* ── Recently Deleted ─────────────────────────────────────────────────── */}
         {recentlyDeleted.length > 0 && (
