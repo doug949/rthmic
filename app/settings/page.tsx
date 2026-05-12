@@ -61,8 +61,6 @@ export default function SettingsPage() {
   const [slotGeneration, setSlotGeneration] = useState(0);
   const [slots, setSlots] = useState<SlotState[]>([emptySlot(), emptySlot(), emptySlot(), emptySlot()]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [interpretError, setInterpretError] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -70,6 +68,10 @@ export default function SettingsPage() {
   // Voice state
   const [voicePhase, setVoicePhase] = useState<VoicePhase>("idle");
   const [voiceError, setVoiceError] = useState("");
+
+  // Keep slots accessible inside stale callbacks
+  const slotsRef = useRef(slots);
+  useEffect(() => { slotsRef.current = slots; }, [slots]);
 
   // MediaRecorder refs
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -171,6 +173,29 @@ export default function SettingsPage() {
       animFrameRef.current = requestAnimationFrame(tick);
     } catch (e) {
       console.warn("Web Audio unavailable:", e);
+    }
+  }, []);
+
+  // ─── Auto-save ───────────────────────────────────────────────────────────────
+
+  const autoSaveStyle = useCallback(async (slotIndex: number, formattedStyle: string) => {
+    setSaveError("");
+    try {
+      const styles = slotsRef.current.map((sl, j) =>
+        j === slotIndex ? formattedStyle : sl.style.trim()
+      );
+      const res = await fetch("/api/genres", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ genres: styles }),
+      });
+      if (res.ok) {
+        setSlots((prev) => prev.map((s, j) => j === slotIndex ? { ...s, committed: true } : s));
+      } else {
+        setSaveError("Could not save — please try again.");
+      }
+    } catch {
+      setSaveError("Could not save — please try again.");
     }
   }, []);
 
@@ -277,16 +302,18 @@ export default function SettingsPage() {
           const style = data.style || data.genre;
           const artists: string[] = Array.isArray(data.artists) ? data.artists : [];
           if (style) {
+            const formattedStyle = `${SLOTS[slotIndex].label} — ${toSentenceCase(style)}`;
             setSlots((prev) => prev.map((s, j) =>
               j === slotIndex ? {
                 ...s,
-                style: toSentenceCase(style),
+                style: formattedStyle,
                 interpreting: false,
                 committed: false,
                 suggestedArtists: artists,
                 selectedArtists: [],
               } : s
             ));
+            autoSaveStyle(slotIndex, formattedStyle);
           } else {
             setSlots((prev) => prev.map((s, j) =>
               j === slotIndex ? { ...s, interpreting: false } : s
@@ -345,13 +372,15 @@ export default function SettingsPage() {
       const style = data.style || data.genre;
       const artists: string[] = Array.isArray(data.artists) ? data.artists : [];
       if (style) {
+        const formattedStyle = `${SLOTS[i].label} — ${toSentenceCase(style)}`;
         updateSlot(i, {
-          style: toSentenceCase(style),
+          style: formattedStyle,
           interpreting: false,
           committed: false,
           suggestedArtists: artists,
           selectedArtists: [],
         });
+        autoSaveStyle(i, formattedStyle);
       } else {
         updateSlot(i, { interpreting: false });
         setInterpretError("Couldn't refine — please try again.");
@@ -359,35 +388,6 @@ export default function SettingsPage() {
     } catch {
       updateSlot(i, { interpreting: false });
       setInterpretError("Refinement failed — please try again.");
-    }
-  };
-
-  // ─── Commit (save to backend) ─────────────────────────────────────────────────
-
-  const commitSlot = async (i: number) => {
-    const s = slots[i];
-    if (!s.style.trim()) return;
-    setSaveError("");
-    setSaving(true);
-    try {
-      // Only include artists the user explicitly selected — never auto-add suggestions.
-      const sunoStyle = s.selectedArtists.length > 0
-        ? `${s.style.trim()}, ${s.selectedArtists.join(", ")}`
-        : s.style.trim();
-      const styles = slots.map((sl, j) => j === i ? sunoStyle : sl.style.trim());
-      const res = await fetch("/api/genres", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ genres: styles }),
-      });
-      if (!res.ok) throw new Error();
-      updateSlot(i, { committed: true });
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 2500);
-    } catch {
-      setSaveError("Could not save — please try again.");
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -608,7 +608,7 @@ export default function SettingsPage() {
             style={{ borderColor: "rgba(201,165,90,0.2)", background: "rgba(201,165,90,0.04)" }}
           >
             <p className="text-[10px] text-white/50 uppercase tracking-widest mb-2">
-              Your Current Rthm Style
+              {s.committed ? "✓ Saved" : "Saving…"}
             </p>
             <textarea
               value={s.style}
@@ -619,7 +619,7 @@ export default function SettingsPage() {
               placeholder="Style description"
             />
             <p className="text-[10px] text-white/45 mt-1 leading-relaxed">
-              Adjust or redefine · this is what feeds the music engine
+              Tap to edit · this is what feeds the music engine
             </p>
           </div>
         )}
@@ -677,41 +677,19 @@ export default function SettingsPage() {
           <p className="text-xs text-red-400/60 leading-relaxed">{interpretError}</p>
         )}
 
-        {/* ── Primary action: Refine or Commit ── */}
-        {hasStyle && !isBusy && (
+        {/* ── Refine with artists (only shown when artists are selected) ── */}
+        {hasStyle && !isBusy && s.selectedArtists.length > 0 && (
           <button
-            onClick={() => {
-              if (s.selectedArtists.length > 0) {
-                refineWithArtists(currentSlot);
-              } else {
-                commitSlot(currentSlot);
-              }
-            }}
-            disabled={saving || (s.selectedArtists.length === 0 && s.committed)}
-            className="w-full py-4 rounded-2xl text-sm font-semibold tracking-wide transition-all touch-manipulation active:scale-[0.98] disabled:opacity-50"
-            style={
-              s.selectedArtists.length > 0
-                ? { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.6)" }
-                : s.committed
-                ? { background: "rgba(138,223,154,0.08)", border: "1px solid rgba(138,223,154,0.3)", color: "rgba(138,223,154,0.8)" }
-                : { background: "rgba(201,165,90,0.12)", border: "1px solid rgba(201,165,90,0.5)", color: "#c9a55a" }
-            }
+            onClick={() => refineWithArtists(currentSlot)}
+            className="w-full py-4 rounded-2xl text-sm font-semibold tracking-wide transition-all touch-manipulation active:scale-[0.98]"
+            style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.6)" }}
           >
-            {saving
-              ? "Saving…"
-              : s.selectedArtists.length > 0
-              ? "Refine with selected artists →"
-              : s.committed
-              ? "✓ Rthm Style committed"
-              : "Commit Rthm Style"}
+            Refine with selected artists →
           </button>
         )}
 
         {saveError && (
           <p className="text-xs text-red-400/60 text-center">{saveError}</p>
-        )}
-        {saveSuccess && (
-          <p className="text-xs text-center" style={{ color: "rgba(138,223,154,0.7)" }}>Rthm Style saved ✓</p>
         )}
 
         {/* Pro plan messaging on last page */}
@@ -748,9 +726,9 @@ export default function SettingsPage() {
             onClick={goNext}
             className="flex-1 py-4 rounded-2xl text-sm font-semibold tracking-wide active:scale-[0.98] transition-all touch-manipulation"
             style={{
-              background: s.committed ? "rgba(201,165,90,0.1)" : "rgba(255,255,255,0.04)",
-              border: s.committed ? "1px solid rgba(201,165,90,0.45)" : "1px solid rgba(255,255,255,0.08)",
-              color: s.committed ? "#c9a55a" : "rgba(255,255,255,0.5)",
+              background: hasStyle ? "rgba(201,165,90,0.1)" : "rgba(255,255,255,0.04)",
+              border: hasStyle ? "1px solid rgba(201,165,90,0.45)" : "1px solid rgba(255,255,255,0.08)",
+              color: hasStyle ? "#c9a55a" : "rgba(255,255,255,0.5)",
             }}
           >
             Next — {SLOTS[currentSlot + 1].label} →
