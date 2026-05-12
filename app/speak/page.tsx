@@ -10,7 +10,7 @@ import { useGeneration } from "@/app/contexts/GenerationContext";
 import type { PillarType, StateSummary, Song, SongStatus, SongStatusMap } from "@/app/types/pipeline";
 import { normalisePillar } from "@/app/types/pipeline";
 import type { StyleChoice } from "@/app/services/llmService";
-import CustomStyleInput from "@/app/components/CustomStyleInput";
+import CustomStyleInput, { WaveDots } from "@/app/components/CustomStyleInput";
 import { RevealBlock } from "@/app/components/RevealBlock";
 
 type Phase = "module" | "priming" | "idle" | "recording" | "understanding" | "confirming" | "genre";
@@ -30,7 +30,38 @@ interface PillarDefinition {
   guidance: string;      // how to speak, shown in Learn More panel
   priming: PillarPriming; // full copy shown on Before You Speak screen
   icon?: React.ReactNode; // small SVG icon shown on the tile
+  comingSoon?: boolean;   // show as dim / non-selectable
 }
+
+// ─── Pillar-aware recording prompts ──────────────────────────────────────────
+
+const PILLAR_PROMPT: Record<string, string> = {
+  memory:      "Speak what you need to remember",
+  menus:       "Speak your list",
+  mindset:     "Speak what's ahead",
+  mode:        "Speak your state",
+  movement:    "Speak what's stuck",
+  journal:     "Speak your day",
+  epiphany:    "Speak the idea",
+  explain:     "Speak what you want to explain",
+  booksummary: "Name the book",
+  bridge:      "Speak for them",
+  invite:      "Speak about them",
+};
+
+const PILLAR_SUBTITLE: Record<string, string> = {
+  memory:      "Two Rthms will lock it in.",
+  menus:       "Two Rthms will carry your list.",
+  mindset:     "Two Rthms will prepare you.",
+  mode:        "Two Rthms will meet you there.",
+  movement:    "Two Rthms will get it moving.",
+  journal:     "Two Rthms will hold the day.",
+  epiphany:    "Two Rthms will hold the idea.",
+  explain:     "Two Rthms will make it land.",
+  booksummary: "Two Rthms will carry the idea.",
+  bridge:      "Two Rthms will reach them.",
+  invite:      "Two Rthms will bring them in.",
+};
 
 interface UnderstandResult {
   transcript: string;
@@ -632,10 +663,10 @@ export default function SpeakPage() {
             <PrimingView pillar={selectedPillar} onReady={() => goToPhase("idle")} />
           )}
           {phase === "idle" && (
-            <IdleView onRecord={startRecording} onPaste={runWithPastedLyrics} errorMsg={errorMsg} />
+            <IdleView onRecord={startRecording} onPaste={runWithPastedLyrics} errorMsg={errorMsg} selectedPillar={selectedPillar} />
           )}
           {phase === "recording" && (
-            <RecordingView orbRef={orbRef} onStop={stopRecording} seconds={recordingSeconds} maxSeconds={MAX_RECORDING_SECONDS} />
+            <RecordingView orbRef={orbRef} onStop={stopRecording} seconds={recordingSeconds} maxSeconds={MAX_RECORDING_SECONDS} selectedPillar={selectedPillar} />
           )}
           {phase === "understanding" && <UnderstandingView />}
           {phase === "confirming" && understandResult && (
@@ -755,24 +786,6 @@ const PILLARS: PillarDefinition[] = [
     },
   },
   {
-    slug: "understanding",
-    label: "Understanding",
-    tagline: "Onramps to clarity",
-    icon: <UnderstandingIcon />,
-    detail: "Use this when you're trying to grasp something — a concept, a system, a skill, an idea — and it keeps slipping. Rthmic builds a simple mental model in song form, breaking the concept into its key parts with concrete examples. By the end you should be able to explain it simply.",
-    guidance: "Describe the thing you're trying to understand. Tell Rthmic where it gets confusing or what feels just out of reach.",
-    priming: {
-      headline: "Describe what you're trying to grasp.",
-      subheadline: "Including where it falls apart.",
-      instructions: [
-        "Explain the concept, topic, or idea as best you can right now — even if your explanation is incomplete or wrong. That's exactly where Rthmic starts.",
-        "Then say where it breaks down. The part you think you understand until someone asks you to explain it. The moment the logic stops holding.",
-        "You're not being tested. The confusion is the input — the gaps in your explanation are the most useful part.",
-      ],
-      footnote: "Most people speak for 1–3 minutes. Talk it through as if explaining to a friend. The places where you stumble or repeat yourself are where Rthmic does its best work.",
-    },
-  },
-  {
     slug: "journal",
     label: "Journal",
     tagline: "Speak your day. Keep it as a Rthm.",
@@ -842,6 +855,20 @@ const PILLARS: PillarDefinition[] = [
         "If you want the song to connect the idea to something specific in your life or work, describe that too. It makes the song feel personal rather than generic.",
       ],
       footnote: "Works best with 'one big idea' nonfiction — the kind where the title becomes shorthand for a whole way of thinking. Atomic Habits, Sapiens, Deep Work, Thinking Fast and Slow, The Power of Habit, and anything like them.",
+    },
+  },
+  {
+    slug: "journey",
+    label: "Journey",
+    tagline: "A Rthm that grows with you over time",
+    detail: "Coming soon.",
+    guidance: "Coming soon.",
+    comingSoon: true,
+    priming: {
+      headline: "Coming soon.",
+      subheadline: "",
+      instructions: [],
+      footnote: "",
     },
   },
 ];
@@ -964,6 +991,21 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
             <div className="flex flex-col gap-2 pb-1">
               {PILLARS.map((p, index) => (
                 <RevealBlock key={p.slug} delay={index * 18}>
+                  {p.comingSoon ? (
+                    <div className="rounded-2xl border border-white/[0.05] bg-white/[0.015] overflow-hidden opacity-45">
+                      <div className="flex items-center gap-3.5 pl-5 pr-4 py-4">
+                        {p.icon && <span className="flex-shrink-0 text-white/25">{p.icon}</span>}
+                        <div className="min-w-0 flex-1">
+                          <p className="text-base font-semibold text-white/50 tracking-wide">{p.label}</p>
+                          <p className="text-xs text-white/35 mt-0.5">{p.tagline}</p>
+                        </div>
+                        <span className="text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-full flex-shrink-0"
+                          style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.35)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                          Soon
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
                   <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] overflow-hidden">
                     <div className="flex items-stretch">
                       <button
@@ -988,6 +1030,7 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
                       </button>
                     </div>
                   </div>
+                  )}
                 </RevealBlock>
               ))}
             </div>
@@ -1288,7 +1331,7 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: () =
 
 // ─── Idle ─────────────────────────────────────────────────────────────────────
 
-function IdleView({ onRecord, onPaste, errorMsg }: { onRecord: () => void; onPaste: (lyrics: string, title: string) => void; errorMsg: string }) {
+function IdleView({ onRecord, onPaste, errorMsg, selectedPillar }: { onRecord: () => void; onPaste: (lyrics: string, title: string) => void; errorMsg: string; selectedPillar: string | null }) {
   const [showPaste, setShowPaste] = useState(false);
   const [micRequesting, setMicRequesting] = useState(false);
   const [pastedLyrics, setPastedLyrics] = useState("");
@@ -1363,12 +1406,15 @@ function IdleView({ onRecord, onPaste, errorMsg }: { onRecord: () => void; onPas
     );
   }
 
+  const idleHeading  = (selectedPillar && PILLAR_PROMPT[selectedPillar])   ?? "Speak freely";
+  const idleSubtitle = (selectedPillar && PILLAR_SUBTITLE[selectedPillar]) ?? "Two Rthms will be built for you.";
+
   return (
     <section className="flex-1 flex flex-col items-center justify-center pb-24 gap-10">
       <RevealBlock delay={0}>
         <div className="text-center">
-          <h2 className="text-2xl font-light tracking-wide text-white leading-snug" style={{ fontFamily: "var(--font-display)" }}>Speak your state</h2>
-          <p className="text-sm text-white/50 mt-2">Two Rthms will be built for you.</p>
+          <h2 className="text-2xl font-light tracking-wide text-white leading-snug" style={{ fontFamily: "var(--font-display)" }}>{idleHeading}</h2>
+          <p className="text-sm text-white/50 mt-2">{idleSubtitle}</p>
         </div>
       </RevealBlock>
 
@@ -1414,19 +1460,22 @@ function IdleView({ onRecord, onPaste, errorMsg }: { onRecord: () => void; onPas
 function RecordingView({
   orbRef,
   onStop,
+  selectedPillar,
 }: {
   orbRef: React.RefObject<HTMLDivElement | null>;
   onStop: () => void;
   seconds: number;
   maxSeconds: number;
+  selectedPillar?: string | null;
 }) {
+  const heading = (selectedPillar && PILLAR_PROMPT[selectedPillar]) ?? "Speak freely";
   return (
     <section
       className="flex-1 flex flex-col items-center justify-center pb-24 gap-10"
       onClick={onStop}
     >
       <div className="text-center pointer-events-none">
-        <h2 className="text-2xl font-light tracking-wide text-white" style={{ fontFamily: "var(--font-display)" }}>Speak your state</h2>
+        <h2 className="text-2xl font-light tracking-wide text-white" style={{ fontFamily: "var(--font-display)" }}>{heading}</h2>
         <p className="text-sm text-white/50 mt-2">Tap to stop</p>
       </div>
 
@@ -1459,17 +1508,35 @@ function RecordingView({
 // ─── Understanding ────────────────────────────────────────────────────────────
 
 function UnderstandingView() {
+  const stages = ["Transcribing…", "Reading your state…", "Shaping your Rthm…", "Almost there…"];
+  const [stageIdx, setStageIdx] = useState(0);
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setVisible(false);
+      setTimeout(() => {
+        setStageIdx((i) => (i + 1) % stages.length);
+        setVisible(true);
+      }, 350);
+    }, 2800);
+    return () => clearInterval(id);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <section className="flex-1 flex flex-col items-center justify-center pb-24 gap-8">
       <RevealBlock delay={0}>
-        <div className="text-center">
+        <div className="text-center flex flex-col items-center gap-5">
           <h2 className="text-xl font-light tracking-wide text-white" style={{ fontFamily: "var(--font-display)" }}>Understanding you</h2>
-          <p className="text-sm text-white/45 mt-2">Reading your state…</p>
-          <p className="text-xs text-white/35 mt-3">This usually takes 10–20 seconds.</p>
+          <p
+            className="text-sm text-white/45"
+            style={{ opacity: visible ? 1 : 0, transition: "opacity 350ms ease", minHeight: "1.25rem" }}
+          >
+            {stages[stageIdx]}
+          </p>
+          <WaveDots />
+          <p className="text-xs text-white/25 mt-1">This usually takes 10–20 seconds.</p>
         </div>
-      </RevealBlock>
-      <RevealBlock delay={60}>
-        <div className="w-7 h-7 rounded-full border-2 border-white/15 border-t-white/55 animate-spin" />
       </RevealBlock>
     </section>
   );
@@ -1855,18 +1922,42 @@ function GenreView({
 // ─── Generating ───────────────────────────────────────────────────────────────
 
 function GeneratingView({ onCancel }: { onCancel: () => void }) {
+  const stages = [
+    "Composing your Rthm…",
+    "Setting it to music…",
+    "Laying down the track…",
+    "Finishing up…",
+  ];
+  const [stageIdx, setStageIdx] = useState(0);
+  const [visible, setVisible]   = useState(true);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setVisible(false);
+      setTimeout(() => {
+        setStageIdx((i) => Math.min(i + 1, stages.length - 1));
+        setVisible(true);
+      }, 400);
+    }, 22000); // each stage ~22s — aligns loosely with the 1-2min total
+    return () => clearInterval(id);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <section className="flex-1 flex flex-col items-center justify-center pb-24 gap-8">
       <RevealBlock delay={0}>
-        <div className="text-center max-w-xs">
+        <div className="text-center max-w-xs flex flex-col items-center gap-5">
           <h2 className="text-xl font-light tracking-wide text-white" style={{ fontFamily: "var(--font-display)" }}>Building your Rthms</h2>
-          <p className="text-sm text-white/45 mt-2 leading-relaxed">
-            This takes 1–2 minutes. You can navigate away — a notification will appear when they&apos;re ready.
+          <WaveDots gold />
+          <p
+            className="text-sm text-white/40"
+            style={{ opacity: visible ? 1 : 0, transition: "opacity 400ms ease", minHeight: "1.25rem" }}
+          >
+            {stages[stageIdx]}
+          </p>
+          <p className="text-xs text-white/30 leading-relaxed">
+            This takes 1–2 minutes. You can navigate away — a notification will appear when ready.
           </p>
         </div>
-      </RevealBlock>
-      <RevealBlock delay={60}>
-        <div className="w-7 h-7 rounded-full border-2 border-white/15 border-t-white/55 animate-spin" />
       </RevealBlock>
       <RevealBlock delay={100}>
         <button

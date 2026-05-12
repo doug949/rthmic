@@ -1,10 +1,10 @@
 "use client";
 
 // CustomStyleInput — voice-first custom genre/style entry.
-// Handles recording → transcription → interpretation → selectable result.
+// Handles recording → transcription → auto-interpretation → selectable result.
 // Used in GenreView (speak) and LibraryGenrePicker (library).
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 
 interface Props {
   onStyleChange: (style: string) => void;  // fires when interpreted style updates
@@ -13,13 +13,12 @@ interface Props {
   onSave?: (style: string) => void;        // optional: save to user's style library
 }
 
-type VoicePhase = "idle" | "recording" | "transcribing";
+type VoicePhase = "idle" | "recording" | "transcribing" | "interpreting";
 
 export default function CustomStyleInput({ onStyleChange, selected, onSelect, onSave }: Props) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [style, setStyle] = useState("");
-  const [interpreting, setInterpreting] = useState(false);
   const [saved, setSaved] = useState(false);
   const [voicePhase, setVoicePhase] = useState<VoicePhase>("idle");
   const [voiceError, setVoiceError] = useState("");
@@ -27,6 +26,84 @@ export default function CustomStyleInput({ onStyleChange, selected, onSelect, on
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const mimeTypeRef = useRef<string>("");
+
+  // Web Audio for voice bar animation
+  const analyserRef    = useRef<AnalyserNode | null>(null);
+  const audioCtxRef    = useRef<AudioContext | null>(null);
+  const animFrameRef   = useRef<number>(0);
+  const barsRef        = useRef<(HTMLDivElement | null)[]>([]);
+  const barDataRef     = useRef(new Uint8Array(64));
+
+  const cleanupAudio = useCallback(() => {
+    cancelAnimationFrame(animFrameRef.current);
+    analyserRef.current = null;
+    try { audioCtxRef.current?.close(); } catch { /* ignore */ }
+    audioCtxRef.current = null;
+  }, []);
+
+  useEffect(() => () => cleanupAudio(), [cleanupAudio]);
+
+  const startBarAnimation = useCallback((stream: MediaStream) => {
+    try {
+      const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const ctx = new AC();
+      audioCtxRef.current = ctx;
+      const source = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 64;
+      analyser.smoothingTimeConstant = 0.8;
+      source.connect(analyser);
+      analyserRef.current = analyser;
+
+      const N = barsRef.current.length;
+      const bufLen = analyser.frequencyBinCount;
+      const data = barDataRef.current = new Uint8Array(bufLen);
+      const segLen = Math.floor(bufLen / N);
+
+      const tick = () => {
+        if (!analyserRef.current) return;
+        analyserRef.current.getByteFrequencyData(data);
+        barsRef.current.forEach((el, i) => {
+          if (!el) return;
+          let sum = 0;
+          for (let j = i * segLen; j < Math.min((i + 1) * segLen, bufLen); j++) sum += data[j];
+          const avg = sum / segLen;
+          const h = Math.max(3, Math.round(3 + (avg / 255) * 22));
+          el.style.height = `${h}px`;
+        });
+        animFrameRef.current = requestAnimationFrame(tick);
+      };
+      animFrameRef.current = requestAnimationFrame(tick);
+    } catch { /* Web Audio unavailable */ }
+  }, []);
+
+  // ─── Interpret ─────────────────────────────────────────────────────────────
+
+  const runInterpret = useCallback(async (inputText: string) => {
+    if (!inputText.trim()) return;
+    setVoicePhase("interpreting");
+    try {
+      const res = await fetch("/api/interpret-genre", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: "Describe the musical style or genre you want",
+          description: inputText,
+        }),
+      });
+      const data = await res.json();
+      const result: string = data.style || data.genre || "";
+      if (result) {
+        const cap = result.charAt(0).toUpperCase() + result.slice(1);
+        setStyle(cap);
+        onStyleChange(cap);
+      }
+    } catch {
+      setVoiceError("Interpretation failed — please try again.");
+    } finally {
+      setVoicePhase("idle");
+    }
+  }, [onStyleChange]);
 
   // ─── Voice recording ──────────────────────────────────────────────────────
 
@@ -71,6 +148,8 @@ export default function CustomStyleInput({ onStyleChange, selected, onSelect, on
 
       recorder.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
+        cleanupAudio();
+
         const actualMime = (mediaRecorderRef.current?.mimeType || mimeTypeRef.current || "audio/mp4").trim() || "audio/mp4";
         const blob = new Blob(chunksRef.current, { type: actualMime });
         if (blob.size === 0) { setVoiceError("Nothing captured — please try again."); setVoicePhase("idle"); return; }
@@ -84,17 +163,20 @@ export default function CustomStyleInput({ onStyleChange, selected, onSelect, on
           const data = await res.json();
           if (data.transcript) {
             setText(data.transcript);
+            // Auto-interpret — no button press needed
+            await runInterpret(data.transcript);
           } else {
             setVoiceError("Couldn't transcribe — please try again or type below.");
+            setVoicePhase("idle");
           }
         } catch {
           setVoiceError("Transcription failed — please try again.");
-        } finally {
           setVoicePhase("idle");
         }
       };
 
       recorder.start(250);
+      startBarAnimation(stream);
       setVoicePhase("recording");
     } catch (e) {
       const msg = e instanceof Error ? e.message : "";
@@ -103,41 +185,21 @@ export default function CustomStyleInput({ onStyleChange, selected, onSelect, on
         : "Could not start recording — please try again.");
       setVoicePhase("idle");
     }
-  }, []);
+  }, [cleanupAudio, startBarAnimation, runInterpret]);
 
   const handleVoiceTap = () => {
     if (voicePhase === "recording") {
       stopRecording();
-      setVoicePhase("transcribing");
     } else if (voicePhase === "idle") {
       startRecording();
     }
   };
 
-  // ─── Interpret ────────────────────────────────────────────────────────────
+  // ─── Typed text auto-interpret on blur ────────────────────────────────────
 
-  const handleInterpret = async () => {
-    if (!text.trim()) return;
-    setInterpreting(true);
-    try {
-      const res = await fetch("/api/interpret-genre", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          question: "Describe the musical style or genre you want",
-          description: text,
-        }),
-      });
-      const data = await res.json();
-      const result = data.style || data.genre;
-      if (result) {
-        setStyle(result);
-        onStyleChange(result);
-      }
-    } catch {
-      setVoiceError("Interpretation failed — please try again.");
-    } finally {
-      setInterpreting(false);
+  const handleTextBlur = () => {
+    if (text.trim() && voicePhase === "idle") {
+      runInterpret(text);
     }
   };
 
@@ -155,6 +217,8 @@ export default function CustomStyleInput({ onStyleChange, selected, onSelect, on
       setOpen(false);
     }
   };
+
+  const isProcessing = voicePhase === "transcribing" || voicePhase === "interpreting";
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
@@ -214,19 +278,19 @@ export default function CustomStyleInput({ onStyleChange, selected, onSelect, on
           <div className="flex items-center gap-4">
             <button
               onClick={handleVoiceTap}
-              disabled={voicePhase === "transcribing"}
+              disabled={isProcessing}
               className="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center border transition-all touch-manipulation active:scale-95 disabled:opacity-40"
               style={
                 voicePhase === "recording"
                   ? { background: "rgba(239,68,68,0.15)", borderColor: "rgba(239,68,68,0.5)" }
-                  : voicePhase === "transcribing"
+                  : isProcessing
                   ? { background: "rgba(201,165,90,0.08)", borderColor: "rgba(201,165,90,0.2)" }
                   : { background: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.12)" }
               }
               aria-label={voicePhase === "recording" ? "Stop" : "Record"}
             >
-              {voicePhase === "transcribing" ? (
-                <div className="w-4 h-4 rounded-full border-2 border-white/20 border-t-white/60 animate-spin" />
+              {isProcessing ? (
+                <WaveDots size="sm" />
               ) : voicePhase === "recording" ? (
                 <div className="w-3.5 h-3.5 rounded bg-red-400/80" />
               ) : (
@@ -236,12 +300,33 @@ export default function CustomStyleInput({ onStyleChange, selected, onSelect, on
 
             <div className="flex-1">
               {voicePhase === "recording" && (
-                <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+                <div className="flex items-center gap-3">
+                  {/* Audio-reactive bars */}
+                  <div className="flex items-end gap-[3px] h-7">
+                    {[0,1,2,3,4,5,6].map((i) => (
+                      <div
+                        key={i}
+                        ref={(el) => { barsRef.current[i] = el; }}
+                        style={{
+                          width: 3,
+                          height: 3,
+                          background: "rgba(239,68,68,0.7)",
+                          borderRadius: 2,
+                          transition: "height 60ms ease",
+                          alignSelf: "flex-end",
+                        }}
+                      />
+                    ))}
+                  </div>
                   <p className="text-sm text-white/50">Listening… tap to stop</p>
                 </div>
               )}
-              {voicePhase === "transcribing" && <p className="text-sm text-white/35">Transcribing…</p>}
+              {voicePhase === "transcribing" && (
+                <p className="text-sm text-white/35">Transcribing…</p>
+              )}
+              {voicePhase === "interpreting" && (
+                <p className="text-sm text-white/35">Reading your style…</p>
+              )}
               {voicePhase === "idle" && (
                 <p className="text-sm text-white/40">{text ? "Tap to re-record" : "Tap to speak your style"}</p>
               )}
@@ -257,29 +342,22 @@ export default function CustomStyleInput({ onStyleChange, selected, onSelect, on
             <div className="flex-1 h-px bg-white/[0.05]" />
           </div>
 
-          {/* Textarea */}
+          {/* Textarea — auto-interprets on blur */}
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
+            onBlur={handleTextBlur}
             placeholder="e.g. dark Nordic techno, or Afrobeats with jazz brass, or something that feels like driving at 3am…"
             rows={3}
             className="w-full bg-white/[0.03] border border-white/[0.07] rounded-xl px-4 py-3 text-sm text-white/70 placeholder-white/15 outline-none focus:border-white/20 transition-colors resize-none leading-relaxed"
           />
 
-          {/* Interpret */}
-          <button
-            onClick={handleInterpret}
-            disabled={!text.trim() || interpreting}
-            className="w-full py-2.5 rounded-xl text-xs font-semibold tracking-widest uppercase transition-all touch-manipulation disabled:opacity-30 active:scale-[0.98]"
-            style={{ background: "rgba(201,165,90,0.08)", border: "1px solid rgba(201,165,90,0.3)", color: "#c9a55a" }}
-          >
-            {interpreting ? "Interpreting…" : style ? "Re-interpret →" : "Interpret my style →"}
-          </button>
-
           {/* Result */}
           {style && (
             <div>
-              <p className="text-[10px] text-white/20 uppercase tracking-widest mb-1.5">Interpreted style — tap to refine</p>
+              <p className="text-[10px] text-white/20 uppercase tracking-widest mb-1.5">
+                {isProcessing ? "Interpreting…" : "Interpreted style — tap to refine"}
+              </p>
               <input
                 type="text"
                 value={style}
@@ -310,6 +388,41 @@ export default function CustomStyleInput({ onStyleChange, selected, onSelect, on
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Shared wave dots ─────────────────────────────────────────────────────────
+
+export function WaveDots({ size = "md", gold = false }: { size?: "sm" | "md"; gold?: boolean }) {
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => (t + 1) % 30), 90);
+    return () => clearInterval(id);
+  }, []);
+
+  const n = size === "sm" ? 3 : 5;
+  const dotSize = size === "sm" ? 3 : 4;
+  const color = gold ? "rgba(201,165,90,0.7)" : "rgba(255,255,255,0.5)";
+
+  return (
+    <div className="flex items-center gap-1">
+      {Array.from({ length: n }, (_, i) => {
+        const phase = (tick - i * 5 + 60) % 30;
+        const scale = phase < 15 ? 0.5 + (phase / 15) * 0.7 : 1.2 - ((phase - 15) / 15) * 0.7;
+        return (
+          <div
+            key={i}
+            style={{
+              width: dotSize, height: dotSize,
+              borderRadius: "50%",
+              background: color,
+              transform: `scale(${scale.toFixed(3)})`,
+              opacity: (0.35 + (scale - 0.5) * 0.65).toFixed(3) as unknown as number,
+            }}
+          />
+        );
+      })}
     </div>
   );
 }

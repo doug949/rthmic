@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useGeneration } from "@/app/contexts/GenerationContext";
+import { WaveDots } from "@/app/components/CustomStyleInput";
 
 export default function GenerationBanner() {
   const { genPhase, genError, clearGeneration } = useGeneration();
@@ -29,7 +30,7 @@ export default function GenerationBanner() {
       >
         {genPhase === "generating" && (
           <>
-            <div className="flex-shrink-0 w-4 h-4 rounded-full border-2 border-white/15 border-t-white/50 animate-spin" />
+            <WaveDots size="sm" />
             <p className="flex-1 text-sm text-white/50">Building your Rthms…</p>
           </>
         )}

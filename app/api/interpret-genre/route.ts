@@ -45,14 +45,14 @@ export async function POST(req: NextRequest) {
 ${context}
 
 Return ONLY a JSON object (no markdown, no extra text) with exactly these two keys:
-1. "style": a Suno music style descriptor of 8–18 words capturing sonic character — feel, energy, texture, instrumentation. Do NOT mention artist names. Make it evocative and production-specific. All lowercase, no trailing punctuation.
+1. "style": a Suno music style descriptor of 8–18 words. Start with the user's core description cleaned up (concise, accurate), then append musical interpretation — feel, texture, energy, instrumentation — that brings it to life. Do NOT mention artist names. Capitalize the first letter. No trailing punctuation. The result should read as if a music producer succinctly described what the user asked for, then added the sonic detail.
 2. "artists": an array of exactly 5 real artists/composers whose work closely matches this style. These should feel derived from the description, not generic suggestions.
 
-Examples of good style descriptors:
-- "atmospheric ambient electronic with sparse piano, deep pads, and meditative stillness"
-- "high-energy arena rock with driving guitars, punchy drums, and raw urgency"
-- "theatrical hip-hop with rapid-fire delivery, syncopated brass, and percussive ensemble energy"
-- "euphoric nu-disco with warm bass lines, sparkling synths, and joyful momentum"
+Examples of good style descriptors (first word capitalised, user intent + musical interpretation):
+- "Atmospheric ambient electronic with sparse piano, deep reverb pads, and meditative stillness"
+- "High-energy arena rock with driving guitars, punchy live drums, and raw urgency"
+- "Theatrical hip-hop with rapid-fire delivery, syncopated brass, and percussive ensemble energy"
+- "Dark Nordic techno with heavy bass, industrial textures, minor-key arpeggios, and relentless drive"
 
 Return ONLY the JSON object, nothing else.`,
         },
@@ -68,7 +68,8 @@ Return ONLY the JSON object, nothing else.`,
       // Strip markdown code fences if present
       const cleaned = raw.replace(/^```(?:json)?\n?/i, "").replace(/\n?```$/i, "").trim().replace(/^[^{]*(\{[\s\S]*\})[^}]*$/, "$1");
       const parsed = JSON.parse(cleaned);
-      style = (parsed.style ?? "").trim();
+      const raw_style = (parsed.style ?? "").trim();
+      style = raw_style.charAt(0).toUpperCase() + raw_style.slice(1);
       artists = Array.isArray(parsed.artists) ? parsed.artists.slice(0, 5) : [];
     } catch {
       // Fallback: use raw text as style, no artists
