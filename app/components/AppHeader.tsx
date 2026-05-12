@@ -67,7 +67,7 @@ export function AppHeader({ backLabel = "← Back", onBack, title }: AppHeaderPr
 
       {/* Page title (optional) */}
       {title && (
-        <span className="text-white/25 text-sm uppercase tracking-widest">
+        <span className="text-white/45 text-sm uppercase tracking-widest">
           {title}
         </span>
       )}
@@ -76,7 +76,7 @@ export function AppHeader({ backLabel = "← Back", onBack, title }: AppHeaderPr
       <button
         onClick={handleHome}
         className="w-8 h-8 flex items-center justify-center rounded-full touch-manipulation active:bg-white/[0.06] transition-colors"
-        style={{ color: "rgba(255,255,255,0.22)" }}
+        style={{ color: "rgba(255,255,255,0.45)" }}
         aria-label="Home"
         title="Home"
       >

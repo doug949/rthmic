@@ -876,6 +876,7 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
   const [openInfo, setOpenInfo] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
+  const [forYouOpen, setForYouOpen] = useState(true);
 
   useEffect(() => {
     const code = getSignedInCode();
@@ -899,45 +900,64 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
       </RevealBlock>
 
       <div className="flex flex-col gap-2">
+        {/* ── For You in the Moment — collapsible ── */}
         <RevealBlock delay={0}>
-          <p className="text-[10px] text-white/40 uppercase tracking-[0.3em] pb-1">For You in the Moment</p>
+          <button
+            onClick={() => setForYouOpen((v) => !v)}
+            className="w-full flex items-center justify-between pb-1 touch-manipulation active:opacity-70 transition-opacity"
+          >
+            <p className="text-[10px] text-white/40 uppercase tracking-[0.3em]">For You in the Moment</p>
+            <svg
+              width="12" height="12" viewBox="0 0 12 12" fill="none"
+              style={{
+                color: "rgba(255,255,255,0.25)",
+                transform: forYouOpen ? "rotate(0deg)" : "rotate(-90deg)",
+                transition: "transform 220ms ease",
+                flexShrink: 0,
+              }}
+            >
+              <path d="M2 4L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
         </RevealBlock>
 
-        {PILLARS.map((p, index) => {
-          return (
-            <RevealBlock key={p.slug} delay={index * 28}>
-            <div
-              className="rounded-2xl border border-white/[0.08] bg-white/[0.03] overflow-hidden"
-            >
-              {/* Main row — split: left selects, right toggles info */}
-              <div className="flex items-stretch">
-                {/* Primary tap target — selects pillar */}
-                <button
-                  onClick={() => onSelect(p.slug)}
-                  className="flex-1 flex items-center gap-3 pl-5 pr-3 py-4 text-left touch-manipulation active:bg-white/[0.05] transition-colors"
-                >
-                  <div className="min-w-0">
-                    <p className="text-base font-semibold text-white/80 tracking-wide">{p.label}</p>
-                    <p className="text-xs text-white/50 mt-0.5">{p.tagline}</p>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateRows: forYouOpen ? "1fr" : "0fr",
+            transition: "grid-template-rows 260ms ease",
+          }}
+        >
+          <div style={{ overflow: "hidden" }}>
+            <div className="flex flex-col gap-2 pb-1">
+              {PILLARS.map((p, index) => (
+                <RevealBlock key={p.slug} delay={index * 18}>
+                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] overflow-hidden">
+                    <div className="flex items-stretch">
+                      <button
+                        onClick={() => onSelect(p.slug)}
+                        className="flex-1 flex items-center gap-3 pl-5 pr-3 py-4 text-left touch-manipulation active:bg-white/[0.05] transition-colors"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-base font-semibold text-white/80 tracking-wide">{p.label}</p>
+                          <p className="text-xs text-white/50 mt-0.5">{p.tagline}</p>
+                        </div>
+                      </button>
+                      <div className="w-px self-stretch my-3 bg-white/[0.06]" />
+                      <button
+                        onClick={() => openModal(p.slug)}
+                        className="flex items-center justify-center w-14 touch-manipulation active:bg-white/[0.04] transition-colors"
+                        aria-label="Learn more"
+                      >
+                        <InfoIcon />
+                      </button>
+                    </div>
                   </div>
-                </button>
-
-                {/* Divider */}
-                <div className="w-px self-stretch my-3 bg-white/[0.06]" />
-
-                {/* Info toggle — opens modal */}
-                <button
-                  onClick={() => openModal(p.slug)}
-                  className="flex items-center justify-center w-14 touch-manipulation active:bg-white/[0.04] transition-colors"
-                  aria-label="Learn more"
-                >
-                  <InfoIcon />
-                </button>
-              </div>
+                </RevealBlock>
+              ))}
             </div>
-            </RevealBlock>
-          );
-        })}
+          </div>
+        </div>
 
         {/* Let RTHMIC decide */}
         <RevealBlock delay={PILLARS.length * 28 + 10}>
@@ -1209,6 +1229,7 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: () =
 
 function IdleView({ onRecord, onPaste, errorMsg }: { onRecord: () => void; onPaste: (lyrics: string, title: string) => void; errorMsg: string }) {
   const [showPaste, setShowPaste] = useState(false);
+  const [micRequesting, setMicRequesting] = useState(false);
   const [pastedLyrics, setPastedLyrics] = useState("");
   const [pastedTitle, setPastedTitle] = useState("");
 
@@ -1292,22 +1313,33 @@ function IdleView({ onRecord, onPaste, errorMsg }: { onRecord: () => void; onPas
 
       <RevealBlock delay={60}>
         <button
-          onClick={onRecord}
-          className="w-28 h-28 rounded-full bg-white/[0.07] border border-white/[0.12] flex items-center justify-center active:scale-[0.96] transition-all touch-manipulation hover:bg-white/[0.12]"
+          onClick={() => { setMicRequesting(true); onRecord(); }}
+          disabled={micRequesting}
+          className="w-28 h-28 rounded-full flex items-center justify-center active:scale-[0.96] transition-all touch-manipulation"
+          style={{
+            background: micRequesting ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.07)",
+            border: micRequesting ? "1px solid rgba(201,165,90,0.35)" : "1px solid rgba(255,255,255,0.12)",
+          }}
           aria-label="Start recording"
         >
-          <MicIcon />
+          {micRequesting ? <MicRequestingIcon /> : <MicIcon />}
         </button>
       </RevealBlock>
 
-      <RevealBlock delay={100}>
-        <button
-          onClick={() => setShowPaste(true)}
-          className="text-xs text-white/30 hover:text-white/50 transition-colors touch-manipulation tracking-wide"
-        >
-          or paste your own lyrics
-        </button>
-      </RevealBlock>
+      {micRequesting && (
+        <p className="text-xs text-white/35 tracking-wide animate-pulse">Requesting microphone…</p>
+      )}
+
+      {!micRequesting && (
+        <RevealBlock delay={100}>
+          <button
+            onClick={() => setShowPaste(true)}
+            className="text-xs text-white/30 hover:text-white/50 transition-colors touch-manipulation tracking-wide"
+          >
+            or paste your own lyrics
+          </button>
+        </RevealBlock>
+      )}
 
       {errorMsg && (
         <p className="text-xs text-white/50 text-center max-w-xs">{errorMsg}</p>
@@ -2371,6 +2403,15 @@ function MicIcon({ active }: { active?: boolean }) {
       <path d="M5 11a7 7 0 0 0 14 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
       <line x1="12" y1="18" x2="12" y2="22" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
       <line x1="9" y1="22" x2="15" y2="22" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// Spinning ring shown while getUserMedia is resolving (before recording actually starts)
+function MicRequestingIcon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" className="animate-spin" style={{ color: "rgba(201,165,90,0.6)" }}>
+      <circle cx="14" cy="14" r="11" stroke="currentColor" strokeWidth="2" strokeDasharray="44 24" strokeLinecap="round" />
     </svg>
   );
 }
