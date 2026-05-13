@@ -433,6 +433,32 @@ export default function SpeakPage() {
     }
   };
 
+  const runWithText = async (text: string) => {
+    setPhase("understanding");
+    setErrorMsg("");
+    try {
+      const form = new FormData();
+      form.append("transcript", text);
+      const pillar = selectedPillarRef.current;
+      if (pillar) form.append("pillar", pillar);
+
+      const res = await fetch("/api/understand", { method: "POST", body: form });
+      if (!res.ok) {
+        let errMsg = "Understanding failed";
+        try { const err = await res.json(); errMsg = err.error || errMsg; } catch { /* non-JSON body */ }
+        throw new Error(errMsg);
+      }
+
+      const data: UnderstandResult = await res.json();
+      if (pillar) data.pillar = normalisePillar(pillar);
+      setUnderstandResult(data);
+      setPhase("confirming");
+    } catch (e) {
+      setErrorMsg(e instanceof Error ? e.message : "Something went wrong");
+      setPhase("idle");
+    }
+  };
+
   // ─── Generate step ────────────────────────────────────────────────────────
 
   const runGenerate = (genre = "Indie Electronic") => {
@@ -457,6 +483,15 @@ export default function SpeakPage() {
   const addMore = useCallback(() => {
     startRecording();
   }, [startRecording]);
+
+  // ─── Re-analyse — re-run understand with stored transcripts after gen failure ─
+
+  const reanalyse = useCallback(() => {
+    const combined = allTranscriptsRef.current.join(" ").trim();
+    if (!combined) return;
+    clearGeneration();
+    runWithText(combined);
+  }, [clearGeneration]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Song playback ────────────────────────────────────────────────────────
 
@@ -593,12 +628,24 @@ export default function SpeakPage() {
   useEffect(() => {
     if (genPhase === "ready" || genPhase === "generating") return;
     clearGeneration();
-    setPhase("module");
-    setSelectedPillar(null);
     setUnderstandResult(null);
     setErrorMsg("");
     setSongStatus({});
     allTranscriptsRef.current = [];
+
+    // Read ?pillar= and ?seed= from URL (e.g. from the Structure page)
+    const params = new URLSearchParams(window.location.search);
+    const pillarParam = params.get("pillar");
+    const seedParam = params.get("seed");
+    if (pillarParam) {
+      seedRef.current = seedParam ?? null;
+      setSelectedPillar(pillarParam);
+      setIsDedication(false);
+      setPhase("priming");
+    } else {
+      setSelectedPillar(null);
+      setPhase("module");
+    }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -668,8 +715,9 @@ export default function SpeakPage() {
         <ConfirmingView
           result={understandResult}
           onAddMore={addMore}
-          onProceed={runGenerate}
+          onProceed={() => runGenerate()}
           onDiscard={reset}
+          onReanalyse={reanalyse}
           errorMsg={genError}
         />
       )}
@@ -679,14 +727,14 @@ export default function SpeakPage() {
         <>
           {phase === "module" && (
             <PillarView
-              onSelect={(slug) => {
+              onSelect={(slug, seed) => {
+                seedRef.current = seed ?? null;
                 if (slug === "auto") {
                   setSelectedPillar(null);
                   setIsDedication(false);
                   goToPhase("priming");
                 } else {
                   setSelectedPillar(slug);
-                  // Bridge and Invite are both "send to someone" — share-first UX
                   setIsDedication(slug === "bridge" || slug === "invite");
                   goToPhase("priming");
                 }
@@ -694,7 +742,14 @@ export default function SpeakPage() {
             />
           )}
           {phase === "priming" && (
-            <PrimingView pillar={selectedPillar} onReady={(seed) => { seedRef.current = seed ?? null; goToPhase("idle"); }} />
+            <PrimingView pillar={selectedPillar} onReady={(seed, skipSpeak) => {
+              if (skipSpeak && seed) {
+                runWithText(seed);
+              } else {
+                seedRef.current = seed ?? null;
+                goToPhase("idle");
+              }
+            }} />
           )}
           {phase === "idle" && (
             <IdleView onRecord={startRecording} onPaste={runWithPastedLyrics} errorMsg={errorMsg} selectedPillar={selectedPillar} />
@@ -891,16 +946,49 @@ const PILLARS: PillarDefinition[] = [
       footnote: "Works best with 'one big idea' nonfiction — the kind where the title becomes shorthand for a whole way of thinking. Atomic Habits, Sapiens, Deep Work, Thinking Fast and Slow, The Power of Habit, and anything like them.",
     },
   },
+];
+
+// ─── Subcategory groupings for "For you in the moment" ────────────────────────
+
+const FOR_YOU_SUBCATEGORIES = [
+  { label: "Unlock",   slugs: ["mode", "movement", "explain"] },
+  { label: "Prime",    slugs: ["mindset"] },
+  { label: "Preserve", slugs: ["journal", "epiphany"] },
+  { label: "Install",  slugs: ["memory", "booksummary"] },
+];
+
+// Menus pillar is accessible via /structure — excluded from the speak catalog
+const FOR_YOU_PILLARS = PILLARS.filter((p) => p.slug !== "menus");
+
+// ─── The Vault — coming-soon reflective pillars ───────────────────────────────
+
+const VAULT_PILLARS: PillarDefinition[] = [
   {
-    slug: "journey",
-    label: "Journey",
-    tagline: "A Rthm that grows with you over time",
-    detail: "Coming soon.",
-    guidance: "Coming soon.",
+    slug: "timecapsule",
+    label: "Time Capsule",
+    tagline: "A message to your future self",
+    icon: <TimeCapsuleIcon />,
+    detail: "Record something for the version of you that exists in a week, a month, or a year. What's true right now? What do you hope changes? What do you never want to forget? RTHMIC turns it into a song — a sealed moment you can open later.",
+    guidance: "Speak to your future self. Say what's true right now, what you're hoping for, and what you want them to remember. Pick a timeframe if you know it.",
     comingSoon: true,
     priming: {
-      headline: "Coming soon.",
-      subheadline: "",
+      headline: "What do you want your future self to know?",
+      subheadline: "Speak to the version of you that's a week, a month, or a year away.",
+      instructions: [],
+      footnote: "",
+    },
+  },
+  {
+    slug: "whatmattered",
+    label: "What Mattered",
+    tagline: "The good things you noticed today",
+    icon: <WhatMatteredIcon />,
+    detail: "A daily practice of noticing — the small things that went right, the moments worth holding. Not forced positivity. Just honesty about what was actually good. RTHMIC turns it into a song you can return to.",
+    guidance: "Speak the good things from today. They don't need to be big. The point is noticing them.",
+    comingSoon: true,
+    priming: {
+      headline: "What was good today?",
+      subheadline: "Even if today was hard — what was worth noticing?",
       instructions: [],
       footnote: "",
     },
@@ -961,12 +1049,14 @@ const INVITE_PILLAR: PillarDefinition = {
 
 // ─── Pillar view ──────────────────────────────────────────────────────────────
 
-function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
+function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => void }) {
   const [openInfo, setOpenInfo] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [forYouOpen, setForYouOpen] = useState(false);
+  const [subCatOpen, setSubCatOpen] = useState<Record<string, boolean>>({});
   const [forSomeoneElseOpen, setForSomeoneElseOpen] = useState(false);
+  const [vaultOpen, setVaultOpen] = useState(false);
 
   useEffect(() => {
     const code = getSignedInCode();
@@ -997,13 +1087,13 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
             className="w-full flex items-center justify-between py-2.5 touch-manipulation active:opacity-70 transition-opacity"
           >
             <div className="flex items-center gap-2.5">
-              <span className="text-white/45"><ForYouIcon /></span>
-              <p className="text-sm font-medium text-white/80 tracking-wide">For you in the moment</p>
+              <span style={{ color: "rgba(201,165,90,0.65)" }}><ForYouIcon /></span>
+              <p className="text-sm font-medium tracking-wide" style={{ color: "rgba(201,165,90,0.85)" }}>For you in the moment</p>
             </div>
             <svg
               width="12" height="12" viewBox="0 0 12 12" fill="none"
               style={{
-                color: "rgba(255,255,255,0.50)",
+                color: "rgba(201,165,90,0.55)",
                 transform: forYouOpen ? "rotate(0deg)" : "rotate(-90deg)",
                 transition: "transform 220ms ease",
                 flexShrink: 0,
@@ -1022,51 +1112,56 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
           }}
         >
           <div style={{ overflow: "hidden" }}>
-            <div className="flex flex-col gap-2 pb-1">
-              {PILLARS.map((p, index) => (
-                <RevealBlock key={p.slug} delay={index * 18}>
-                  {p.comingSoon ? (
-                    <div className="rounded-2xl border border-white/[0.05] bg-white/[0.015] overflow-hidden opacity-45">
-                      <div className="flex items-center gap-3.5 pl-5 pr-4 py-4">
-                        {p.icon && <span className="flex-shrink-0 text-white/25">{p.icon}</span>}
-                        <div className="min-w-0 flex-1">
-                          <p className="text-base font-semibold text-white/50 tracking-wide">{p.label}</p>
-                          <p className="text-xs text-white/35 mt-0.5">{p.tagline}</p>
+            <div className="flex flex-col pb-1 gap-0.5">
+              {FOR_YOU_SUBCATEGORIES.map((group) => {
+                const pillars = group.slugs.map(slug => FOR_YOU_PILLARS.find(p => p.slug === slug)).filter(Boolean) as typeof PILLARS;
+                if (pillars.length === 0) return null;
+                const isOpen = !!subCatOpen[group.label];
+                return (
+                  <div key={group.label}>
+                    <button
+                      onClick={() => setSubCatOpen(prev => ({ ...prev, [group.label]: !prev[group.label] }))}
+                      className="w-full flex items-center justify-between py-2.5 px-1 touch-manipulation active:opacity-60 transition-opacity"
+                    >
+                      <p className="text-[10px] uppercase tracking-[0.28em] text-white/35 font-medium">{group.label}</p>
+                      <svg width="10" height="10" viewBox="0 0 12 12" fill="none"
+                        style={{ color: "rgba(255,255,255,0.25)", transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform 200ms ease", flexShrink: 0 }}>
+                        <path d="M2 4L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </button>
+                    <div style={{ display: "grid", gridTemplateRows: isOpen ? "1fr" : "0fr", transition: "grid-template-rows 240ms ease" }}>
+                      <div style={{ overflow: "hidden" }}>
+                        <div className="flex flex-col gap-2 pb-2">
+                          {pillars.map((p) => (
+                            <div key={p.slug} className="rounded-2xl border border-white/[0.08] bg-white/[0.03] overflow-hidden">
+                              <div className="flex items-stretch">
+                                <button
+                                  onClick={() => onSelect(p.slug)}
+                                  className="flex-1 flex items-center gap-3.5 pl-5 pr-3 py-4 text-left touch-manipulation active:bg-white/[0.05] transition-colors"
+                                >
+                                  {p.icon && <span className="flex-shrink-0 text-white/35">{p.icon}</span>}
+                                  <div className="min-w-0">
+                                    <p className="text-base font-semibold text-white/80 tracking-wide">{p.label}</p>
+                                    <p className="text-xs text-white/50 mt-0.5">{p.tagline}</p>
+                                  </div>
+                                </button>
+                                <div className="w-px self-stretch my-3 bg-white/[0.06]" />
+                                <button
+                                  onClick={() => openModal(p.slug)}
+                                  className="flex items-center justify-center w-14 touch-manipulation active:bg-white/[0.04] transition-colors"
+                                  aria-label="Learn more"
+                                >
+                                  <InfoIcon />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                        <span className="text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-full flex-shrink-0"
-                          style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.35)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                          Soon
-                        </span>
                       </div>
                     </div>
-                  ) : (
-                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] overflow-hidden">
-                    <div className="flex items-stretch">
-                      <button
-                        onClick={() => onSelect(p.slug)}
-                        className="flex-1 flex items-center gap-3.5 pl-5 pr-3 py-4 text-left touch-manipulation active:bg-white/[0.05] transition-colors"
-                      >
-                        {p.icon && (
-                          <span className="flex-shrink-0 text-white/35">{p.icon}</span>
-                        )}
-                        <div className="min-w-0">
-                          <p className="text-base font-semibold text-white/80 tracking-wide">{p.label}</p>
-                          <p className="text-xs text-white/50 mt-0.5">{p.tagline}</p>
-                        </div>
-                      </button>
-                      <div className="w-px self-stretch my-3 bg-white/[0.06]" />
-                      <button
-                        onClick={() => openModal(p.slug)}
-                        className="flex items-center justify-center w-14 touch-manipulation active:bg-white/[0.04] transition-colors"
-                        aria-label="Learn more"
-                      >
-                        <InfoIcon />
-                      </button>
-                    </div>
                   </div>
-                  )}
-                </RevealBlock>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -1078,13 +1173,13 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
             className="w-full flex items-center justify-between py-2.5 mt-2 touch-manipulation active:opacity-70 transition-opacity"
           >
             <div className="flex items-center gap-2.5">
-              <span style={{ color: "rgba(201,165,90,0.65)" }}><ForSomeoneElseIcon /></span>
-              <p className="text-sm font-medium tracking-wide" style={{ color: "rgba(201,165,90,0.85)" }}>For someone else</p>
+              <span style={{ color: "rgba(120,160,255,0.65)" }}><ForSomeoneElseIcon /></span>
+              <p className="text-sm font-medium tracking-wide" style={{ color: "rgba(140,175,255,0.92)" }}>For someone else</p>
             </div>
             <svg
               width="12" height="12" viewBox="0 0 12 12" fill="none"
               style={{
-                color: "rgba(201,165,90,0.55)",
+                color: "rgba(120,160,255,0.55)",
                 transform: forSomeoneElseOpen ? "rotate(0deg)" : "rotate(-90deg)",
                 transition: "transform 220ms ease",
                 flexShrink: 0,
@@ -1171,8 +1266,8 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
           </div>
         </div>
 
-        {/* Let RTHMIC decide — at the bottom */}
-        <RevealBlock delay={PILLARS.length * 28 + 66}>
+        {/* Let RTHMIC decide */}
+        <RevealBlock delay={PILLARS.length * 28 + 38}>
           <div className="mt-4">
             <button
               onClick={() => onSelect("auto")}
@@ -1186,6 +1281,41 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
               Let RTHMIC decide
             </button>
             <p className="text-center text-[10px] text-white/35 mt-2 tracking-widest uppercase">Beta</p>
+          </div>
+        </RevealBlock>
+
+        {/* ── The Vault — coming soon ── */}
+        <RevealBlock delay={PILLARS.length * 28 + 66}>
+          <div className="mt-2 rounded-2xl border overflow-hidden opacity-50"
+            style={{ borderColor: "rgba(160,130,220,0.18)", background: "rgba(160,130,220,0.04)" }}>
+            <div className="px-5 pt-4 pb-3 flex items-center gap-2.5">
+              <span style={{ color: "rgba(160,130,220,0.65)" }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <rect x="3" y="8" width="18" height="13" rx="2" stroke="currentColor" strokeWidth="1.7" />
+                  <path d="M7 8V6a5 5 0 0 1 10 0v2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+                  <circle cx="12" cy="14.5" r="1.5" fill="currentColor" />
+                </svg>
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium tracking-wide" style={{ color: "rgba(180,150,240,0.85)" }}>The Vault</p>
+                <p className="text-[11px] mt-0.5" style={{ color: "rgba(160,130,220,0.5)" }}>Rthms to return to — coming soon</p>
+              </div>
+              <span className="text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-full flex-shrink-0"
+                style={{ background: "rgba(160,130,220,0.08)", color: "rgba(160,130,220,0.5)", border: "1px solid rgba(160,130,220,0.15)" }}>
+                Soon
+              </span>
+            </div>
+            <div className="flex flex-col gap-1.5 px-5 pb-4">
+              {VAULT_PILLARS.map((p) => (
+                <div key={p.slug} className="flex items-center gap-3 py-2 border-t" style={{ borderColor: "rgba(160,130,220,0.08)" }}>
+                  {p.icon && <span className="flex-shrink-0" style={{ color: "rgba(160,130,220,0.4)" }}>{p.icon}</span>}
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium" style={{ color: "rgba(180,150,240,0.5)" }}>{p.label}</p>
+                    <p className="text-[11px] text-white/25 mt-0.5">{p.tagline}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </RevealBlock>
 
@@ -1289,7 +1419,7 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
 
 // ─── Priming ──────────────────────────────────────────────────────────────────
 
-function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (seed?: string) => void }) {
+function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (seed?: string, skipSpeak?: boolean) => void }) {
   const pillarDef = PILLARS.find((p) => p.slug === pillar)
     ?? (pillar === "bridge" ? BRIDGE_PILLAR : null)
     ?? (pillar === "invite" ? INVITE_PILLAR : null);
@@ -1301,7 +1431,6 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
 
   const suggestionPool = pillar === "explain" ? EXPLAIN_SUGGESTIONS : pillar === "booksummary" ? BOOKSUMMARY_SUGGESTIONS : null;
   const [suggestions, setSuggestions] = useState<string[]>(() => suggestionPool ? pickSuggestions(suggestionPool) : []);
-  const [selectedSeed, setSelectedSeed] = useState<string | null>(null);
 
   return (
     <section className="flex-1 flex flex-col justify-between pb-10">
@@ -1355,7 +1484,7 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
                   {pillar === "booksummary" ? "Or try a book" : "Or try a concept"}
                 </p>
                 <button
-                  onClick={() => { setSuggestions(pickSuggestions(suggestionPool)); setSelectedSeed(null); }}
+                  onClick={() => setSuggestions(pickSuggestions(suggestionPool))}
                   className="text-[10px] text-white/30 uppercase tracking-widest touch-manipulation active:text-white/60 transition-colors"
                 >
                   Shuffle
@@ -1363,16 +1492,12 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
               </div>
               <div className="flex flex-wrap gap-2">
                 {suggestions.map((s) => {
-                  const isSelected = s === selectedSeed;
                   return (
                     <button
                       key={s}
-                      onClick={() => setSelectedSeed(isSelected ? null : s)}
+                      onClick={() => onReady(s, true)}
                       className="text-xs px-3 py-1.5 rounded-full touch-manipulation transition-all active:scale-95"
-                      style={isSelected
-                        ? { background: "rgba(201,165,90,0.18)", border: "1px solid rgba(201,165,90,0.55)", color: "#c9a55a" }
-                        : { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.5)" }
-                      }
+                      style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.5)" }}
                     >
                       {s}
                     </button>
@@ -1392,7 +1517,7 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
 
       <RevealBlock delay={180 + instructions.length * 45 + 50} className="flex-shrink-0">
         <button
-          onClick={() => onReady(selectedSeed ?? undefined)}
+          onClick={() => onReady()}
           className="w-full py-5 rounded-2xl text-sm font-semibold tracking-wide active:scale-[0.98] transition-all touch-manipulation"
           style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.45)", color: "#c9a55a" }}
         >
@@ -1623,6 +1748,7 @@ function ConfirmingView({
   onAddMore,
   onProceed,
   onDiscard,
+  onReanalyse,
   errorMsg,
   wasAutoStopped,
 }: {
@@ -1630,6 +1756,7 @@ function ConfirmingView({
   onAddMore: () => void;
   onProceed: () => void;
   onDiscard: () => void;
+  onReanalyse?: () => void;
   errorMsg: string;
   wasAutoStopped?: boolean;
 }) {
@@ -1703,7 +1830,18 @@ function ConfirmingView({
         </RevealBlock>
 
         {errorMsg && (
-          <p className="text-xs text-red-400/50 text-center">{errorMsg}</p>
+          <div className="flex flex-col items-center gap-3">
+            <p className="text-xs text-red-400/50 text-center">{errorMsg}</p>
+            {onReanalyse && (
+              <button
+                onClick={onReanalyse}
+                className="text-xs underline underline-offset-2 touch-manipulation active:opacity-60 transition-opacity"
+                style={{ color: "rgba(201,165,90,0.6)" }}
+              >
+                Re-analyse my prompt
+              </button>
+            )}
+          </div>
         )}
       </div>
 
@@ -2839,6 +2977,37 @@ function InviteIcon() {
       <circle cx="19" cy="5" r="3" fill="rgba(120,160,255,0.35)" stroke="currentColor" strokeWidth="1.2" />
       <line x1="19" y1="3.5" x2="19" y2="6.5" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
       <line x1="17.5" y1="5" x2="20.5" y2="5" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function TimeCapsuleIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      {/* Hourglass body */}
+      <path d="M6 2h12M6 22h12" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M7 2 Q7 10 12 12 Q17 14 17 22" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M17 2 Q17 10 12 12 Q7 14 7 22" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      {/* Sand dot at bottom */}
+      <circle cx="12" cy="18" r="1.2" fill="currentColor" />
+    </svg>
+  );
+}
+
+function WhatMatteredIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      {/* Sun circle */}
+      <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.6" />
+      {/* Rays */}
+      <line x1="12" y1="3" x2="12" y2="5.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="12" y1="18.5" x2="12" y2="21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="3" y1="12" x2="5.5" y2="12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="18.5" y1="12" x2="21" y2="12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="5.6" y1="5.6" x2="7.4" y2="7.4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="16.6" y1="16.6" x2="18.4" y2="18.4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="18.4" y1="5.6" x2="16.6" y2="7.4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="7.4" y1="16.6" x2="5.6" y2="18.4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );
 }

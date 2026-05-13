@@ -2,24 +2,23 @@
 
 ## What It Is
 
-The Explain pillar turns an idea into a song that communicates it clearly to another person.
+The Explain pillar turns an idea into a song that makes it finally click for the person listening.
 
-The listener finishes and thinks: **"I understand this now."**
+The listener finishes and thinks: **"Oh. I get it now."**
 Not: "That was emotionally powerful."
 
 This is not a memory song, not an emotional processing song, not a mindset installation.
-It is a communication song. Clarity is the only metric that matters.
+It is a comprehension song. The listener came in confused; they leave with the structure of the idea inside them.
 
 ---
 
 ## Primary Use Cases
 
-- Explaining what RTHMIC is and how it works
-- Walking through a RTHMIC pillar or feature
-- Onboarding someone new
-- Communicating a workflow, system, or philosophy
-- Introducing a concept someone hasn't encountered before
-- Helping someone understand something they're confused by
+- Understanding how RTHMIC works and why it does what it does
+- Getting a concept that's always been fuzzy to finally land
+- Understanding a system, framework, or philosophy you keep encountering
+- Making sense of something you've heard explained before but it hasn't clicked
+- Grasping the logic underneath something — not just the steps, but the why
 
 ---
 

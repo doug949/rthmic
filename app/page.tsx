@@ -37,15 +37,25 @@ export default function Home() {
             blue
           />
         </RevealBlock>
-        <RevealBlock delay={180}>
+        <RevealBlock delay={160}>
+          <ModeCard
+            href="/structure"
+            label="Structure: Rthmic Menus"
+            description="Morning, afternoon, evening — build a Rthm for the time of day."
+            icon={<StructureIcon />}
+            teal
+          />
+        </RevealBlock>
+        <RevealBlock delay={220}>
           <ModeCard
             href="/settings"
             label="RTHMIC Styles"
             description="Configure your genre map and preferences"
             icon={<NoteIcon />}
+            subtle
           />
         </RevealBlock>
-        <RevealBlock delay={240}>
+        <RevealBlock delay={270}>
           <ModeCard
             href="/feedback"
             label="Share Feedback"
@@ -54,7 +64,7 @@ export default function Home() {
             subtle
           />
         </RevealBlock>
-        <RevealBlock delay={300}>
+        <RevealBlock delay={320}>
           <ModeCard
             href="/understand"
             label="About RTHMIC"
@@ -75,6 +85,7 @@ function ModeCard({
   icon,
   primary,
   blue,
+  teal,
   subtle,
 }: {
   href: string;
@@ -83,11 +94,12 @@ function ModeCard({
   icon: React.ReactNode;
   primary?: boolean;
   blue?: boolean;
+  teal?: boolean;
   subtle?: boolean;
 }) {
-  const iconColor  = primary ? "#c9a55a" : blue ? "rgba(120,160,255,0.75)" : subtle ? "rgba(255,255,255,0.28)" : "rgba(255,255,255,0.45)";
-  const labelColor = primary ? "#c9a55a" : blue ? "rgba(140,175,255,0.92)" : subtle ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.9)";
-  const arrowColor = primary ? "rgba(201,165,90,0.4)" : blue ? "rgba(120,160,255,0.35)" : subtle ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.2)";
+  const iconColor  = primary ? "#c9a55a" : blue ? "rgba(120,160,255,0.75)" : teal ? "rgba(100,195,165,0.85)" : subtle ? "rgba(255,255,255,0.28)" : "rgba(255,255,255,0.45)";
+  const labelColor = primary ? "#c9a55a" : blue ? "rgba(140,175,255,0.92)" : teal ? "rgba(120,210,180,0.92)" : subtle ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.9)";
+  const arrowColor = primary ? "rgba(201,165,90,0.4)" : blue ? "rgba(120,160,255,0.35)" : teal ? "rgba(100,195,165,0.35)" : subtle ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.2)";
 
   return (
     <TransitionLink
@@ -95,12 +107,13 @@ function ModeCard({
       className={`
         flex items-center gap-5 px-6 rounded-2xl border transition-all duration-150
         active:scale-[0.98] touch-manipulation
-        ${primary || blue ? "py-7" : subtle ? "py-4" : "py-7"}
-        ${primary || blue ? "" : "bg-white/[0.03] border-white/[0.08] hover:bg-white/[0.07]"}
+        ${primary || blue || teal ? "py-7" : subtle ? "py-4" : "py-7"}
+        ${primary || blue || teal ? "" : "bg-white/[0.03] border-white/[0.08] hover:bg-white/[0.07]"}
       `}
       style={
         primary ? { background: "rgba(201,165,90,0.08)", borderColor: "rgba(201,165,90,0.35)" }
         : blue   ? { background: "rgba(100,140,255,0.06)", borderColor: "rgba(120,160,255,0.28)" }
+        : teal   ? { background: "rgba(100,195,165,0.06)", borderColor: "rgba(100,195,165,0.28)" }
         : {}
       }
     >
@@ -156,6 +169,23 @@ function NoteIcon() {
       <path d="M9 18V6l12-2v12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
       <circle cx="6" cy="18" r="3" fill="currentColor" />
       <circle cx="18" cy="16" r="3" fill="currentColor" />
+    </svg>
+  );
+}
+
+function StructureIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      {/* Horizon line */}
+      <line x1="2" y1="16" x2="22" y2="16" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      {/* Sun arc */}
+      <path d="M5 16 A7 7 0 0 1 19 16" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" fill="none" />
+      {/* Sun circle */}
+      <circle cx="12" cy="9" r="2.2" stroke="currentColor" strokeWidth="1.5" fill="none" />
+      {/* Rays */}
+      <line x1="12" y1="4.5" x2="12" y2="5.8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="16.8" y1="6" x2="15.9" y2="6.9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="7.2" y1="6" x2="8.1" y2="6.9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
     </svg>
   );
 }

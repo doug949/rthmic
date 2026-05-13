@@ -436,9 +436,9 @@ Tell me what you find.`,
   Explain: {
     title: "Here's How It Works",
     stateSummary: {
-      state: "You want to communicate something clearly to someone — an idea, a system, a concept — and you need it to actually land.",
-      intent: "You want them to finish listening and think: I understand this now.",
-      friction: "The idea is clear to you but explaining it in a way that makes sense to someone else is harder than it looks.",
+      state: "There's something that hasn't fully clicked for you — a concept, a system, an idea you've come across before but never quite grasped.",
+      intent: "You want to finish listening and think: I get it now. Not just the surface of it — the actual structure underneath.",
+      friction: "You've heard explanations before, but the framing hasn't been right. Something about the way it's been presented hasn't made the shape of it visible.",
     },
     lyrics: `[VERSE]
 Here's the thing.
@@ -476,9 +476,9 @@ is the exact place we need to look.
 
 [OUTRO]
 You have it now.
-Not just the surface — the structure.
+Not just the surface — the structure underneath.
 That's what stays.
-That's what you'll be able to explain to someone else tomorrow.`,
+That's what you came here for.`,
   },
   Epiphany: {
     title: "Write It Before It Goes",

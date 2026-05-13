@@ -16,7 +16,7 @@ const PILLAR_FILE: Record<PillarType, string> = {
   Invite:        "invite.md",    // Beta tester invite — personal, demonstrative, welcoming
   Journal:       "journal.md",   // Day capture — speak the day, keep it as a song
   Epiphany:      "epiphany.md",     // Idea/insight capture — crystallise the spark in song
-  Explain:       "explain.md",      // Communication clarity — make an idea land for someone else
+  Explain:       "explain.md",      // Comprehension — make an idea finally click for the listener
   BookSummary:   "booksummary.md",  // One big idea from a popular nonfiction book
 };
 

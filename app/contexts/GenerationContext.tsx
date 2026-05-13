@@ -50,6 +50,7 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
     setGenError("");
 
     try {
+      const genStart = Date.now();
       const startRes = await fetch("/api/start-generation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -65,22 +66,26 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
         throw new Error(err.error || "Failed to start generation");
       }
       const { taskId } = await startRes.json();
+      console.log(`[gen] task started: ${taskId} (${Date.now() - genStart}ms to start)`);
 
       const MAX_POLLS = 48;
       for (let i = 0; i < MAX_POLLS; i++) {
         await new Promise((r) => setTimeout(r, 5000));
         if (gen !== generationRef.current) return; // superseded by a newer generation
 
+        const elapsed = ((Date.now() - genStart) / 1000).toFixed(1);
         const pollRes = await fetch(
           `/api/poll-generation?taskId=${encodeURIComponent(taskId)}&t=${Date.now()}`,
           { cache: "no-store" }
         );
-        if (!pollRes.ok) continue;
+        if (!pollRes.ok) { console.log(`[gen] poll ${i + 1} failed (${elapsed}s elapsed)`); continue; }
         const poll = await pollRes.json();
+        console.log(`[gen] poll ${i + 1} → ${poll.status} (${elapsed}s elapsed)`);
 
         if (poll.status === "ready" && poll.songs) {
           if (gen !== generationRef.current) return;
           const songs = poll.songs as Song[];
+          console.log(`[gen] ready after ${((Date.now() - genStart) / 1000).toFixed(1)}s total`);
           setGenSongs(songs);
           setGenPhase("ready");
 
