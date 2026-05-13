@@ -31,6 +31,7 @@ interface PillarDefinition {
   priming: PillarPriming; // full copy shown on Before You Speak screen
   icon?: React.ReactNode; // small SVG icon shown on the tile
   comingSoon?: boolean;   // show as dim / non-selectable
+  adhdOnly?: boolean;    // hidden unless ADHD mode is enabled in settings
 }
 
 // ─── Suggestion chips for explain + booksummary ───────────────────────────────
@@ -995,6 +996,68 @@ const VAULT_PILLARS: PillarDefinition[] = [
   },
 ];
 
+// ─── ADHD-specific pillars — hidden unless adhdMode is enabled ────────────────
+
+const ADHD_PILLARS: PillarDefinition[] = [
+  {
+    slug: "rsd",
+    label: "Rejection Spike",
+    tagline: "When rejection hits harder than it should",
+    icon: <RSDIcon />,
+    adhdOnly: true,
+    detail: "Rejection-sensitive dysphoria (RSD) is an intense emotional response to perceived rejection or failure — disproportionate to the trigger, fast to arrive, hard to reason away. This track meets you in the spike and walks you back down. It doesn't argue with the feeling. It anchors your body while your nervous system resets.",
+    guidance: "Describe what happened and how it feels right now. Be specific — the moment that triggered it, the physical sensation, what your brain is telling you. The more honest you are about the spike, the better the track can meet you there.",
+    priming: {
+      headline: "Say exactly where the spike is.",
+      subheadline: "Not what caused it — what it feels like right now.",
+      instructions: [
+        "Describe the moment that triggered it — what happened, what was said, what you read. Even if it seems small from the outside, say it.",
+        "Describe what the feeling is doing to your body and your thoughts right now. The heaviness, the heat, the urgency, the shame. Don't soften it.",
+        "You don't need to rationalise it or know it's disproportionate. Just say what is.",
+      ],
+      footnote: "This works best during or immediately after the spike — not once it has passed. Even 30 seconds of honest description is enough.",
+    },
+  },
+  {
+    slug: "timepanic",
+    label: "Time Panic",
+    tagline: "Already late, can't start, can't move",
+    icon: <TimePanicIcon />,
+    adhdOnly: true,
+    detail: "Time blindness means the future doesn't feel real until it's already now — and then it floods in all at once. This is for the moment when you realise you're late, you're behind, you can't start, and your brain is stuck in a loop instead of moving. Rthmic interrupts the loop and gets you into motion.",
+    guidance: "Say exactly where you are. Late for what? How long have you been stuck? What's the first thing that needs to happen? Say all of it, fast — don't curate.",
+    priming: {
+      headline: "Say it fast. What's happening right now?",
+      subheadline: "Late for what? Stuck on what? What needs to happen first?",
+      instructions: [
+        "Name what you're late for or behind on. Be specific — the meeting, the email, the task, the person waiting.",
+        "Say how long you've been frozen or avoiding. Even if it's been hours.",
+        "Say the one first thing that would move you. Even if it feels impossible right now.",
+      ],
+      footnote: "Keep it under a minute. Rthmic will get you unstuck.",
+    },
+  },
+  {
+    slug: "launch",
+    label: "Launch",
+    tagline: "Leave the house. Start the thing. Go.",
+    icon: <LaunchIcon />,
+    adhdOnly: true,
+    detail: "Task initiation — getting started on something you need to do — is one of the hardest things for an ADHD brain. Not because you don't want to. Because the gap between intending and starting can feel uncrossable. This track is a launch ramp. It builds momentum from nothing and carries you through the doorway.",
+    guidance: "Say what you need to start or where you need to go. What's the first physical action? What's been stopping you? Say it honestly.",
+    priming: {
+      headline: "What do you need to start?",
+      subheadline: "Or where do you need to go?",
+      instructions: [
+        "Name the thing — leave the house, open the document, make the call, start the task. Be specific.",
+        "Say what the first physical action is. Not the whole task — just the first move.",
+        "Say what's been stopping you, if you know. Overwhelm, avoidance, fear, inertia — just name it.",
+      ],
+      footnote: "This is short by design. The goal is motion, not reflection.",
+    },
+  },
+];
+
 // Bridge is a dedicated "for someone else" pillar — kept separate from the main list
 // so it can be rendered with its own visual treatment.
 const BRIDGE_PILLAR: PillarDefinition = {
@@ -1053,6 +1116,8 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
   const [openInfo, setOpenInfo] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
+  const [adhdMode, setAdhdMode] = useState(false);
+  const [adhdOpen, setAdhdOpen] = useState(false);
   const [forYouOpen, setForYouOpen] = useState(false);
   const [subCatOpen, setSubCatOpen] = useState<Record<string, boolean>>({});
   const [forSomeoneElseOpen, setForSomeoneElseOpen] = useState(false);
@@ -1061,12 +1126,13 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
   useEffect(() => {
     const code = getSignedInCode();
     setShowInvite(code !== null && ADMIN_CODES.includes(code));
+    fetch("/api/settings").then(r => r.json()).then(s => { if (s.adhdMode) setAdhdMode(true); }).catch(() => {});
   }, []);
 
   const openModal = (slug: string) => { setOpenInfo(slug); requestAnimationFrame(() => setModalVisible(true)); };
   const closeModal = () => { setModalVisible(false); setTimeout(() => setOpenInfo(null), 220); };
 
-  const allPillars = [...PILLARS, BRIDGE_PILLAR, INVITE_PILLAR];
+  const allPillars = [...PILLARS, BRIDGE_PILLAR, INVITE_PILLAR, ...ADHD_PILLARS];
   const modalPillar = openInfo ? allPillars.find((p) => p.slug === openInfo) ?? null : null;
 
   return (
@@ -1265,6 +1331,47 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
             </div>
           </div>
         </div>
+
+        {/* ── ADHD Mode pillars — only visible when adhdMode is on ── */}
+        {adhdMode && (
+          <>
+            <RevealBlock delay={PILLARS.length * 28 + 20}>
+              <button
+                onClick={() => setAdhdOpen((v) => !v)}
+                className="w-full flex items-center justify-between py-2.5 mt-2 touch-manipulation active:opacity-70 transition-opacity"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span style={{ color: "rgba(160,130,220,0.65)" }}><BrainIcon /></span>
+                  <p className="text-sm font-medium tracking-wide" style={{ color: "rgba(180,150,240,0.85)" }}>ADHD</p>
+                </div>
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+                  style={{ color: "rgba(160,130,220,0.55)", transform: adhdOpen ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform 220ms ease", flexShrink: 0 }}>
+                  <path d="M2 4L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            </RevealBlock>
+            <div style={{ display: "grid", gridTemplateRows: adhdOpen ? "1fr" : "0fr", transition: "grid-template-rows 260ms ease" }}>
+              <div style={{ overflow: "hidden" }}>
+                <div className="flex flex-col gap-2 pb-1">
+                  {ADHD_PILLARS.map((p) => (
+                    <div key={p.slug} className="rounded-2xl border overflow-hidden" style={{ borderColor: "rgba(160,130,220,0.18)", background: "rgba(160,130,220,0.04)" }}>
+                      <div className="flex items-center gap-3.5 pl-5 pr-2 py-4">
+                        {p.icon && <span className="flex-shrink-0" style={{ color: "rgba(160,130,220,0.7)" }}>{p.icon}</span>}
+                        <button onClick={() => onSelect(p.slug)} className="flex-1 min-w-0 text-left touch-manipulation">
+                          <p className="text-base font-semibold tracking-wide" style={{ color: "rgba(180,150,240,0.92)" }}>{p.label}</p>
+                          <p className="text-xs text-white/40 mt-0.5">{p.tagline}</p>
+                        </button>
+                        <button onClick={() => openModal(p.slug)} className="flex items-center justify-center w-14 touch-manipulation active:bg-white/[0.04] transition-colors" aria-label="Learn more">
+                          <InfoIcon />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Let RTHMIC decide */}
         <RevealBlock delay={PILLARS.length * 28 + 38}>
@@ -2997,9 +3104,7 @@ function TimeCapsuleIcon() {
 function WhatMatteredIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-      {/* Sun circle */}
       <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.6" />
-      {/* Rays */}
       <line x1="12" y1="3" x2="12" y2="5.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
       <line x1="12" y1="18.5" x2="12" y2="21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
       <line x1="3" y1="12" x2="5.5" y2="12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -3008,6 +3113,47 @@ function WhatMatteredIcon() {
       <line x1="16.6" y1="16.6" x2="18.4" y2="18.4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
       <line x1="18.4" y1="5.6" x2="16.6" y2="7.4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
       <line x1="7.4" y1="16.6" x2="5.6" y2="18.4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function BrainIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <path d="M9.5 2a4.5 4.5 0 0 0-4.5 4.5c0 .6.1 1.2.3 1.7A4 4 0 0 0 3 12a4 4 0 0 0 2.3 3.6A4.5 4.5 0 0 0 9.5 22h5a4.5 4.5 0 0 0 4.2-6.4A4 4 0 0 0 21 12a4 4 0 0 0-2.3-3.8c.2-.5.3-1.1.3-1.7A4.5 4.5 0 0 0 14.5 2h-5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+      <line x1="12" y1="6" x2="12" y2="18" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+      <path d="M9 9c0 1.7 1.3 3 3 3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+      <path d="M15 15c0-1.7-1.3-3-3-3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function RSDIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <path d="M12 2L14.5 9H22L16 13.5L18.5 20.5L12 16L5.5 20.5L8 13.5L2 9H9.5L12 2Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function TimePanicIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6" />
+      <line x1="12" y1="7" x2="12" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <line x1="12" y1="12" x2="15" y2="15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="12" cy="12" r="1.2" fill="currentColor" />
+    </svg>
+  );
+}
+
+function LaunchIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <path d="M12 2C12 2 19 8 19 14a7 7 0 0 1-14 0C5 8 12 2 12 2Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <circle cx="12" cy="14" r="2.5" fill="currentColor" />
+      <line x1="9" y1="22" x2="15" y2="22" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="12" y1="19" x2="12" y2="22" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );
 }

@@ -2,31 +2,24 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { useSwipeNavigation } from "@/app/hooks/useSwipeBack";
 import { transitionTo } from "@/app/lib/pageTransition";
 import { AppHeader } from "@/app/components/AppHeader";
 
+// ─── Purple palette ────────────────────────────────────────────────────────────
+const PURPLE = {
+  text:   "rgba(180,150,240,0.92)",
+  dim:    "rgba(160,130,220,0.65)",
+  bg:     "rgba(160,130,220,0.06)",
+  border: "rgba(160,130,220,0.22)",
+  hover:  "rgba(160,130,220,0.12)",
+};
+
+// ─── Styles slots ──────────────────────────────────────────────────────────────
 const SLOTS = [
-  {
-    label: "Power",
-    question: "What music makes you feel powerful and inspired?",
-    hint: "Think of tracks that make you feel unstoppable — before a big moment, a workout, a challenge.",
-  },
-  {
-    label: "Focus",
-    question: "What music puts you in a deep focus state?",
-    hint: "The music you reach for when you need to think clearly and work without distraction.",
-  },
-  {
-    label: "Energy",
-    question: "What music instantly lifts your energy or mood?",
-    hint: "Tracks that shift your state the moment they come on — pure joy or momentum.",
-  },
-  {
-    label: "Soul",
-    question: "What music do you always come back to — your soul music?",
-    hint: "The artists that feel like home. The ones you've returned to across years of your life.",
-  },
+  { label: "Power",  question: "What music makes you feel powerful and inspired?",     hint: "Tracks that make you feel unstoppable — before a big moment, a workout, a challenge." },
+  { label: "Focus",  question: "What music puts you in a deep focus state?",            hint: "The music you reach for when you need to think clearly and work without distraction." },
+  { label: "Energy", question: "What music instantly lifts your energy or mood?",       hint: "Tracks that shift your state the moment they come on — pure joy or momentum." },
+  { label: "Soul",   question: "What music do you always come back to — your soul music?", hint: "The artists that feel like home. The ones you've returned to across years of your life." },
 ];
 
 interface SlotState {
@@ -39,37 +32,36 @@ interface SlotState {
 }
 
 const emptySlot = (): SlotState => ({
-  transcript: "",
-  style: "",
-  committed: false,
-  interpreting: false,
-  suggestedArtists: [],
-  selectedArtists: [],
+  transcript: "", style: "", committed: false, interpreting: false,
+  suggestedArtists: [], selectedArtists: [],
 });
 
-// idle → recording → transcribing → interpreting → idle
 type VoicePhase = "idle" | "recording" | "transcribing" | "interpreting";
 
-function toSentenceCase(s: string) {
-  if (!s) return s;
-  return s.charAt(0).toUpperCase() + s.slice(1);
+interface UserProfile {
+  name: string;
+  vocalist: "none" | "male" | "female";
+  adhdMode: boolean;
 }
 
 export default function SettingsPage() {
   const router = useRouter();
+
+  // ── Profile state ────────────────────────────────────────────────────────────
+  const [profile, setProfile] = useState<UserProfile>({ name: "", vocalist: "none", adhdMode: false });
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileSaved, setProfileSaved] = useState(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Styles state ─────────────────────────────────────────────────────────────
   const [currentSlot, setCurrentSlot] = useState(0);
-  const [slotGeneration, setSlotGeneration] = useState(0);
   const [slots, setSlots] = useState<SlotState[]>([emptySlot(), emptySlot(), emptySlot(), emptySlot()]);
   const [loading, setLoading] = useState(true);
   const [saveError, setSaveError] = useState("");
   const [interpretError, setInterpretError] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
-
-  // Voice state
   const [voicePhase, setVoicePhase] = useState<VoicePhase>("idle");
   const [voiceError, setVoiceError] = useState("");
-
-  // Keep slots accessible inside stale callbacks
   const slotsRef = useRef(slots);
   useEffect(() => { slotsRef.current = slots; }, [slots]);
 
@@ -77,67 +69,77 @@ export default function SettingsPage() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const mimeTypeRef = useRef<string>("");
-
-  // Web Audio refs for mic button visualization
   const analyserRef = useRef<AnalyserNode | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const animFrameRef = useRef<number>(0);
   const micBtnRef = useRef<HTMLDivElement>(null);
 
-  // Load existing styles on mount
+  // ── Load on mount ────────────────────────────────────────────────────────────
   useEffect(() => {
-    fetch("/api/genres")
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.genres) {
-          setSlots((prev) =>
-            prev.map((s, i) => ({
-              ...s,
-              style: d.genres[i] ?? "",
-              committed: !!(d.genres[i]),
-            }))
-          );
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    Promise.all([
+      fetch("/api/settings").then(r => r.json()).catch(() => null),
+      fetch("/api/genres").then(r => r.json()).catch(() => null),
+    ]).then(([prof, gen]) => {
+      if (prof) setProfile({ name: prof.name ?? "", vocalist: prof.vocalist ?? "none", adhdMode: !!prof.adhdMode });
+      if (gen?.genres) {
+        setSlots(prev => prev.map((s, i) => ({
+          ...s, style: gen.genres[i] ?? "", committed: !!(gen.genres[i]),
+        })));
+      }
+    }).finally(() => setLoading(false));
   }, []);
 
-  // Stop recording + cleanup when changing slots
-  useEffect(() => {
-    stopVoiceRecording();
-    cleanupWebAudio();
-    setVoiceError("");
-    setInterpretError("");
-    setShowAdvanced(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSlot]);
+  // ── Profile auto-save (debounced 800ms) ───────────────────────────────────────
+  const saveProfile = useCallback((next: UserProfile) => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    setProfileSaved(false);
+    setProfileSaving(true);
+    saveTimerRef.current = setTimeout(async () => {
+      try {
+        await fetch("/api/settings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(next),
+        });
+        setProfileSaved(true);
+      } catch { /* silent */ } finally {
+        setProfileSaving(false);
+      }
+    }, 800);
+  }, []);
 
-  const updateSlot = (i: number, patch: Partial<SlotState>) => {
-    setSlots((prev) => prev.map((s, j) => j === i ? { ...s, ...patch } : s));
+  const updateProfile = (patch: Partial<UserProfile>) => {
+    setProfile(prev => { const next = { ...prev, ...patch }; saveProfile(next); return next; });
   };
 
+  // ── Slot helpers ─────────────────────────────────────────────────────────────
+  const updateSlot = (i: number, patch: Partial<SlotState>) =>
+    setSlots(prev => prev.map((s, j) => j === i ? { ...s, ...patch } : s));
+
   const toggleArtist = (i: number, artist: string) => {
-    const current = slots[i].selectedArtists;
-    const next = current.includes(artist)
-      ? current.filter((a) => a !== artist)
-      : [...current, artist];
+    const next = slots[i].selectedArtists.includes(artist)
+      ? slots[i].selectedArtists.filter(a => a !== artist)
+      : [...slots[i].selectedArtists, artist];
     updateSlot(i, { selectedArtists: next });
   };
 
-  // ─── Web Audio visualization ─────────────────────────────────────────────────
+  const goToSlot = (index: number) => {
+    if (index === currentSlot) return;
+    stopVoiceRecording();
+    cleanupWebAudio();
+    setVoiceError(""); setInterpretError(""); setShowAdvanced(false);
+    setSaveError("");
+    setCurrentSlot(index);
+  };
 
+  // ── Web Audio ────────────────────────────────────────────────────────────────
   const cleanupWebAudio = useCallback(() => {
     cancelAnimationFrame(animFrameRef.current);
     analyserRef.current = null;
     try { audioCtxRef.current?.close(); } catch { /* ignore */ }
     audioCtxRef.current = null;
-    // Reset button appearance
     const el = micBtnRef.current;
-    if (el) {
-      el.style.transform = "";
-      el.style.boxShadow = "";
-    }
+    if (el) { el.style.transform = ""; el.style.boxShadow = ""; }
   }, []);
 
   const startAudioVisualization = useCallback((stream: MediaStream) => {
@@ -147,18 +149,14 @@ export default function SettingsPage() {
       audioCtxRef.current = ctx;
       const source = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
-      analyser.fftSize = 128;
-      analyser.smoothingTimeConstant = 0.85;
-      source.connect(analyser);
-      analyserRef.current = analyser;
+      analyser.fftSize = 128; analyser.smoothingTimeConstant = 0.85;
+      source.connect(analyser); analyserRef.current = analyser;
       const bufLen = analyser.frequencyBinCount;
       const data = new Uint8Array(bufLen);
-
       const tick = () => {
         if (!analyserRef.current) return;
         analyserRef.current.getByteFrequencyData(data);
-        let sum = 0;
-        for (let i = 0; i < bufLen; i++) sum += data[i];
+        let sum = 0; for (let i = 0; i < bufLen; i++) sum += data[i];
         const norm = Math.min(sum / (bufLen * 90), 1);
         const scale = 1 + norm * 0.35;
         const glow = Math.round(norm * 28);
@@ -171,572 +169,365 @@ export default function SettingsPage() {
         animFrameRef.current = requestAnimationFrame(tick);
       };
       animFrameRef.current = requestAnimationFrame(tick);
-    } catch (e) {
-      console.warn("Web Audio unavailable:", e);
-    }
+    } catch (e) { console.warn("Web Audio unavailable:", e); }
   }, []);
 
-  // ─── Auto-save ───────────────────────────────────────────────────────────────
-
+  // ── Auto-save style ──────────────────────────────────────────────────────────
   const autoSaveStyle = useCallback(async (slotIndex: number, formattedStyle: string) => {
     setSaveError("");
     try {
-      const styles = slotsRef.current.map((sl, j) =>
-        j === slotIndex ? formattedStyle : sl.style.trim()
-      );
-      const res = await fetch("/api/genres", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ genres: styles }),
-      });
-      if (res.ok) {
-        setSlots((prev) => prev.map((s, j) => j === slotIndex ? { ...s, committed: true } : s));
-      } else {
-        setSaveError("Could not save — please try again.");
-      }
-    } catch {
-      setSaveError("Could not save — please try again.");
-    }
+      const styles = slotsRef.current.map((sl, j) => j === slotIndex ? formattedStyle : sl.style.trim());
+      const res = await fetch("/api/genres", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ genres: styles }) });
+      if (res.ok) setSlots(prev => prev.map((s, j) => j === slotIndex ? { ...s, committed: true } : s));
+      else setSaveError("Could not save — please try again.");
+    } catch { setSaveError("Could not save — please try again."); }
   }, []);
 
-  // ─── Voice recording ─────────────────────────────────────────────────────────
-
+  // ── Voice recording ──────────────────────────────────────────────────────────
   const stopVoiceRecording = useCallback(() => {
-    if (mediaRecorderRef.current?.state === "recording") {
-      mediaRecorderRef.current.stop();
-    }
+    if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop();
   }, []);
 
   const startVoiceRecording = useCallback(async (slotIndex: number) => {
-    setVoiceError("");
-    setInterpretError("");
+    setVoiceError(""); setInterpretError("");
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
       let recorder: MediaRecorder | null = null;
       let chosenMime = "";
       const LOW_BITRATE = 32768;
-      const typesToTry = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"];
-
-      for (const type of typesToTry) {
+      for (const type of ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"]) {
         if (!MediaRecorder.isTypeSupported(type)) continue;
-        try {
-          recorder = new MediaRecorder(stream, { mimeType: type, audioBitsPerSecond: LOW_BITRATE });
-          chosenMime = type;
-          break;
-        } catch {
-          try {
-            recorder = new MediaRecorder(stream, { mimeType: type });
-            chosenMime = type;
-            break;
-          } catch { continue; }
-        }
+        try { recorder = new MediaRecorder(stream, { mimeType: type, audioBitsPerSecond: LOW_BITRATE }); chosenMime = type; break; }
+        catch { try { recorder = new MediaRecorder(stream, { mimeType: type }); chosenMime = type; break; } catch { continue; } }
       }
       if (!recorder) {
         try { recorder = new MediaRecorder(stream, { audioBitsPerSecond: LOW_BITRATE }); }
         catch { recorder = new MediaRecorder(stream); }
         chosenMime = recorder.mimeType || "audio/mp4";
       }
-
-      mimeTypeRef.current = chosenMime;
-      chunksRef.current = [];
-      mediaRecorderRef.current = recorder;
-
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
-      };
-
+      mimeTypeRef.current = chosenMime; chunksRef.current = []; mediaRecorderRef.current = recorder;
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
       recorder.onstop = async () => {
-        stream.getTracks().forEach((t) => t.stop());
-        cleanupWebAudio();
-
+        stream.getTracks().forEach(t => t.stop()); cleanupWebAudio();
         const actualMime = (mediaRecorderRef.current?.mimeType || mimeTypeRef.current || "audio/mp4").trim() || "audio/mp4";
         const blob = new Blob(chunksRef.current, { type: actualMime });
-
-        if (blob.size === 0) {
-          setVoiceError("Nothing captured — please try again.");
-          setVoicePhase("idle");
-          return;
-        }
-
-        // ── Step 1: Transcribe ──
+        if (blob.size === 0) { setVoiceError("Nothing captured — please try again."); setVoicePhase("idle"); return; }
         setVoicePhase("transcribing");
-        let transcript = "";
         try {
-          const ext = actualMime.includes("mp4") ? "m4a" : "webm";
-          const form = new FormData();
-          form.append("audio", blob, `recording.${ext}`);
-          const res = await fetch("/api/transcribe", { method: "POST", body: form });
-          const data = await res.json();
-          if (data.transcript) {
-            transcript = data.transcript;
-            setSlots((prev) => prev.map((s, j) =>
-              j === slotIndex ? { ...s, transcript, committed: false } : s
-            ));
-          } else {
-            setVoiceError("Couldn't transcribe — please try again.");
-            setVoicePhase("idle");
-            return;
-          }
-        } catch {
-          setVoiceError("Transcription failed — please try again.");
-          setVoicePhase("idle");
-          return;
-        }
-
-        // ── Step 2: Auto-interpret ──
-        setVoicePhase("interpreting");
-        setSlots((prev) => prev.map((s, j) =>
-          j === slotIndex ? { ...s, interpreting: true } : s
-        ));
-        try {
-          const res = await fetch("/api/interpret-genre", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              question: SLOTS[slotIndex].question,
-              description: transcript,
-            }),
-          });
-          const data = await res.json();
-          const style = data.style || data.genre;
-          const artists: string[] = Array.isArray(data.artists) ? data.artists : [];
-          if (style) {
-            const formattedStyle = `${SLOTS[slotIndex].label} — ${toSentenceCase(style)}`;
-            setSlots((prev) => prev.map((s, j) =>
-              j === slotIndex ? {
-                ...s,
-                style: formattedStyle,
-                interpreting: false,
-                committed: false,
-                suggestedArtists: artists,
-                selectedArtists: [],
-              } : s
-            ));
+          const ext = actualMime.includes("mp4") ? "mp4" : "webm";
+          const form = new FormData(); form.append("audio", blob, `recording.${ext}`);
+          const tres = await fetch("/api/transcribe", { method: "POST", body: form });
+          if (!tres.ok) throw new Error("Transcription failed");
+          const { transcript } = await tres.json();
+          updateSlot(slotIndex, { transcript, interpreting: true }); setVoicePhase("interpreting");
+          const ires = await fetch("/api/interpret-genre", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ transcript, slot: SLOTS[slotIndex].label }) });
+          if (ires.ok) {
+            const { style, artists } = await ires.json();
+            const formattedStyle = typeof style === "string" ? style : Array.isArray(style) ? style.join(", ") : "";
+            updateSlot(slotIndex, { style: formattedStyle, interpreting: false, suggestedArtists: artists ?? [], selectedArtists: [] });
             autoSaveStyle(slotIndex, formattedStyle);
-          } else {
-            setSlots((prev) => prev.map((s, j) =>
-              j === slotIndex ? { ...s, interpreting: false } : s
-            ));
-            setInterpretError("Couldn't interpret — please try speaking with more detail.");
-          }
-        } catch {
-          setSlots((prev) => prev.map((s, j) =>
-            j === slotIndex ? { ...s, interpreting: false } : s
-          ));
-          setInterpretError("Interpretation failed — please try again.");
-        } finally {
-          setVoicePhase("idle");
-        }
+          } else { updateSlot(slotIndex, { interpreting: false }); setInterpretError("Couldn't refine — please try again."); }
+        } catch { updateSlot(slotIndex, { interpreting: false }); setInterpretError("Something went wrong — please try again."); }
+        setVoicePhase("idle");
       };
-
-      recorder.start(250);
-      startAudioVisualization(stream);
-      setVoicePhase("recording");
+      startAudioVisualization(stream); setVoicePhase("recording");
+      recorder.start(200);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "";
-      setVoiceError(/denied|permission/i.test(msg)
-        ? "Microphone access denied — please allow it in your browser settings."
-        : "Could not start recording — please try again.");
-      setVoicePhase("idle");
+      const raw = e instanceof Error ? e.message : String(e);
+      setVoiceError(/denied|not allowed/i.test(raw) ? "Microphone access denied — please allow it and try again." : "Could not start recording — please try again.");
     }
-  }, [cleanupWebAudio, startAudioVisualization]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cleanupWebAudio, startAudioVisualization, autoSaveStyle]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleVoiceTap = () => {
-    if (voicePhase === "recording") {
-      stopVoiceRecording();
-      setVoicePhase("transcribing");
-    } else if (voicePhase === "idle") {
-      startVoiceRecording(currentSlot);
-    }
+    if (voicePhase === "recording") stopVoiceRecording();
+    else if (voicePhase === "idle") startVoiceRecording(currentSlot);
   };
-
-  // ─── Refine with artists ─────────────────────────────────────────────────────
 
   const refineWithArtists = async (i: number) => {
-    const s = slots[i];
-    if (!s.selectedArtists.length && !s.transcript.trim()) return;
-    setInterpretError("");
-    updateSlot(i, { interpreting: true });
+    const s = slots[i]; if (!s.selectedArtists.length) return;
+    updateSlot(i, { interpreting: true }); setInterpretError("");
     try {
-      const res = await fetch("/api/interpret-genre", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          question: SLOTS[i].question,
-          selectedArtists: s.selectedArtists.length > 0 ? s.selectedArtists : undefined,
-          description: s.transcript || undefined,
-        }),
-      });
-      const data = await res.json();
-      const style = data.style || data.genre;
-      const artists: string[] = Array.isArray(data.artists) ? data.artists : [];
-      if (style) {
-        const formattedStyle = `${SLOTS[i].label} — ${toSentenceCase(style)}`;
-        updateSlot(i, {
-          style: formattedStyle,
-          interpreting: false,
-          committed: false,
-          suggestedArtists: artists,
-          selectedArtists: [],
-        });
+      const res = await fetch("/api/interpret-genre", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ transcript: s.transcript, slot: SLOTS[i].label, artists: s.selectedArtists }) });
+      if (res.ok) {
+        const { style, artists } = await res.json();
+        const formattedStyle = typeof style === "string" ? style : Array.isArray(style) ? style.join(", ") : "";
+        updateSlot(i, { style: formattedStyle, interpreting: false, suggestedArtists: artists ?? [], selectedArtists: [] });
         autoSaveStyle(i, formattedStyle);
-      } else {
-        updateSlot(i, { interpreting: false });
-        setInterpretError("Couldn't refine — please try again.");
-      }
-    } catch {
-      updateSlot(i, { interpreting: false });
-      setInterpretError("Refinement failed — please try again.");
-    }
+      } else { updateSlot(i, { interpreting: false }); setInterpretError("Couldn't refine — please try again."); }
+    } catch { updateSlot(i, { interpreting: false }); setInterpretError("Refinement failed — please try again."); }
   };
 
-  // ─── Navigation ──────────────────────────────────────────────────────────────
-
-  const SLOT_FADE = 160;
-
-  const goToSlot = useCallback((index: number) => {
-    if (index === currentSlot) return;
-    setSaveError("");
-    setCurrentSlot(index);
-    setSlotGeneration((g) => g + 1);
-  }, [currentSlot]);
-
-  const goBack = () => {
-    setSaveError("");
-    if (currentSlot > 0) goToSlot(currentSlot - 1);
-    else transitionTo("/", router);
-  };
-
-  const goNext = () => {
-    goToSlot(currentSlot + 1);
-  };
-
-  const onSwipeLeft = useCallback(() => {
-    if (currentSlot < SLOTS.length - 1) goToSlot(currentSlot + 1);
-  }, [currentSlot, goToSlot]);
-  const onSwipeRight = useCallback(() => {
-    if (currentSlot > 0) goToSlot(currentSlot - 1);
-    else transitionTo("/", router);
-  }, [currentSlot, goToSlot, router]);
-  useSwipeNavigation(onSwipeLeft, onSwipeRight);
-
-  const slot = SLOTS[currentSlot];
-  const s = slots[currentSlot];
-  const isLastSlot = currentSlot === 3;
-  const hasStyle = s.style.trim().length > 0;
-  const isBusy = voicePhase !== "idle" || s.interpreting;
+  // ────────────────────────────────────────────────────────────────────────────
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#0d1628] flex items-center justify-center">
+      <main className="min-h-screen flex items-center justify-center">
         <div className="w-7 h-7 rounded-full border-2 border-white/15 border-t-white/55 animate-spin" />
       </main>
     );
   }
 
+  const slot = SLOTS[currentSlot];
+  const s = slots[currentSlot];
+  const hasStyle = s.style.trim().length > 0;
+  const isBusy = voicePhase !== "idle" || s.interpreting;
+
   return (
-    <main className="relative z-10 h-screen flex flex-col px-6 pt-safe overflow-hidden" style={{ animation: "page-enter 380ms ease forwards" }}>
+    <main
+      className="relative z-10 min-h-screen flex flex-col px-6"
+      style={{ paddingTop: "env(safe-area-inset-top, 0px)", animation: "page-enter 380ms ease forwards" }}
+    >
+      <AppHeader title="Settings" onBack={() => transitionTo("/", router)} />
 
-      {/* Swipe edge indicators */}
-      {currentSlot > 0 && (
-        <div className="fixed left-0 top-1/2 -translate-y-1/2 pointer-events-none" style={{ zIndex: 20 }}>
-          <div style={{ background: "linear-gradient(to right, rgba(13,22,40,0.55) 0%, transparent 100%)", padding: "28px 20px 28px 8px" }}>
-            <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "1.4rem" }}>‹</span>
+      <div className="flex-1 flex flex-col pb-10 gap-8 overflow-y-auto">
+
+        {/* ── Profile ────────────────────────────────────────────────────────── */}
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <span style={{ color: PURPLE.dim }}><ProfileIcon /></span>
+            <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: PURPLE.dim }}>Your Profile</p>
+            {(profileSaving || profileSaved) && (
+              <span className="ml-auto text-[9px] uppercase tracking-widest" style={{ color: profileSaved ? PURPLE.dim : "rgba(255,255,255,0.3)" }}>
+                {profileSaving ? "Saving…" : "✓ Saved"}
+              </span>
+            )}
           </div>
-        </div>
-      )}
-      {currentSlot < SLOTS.length - 1 && (
-        <div className="fixed right-0 top-1/2 -translate-y-1/2 pointer-events-none" style={{ zIndex: 20 }}>
-          <div style={{ background: "linear-gradient(to left, rgba(13,22,40,0.55) 0%, transparent 100%)", padding: "28px 8px 28px 20px" }}>
-            <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "1.4rem" }}>›</span>
-          </div>
-        </div>
-      )}
 
-      {/* Header */}
-      <AppHeader title="RTHMIC Styles" onBack={goBack} />
-
-      {/* Progress dots */}
-      <div className="flex items-center gap-2 mb-8">
-        {SLOTS.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => goToSlot(i)}
-            className="touch-manipulation"
-            aria-label={`Go to style ${i + 1}`}
-          >
-            <div
-              className="rounded-full transition-all duration-200"
-              style={{
-                width: i === currentSlot ? 20 : 6,
-                height: 6,
-                background: i === currentSlot
-                  ? "rgba(201,165,90,0.9)"
-                  : slots[i].committed
-                  ? "rgba(201,165,90,0.45)"
-                  : slots[i].style
-                  ? "rgba(255,255,255,0.18)"
-                  : "rgba(255,255,255,0.10)",
-              }}
-            />
-          </button>
-        ))}
-        <span className="text-[10px] text-white/50 uppercase tracking-widest ml-auto">
-          {currentSlot + 1} of 4
-        </span>
-      </div>
-
-      {/* Scrollable content — key forces remount so panel-enter animation fires */}
-      <div
-        key={slotGeneration}
-        className="flex-1 flex flex-col gap-6 overflow-y-auto pb-4"
-        style={{ animation: "panel-enter 220ms ease both" }}
-      >
-
-        {/* Slot label */}
-        <span
-          className="self-start text-[10px] px-2.5 py-0.5 rounded-full border uppercase tracking-widest font-medium"
-          style={{
-            background: "rgba(201,165,90,0.08)",
-            color: "rgba(201,165,90,0.55)",
-            borderColor: "rgba(201,165,90,0.2)",
-          }}
-        >
-          {slot.label}
-        </span>
-
-        {/* Question + hint */}
-        <div>
-          <h2
-            className="text-2xl font-light text-white leading-snug"
-            style={{ fontFamily: "var(--font-display)" }}
-          >
-            {slot.question}
-          </h2>
-          <p className="text-sm text-white/45 mt-2 leading-relaxed">{slot.hint}</p>
-        </div>
-
-        {/* ── PRIMARY: Voice input ── */}
-        <div
-          className="rounded-2xl border overflow-hidden"
-          style={
-            voicePhase === "recording"
-              ? { borderColor: "rgba(239,68,68,0.4)", background: "rgba(239,68,68,0.04)" }
-              : voicePhase === "transcribing" || voicePhase === "interpreting"
-              ? { borderColor: "rgba(201,165,90,0.25)", background: "rgba(201,165,90,0.03)" }
-              : { borderColor: "rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.02)" }
-          }
-        >
-          <button
-            onClick={handleVoiceTap}
-            disabled={voicePhase === "transcribing" || voicePhase === "interpreting"}
-            className="w-full flex items-center gap-5 px-5 py-5 touch-manipulation active:scale-[0.99] transition-transform disabled:opacity-70"
-          >
-            {/* Mic button with audio visualization */}
-            <div
-              ref={micBtnRef}
-              className="flex-shrink-0 w-14 h-14 rounded-full flex items-center justify-center border"
-              style={
-                voicePhase === "recording"
-                  ? {
-                      background: "rgba(239,68,68,0.2)",
-                      borderColor: "rgba(239,68,68,0.6)",
-                      willChange: "transform, box-shadow",
-                      transition: "none",
-                    }
-                  : voicePhase === "transcribing" || voicePhase === "interpreting"
-                  ? { background: "rgba(201,165,90,0.1)", borderColor: "rgba(201,165,90,0.3)", transition: "all 0.2s" }
-                  : { background: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.14)", transition: "all 0.2s" }
-              }
-            >
-              {voicePhase === "transcribing" || voicePhase === "interpreting" ? (
-                <div className="w-5 h-5 rounded-full border-2 border-white/20 border-t-white/60 animate-spin" />
-              ) : voicePhase === "recording" ? (
-                <div className="w-4 h-4 rounded bg-red-400/90" />
-              ) : (
-                <MicIcon />
-              )}
+          <div className="flex flex-col gap-3">
+            {/* Name */}
+            <div className="rounded-2xl border px-5 py-4" style={{ background: PURPLE.bg, borderColor: PURPLE.border }}>
+              <p className="text-[10px] uppercase tracking-widest mb-2" style={{ color: PURPLE.dim }}>Your name</p>
+              <input
+                type="text"
+                value={profile.name}
+                onChange={e => updateProfile({ name: e.target.value })}
+                placeholder="How should Rthmic address you?"
+                className="w-full bg-transparent outline-none text-base font-light placeholder-white/25"
+                style={{ color: PURPLE.text }}
+              />
             </div>
 
-            <div className="flex-1 text-left">
-              {voicePhase === "recording" && (
-                <>
-                  <div className="flex items-center gap-2 mb-1">
-                    <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
-                    <p className="text-base text-white/80 font-medium">Listening…</p>
-                  </div>
-                  <p className="text-xs text-white/45">Tap to stop</p>
-                </>
-              )}
-              {voicePhase === "transcribing" && (
-                <p className="text-base text-white/50">Transcribing…</p>
-              )}
-              {voicePhase === "interpreting" && (
-                <p className="text-base text-white/50">Interpreting your style…</p>
-              )}
-              {voicePhase === "idle" && (
-                <>
-                  <p className="text-base font-medium" style={{ color: s.transcript ? "rgba(255,255,255,0.75)" : "#c9a55a" }}>
-                    {s.transcript ? "Tap to re-record" : "Your Rthm style – tap to speak"}
-                  </p>
-                  <p className="text-xs text-white/50 mt-0.5">
-                    {s.transcript ? "Your words will be replaced" : "Describe the feel, energy, what it does to you"}
-                  </p>
-                </>
-              )}
-            </div>
-          </button>
-
-          {/* Transcript preview */}
-          {s.transcript && voicePhase === "idle" && (
-            <div className="px-5 pb-4 border-t border-white/[0.05] pt-3">
-              <p className="text-[10px] text-white/45 uppercase tracking-widest mb-1.5">What you said</p>
-              <p className="text-sm text-white/50 leading-relaxed italic">&ldquo;{s.transcript}&rdquo;</p>
-            </div>
-          )}
-        </div>
-
-        {voiceError && (
-          <p className="text-xs text-red-400/60 -mt-3 leading-relaxed">{voiceError}</p>
-        )}
-
-        {/* ── RESULT: Interpreted Rthm style ── */}
-        {hasStyle && !isBusy && (
-          <div
-            className="rounded-2xl border px-5 py-5"
-            style={{ borderColor: "rgba(201,165,90,0.2)", background: "rgba(201,165,90,0.04)" }}
-          >
-            <p className="text-[10px] text-white/50 uppercase tracking-widest mb-2">
-              {s.committed ? "✓ Saved" : "Saving…"}
-            </p>
-            <textarea
-              value={s.style}
-              onChange={(e) => updateSlot(currentSlot, { style: e.target.value, committed: false })}
-              rows={3}
-              className="w-full bg-transparent text-base font-light leading-relaxed outline-none resize-none"
-              style={{ color: "#c9a55a", fontFamily: "var(--font-display)" }}
-              placeholder="Style description"
-            />
-            <p className="text-[10px] text-white/45 mt-1 leading-relaxed">
-              Tap to edit · this is what feeds the music engine
-            </p>
-          </div>
-        )}
-
-        {/* ── ADVANCED: Dynamic artist chips ── */}
-        {hasStyle && !isBusy && s.suggestedArtists.length > 0 && (
-          <div>
-            <button
-              onClick={() => setShowAdvanced((v) => !v)}
-              className="flex items-center gap-2 text-[10px] text-white/45 uppercase tracking-widest touch-manipulation hover:text-white/60 transition-colors"
-            >
-              <span>{showAdvanced ? "▾" : "▸"}</span>
-              <span>Refine with artists</span>
-            </button>
-
-            {showAdvanced && (
-              <div className="mt-3">
-                <p className="text-xs text-white/50 mb-3 leading-relaxed">
-                  These artists match your style. Select any, then tap &ldquo;Refine&rdquo; below to sharpen the result.
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {s.suggestedArtists.map((artist) => {
-                    const isSelected = s.selectedArtists.includes(artist);
-                    return (
-                      <button
-                        key={artist}
-                        onClick={() => toggleArtist(currentSlot, artist)}
-                        className="text-[11px] rounded-full px-3 py-1.5 border transition-all duration-150 touch-manipulation active:scale-95"
-                        style={
-                          isSelected
-                            ? { color: "#c9a55a", background: "rgba(201,165,90,0.12)", borderColor: "rgba(201,165,90,0.45)" }
-                            : { color: "rgba(255,255,255,0.35)", background: "transparent", borderColor: "rgba(255,255,255,0.08)" }
-                        }
-                      >
-                        {isSelected && <span className="mr-1 text-[10px]">✓</span>}
-                        {artist}
-                      </button>
-                    );
-                  })}
-                </div>
-                {s.selectedArtists.length > 0 && (
+            {/* Vocalist */}
+            <div className="rounded-2xl border px-5 py-4" style={{ background: PURPLE.bg, borderColor: PURPLE.border }}>
+              <p className="text-[10px] uppercase tracking-widest mb-3" style={{ color: PURPLE.dim }}>Preferred vocalist</p>
+              <div className="flex gap-2">
+                {(["none", "female", "male"] as const).map(v => (
                   <button
-                    onClick={() => updateSlot(currentSlot, { selectedArtists: [] })}
-                    className="mt-2 text-[10px] text-white/45 hover:text-white/60 transition-colors touch-manipulation"
+                    key={v}
+                    onClick={() => updateProfile({ vocalist: v })}
+                    className="flex-1 py-2.5 rounded-xl border text-xs font-medium uppercase tracking-widest transition-all touch-manipulation active:scale-[0.97]"
+                    style={profile.vocalist === v
+                      ? { background: PURPLE.hover, borderColor: PURPLE.border, color: PURPLE.text }
+                      : { background: "transparent", borderColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.35)" }}
                   >
-                    Clear selection
+                    {v === "none" ? "No pref" : v}
                   </button>
+                ))}
+              </div>
+            </div>
+
+            {/* ADHD mode */}
+            <button
+              onClick={() => updateProfile({ adhdMode: !profile.adhdMode })}
+              className="w-full rounded-2xl border px-5 py-4 flex items-center gap-4 text-left transition-all touch-manipulation active:scale-[0.98]"
+              style={{ background: profile.adhdMode ? PURPLE.hover : PURPLE.bg, borderColor: PURPLE.border }}
+            >
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium" style={{ color: PURPLE.text }}>ADHD Mode</p>
+                <p className="text-xs mt-0.5" style={{ color: PURPLE.dim }}>
+                  Unlocks features tuned for how your brain works — including tracks for rejection sensitivity and executive function
+                </p>
+              </div>
+              {/* Toggle */}
+              <div
+                className="flex-shrink-0 w-11 h-6 rounded-full border transition-all"
+                style={{
+                  background: profile.adhdMode ? "rgba(160,130,220,0.35)" : "rgba(255,255,255,0.06)",
+                  borderColor: profile.adhdMode ? PURPLE.border : "rgba(255,255,255,0.12)",
+                }}
+              >
+                <div
+                  className="w-4 h-4 rounded-full mt-0.5 transition-all"
+                  style={{
+                    background: profile.adhdMode ? PURPLE.text : "rgba(255,255,255,0.3)",
+                    marginLeft: profile.adhdMode ? "24px" : "3px",
+                  }}
+                />
+              </div>
+            </button>
+          </div>
+        </section>
+
+        {/* ── Rthmic Styles ──────────────────────────────────────────────────── */}
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <span style={{ color: "rgba(201,165,90,0.65)" }}><StylesIcon /></span>
+            <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: "rgba(201,165,90,0.65)" }}>Rthmic Styles</p>
+          </div>
+
+          {/* Slot tabs */}
+          <div className="flex gap-2 mb-5">
+            {SLOTS.map((sl, i) => (
+              <button
+                key={sl.label}
+                onClick={() => goToSlot(i)}
+                className="flex-1 py-2 rounded-xl border text-xs font-medium tracking-wide transition-all touch-manipulation active:scale-[0.96]"
+                style={i === currentSlot
+                  ? { background: "rgba(201,165,90,0.1)", borderColor: "rgba(201,165,90,0.45)", color: "#c9a55a" }
+                  : slots[i].committed
+                  ? { background: "rgba(201,165,90,0.04)", borderColor: "rgba(201,165,90,0.18)", color: "rgba(201,165,90,0.5)" }
+                  : { background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.35)" }}
+              >
+                {sl.label}
+                {slots[i].committed && <span className="ml-1 text-[9px]">✓</span>}
+              </button>
+            ))}
+          </div>
+
+          {/* Slot label + question */}
+          <div className="mb-4">
+            <span
+              className="inline-block text-[10px] px-2.5 py-0.5 rounded-full border uppercase tracking-widest font-medium mb-3"
+              style={{ background: "rgba(201,165,90,0.08)", color: "rgba(201,165,90,0.55)", borderColor: "rgba(201,165,90,0.2)" }}
+            >
+              {slot.label}
+            </span>
+            <h2 className="text-xl font-light text-white leading-snug" style={{ fontFamily: "var(--font-display)" }}>
+              {slot.question}
+            </h2>
+            <p className="text-sm text-white/40 mt-1.5 leading-relaxed">{slot.hint}</p>
+          </div>
+
+          {/* Voice input */}
+          <div
+            className="rounded-2xl border overflow-hidden mb-3"
+            style={
+              voicePhase === "recording"
+                ? { borderColor: "rgba(239,68,68,0.4)", background: "rgba(239,68,68,0.04)" }
+                : voicePhase !== "idle"
+                ? { borderColor: "rgba(201,165,90,0.25)", background: "rgba(201,165,90,0.03)" }
+                : { borderColor: "rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.02)" }
+            }
+          >
+            <button
+              onClick={handleVoiceTap}
+              disabled={voicePhase === "transcribing" || voicePhase === "interpreting"}
+              className="w-full flex items-center gap-5 px-5 py-5 touch-manipulation active:scale-[0.99] transition-transform disabled:opacity-70"
+            >
+              <div
+                ref={micBtnRef}
+                className="flex-shrink-0 w-14 h-14 rounded-full flex items-center justify-center border"
+                style={
+                  voicePhase === "recording"
+                    ? { background: "rgba(239,68,68,0.2)", borderColor: "rgba(239,68,68,0.6)", willChange: "transform, box-shadow", transition: "none" }
+                    : voicePhase !== "idle"
+                    ? { background: "rgba(201,165,90,0.1)", borderColor: "rgba(201,165,90,0.3)", transition: "all 0.2s" }
+                    : { background: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.14)", transition: "all 0.2s" }
+                }
+              >
+                {voicePhase === "transcribing" || voicePhase === "interpreting"
+                  ? <div className="w-5 h-5 rounded-full border-2 border-white/20 border-t-white/60 animate-spin" />
+                  : voicePhase === "recording"
+                  ? <div className="w-4 h-4 rounded bg-red-400/90" />
+                  : <MicIcon />}
+              </div>
+              <div className="flex-1 text-left">
+                {voicePhase === "recording" && (
+                  <><div className="flex items-center gap-2 mb-1"><div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" /><p className="text-base text-white/80 font-medium">Listening…</p></div><p className="text-xs text-white/45">Tap to stop</p></>
                 )}
+                {voicePhase === "transcribing" && <p className="text-base text-white/50">Transcribing…</p>}
+                {voicePhase === "interpreting" && <p className="text-base text-white/50">Interpreting your style…</p>}
+                {voicePhase === "idle" && (
+                  <><p className="text-base font-medium" style={{ color: s.transcript ? "rgba(255,255,255,0.75)" : "#c9a55a" }}>{s.transcript ? "Tap to re-record" : "Your Rthm style – tap to speak"}</p><p className="text-xs text-white/50 mt-0.5">{s.transcript ? "Your words will be replaced" : "Describe the feel, energy, what it does to you"}</p></>
+                )}
+              </div>
+            </button>
+            {s.transcript && voicePhase === "idle" && (
+              <div className="px-5 pb-4 border-t border-white/[0.05] pt-3">
+                <p className="text-[10px] text-white/45 uppercase tracking-widest mb-1.5">What you said</p>
+                <p className="text-sm text-white/50 leading-relaxed italic">&ldquo;{s.transcript}&rdquo;</p>
               </div>
             )}
           </div>
-        )}
 
-        {interpretError && !isBusy && (
-          <p className="text-xs text-red-400/60 leading-relaxed">{interpretError}</p>
-        )}
+          {voiceError && <p className="text-xs text-red-400/60 mb-3 leading-relaxed">{voiceError}</p>}
 
-        {/* ── Refine with artists (only shown when artists are selected) ── */}
-        {hasStyle && !isBusy && s.selectedArtists.length > 0 && (
-          <button
-            onClick={() => refineWithArtists(currentSlot)}
-            className="w-full py-4 rounded-2xl text-sm font-semibold tracking-wide transition-all touch-manipulation active:scale-[0.98]"
-            style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.6)" }}
-          >
-            Refine with selected artists →
-          </button>
-        )}
-
-        {saveError && (
-          <p className="text-xs text-red-400/60 text-center">{saveError}</p>
-        )}
-
-        {/* Pro plan messaging on last page */}
-        {isLastSlot && (
-          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5 py-4 flex items-center gap-3">
-            <span style={{ color: "rgba(201,165,90,0.4)", fontSize: 16 }}>✦</span>
-            <div>
-              <p className="text-sm font-medium" style={{ color: "rgba(201,165,90,0.6)" }}>
-                You&apos;re on the Pro plan
-              </p>
-              <p className="text-xs text-white/50 mt-0.5">Unlimited Rthm Styles — create as many as you need</p>
+          {/* Interpreted style */}
+          {hasStyle && !isBusy && (
+            <div className="rounded-2xl border px-5 py-5 mb-3" style={{ borderColor: "rgba(201,165,90,0.2)", background: "rgba(201,165,90,0.04)" }}>
+              <p className="text-[10px] text-white/50 uppercase tracking-widest mb-2">{s.committed ? "✓ Saved" : "Saving…"}</p>
+              <textarea
+                value={s.style}
+                onChange={e => updateSlot(currentSlot, { style: e.target.value, committed: false })}
+                rows={3}
+                className="w-full bg-transparent text-base font-light leading-relaxed outline-none resize-none"
+                style={{ color: "#c9a55a", fontFamily: "var(--font-display)" }}
+                placeholder="Style description"
+              />
+              <p className="text-[10px] text-white/45 mt-1 leading-relaxed">Tap to edit · this feeds the music engine</p>
             </div>
-          </div>
-        )}
+          )}
+
+          {/* Artist chips */}
+          {hasStyle && !isBusy && s.suggestedArtists.length > 0 && (
+            <div className="mb-3">
+              <button onClick={() => setShowAdvanced(v => !v)} className="flex items-center gap-2 text-[10px] text-white/45 uppercase tracking-widest touch-manipulation hover:text-white/60 transition-colors">
+                <span>{showAdvanced ? "▾" : "▸"}</span><span>Refine with artists</span>
+              </button>
+              {showAdvanced && (
+                <div className="mt-3">
+                  <p className="text-xs text-white/50 mb-3 leading-relaxed">Select artists that match, then tap Refine to sharpen the result.</p>
+                  <div className="flex flex-wrap gap-2">
+                    {s.suggestedArtists.map(artist => {
+                      const isSelected = s.selectedArtists.includes(artist);
+                      return (
+                        <button key={artist} onClick={() => toggleArtist(currentSlot, artist)}
+                          className="text-[11px] rounded-full px-3 py-1.5 border transition-all duration-150 touch-manipulation active:scale-95"
+                          style={isSelected ? { color: "#c9a55a", background: "rgba(201,165,90,0.12)", borderColor: "rgba(201,165,90,0.45)" } : { color: "rgba(255,255,255,0.35)", background: "transparent", borderColor: "rgba(255,255,255,0.08)" }}>
+                          {isSelected && <span className="mr-1 text-[10px]">✓</span>}{artist}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {s.selectedArtists.length > 0 && <button onClick={() => updateSlot(currentSlot, { selectedArtists: [] })} className="mt-2 text-[10px] text-white/45 touch-manipulation">Clear selection</button>}
+                </div>
+              )}
+            </div>
+          )}
+
+          {hasStyle && !isBusy && s.selectedArtists.length > 0 && (
+            <button onClick={() => refineWithArtists(currentSlot)}
+              className="w-full py-4 rounded-2xl text-sm font-semibold tracking-wide transition-all touch-manipulation active:scale-[0.98] mb-3"
+              style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.6)" }}>
+              Refine with selected artists →
+            </button>
+          )}
+
+          {interpretError && !isBusy && <p className="text-xs text-red-400/60 mb-3 leading-relaxed">{interpretError}</p>}
+          {saveError && <p className="text-xs text-red-400/60 text-center">{saveError}</p>}
+        </section>
 
       </div>
-
-      {/* Bottom navigation */}
-      <div className="flex gap-3 pb-8 pt-4 border-t border-white/[0.05] flex-shrink-0">
-        {isLastSlot ? (
-          <button
-            onClick={() => transitionTo("/", router)}
-            className="flex-1 py-4 rounded-2xl text-sm font-semibold tracking-wide active:scale-[0.98] transition-all touch-manipulation"
-            style={{
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.08)",
-              color: "rgba(255,255,255,0.5)",
-            }}
-          >
-            Done — back to home
-          </button>
-        ) : (
-          <button
-            onClick={goNext}
-            className="flex-1 py-4 rounded-2xl text-sm font-semibold tracking-wide active:scale-[0.98] transition-all touch-manipulation"
-            style={{
-              background: hasStyle ? "rgba(201,165,90,0.1)" : "rgba(255,255,255,0.04)",
-              border: hasStyle ? "1px solid rgba(201,165,90,0.45)" : "1px solid rgba(255,255,255,0.08)",
-              color: hasStyle ? "#c9a55a" : "rgba(255,255,255,0.5)",
-            }}
-          >
-            Next — {SLOTS[currentSlot + 1].label} →
-          </button>
-        )}
-      </div>
-
     </main>
+  );
+}
+
+function ProfileIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function StylesIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+      <path d="M9 18V6l12-2v12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="6" cy="18" r="3" fill="currentColor" />
+      <circle cx="18" cy="16" r="3" fill="currentColor" />
+    </svg>
   );
 }
 

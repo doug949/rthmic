@@ -51,7 +51,7 @@ export function AppHeader({ backLabel = "← Back", onBack, title }: AppHeaderPr
   }, [router]);
 
   return (
-    <header className="flex items-center gap-4 pt-12 pb-8">
+    <header className="relative flex items-center pt-12 pb-8">
       {/* ← Back */}
       <button
         onClick={handleBack}
@@ -62,15 +62,15 @@ export function AppHeader({ backLabel = "← Back", onBack, title }: AppHeaderPr
         {backLabel}
       </button>
 
-      {/* Spacer */}
-      <div className="flex-1" />
-
-      {/* Page title (optional) */}
+      {/* Page title — absolutely centred regardless of surrounding button widths */}
       {title && (
-        <span className="text-white/45 text-sm uppercase tracking-widest">
+        <span className="absolute left-1/2 -translate-x-1/2 text-white/45 text-sm uppercase tracking-widest pointer-events-none">
           {title}
         </span>
       )}
+
+      {/* Spacer */}
+      <div className="flex-1" />
 
       {/* ⌂ Home — always present, always goes to / */}
       <button

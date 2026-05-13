@@ -7,6 +7,25 @@ import type { StyleChoice } from "@/app/services/llmService";
 import { toSunoPronunciation } from "@/app/lib/sunoLyrics";
 
 const BASE_URL = "https://api.sunoapi.org/api/v1";
+
+async function getVocalistPref(req: NextRequest): Promise<"male" | "female" | "none"> {
+  try {
+    if (!process.env.REDIS_URL) return "none";
+    const session = req.cookies.get("rthmic_session");
+    if (session?.value !== process.env.RTHMIC_SESSION_TOKEN) return "none";
+    const uid = req.cookies.get("rthmic_uid")?.value;
+    if (!uid) return "none";
+    const { createClient } = await import("redis");
+    const client = createClient({ url: process.env.REDIS_URL });
+    await client.connect();
+    try {
+      const raw = await client.get(`settings:${uid}`);
+      if (!raw) return "none";
+      const settings = JSON.parse(raw);
+      return settings.vocalist === "male" || settings.vocalist === "female" ? settings.vocalist : "none";
+    } finally { await client.disconnect(); }
+  } catch { return "none"; }
+}
 const SUNO_CHAR_LIMIT = 5000;
 
 // Suno's style field rejects full sentences — convert periods to commas.
@@ -48,7 +67,9 @@ export async function POST(req: NextRequest) {
       typeof body.lyrics === "string" ? body.lyrics.slice(0, SUNO_CHAR_LIMIT) : ""
     );
     const style = (body.style as StyleChoice) ?? "B";
-    const genre = typeof body.genre === "string" && body.genre.trim() ? body.genre.trim() : "Indie Electronic";
+    const rawGenre = typeof body.genre === "string" && body.genre.trim() ? body.genre.trim() : "Indie Electronic";
+    const vocalist = await getVocalistPref(req);
+    const genre = vocalist !== "none" ? `${rawGenre}, ${vocalist} vocalist` : rawGenre;
     const songTitle = typeof body.title === "string" && body.title.trim()
       ? body.title.trim()
       : "RTHM";
