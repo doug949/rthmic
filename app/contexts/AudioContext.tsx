@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useRef,
   useState,
   type ReactNode,
@@ -47,6 +48,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
 
   const audioRef      = useRef<HTMLAudioElement | null>(null);
   const generationRef = useRef(0);
+  const rafRef        = useRef<number | null>(null);
 
   const openPlayer  = useCallback(() => setPlayerOpen(true),  []);
   const closePlayer = useCallback(() => setPlayerOpen(false), []);
@@ -78,7 +80,6 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       const audio = new Audio(url);
       audioRef.current = audio;
 
-      audio.addEventListener("timeupdate",     () => setCurrentTime(audio.currentTime));
       audio.addEventListener("durationchange", () => setDuration(isFinite(audio.duration) ? audio.duration : 0));
       audio.addEventListener("loadedmetadata", () => setDuration(isFinite(audio.duration) ? audio.duration : 0));
       audio.addEventListener("ended", () => {
@@ -196,6 +197,31 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   const setLoop = useCallback((enabled: boolean) => {
     if (audioRef.current) audioRef.current.loop = enabled;
   }, []);
+
+  // ── requestAnimationFrame loop for smooth currentTime (60fps while playing) ─
+  // Replaces the coarse timeupdate event (~250ms) so karaoke sync is frame-accurate.
+  useEffect(() => {
+    if (!isPlaying) {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      return;
+    }
+
+    const tick = () => {
+      if (audioRef.current) setCurrentTime(audioRef.current.currentTime);
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+
+    return () => {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
+  }, [isPlaying]);
 
   return (
     <AudioCtx.Provider

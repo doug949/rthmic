@@ -100,22 +100,23 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
                     audioUrl: song.audioUrl,
                     lyrics: params.lyrics,
                     sunoClipId: song.sunoClipId,
+                    sunoTaskId: song.sunoTaskId,
                   },
                 }),
               });
             }
 
-            // Background: fetch timed lyrics for each clip and patch into library.
-            // Non-blocking — failures are silently swallowed.
+            // Background: fetch word-level timed lyrics for each clip and patch into library.
+            // Requires both taskId and audioId (clipId). Non-blocking — failures are silently swallowed.
             for (const song of songs) {
-              if (!song.sunoClipId) continue;
+              if (!song.sunoClipId || !song.sunoTaskId) continue;
               try {
                 const lr = await fetch(
-                  `/api/timed-lyrics?clipId=${encodeURIComponent(song.sunoClipId)}`
+                  `/api/timed-lyrics?taskId=${encodeURIComponent(song.sunoTaskId)}&audioId=${encodeURIComponent(song.sunoClipId)}`
                 );
                 if (!lr.ok) continue;
-                const ld = await lr.json() as { timedLyrics?: unknown };
-                if (!ld.timedLyrics) continue;
+                const ld = await lr.json() as { timedWords?: unknown };
+                if (!ld.timedWords) continue;
 
                 await fetch("/api/library", {
                   method: "POST",
@@ -123,7 +124,7 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
                   body: JSON.stringify({
                     action: "update",
                     id: song.id,
-                    timedLyrics: ld.timedLyrics,
+                    timedLyrics: ld.timedWords,
                   }),
                 });
                 console.log(`[gen] attached timed lyrics for ${song.id}`);

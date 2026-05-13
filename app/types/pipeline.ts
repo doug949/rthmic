@@ -44,11 +44,12 @@ export interface StateSummary {
   friction: string;
 }
 
-/** One line/segment from Suno's synchronized lyric data */
-export interface TimedSegment {
-  startMs: number;
-  endMs: number;
-  text: string;
+/** One word from Suno's word-level synchronized lyric data */
+export interface TimedWord {
+  word: string;
+  startS: number;   // start time in seconds
+  endS: number;     // end time in seconds
+  success: boolean; // Suno confidence flag
 }
 
 export interface Song {
@@ -57,7 +58,8 @@ export interface Song {
   audioUrl?: string;       // real Suno audio URL
   trackId?: string;        // mock: references existing library track
   trackAudioKey?: string;  // mock: audio key for signed URL
-  sunoClipId?: string;     // raw Suno clip ID — used to fetch timed lyrics
+  sunoClipId?: string;     // raw Suno clip ID (= audioId for timed-lyrics API)
+  sunoTaskId?: string;     // Suno task ID — required alongside audioId to fetch timed lyrics
 }
 
 export interface PipelineResult {

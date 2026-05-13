@@ -1,158 +1,94 @@
-// /api/timed-lyrics — fetch synchronized lyric timing from sunoapi.org.
+// /api/timed-lyrics — fetch word-level synchronized lyrics from sunoapi.org.
 //
-// sunoapi.org wraps Suno's API; Suno clips carry a `lyric_sections` (or
-// equivalent) field that maps each lyric line to a millisecond timestamp
-// window.  This endpoint fetches the full clip payload, tries several known
-// field paths, and returns whatever it finds.
+// sunoapi.org endpoint: POST /api/v1/generate/get-timestamped-lyrics
+// Requires BOTH taskId AND audioId (the clip ID).
+// Returns alignedWords[] with word-level timestamps in seconds.
 //
-// GET  /api/timed-lyrics?clipId=<sunoClipId>
-// POST /api/timed-lyrics  { clipId }           ← library update shortcut
+// GET /api/timed-lyrics?taskId=<taskId>&audioId=<audioId>
 //
-// The response always includes `clipKeys` (top-level clip fields) and
-// `rawSnippet` so callers can inspect the shape even when no timing is found.
+// Response:
+//   { timedWords: TimedWord[], wordCount: number }
+//   or { error, rawSnippet } on failure
 
 import { NextRequest, NextResponse } from "next/server";
-import type { TimedSegment } from "@/app/types/pipeline";
+import type { TimedWord } from "@/app/types/pipeline";
 
 const BASE_URL = "https://api.sunoapi.org/api/v1";
-export const maxDuration = 12;
+export const maxDuration = 15;
 
-// ─── Field-path extraction ────────────────────────────────────────────────────
-//
-// Suno's timed-lyric data has appeared under several field names across
-// different API versions.  Try them all in priority order.
-
-function extractTimedLyrics(clip: Record<string, unknown>): TimedSegment[] | null {
-  const meta = clip.metadata as Record<string, unknown> | undefined;
-
-  const candidates: unknown[] = [
-    clip.lyric_sections,
-    clip.lyricSections,
-    clip.lyric_groups,
-    clip.lyricGroups,
-    clip.sections,
-    clip.lyrics_segments,
-    clip.timed_lyrics,
-    meta?.lyric_sections,
-    meta?.lyricSections,
-    meta?.lyric_groups,
-    meta?.sections,
-  ];
-
-  for (const candidate of candidates) {
-    if (!Array.isArray(candidate) || candidate.length === 0) continue;
-    const parsed = parseSegments(candidate as Record<string, unknown>[]);
-    if (parsed && parsed.length > 0) return parsed;
-  }
-
-  return null;
+interface AlignedWord {
+  word: string;
+  success: boolean;
+  startS: number;
+  endS: number;
+  palign?: number;
 }
 
-function parseSegments(raw: Record<string, unknown>[]): TimedSegment[] | null {
-  const out: TimedSegment[] = [];
-
-  for (const s of raw) {
-    // Normalise startMs — may arrive as startMs, start_ms, or start (seconds)
-    const startMs =
-      typeof s.startMs    === "number" ? s.startMs :
-      typeof s.start_ms   === "number" ? s.start_ms :
-      typeof s.start      === "number" ? Math.round(s.start * 1000) :
-      null;
-
-    const endMs =
-      typeof s.endMs      === "number" ? s.endMs :
-      typeof s.end_ms     === "number" ? s.end_ms :
-      typeof s.end        === "number" ? Math.round(s.end * 1000) :
-      null;
-
-    const text = String(s.text ?? s.lyric ?? s.content ?? s.line ?? "").trim();
-
-    if (startMs === null || endMs === null || !text) continue;
-    out.push({ startMs, endMs, text });
-  }
-
-  return out.length ? out : null;
-}
-
-// ─── Clip lookup ──────────────────────────────────────────────────────────────
-//
-// sunoapi.org supports fetching clips by ID via the same record-info endpoint,
-// using the `ids` query param instead of `taskId`.
-
-async function fetchClip(
-  clipId: string,
-  apiKey: string
-): Promise<{ clip: Record<string, unknown> | null; raw: unknown }> {
-  const res = await fetch(
-    `${BASE_URL}/generate/record-info?ids=${encodeURIComponent(clipId)}`,
-    { headers: { Authorization: `Bearer ${apiKey}` } }
-  );
-
-  if (!res.ok) throw new Error(`sunoapi.org returned ${res.status}`);
-  const json = await res.json() as Record<string, unknown>;
-
-  // The API wraps results in { data: [...clips] } or { data: { clips: [...] } }
-  const dataNode = json.data;
-
-  if (Array.isArray(dataNode) && dataNode.length > 0) {
-    return { clip: dataNode[0] as Record<string, unknown>, raw: json };
-  }
-
-  if (dataNode && typeof dataNode === "object") {
-    const inner = (dataNode as Record<string, unknown>);
-    for (const key of ["clips", "records", "songs", "results"]) {
-      const arr = inner[key];
-      if (Array.isArray(arr) && arr.length > 0) {
-        return { clip: arr[0] as Record<string, unknown>, raw: json };
-      }
-    }
-  }
-
-  return { clip: null, raw: json };
-}
-
-// ─── GET handler ─────────────────────────────────────────────────────────────
+// ─── GET handler ──────────────────────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
-  const clipId = req.nextUrl.searchParams.get("clipId");
-  if (!clipId) return NextResponse.json({ error: "clipId required" }, { status: 400 });
+  const taskId  = req.nextUrl.searchParams.get("taskId");
+  const audioId = req.nextUrl.searchParams.get("audioId");
+
+  if (!taskId)  return NextResponse.json({ error: "taskId required" }, { status: 400 });
+  if (!audioId) return NextResponse.json({ error: "audioId required" }, { status: 400 });
 
   const apiKey = process.env.SUNO_API_KEY;
   if (!apiKey)  return NextResponse.json({ error: "SUNO_API_KEY not set" }, { status: 500 });
 
   try {
-    const { clip, raw } = await fetchClip(clipId, apiKey);
+    const res = await fetch(`${BASE_URL}/generate/get-timestamped-lyrics`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ taskId, audioId }),
+    });
 
-    if (!clip) {
-      // Return raw payload so developers can inspect the shape
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      console.error(`[timed-lyrics] sunoapi returned ${res.status}:`, text.slice(0, 400));
+      return NextResponse.json(
+        { error: `sunoapi.org returned ${res.status}`, rawSnippet: text.slice(0, 400) },
+        { status: 502 }
+      );
+    }
+
+    const json = await res.json() as { code?: number; data?: { alignedWords?: AlignedWord[]; waveformData?: number[] } };
+    const data = json?.data;
+
+    console.log(
+      `[timed-lyrics] taskId=${taskId} audioId=${audioId}`,
+      data?.alignedWords ? `alignedWords=${data.alignedWords.length}` : "no alignedWords",
+      `rawKeys=[${Object.keys(json).join(",")}]`
+    );
+
+    if (!data?.alignedWords || data.alignedWords.length === 0) {
       return NextResponse.json({
-        found: false,
-        clipId,
-        rawKeys: typeof raw === "object" && raw !== null ? Object.keys(raw) : [],
-        rawSnippet: JSON.stringify(raw).slice(0, 1200),
+        timedWords: null,
+        rawSnippet: JSON.stringify(json).slice(0, 1200),
       });
     }
 
-    const timedLyrics = extractTimedLyrics(clip);
-
-    console.log(
-      `[timed-lyrics] clipId=${clipId} keys=[${Object.keys(clip).join(",")}]`,
-      timedLyrics ? `found ${timedLyrics.length} segments` : "no timing data"
-    );
+    // Filter to successful words and map to our type
+    const timedWords: TimedWord[] = data.alignedWords
+      .filter((w) => w.success !== false && typeof w.startS === "number" && typeof w.endS === "number" && w.word?.trim())
+      .map((w) => ({
+        word: w.word.trim(),
+        startS: w.startS,
+        endS: w.endS,
+        success: w.success ?? true,
+      }));
 
     return NextResponse.json({
-      found: true,
-      clipId,
-      timedLyrics,               // null if not present
-      hasTimedLyrics: !!timedLyrics,
-      // Exploration helpers — remove once format is confirmed
-      clipKeys:   Object.keys(clip),
-      rawSnippet: JSON.stringify(clip).slice(0, 2000),
+      timedWords: timedWords.length > 0 ? timedWords : null,
+      wordCount: timedWords.length,
     });
   } catch (err) {
     console.error("[timed-lyrics] fetch error:", err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Failed to fetch clip" },
+      { error: err instanceof Error ? err.message : "Failed to fetch timed lyrics" },
       { status: 502 }
     );
   }

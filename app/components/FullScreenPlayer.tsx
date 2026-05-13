@@ -3,11 +3,11 @@
 // Full-screen player — opens whenever any rhythm starts playing.
 // Shows complete lyrics, audio controls, and all library actions.
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useAudio } from "@/app/contexts/AudioContext";
 import { useGeneration } from "@/app/contexts/GenerationContext";
 import type { SavedRhythm } from "@/app/api/library/route";
-import type { TimedSegment } from "@/app/types/pipeline";
+import type { TimedWord } from "@/app/types/pipeline";
 import CustomStyleInput from "@/app/components/CustomStyleInput";
 
 function inferStyle(pillar: string): "A" | "B" {
@@ -54,6 +54,43 @@ export default function FullScreenPlayer() {
     setConfirmRemove(false);
     setRecreateOpen(false);
   }, [currentTrackId]);
+
+  // ── On-demand timed lyrics fetch ─────────────────────────────────────────
+  // If the rhythm loaded without timedLyrics but has both IDs, fetch them now.
+  // This covers the race where the player opens before the background save
+  // in GenerationContext has completed, and songs generated before sunoTaskId
+  // was added to the pipeline.
+  useEffect(() => {
+    if (!rhythm || rhythm.timedLyrics) return;
+    if (!rhythm.sunoTaskId || !rhythm.sunoClipId) return;
+
+    let cancelled = false;
+    const { sunoTaskId, sunoClipId, id } = rhythm;
+
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/timed-lyrics?taskId=${encodeURIComponent(sunoTaskId)}&audioId=${encodeURIComponent(sunoClipId)}`
+        );
+        if (!res.ok || cancelled) return;
+        const data = await res.json() as { timedWords?: TimedWord[] };
+        if (!data.timedWords?.length || cancelled) return;
+
+        // Update local state immediately so sync starts without a reload
+        setRhythm((r) => (r && r.id === id ? { ...r, timedLyrics: data.timedWords } : r));
+
+        // Persist to library in the background
+        fetch("/api/library", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "update", id, timedLyrics: data.timedWords }),
+        }).catch(console.error);
+      } catch { /* non-critical */ }
+    })();
+
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rhythm?.id, rhythm?.sunoTaskId, rhythm?.sunoClipId]);
 
   // ── Library mutations ─────────────────────────────────────────────────────
   const mutate = useCallback(
@@ -302,10 +339,11 @@ export default function FullScreenPlayer() {
   );
 }
 
-// ─── Full lyrics display with current-line highlight ──────────────────────────
+// ─── Full lyrics display with word-level karaoke highlight ───────────────────
 //
-// Uses real timed segments from Suno when available (timedLyrics prop).
-// Falls back to equal-division estimation when not.
+// When timedLyrics (TimedWord[]) is present: highlights the active word within
+// the active line using Suno's word-level timestamps (startS/endS in seconds).
+// Falls back to equal-division line estimation when not available.
 
 function FullLyricsView({
   lyrics,
@@ -318,7 +356,7 @@ function FullLyricsView({
   currentTime: number;
   duration: number;
   isPlaying: boolean;
-  timedLyrics?: TimedSegment[];
+  timedLyrics?: TimedWord[];
 }) {
   const lines = lyrics
     .split("\n")
@@ -327,42 +365,77 @@ function FullLyricsView({
 
   const nonTagLines = lines.filter((l) => !l.match(/^\[.*\]$/));
 
-  // ── Current-line resolution ────────────────────────────────────────────────
-  let currentLineText: string | null = null;
+  // ── Build word→line mapping and line index map (memoised on lyrics + words) ─
+  const { wordsWithLines, lineToNonTagIdx } = useMemo(() => {
+    // Map each rendered line index → its nonTagLine index (-1 for tag lines)
+    const ltnMap: number[] = [];
+    let cnt = -1;
+    for (const line of lines) {
+      if (!line.match(/^\[.*\]$/)) { cnt++; ltnMap.push(cnt); }
+      else { ltnMap.push(-1); }
+    }
 
-  if (timedLyrics && timedLyrics.length > 0) {
-    // Real timestamps from Suno — find the segment whose window contains now
-    const nowMs = currentTime * 1000;
-    const active = timedLyrics.find(
-      (seg) => nowMs >= seg.startMs && nowMs < seg.endMs
+    if (!timedLyrics || timedLyrics.length === 0) {
+      return { wordsWithLines: [], lineToNonTagIdx: ltnMap };
+    }
+
+    // Distribute words sequentially across non-tag lines by normalised character count.
+    // Word-count matching breaks when Suno tokenises differently (contractions, punctuation),
+    // so we match on stripped chars instead — "don't" is 5 chars whether it's 1 or 2 tokens.
+    const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const wl: Array<{ word: string; startS: number; endS: number; nonTagLineIdx: number }> = [];
+    let wordIdx = 0;
+    for (let li = 0; li < nonTagLines.length && wordIdx < timedLyrics.length; li++) {
+      const lineCharCount = norm(nonTagLines[li]).length;
+      let lineCharsConsumed = 0;
+      while (wordIdx < timedLyrics.length && lineCharsConsumed < lineCharCount) {
+        const tw = timedLyrics[wordIdx];
+        wl.push({ word: tw.word, startS: tw.startS, endS: tw.endS, nonTagLineIdx: li });
+        lineCharsConsumed += Math.max(1, norm(tw.word).length);
+        wordIdx++;
+      }
+    }
+
+    return { wordsWithLines: wl, lineToNonTagIdx: ltnMap };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lyrics, timedLyrics]);
+
+  // ── Current word / line resolution ────────────────────────────────────────
+  let currentNonTagLineIdx = -1;
+  let currentWordStr: string | null = null;
+
+  if (timedLyrics && wordsWithLines.length > 0) {
+    const active = wordsWithLines.find(
+      (w) => currentTime >= w.startS && currentTime < w.endS
     );
-    if (active) currentLineText = active.text.trim();
+    if (active) {
+      currentNonTagLineIdx = active.nonTagLineIdx;
+      currentWordStr = active.word;
+    }
   } else {
-    // Estimated: divide duration equally across non-tag lines
+    // Fallback: equal-division estimation
     const introGap = duration > 0 ? Math.min(10, duration * 0.07) : 0;
     const lyricSpan = Math.max(0, duration - introGap);
-    const lineTime  = nonTagLines.length > 1 ? lyricSpan / nonTagLines.length : lyricSpan;
-    let currentNonTagIdx = -1;
+    const lineTime = nonTagLines.length > 1 ? lyricSpan / nonTagLines.length : lyricSpan;
     if (isPlaying && duration > 0 && currentTime >= introGap) {
-      currentNonTagIdx = Math.min(
+      currentNonTagLineIdx = Math.min(
         Math.floor((currentTime - introGap) / lineTime),
         nonTagLines.length - 1
       );
     }
-    currentLineText = nonTagLines[currentNonTagIdx] ?? null;
   }
 
-  // Auto-scroll current line into view
+  // Auto-scroll active line into view
   const currentRef = useRef<HTMLParagraphElement | null>(null);
   useEffect(() => {
     if (currentRef.current && isPlaying) {
       currentRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
     }
-  }, [currentLineText, isPlaying]);
+  }, [currentNonTagLineIdx, isPlaying]);
 
   return (
     <div className="px-6 py-6 flex flex-col gap-0.5">
-      {timedLyrics && (
+      {timedLyrics && timedLyrics.length > 0 && (
         <p className="text-[9px] uppercase tracking-widest text-white/15 mb-3 text-center">
           Synced
         </p>
@@ -381,12 +454,47 @@ function FullLyricsView({
           );
         }
 
-        const isCurrentLine = currentLineText !== null && line.trim() === currentLineText;
+        const thisNonTagIdx = lineToNonTagIdx[i] ?? -1;
+        const isCurrentLine = thisNonTagIdx >= 0 && thisNonTagIdx === currentNonTagLineIdx;
+
+        // Word-level karaoke rendering for the active line when we have timed data
+        if (isCurrentLine && timedLyrics && wordsWithLines.length > 0) {
+          const lineWords = wordsWithLines.filter((w) => w.nonTagLineIdx === thisNonTagIdx);
+          return (
+            <p
+              key={i}
+              ref={currentRef}
+              className="text-base leading-relaxed"
+            >
+              {lineWords.length > 0
+                ? lineWords.map((w, wi) => {
+                    const isActiveWord =
+                      currentWordStr !== null &&
+                      w.word.toLowerCase().replace(/[^a-z0-9']/g, "") ===
+                        currentWordStr.toLowerCase().replace(/[^a-z0-9']/g, "");
+                    return (
+                      <span
+                        key={wi}
+                        style={{
+                          color: isActiveWord ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.6)",
+                          fontWeight: isActiveWord ? 600 : 500,
+                          transition: "color 80ms ease",
+                        }}
+                      >
+                        {w.word}{wi < lineWords.length - 1 ? " " : ""}
+                      </span>
+                    );
+                  })
+                : <span style={{ color: "rgba(255,255,255,0.95)", fontWeight: 500 }}>{line}</span>
+              }
+            </p>
+          );
+        }
 
         return (
           <p
             key={i}
-            ref={isCurrentLine ? currentRef : null}
+            ref={isCurrentLine && !timedLyrics ? currentRef : null}
             className="text-base leading-relaxed transition-all duration-300"
             style={{
               color: isCurrentLine

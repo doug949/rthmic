@@ -13,7 +13,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "redis";
-import type { PillarType, TimedSegment } from "@/app/types/pipeline";
+import type { PillarType, TimedWord } from "@/app/types/pipeline";
 import { normalisePillar } from "@/app/types/pipeline";
 
 export interface SavedRhythm {
@@ -26,8 +26,9 @@ export interface SavedRhythm {
   status: "active" | "favourite" | "archived" | "deleted";
   deletedAt?: number;
   tags?: string[];
-  sunoClipId?: string;       // raw Suno clip ID for re-fetching
-  timedLyrics?: TimedSegment[]; // synchronized lyric segments from Suno
+  sunoClipId?: string;      // raw Suno clip ID (audioId) for timed-lyrics API
+  sunoTaskId?: string;      // Suno task ID — required alongside audioId to fetch timed lyrics
+  timedLyrics?: TimedWord[]; // word-level synchronized lyric data from Suno
 }
 
 const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
@@ -147,7 +148,7 @@ export async function POST(request: NextRequest) {
           const next: SavedRhythm = { ...r };
           if (body.status      !== undefined) next.status      = body.status as SavedRhythm["status"];
           if (body.tags        !== undefined) next.tags        = body.tags as string[];
-          if (body.timedLyrics !== undefined) next.timedLyrics = body.timedLyrics as TimedSegment[];
+          if (body.timedLyrics !== undefined) next.timedLyrics = body.timedLyrics as TimedWord[];
           if (next.status !== "deleted") delete next.deletedAt;
           return next;
         });

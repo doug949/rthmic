@@ -118,6 +118,7 @@ export async function GET(req: NextRequest) {
           title: idx === 0 ? baseTitle : `${baseTitle} (Variation)`,
           audioUrl: getAudioUrl(clip),
           sunoClipId: rawClipId || undefined,
+          sunoTaskId: taskId,
         };
       };
 
