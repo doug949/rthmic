@@ -19,7 +19,7 @@ const SLOTS = [
   { label: "Power",  question: "What music makes you feel powerful and inspired?",     hint: "Tracks that make you feel unstoppable — before a big moment, a workout, a challenge." },
   { label: "Focus",  question: "What music puts you in a deep focus state?",            hint: "The music you reach for when you need to think clearly and work without distraction." },
   { label: "Energy", question: "What music instantly lifts your energy or mood?",       hint: "Tracks that shift your state the moment they come on — pure joy or momentum." },
-  { label: "Soul",   question: "What music do you always come back to — your soul music?", hint: "The artists that feel like home. The ones you've returned to across years of your life." },
+  { label: "Safety", question: "What music makes you feel safe, held, and at home?", hint: "The artists that feel like home. The ones you've returned to across years of your life." },
 ];
 
 interface SlotState {
@@ -301,7 +301,7 @@ export default function SettingsPage() {
                 type="text"
                 value={profile.name}
                 onChange={e => updateProfile({ name: e.target.value })}
-                placeholder="How should Rthmic address you?"
+                placeholder="Your first name — what do your friends call you?"
                 className="w-full bg-transparent outline-none text-base font-light placeholder-white/25"
                 style={{ color: PURPLE.text }}
               />

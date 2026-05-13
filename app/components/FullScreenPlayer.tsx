@@ -477,7 +477,7 @@ function FullLyricsView({
                         key={wi}
                         style={{
                           color: isActiveWord ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.6)",
-                          fontWeight: isActiveWord ? 600 : 500,
+                          fontWeight: 500,
                           transition: "color 80ms ease",
                         }}
                       >
