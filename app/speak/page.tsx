@@ -33,6 +33,35 @@ interface PillarDefinition {
   comingSoon?: boolean;   // show as dim / non-selectable
 }
 
+// ─── Suggestion chips for explain + booksummary ───────────────────────────────
+
+const EXPLAIN_SUGGESTIONS = [
+  "Quantum entanglement", "Compound interest", "The zettelkasten method",
+  "Cognitive dissonance", "The Dunning-Kruger effect", "Bayes' theorem",
+  "The prisoner's dilemma", "Emergence in complex systems", "Flow state",
+  "First principles thinking", "The butterfly effect", "Neuroplasticity",
+  "Opportunity cost", "The observer effect", "The sunk cost fallacy",
+  "Confirmation bias", "The Pareto principle", "Game theory",
+  "Second-order effects", "Entropy", "Occam's razor", "The Overton window",
+  "Survivorship bias", "The OODA loop", "Inversion thinking",
+];
+
+const BOOKSUMMARY_SUGGESTIONS = [
+  "Atomic Habits", "Thinking, Fast and Slow", "Sapiens",
+  "The Power of Now", "Man's Search for Meaning", "Deep Work",
+  "The Lean Startup", "Antifragile", "Mindset", "The 4-Hour Work Week",
+  "Quiet", "The Subtle Art of Not Giving a F*ck", "Essentialism",
+  "The Alchemist", "Good to Great", "Zero to One",
+  "The Body Keeps the Score", "Breath", "Range", "12 Rules for Life",
+  "Daring Greatly", "The Obstacle Is the Way", "Thinking in Bets",
+  "How to Win Friends and Influence People", "The Creative Act",
+];
+
+function pickSuggestions(pool: string[], n = 3): string[] {
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, n);
+}
+
 // ─── Pillar-aware recording prompts ──────────────────────────────────────────
 
 const PILLAR_PROMPT: Record<string, string> = {
@@ -93,6 +122,7 @@ export default function SpeakPage() {
   } = useGeneration();
 
   const allTranscriptsRef = useRef<string[]>([]);
+  const seedRef = useRef<string | null>(null);
   const [wasAutoStopped, setWasAutoStopped] = useState(false);
 
   // Ref mirror of selectedPillar — updated synchronously so stale closures
@@ -361,8 +391,12 @@ export default function SpeakPage() {
       const form = new FormData();
       form.append("audio", audio, `recording.${ext}`);
 
-      if (allTranscriptsRef.current.length > 0) {
-        form.append("previousContext", allTranscriptsRef.current.join(" "));
+      const priorContext = allTranscriptsRef.current.join(" ").trim();
+      const seed = seedRef.current;
+      seedRef.current = null;
+      const combinedContext = [seed, priorContext].filter(Boolean).join(" ");
+      if (combinedContext) {
+        form.append("previousContext", combinedContext);
       }
 
       // Use the ref — not the state variable — so we always get the current pillar
@@ -660,7 +694,7 @@ export default function SpeakPage() {
             />
           )}
           {phase === "priming" && (
-            <PrimingView pillar={selectedPillar} onReady={() => goToPhase("idle")} />
+            <PrimingView pillar={selectedPillar} onReady={(seed) => { seedRef.current = seed ?? null; goToPhase("idle"); }} />
           )}
           {phase === "idle" && (
             <IdleView onRecord={startRecording} onPaste={runWithPastedLyrics} errorMsg={errorMsg} selectedPillar={selectedPillar} />
@@ -1255,7 +1289,7 @@ function PillarView({ onSelect }: { onSelect: (slug: string) => void }) {
 
 // ─── Priming ──────────────────────────────────────────────────────────────────
 
-function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: () => void }) {
+function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (seed?: string) => void }) {
   const pillarDef = PILLARS.find((p) => p.slug === pillar)
     ?? (pillar === "bridge" ? BRIDGE_PILLAR : null)
     ?? (pillar === "invite" ? INVITE_PILLAR : null);
@@ -1264,6 +1298,10 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: () =
     "Speak about your challenge — your hopes, what you think is stopping you, or what you want to learn.",
     "Take your time. You don't need to know what you're going to say to begin.",
   ];
+
+  const suggestionPool = pillar === "explain" ? EXPLAIN_SUGGESTIONS : pillar === "booksummary" ? BOOKSUMMARY_SUGGESTIONS : null;
+  const [suggestions, setSuggestions] = useState<string[]>(() => suggestionPool ? pickSuggestions(suggestionPool) : []);
+  const [selectedSeed, setSelectedSeed] = useState<string | null>(null);
 
   return (
     <section className="flex-1 flex flex-col justify-between pb-10">
@@ -1309,7 +1347,43 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: () =
           ))}
         </div>
 
-        <RevealBlock delay={180 + instructions.length * 45}>
+        {suggestionPool && suggestions.length > 0 && (
+          <RevealBlock delay={180 + instructions.length * 45}>
+            <div className="flex flex-col gap-3 border-t border-white/[0.06] pt-4">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] text-white/35 uppercase tracking-[0.25em]">
+                  {pillar === "booksummary" ? "Or try a book" : "Or try a concept"}
+                </p>
+                <button
+                  onClick={() => { setSuggestions(pickSuggestions(suggestionPool)); setSelectedSeed(null); }}
+                  className="text-[10px] text-white/30 uppercase tracking-widest touch-manipulation active:text-white/60 transition-colors"
+                >
+                  Shuffle
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {suggestions.map((s) => {
+                  const isSelected = s === selectedSeed;
+                  return (
+                    <button
+                      key={s}
+                      onClick={() => setSelectedSeed(isSelected ? null : s)}
+                      className="text-xs px-3 py-1.5 rounded-full touch-manipulation transition-all active:scale-95"
+                      style={isSelected
+                        ? { background: "rgba(201,165,90,0.18)", border: "1px solid rgba(201,165,90,0.55)", color: "#c9a55a" }
+                        : { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.5)" }
+                      }
+                    >
+                      {s}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </RevealBlock>
+        )}
+
+        <RevealBlock delay={180 + instructions.length * 45 + (suggestionPool ? 45 : 0)}>
           <p className="text-xs text-white/40 leading-relaxed border-t border-white/[0.06] pt-4">
             {p?.footnote ?? "Most people speak for 1–3 minutes. After 5 minutes Rthmic will capture what you've said — you'll have the option to add more if it feels right."}
           </p>
@@ -1318,7 +1392,7 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: () =
 
       <RevealBlock delay={180 + instructions.length * 45 + 50} className="flex-shrink-0">
         <button
-          onClick={onReady}
+          onClick={() => onReady(selectedSeed ?? undefined)}
           className="w-full py-5 rounded-2xl text-sm font-semibold tracking-wide active:scale-[0.98] transition-all touch-manipulation"
           style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.45)", color: "#c9a55a" }}
         >
