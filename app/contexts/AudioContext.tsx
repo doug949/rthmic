@@ -83,6 +83,8 @@ export function AudioProvider({ children }: { children: ReactNode }) {
 
       audio.addEventListener("durationchange", () => setDuration(isFinite(audio.duration) ? audio.duration : 0));
       audio.addEventListener("loadedmetadata", () => setDuration(isFinite(audio.duration) ? audio.duration : 0));
+      audio.addEventListener("pause", () => setIsPlaying(false));
+      audio.addEventListener("play", () => setIsPlaying(true));
       audio.addEventListener("ended", () => {
         setIsPlaying(false);
         setCurrentTrackId(null);
