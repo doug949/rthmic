@@ -42,13 +42,14 @@ interface UserProfile {
   name: string;
   vocalist: "none" | "male" | "female";
   adhdMode: boolean;
+  simpleMode: boolean;
 }
 
 export default function SettingsPage() {
   const router = useRouter();
 
   // ── Profile state ────────────────────────────────────────────────────────────
-  const [profile, setProfile] = useState<UserProfile>({ name: "", vocalist: "none", adhdMode: false });
+  const [profile, setProfile] = useState<UserProfile>({ name: "", vocalist: "none", adhdMode: false, simpleMode: false });
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -80,7 +81,7 @@ export default function SettingsPage() {
       fetch("/api/settings").then(r => r.json()).catch(() => null),
       fetch("/api/genres").then(r => r.json()).catch(() => null),
     ]).then(([prof, gen]) => {
-      if (prof) setProfile({ name: prof.name ?? "", vocalist: prof.vocalist ?? "none", adhdMode: !!prof.adhdMode });
+      if (prof) setProfile({ name: prof.name ?? "", vocalist: prof.vocalist ?? "none", adhdMode: !!prof.adhdMode, simpleMode: !!prof.simpleMode });
       if (gen?.genres) {
         setSlots(prev => prev.map((s, i) => ({
           ...s, style: gen.genres[i] ?? "", committed: !!(gen.genres[i]),
@@ -325,6 +326,35 @@ export default function SettingsPage() {
                 ))}
               </div>
             </div>
+
+            {/* Simple mode */}
+            <button
+              onClick={() => updateProfile({ simpleMode: !profile.simpleMode })}
+              className="w-full rounded-2xl border px-5 py-4 flex items-center gap-4 text-left transition-all touch-manipulation active:scale-[0.98]"
+              style={{ background: profile.simpleMode ? PURPLE.hover : PURPLE.bg, borderColor: PURPLE.border }}
+            >
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium" style={{ color: PURPLE.text }}>Simple Mode</p>
+                <p className="text-xs mt-0.5" style={{ color: PURPLE.dim }}>
+                  Shows only the core pillars — hides advanced ones that need more conceptual buy-in
+                </p>
+              </div>
+              <div
+                className="flex-shrink-0 w-11 h-6 rounded-full border transition-all"
+                style={{
+                  background: profile.simpleMode ? "rgba(160,130,220,0.35)" : "rgba(255,255,255,0.06)",
+                  borderColor: profile.simpleMode ? PURPLE.border : "rgba(255,255,255,0.12)",
+                }}
+              >
+                <div
+                  className="w-4 h-4 rounded-full mt-0.5 transition-all"
+                  style={{
+                    background: profile.simpleMode ? PURPLE.text : "rgba(255,255,255,0.3)",
+                    marginLeft: profile.simpleMode ? "24px" : "3px",
+                  }}
+                />
+              </div>
+            </button>
 
             {/* ADHD mode */}
             <button

@@ -9,12 +9,14 @@ export interface UserSettings {
   name: string;
   vocalist: "none" | "male" | "female";
   adhdMode: boolean;
+  simpleMode: boolean;
 }
 
 const DEFAULT_SETTINGS: UserSettings = {
   name: "",
   vocalist: "none",
   adhdMode: false,
+  simpleMode: false,
 };
 
 const REDIS_AVAILABLE = !!process.env.REDIS_URL;
@@ -66,6 +68,7 @@ export async function POST(request: NextRequest) {
   if (typeof body.name === "string") patch.name = body.name.slice(0, 80);
   if (body.vocalist === "none" || body.vocalist === "male" || body.vocalist === "female") patch.vocalist = body.vocalist;
   if (typeof body.adhdMode === "boolean") patch.adhdMode = body.adhdMode;
+  if (typeof body.simpleMode === "boolean") patch.simpleMode = body.simpleMode;
 
   if (!REDIS_AVAILABLE) return NextResponse.json({ ok: true });
 

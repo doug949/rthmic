@@ -32,6 +32,7 @@ interface PillarDefinition {
   icon?: React.ReactNode; // small SVG icon shown on the tile
   comingSoon?: boolean;   // show as dim / non-selectable
   adhdOnly?: boolean;    // hidden unless ADHD mode is enabled in settings
+  advanced?: boolean;    // hidden when simpleMode is enabled in settings
 }
 
 // ─── Suggestion chips for explain + booksummary ───────────────────────────────
@@ -801,6 +802,7 @@ const PILLARS: PillarDefinition[] = [
     label: "Memory",
     tagline: "Imprint through association",
     icon: <MemoryIcon />,
+    advanced: true,
     detail: "Use this when you need to memorise something — a speech, a script, a sequence, a list of names, or any content you need to recall under real conditions. Rthmic encodes the information into a song using linked images, scenes, and sensory anchors so retrieval feels natural rather than effortful.",
     guidance: "Describe what you're trying to remember and where it's slipping. Name the specific items if you can — the more concrete, the better the Rthm.",
     priming: {
@@ -837,6 +839,7 @@ const PILLARS: PillarDefinition[] = [
     label: "Mindset",
     tagline: "Preparation before events",
     icon: <MindsetIcon />,
+    advanced: true,
     detail: "Use this before something important — a presentation, a difficult conversation, a performance, a meeting, or any moment that requires you to show up at your best. Rthmic builds a calm upward trajectory that moves you from unsettled to ready, grounded rather than hyped.",
     guidance: "Describe what's coming and how you're feeling about it. Be specific about the moment you're preparing for — the more detail, the better.",
     priming: {
@@ -927,6 +930,7 @@ const PILLARS: PillarDefinition[] = [
     label: "Explain",
     tagline: "Get a complex idea to finally click for you",
     icon: <ExplainIcon />,
+    advanced: true,
     detail: "Use this when something isn't landing for you — a concept, a system, a principle, a framework. You've read about it, heard about it, maybe even tried to use it, but it hasn't fully clicked. RTHMIC builds a song structured around the idea itself: what it is, how it works, where it usually trips people up, and the moment it finally makes sense. You finish and think: I get it now.",
     guidance: "Describe the thing you want to understand. Say what you already know, where it stops making sense, and what would help it land. The more honestly you describe your current confusion, the better RTHMIC can target exactly where the gap is.",
     priming: {
@@ -945,6 +949,7 @@ const PILLARS: PillarDefinition[] = [
     label: "Book Summary",
     tagline: "The one big idea from a nonfiction book",
     icon: <BookSummaryIcon />,
+    advanced: true,
     detail: "Use this when you want to understand — or share — the core concept from a popular nonfiction book. RTHMIC builds a song around the book's ONE big idea: the premise, how it works, what most people miss, and why it matters. Works for books you've read, books you want to understand, or ideas you want to pass on. Works best for 'one big idea' books — Atomic Habits, Sapiens, Thinking Fast and Slow, and their kind.",
     guidance: "Just name the book. RTHMIC knows the core idea. If you want the song to focus on a particular aspect — a chapter, a concept, how it applies to your life — say that too. The more specific you are, the more personal the song becomes.",
     priming: {
@@ -1128,6 +1133,7 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
   const [modalVisible, setModalVisible] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [adhdMode, setAdhdMode] = useState(false);
+  const [simpleMode, setSimpleMode] = useState(false);
   const [adhdOpen, setAdhdOpen] = useState(false);
   const [forYouOpen, setForYouOpen] = useState(false);
   const [subCatOpen, setSubCatOpen] = useState<Record<string, boolean>>({});
@@ -1137,7 +1143,10 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
   useEffect(() => {
     const code = getSignedInCode();
     setShowInvite(code !== null && ADMIN_CODES.includes(code));
-    fetch("/api/settings").then(r => r.json()).then(s => { if (s.adhdMode) setAdhdMode(true); }).catch(() => {});
+    fetch("/api/settings").then(r => r.json()).then(s => {
+      if (s.adhdMode) setAdhdMode(true);
+      if (s.simpleMode) setSimpleMode(true);
+    }).catch(() => {});
   }, []);
 
   const openModal = (slug: string) => { setOpenInfo(slug); requestAnimationFrame(() => setModalVisible(true)); };
@@ -1191,7 +1200,10 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
           <div style={{ overflow: "hidden" }}>
             <div className="flex flex-col pb-1 gap-0.5">
               {FOR_YOU_SUBCATEGORIES.map((group) => {
-                const pillars = group.slugs.map(slug => FOR_YOU_PILLARS.find(p => p.slug === slug)).filter(Boolean) as typeof PILLARS;
+                const pillars = group.slugs
+                  .map(slug => FOR_YOU_PILLARS.find(p => p.slug === slug))
+                  .filter(Boolean)
+                  .filter(p => !(simpleMode && p!.advanced)) as typeof PILLARS;
                 if (pillars.length === 0) return null;
                 const isOpen = !!subCatOpen[group.label];
                 return (
