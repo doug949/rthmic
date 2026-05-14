@@ -94,29 +94,6 @@ export default function CatalogPage() {
           )}
         </div>
 
-        {/* ── The Archive ───────────────────────────────────────────────── */}
-        <div className="flex flex-col gap-2">
-          <SectionAccordionHeader
-            icon={<ArchiveIcon />}
-            title="The Archive"
-            description="Rthms you're keeping but hiding everywhere else."
-            count={archiveCount || undefined}
-            open={archiveOpen}
-            onToggle={() => setArchiveOpen((o) => !o)}
-            dim
-          />
-          {archiveOpen && (
-            <div className="flex flex-col gap-2 pl-1">
-              <SubNavCard
-                href="/library/archive"
-                icon={<ArchiveIcon />}
-                label="Archived Rthms"
-                detail={archiveCount > 0 ? `${archiveCount} kept` : "Empty"}
-              />
-            </div>
-          )}
-        </div>
-
         {/* ── The RTHMIC Library ────────────────────────────────────────── */}
         <div className="flex flex-col gap-2">
           <SectionAccordionHeader
@@ -148,6 +125,29 @@ export default function CatalogPage() {
               <p className="text-xs text-white/35 leading-relaxed">
                 Albums let you build ordered playlists of Rthms — like a personal album. Coming soon.
               </p>
+            </div>
+          )}
+        </div>
+
+        {/* ── The Archive ───────────────────────────────────────────────── */}
+        <div className="flex flex-col gap-2">
+          <SectionAccordionHeader
+            icon={<ArchiveIcon />}
+            title="The Archive"
+            description="Rthms you're keeping but hiding everywhere else."
+            count={archiveCount || undefined}
+            open={archiveOpen}
+            onToggle={() => setArchiveOpen((o) => !o)}
+            dim
+          />
+          {archiveOpen && (
+            <div className="flex flex-col gap-2 pl-1">
+              <SubNavCard
+                href="/library/archive"
+                icon={<ArchiveIcon />}
+                label="Archived Rthms"
+                detail={archiveCount > 0 ? `${archiveCount} kept` : "Empty"}
+              />
             </div>
           )}
         </div>

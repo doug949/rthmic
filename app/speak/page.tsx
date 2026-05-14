@@ -963,10 +963,10 @@ const PILLARS: PillarDefinition[] = [
 // ─── Subcategory groupings for "For you in the moment" ────────────────────────
 
 const FOR_YOU_SUBCATEGORIES = [
-  { label: "Unlock",   slugs: ["mode", "movement", "explain"] },
-  { label: "Prime",    slugs: ["mindset"] },
-  { label: "Preserve", slugs: ["journal", "epiphany"] },
-  { label: "Install",  slugs: ["memory", "booksummary"] },
+  { label: "Rthms that Unlock • Mode • Movement • Explain",           slugs: ["mode", "movement", "explain"] },
+  { label: "Rthms that Prime • Mindset",                              slugs: ["mindset"] },
+  { label: "Rthms that Preserve • Journal • Epiphany",                slugs: ["journal", "epiphany"] },
+  { label: "Rthms that Install • Memory • Book Summary",              slugs: ["memory", "booksummary"] },
 ];
 
 // Menus pillar is accessible via /structure — excluded from the speak catalog

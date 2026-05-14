@@ -77,7 +77,7 @@ export default function Home() {
         <RevealBlock delay={60}>
           <ModeCard
             href="/speak"
-            label="Create New Rthm"
+            label="Speak"
             description="Tell Rthmic what you need. Get on track."
             icon={<MicIcon />}
             primary
@@ -88,7 +88,7 @@ export default function Home() {
             href="/library"
             label="Your Rthmic and Rthmix Catalog"
             description="Your generated Rthms and the curated collection."
-            icon={<HeadphonesIcon />}
+            icon={<PlayIcon />}
             blue
           />
         </RevealBlock>
@@ -97,16 +97,16 @@ export default function Home() {
             href="/structure"
             label="Structure: Rthmic Menus"
             description="Morning, afternoon, evening — build a Rthm for the time of day."
-            icon={<StructureIcon />}
+            icon={<MenusIcon />}
             teal
           />
         </RevealBlock>
         <RevealBlock delay={220}>
           <ModeCard
             href="/settings"
-            label="Settings and Rthm Styles"
+            label="Settings"
             description="Your profile, vocalist preference, and Rthmic Styles"
-            icon={<SettingsIcon />}
+            icon={<EQIcon />}
             purple
           />
         </RevealBlock>
@@ -262,12 +262,10 @@ function MicIcon() {
   );
 }
 
-function HeadphonesIcon() {
+function PlayIcon() {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <path d="M4 13a8 8 0 0 1 16 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <rect x="2" y="13" width="4" height="6" rx="2" fill="currentColor" />
-      <rect x="18" y="13" width="4" height="6" rx="2" fill="currentColor" />
+      <path d="M6 4.5L20 12L6 19.5V4.5Z" fill="currentColor" />
     </svg>
   );
 }
@@ -282,24 +280,25 @@ function InfoIcon() {
   );
 }
 
-function SettingsIcon() {
+function EQIcon() {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.7" />
-      <path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <rect x="3" y="14" width="3" height="7" rx="1.5" fill="currentColor" />
+      <rect x="3" y="11" width="3" height="2" rx="1" fill="currentColor" opacity="0.35" />
+      <rect x="10.5" y="9" width="3" height="12" rx="1.5" fill="currentColor" />
+      <rect x="10.5" y="6" width="3" height="2" rx="1" fill="currentColor" opacity="0.35" />
+      <rect x="18" y="5" width="3" height="16" rx="1.5" fill="currentColor" />
+      <rect x="18" y="2" width="3" height="2" rx="1" fill="currentColor" opacity="0.35" />
     </svg>
   );
 }
 
-function StructureIcon() {
+function MenusIcon() {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <line x1="2" y1="16" x2="22" y2="16" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <path d="M5 16 A7 7 0 0 1 19 16" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" fill="none" />
-      <circle cx="12" cy="9" r="2.2" stroke="currentColor" strokeWidth="1.5" fill="none" />
-      <line x1="12" y1="4.5" x2="12" y2="5.8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-      <line x1="16.8" y1="6" x2="15.9" y2="6.9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-      <line x1="7.2" y1="6" x2="8.1" y2="6.9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="4" y1="6" x2="20" y2="6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <line x1="4" y1="12" x2="16" y2="12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <line x1="4" y1="18" x2="12" y2="18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
 }
