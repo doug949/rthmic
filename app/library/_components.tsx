@@ -456,8 +456,11 @@ export function PillarsIcon() {
 export function RthmixIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-      <path d="M3 7h14M3 10h10M3 13h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      <circle cx="16" cy="13" r="2" stroke="currentColor" strokeWidth="1.2" />
+      {/* Vinyl record */}
+      <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="1.4" />
+      <circle cx="10" cy="10" r="5" stroke="currentColor" strokeWidth="1" opacity="0.45" />
+      <circle cx="10" cy="10" r="1.8" fill="currentColor" />
+      <circle cx="10" cy="10" r="0.8" fill="currentColor" opacity="0" />
     </svg>
   );
 }

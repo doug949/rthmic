@@ -72,8 +72,6 @@ export default function RootLayout({
             {children}
             <MiniPlayer />
             <FullScreenPlayer />
-            {/* Spacer so fixed PageFooter never overlaps page content */}
-            <div className="h-12 flex-shrink-0" aria-hidden="true" />
             <PageFooter />
           </AudioProvider>
         </GenerationProvider>
