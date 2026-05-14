@@ -352,11 +352,11 @@ export default function FullScreenPlayer() {
   );
 }
 
-// ─── Full lyrics display with word-level karaoke highlight ───────────────────
+// ─── Full lyrics display with line-level karaoke highlight ───────────────────
 //
-// When timedLyrics (TimedWord[]) is present: highlights the active word within
-// the active line using Suno's word-level timestamps (startS/endS in seconds).
-// Falls back to equal-division line estimation when not available.
+// When timedLyrics (TimedWord[]) is present: uses word timestamps to derive
+// per-line start/end times, then highlights the whole active line.
+// Falls back to equal-division estimation when not available.
 
 function FullLyricsView({
   lyrics,
@@ -378,9 +378,8 @@ function FullLyricsView({
 
   const nonTagLines = lines.filter((l) => !l.match(/^\[.*\]$/));
 
-  // ── Build word→line mapping and line index map (memoised on lyrics + words) ─
-  const { wordsWithLines, lineToNonTagIdx } = useMemo(() => {
-    // Map each rendered line index → its nonTagLine index (-1 for tag lines)
+  // ── Build line-level timestamp ranges from word data ──────────────────────
+  const { lineTimings, lineToNonTagIdx } = useMemo(() => {
     const ltnMap: number[] = [];
     let cnt = -1;
     for (const line of lines) {
@@ -389,42 +388,48 @@ function FullLyricsView({
     }
 
     if (!timedLyrics || timedLyrics.length === 0) {
-      return { wordsWithLines: [], lineToNonTagIdx: ltnMap };
+      return { lineTimings: [], lineToNonTagIdx: ltnMap };
     }
 
-    // Distribute words sequentially across non-tag lines by normalised character count.
-    // Word-count matching breaks when Suno tokenises differently (contractions, punctuation),
-    // so we match on stripped chars instead — "don't" is 5 chars whether it's 1 or 2 tokens.
+    // Distribute words across non-tag lines by normalised character count,
+    // then derive each line's startS/endS from its first/last word.
     const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
-    const wl: Array<{ word: string; startS: number; endS: number; nonTagLineIdx: number }> = [];
+    const lineWords: TimedWord[][] = Array.from({ length: nonTagLines.length }, () => []);
     let wordIdx = 0;
     for (let li = 0; li < nonTagLines.length && wordIdx < timedLyrics.length; li++) {
       const lineCharCount = norm(nonTagLines[li]).length;
       let lineCharsConsumed = 0;
       while (wordIdx < timedLyrics.length && lineCharsConsumed < lineCharCount) {
         const tw = timedLyrics[wordIdx];
-        wl.push({ word: tw.word, startS: tw.startS, endS: tw.endS, nonTagLineIdx: li });
+        lineWords[li].push(tw);
         lineCharsConsumed += Math.max(1, norm(tw.word).length);
         wordIdx++;
       }
     }
 
-    return { wordsWithLines: wl, lineToNonTagIdx: ltnMap };
+    const timings = lineWords.map((words) =>
+      words.length > 0
+        ? { startS: words[0].startS, endS: words[words.length - 1].endS }
+        : null
+    );
+
+    return { lineTimings: timings, lineToNonTagIdx: ltnMap };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lyrics, timedLyrics]);
 
-  // ── Current word / line resolution ────────────────────────────────────────
+  // ── Current line resolution ───────────────────────────────────────────────
   let currentNonTagLineIdx = -1;
-  let currentWordStr: string | null = null;
 
-  if (timedLyrics && wordsWithLines.length > 0) {
-    const active = wordsWithLines.find(
-      (w) => currentTime >= w.startS && currentTime < w.endS
-    );
-    if (active) {
-      currentNonTagLineIdx = active.nonTagLineIdx;
-      currentWordStr = active.word;
+  if (timedLyrics && lineTimings.length > 0) {
+    // Find the line whose window contains currentTime; if between lines use the last started
+    let lastStarted = -1;
+    for (let li = 0; li < lineTimings.length; li++) {
+      const t = lineTimings[li];
+      if (!t) continue;
+      if (currentTime >= t.startS) lastStarted = li;
+      if (currentTime >= t.startS && currentTime <= t.endS) { lastStarted = li; break; }
     }
+    currentNonTagLineIdx = lastStarted;
   } else {
     // Fallback: equal-division estimation
     const introGap = duration > 0 ? Math.min(10, duration * 0.07) : 0;
@@ -470,49 +475,13 @@ function FullLyricsView({
         const thisNonTagIdx = lineToNonTagIdx[i] ?? -1;
         const isCurrentLine = thisNonTagIdx >= 0 && thisNonTagIdx === currentNonTagLineIdx;
 
-        // Word-level karaoke rendering for the active line when we have timed data
-        if (isCurrentLine && timedLyrics && wordsWithLines.length > 0) {
-          const lineWords = wordsWithLines.filter((w) => w.nonTagLineIdx === thisNonTagIdx);
-          return (
-            <p
-              key={i}
-              ref={currentRef}
-              className="text-base leading-relaxed"
-            >
-              {lineWords.length > 0
-                ? lineWords.map((w, wi) => {
-                    const isActiveWord =
-                      currentWordStr !== null &&
-                      w.word.toLowerCase().replace(/[^a-z0-9']/g, "") ===
-                        currentWordStr.toLowerCase().replace(/[^a-z0-9']/g, "");
-                    return (
-                      <span
-                        key={wi}
-                        style={{
-                          color: isActiveWord ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.6)",
-                          fontWeight: 500,
-                          transition: "color 80ms ease",
-                        }}
-                      >
-                        {w.word}{wi < lineWords.length - 1 ? " " : ""}
-                      </span>
-                    );
-                  })
-                : <span style={{ color: "rgba(255,255,255,0.95)", fontWeight: 500 }}>{line}</span>
-              }
-            </p>
-          );
-        }
-
         return (
           <p
             key={i}
-            ref={isCurrentLine && !timedLyrics ? currentRef : null}
+            ref={isCurrentLine ? currentRef : null}
             className="text-base leading-relaxed transition-all duration-300"
             style={{
-              color: isCurrentLine
-                ? "rgba(255,255,255,0.95)"
-                : "rgba(255,255,255,0.38)",
+              color: isCurrentLine ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.38)",
               fontWeight: isCurrentLine ? 500 : 400,
             }}
           >
