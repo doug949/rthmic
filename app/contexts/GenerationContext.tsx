@@ -71,7 +71,7 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
 
       const MAX_POLLS = 48;
       for (let i = 0; i < MAX_POLLS; i++) {
-        await new Promise((r) => setTimeout(r, 5000));
+        await new Promise((r) => setTimeout(r, 2000));
         if (gen !== generationRef.current) return; // superseded by a newer generation
 
         const elapsed = ((Date.now() - genStart) / 1000).toFixed(1);

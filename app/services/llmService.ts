@@ -799,10 +799,15 @@ export async function interpret(rawTranscript: string, overridePillar?: PillarTy
   const systemPrompt = buildSystemPrompt(pillar, template, master);
 
   const message = await client.messages.create({
-    model: "claude-opus-4-7",
+    model: "claude-sonnet-4-6",
     max_tokens: 8000,
-    thinking: { type: "adaptive" },
-    system: systemPrompt,
+    system: [
+      {
+        type: "text",
+        text: systemPrompt,
+        cache_control: { type: "ephemeral" },
+      },
+    ],
     messages: [
       {
         role: "user",
