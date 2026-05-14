@@ -124,6 +124,8 @@ export default function SpeakPage() {
 
   const allTranscriptsRef = useRef<string[]>([]);
   const seedRef = useRef<string | null>(null);
+  const menuSlugRef = useRef<string | null>(null);
+  const menuTitleRef = useRef<string | null>(null);
   const [wasAutoStopped, setWasAutoStopped] = useState(false);
 
   // Ref mirror of selectedPillar — updated synchronously so stale closures
@@ -470,12 +472,17 @@ export default function SpeakPage() {
     const finalPillar = (selectedPillarRef.current ?? selectedPillar)
       ? normalisePillar((selectedPillarRef.current ?? selectedPillar)!)
       : understandResult.pillar;
+    const today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+    const title = menuTitleRef.current
+      ? `${menuTitleRef.current} — ${today}`
+      : understandResult.title;
     startGeneration({
       lyrics: understandResult.lyrics,
       style: understandResult.style,
-      title: understandResult.title,
+      title,
       pillar: finalPillar,
       genre,
+      menuSlug: menuSlugRef.current ?? undefined,
     });
   };
 
@@ -634,10 +641,14 @@ export default function SpeakPage() {
     setSongStatus({});
     allTranscriptsRef.current = [];
 
-    // Read ?pillar= and ?seed= from URL (e.g. from the Structure page)
+    // Read ?pillar=, ?seed=, ?menuSlug=, ?menuTitle= from URL (e.g. from the Structure page)
     const params = new URLSearchParams(window.location.search);
     const pillarParam = params.get("pillar");
     const seedParam = params.get("seed");
+    const menuSlugParam = params.get("menuSlug");
+    const menuTitleParam = params.get("menuTitle");
+    menuSlugRef.current = menuSlugParam ?? null;
+    menuTitleRef.current = menuTitleParam ?? null;
     if (pillarParam) {
       seedRef.current = seedParam ?? null;
       setSelectedPillar(pillarParam);

@@ -19,6 +19,7 @@ export interface StartParams {
   title: string;
   pillar: PillarType;
   genre: string;
+  menuSlug?: string;
 }
 
 interface GenerationContextValue {
@@ -89,51 +90,94 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
           setGenSongs(songs);
           setGenPhase("ready");
 
-          // Auto-save to library sequentially to avoid Redis read-write race,
+          // Auto-save to library (or menu slot) sequentially to avoid Redis read-write race,
           // then background-fetch timed lyrics and attach them.
           const saveAll = async () => {
-            for (const song of songs) {
-              await fetch("/api/library", {
+            if (params.menuSlug) {
+              // Save all songs as a single menu slot entry
+              const menuSongs = songs.map((song) => ({
+                id: song.id,
+                title: params.title,
+                pillar: params.pillar,
+                audioUrl: song.audioUrl,
+                lyrics: params.lyrics,
+                sunoClipId: song.sunoClipId,
+                sunoTaskId: song.sunoTaskId,
+                savedAt: Date.now(),
+                status: "active" as const,
+              }));
+              await fetch("/api/menu", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  action: "save",
-                  rhythm: {
-                    id: song.id,
-                    title: song.title,
-                    pillar: params.pillar,
-                    audioUrl: song.audioUrl,
-                    lyrics: params.lyrics,
-                    sunoClipId: song.sunoClipId,
-                    sunoTaskId: song.sunoTaskId,
-                  },
-                }),
+                body: JSON.stringify({ slug: params.menuSlug, songs: menuSongs }),
               });
-            }
 
-            // Background: fetch word-level timed lyrics for each clip and patch into library.
-            // Requires both taskId and audioId (clipId). Non-blocking — failures are silently swallowed.
-            for (const song of songs) {
-              if (!song.sunoClipId || !song.sunoTaskId) continue;
-              try {
-                const lr = await fetch(
-                  `/api/timed-lyrics?taskId=${encodeURIComponent(song.sunoTaskId)}&audioId=${encodeURIComponent(song.sunoClipId)}`
-                );
-                if (!lr.ok) continue;
-                const ld = await lr.json() as { timedWords?: unknown };
-                if (!ld.timedWords) continue;
+              // Background: fetch timed lyrics and re-save the full menu slot
+              for (let i = 0; i < songs.length; i++) {
+                const song = songs[i];
+                if (!song.sunoClipId || !song.sunoTaskId) continue;
+                try {
+                  const lr = await fetch(
+                    `/api/timed-lyrics?taskId=${encodeURIComponent(song.sunoTaskId)}&audioId=${encodeURIComponent(song.sunoClipId)}`
+                  );
+                  if (!lr.ok) continue;
+                  const ld = await lr.json() as { timedWords?: unknown };
+                  if (!ld.timedWords) continue;
 
+                  menuSongs[i] = { ...menuSongs[i], timedLyrics: ld.timedWords } as typeof menuSongs[0] & { timedLyrics: unknown };
+                  await fetch("/api/menu", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ slug: params.menuSlug, songs: menuSongs }),
+                  });
+                  console.log(`[gen] attached timed lyrics for menu ${params.menuSlug} song ${song.id}`);
+                } catch { /* non-critical */ }
+              }
+            } else {
+              // Standard library save — sequential to avoid Redis read-write race
+              for (const song of songs) {
                 await fetch("/api/library", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
-                    action: "update",
-                    id: song.id,
-                    timedLyrics: ld.timedWords,
+                    action: "save",
+                    rhythm: {
+                      id: song.id,
+                      title: song.title,
+                      pillar: params.pillar,
+                      audioUrl: song.audioUrl,
+                      lyrics: params.lyrics,
+                      sunoClipId: song.sunoClipId,
+                      sunoTaskId: song.sunoTaskId,
+                    },
                   }),
                 });
-                console.log(`[gen] attached timed lyrics for ${song.id}`);
-              } catch { /* non-critical */ }
+              }
+
+              // Background: fetch word-level timed lyrics for each clip and patch into library.
+              // Requires both taskId and audioId (clipId). Non-blocking — failures are silently swallowed.
+              for (const song of songs) {
+                if (!song.sunoClipId || !song.sunoTaskId) continue;
+                try {
+                  const lr = await fetch(
+                    `/api/timed-lyrics?taskId=${encodeURIComponent(song.sunoTaskId)}&audioId=${encodeURIComponent(song.sunoClipId)}`
+                  );
+                  if (!lr.ok) continue;
+                  const ld = await lr.json() as { timedWords?: unknown };
+                  if (!ld.timedWords) continue;
+
+                  await fetch("/api/library", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      action: "update",
+                      id: song.id,
+                      timedLyrics: ld.timedWords,
+                    }),
+                  });
+                  console.log(`[gen] attached timed lyrics for ${song.id}`);
+                } catch { /* non-critical */ }
+              }
             }
           };
           saveAll().catch(console.error);
