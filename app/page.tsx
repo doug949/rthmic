@@ -104,7 +104,7 @@ export default function Home() {
         <RevealBlock delay={210}>
           <ModeCard
             href="/speak"
-            label="ADHD"
+            label="ADHD Toolkit"
             description="Rejection Spike, Time Panic, Launch — and more"
             icon={<BrainIcon />}
             rose
