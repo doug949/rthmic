@@ -204,6 +204,41 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     if (audioRef.current) audioRef.current.loop = enabled;
   }, []);
 
+  // ── Media Session API — keeps Rthmic as the active audio source ──────────
+  // Without this, a paused Rthmic loses audio focus to other apps (e.g. YouTube)
+  // and the next AirPod tap resumes the wrong app.
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+    if (!currentTrackId) {
+      navigator.mediaSession.metadata = null;
+      return;
+    }
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: currentTitle ?? "RTHM",
+      artist: "RTHMIC",
+    });
+    navigator.mediaSession.setActionHandler("play", () => {
+      audioRef.current?.play().catch(console.error);
+    });
+    navigator.mediaSession.setActionHandler("pause", () => {
+      audioRef.current?.pause();
+    });
+    navigator.mediaSession.setActionHandler("stop", () => {
+      audioRef.current?.pause();
+    });
+    return () => {
+      navigator.mediaSession.setActionHandler("play", null);
+      navigator.mediaSession.setActionHandler("pause", null);
+      navigator.mediaSession.setActionHandler("stop", null);
+    };
+  }, [currentTrackId, currentTitle]);
+
+  // Keep the OS playback state in sync so the lock screen shows the right icon
+  useEffect(() => {
+    if (!("mediaSession" in navigator) || !currentTrackId) return;
+    navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
+  }, [isPlaying, currentTrackId]);
+
   // ── requestAnimationFrame loop for smooth currentTime (60fps while playing) ─
   // Replaces the coarse timeupdate event (~250ms) so karaoke sync is frame-accurate.
   useEffect(() => {
