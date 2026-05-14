@@ -313,10 +313,10 @@ export default function FullScreenPlayer() {
             <ActionBtn onClick={() => setRecreateOpen(true)} icon="↺" label="Recreate" />
             <ActionBtn onClick={() => setTagEditOpen((v) => !v)} icon="⌗" label="Tags" sublabel={tags.length > 0 ? `${tags.length}` : undefined} active={tagEditOpen} />
             {rhythm.status === "active" && (
-              <ActionBtn onClick={handleGraduate} icon="★" label="Favourite" gold />
+              <ActionBtn onClick={handleGraduate} icon="★" label="Favourite" />
             )}
             {rhythm.status === "favourite" && (
-              <ActionBtn onClick={handleUngraduate} icon="★" label="Unfavourite" />
+              <ActionBtn onClick={handleUngraduate} icon="★" label="Unfavourite" gold />
             )}
             <ActionBtn onClick={handleArchive} icon="⊙" label={rhythm.status === "archived" ? "Restore" : "Archive"} />
             <ActionBtn
