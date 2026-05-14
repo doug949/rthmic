@@ -32,6 +32,7 @@ interface AudioContextValue {
   restart: () => void;
   seek: (time: number) => void;
   skip: (seconds: number) => void;
+  isLoop: boolean;
   setLoop: (enabled: boolean) => void;
 }
 
@@ -194,7 +195,10 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const [isLoop, setIsLoop] = useState(false);
+
   const setLoop = useCallback((enabled: boolean) => {
+    setIsLoop(enabled);
     if (audioRef.current) audioRef.current.loop = enabled;
   }, []);
 
@@ -242,6 +246,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         restart,
         seek,
         skip,
+        isLoop,
         setLoop,
       }}
     >

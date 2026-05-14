@@ -20,6 +20,7 @@ export default function FullScreenPlayer() {
     currentTime, duration,
     playerOpen, closePlayer, stop,
     togglePlayPause, restart, seek, skip,
+    isLoop, setLoop,
   } = useAudio();
   const { startGeneration } = useGeneration();
 
@@ -235,7 +236,16 @@ export default function FullScreenPlayer() {
         )}
 
         {/* Transport controls */}
-        <div className="flex items-center justify-center gap-8 mb-5">
+        <div className="flex items-center justify-center gap-6 mb-5">
+          <button
+            onClick={() => setLoop(!isLoop)}
+            className="flex flex-col items-center gap-0.5 transition-colors touch-manipulation"
+            style={{ color: isLoop ? "rgba(201,165,90,0.9)" : "rgba(255,255,255,0.35)" }}
+          >
+            <LoopIcon />
+            <span className="text-[9px] tracking-wider">loop</span>
+          </button>
+
           <button
             onClick={() => skip(-10)}
             className="flex flex-col items-center gap-0.5 text-white/40 active:text-white/70 transition-colors touch-manipulation"
@@ -259,6 +269,9 @@ export default function FullScreenPlayer() {
             <SkipFwdIcon />
             <span className="text-[9px] tracking-wider">10s</span>
           </button>
+
+          {/* spacer to balance loop button */}
+          <div className="w-8" />
         </div>
 
         {/* Tag edit panel */}
@@ -606,6 +619,17 @@ function SkipFwdIcon() {
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="text-current">
       <path d="M13 7l5 5-5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M6 7l5 5-5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function LoopIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-current">
+      <path d="M17 2l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3 11V9a4 4 0 014-4h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M7 22l-4-4 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M21 13v2a4 4 0 01-4 4H3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
