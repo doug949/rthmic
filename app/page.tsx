@@ -101,7 +101,16 @@ export default function Home() {
             teal
           />
         </RevealBlock>
-        <RevealBlock delay={220}>
+        <RevealBlock delay={210}>
+          <ModeCard
+            href="/speak"
+            label="ADHD"
+            description="Rejection Spike, Time Panic, Launch — and more"
+            icon={<BrainIcon />}
+            rose
+          />
+        </RevealBlock>
+        <RevealBlock delay={250}>
           <ModeCard
             href="/settings"
             label="Settings"
@@ -110,7 +119,7 @@ export default function Home() {
             purple
           />
         </RevealBlock>
-        <RevealBlock delay={270}>
+        <RevealBlock delay={290}>
           <ModeCard
             href="/feedback"
             label="Share Feedback"
@@ -119,7 +128,7 @@ export default function Home() {
             subtle
           />
         </RevealBlock>
-        <RevealBlock delay={320}>
+        <RevealBlock delay={340}>
           <ModeCard
             href="/understand"
             label="About RTHMIC"
@@ -201,6 +210,7 @@ function ModeCard({
   blue,
   teal,
   purple,
+  rose,
   subtle,
 }: {
   href: string;
@@ -211,11 +221,12 @@ function ModeCard({
   blue?: boolean;
   teal?: boolean;
   purple?: boolean;
+  rose?: boolean;
   subtle?: boolean;
 }) {
-  const iconColor  = primary ? "#c9a55a" : blue ? "rgba(120,160,255,0.75)" : teal ? "rgba(100,195,165,0.85)" : purple ? "rgba(160,130,220,0.85)" : subtle ? "rgba(255,255,255,0.28)" : "rgba(255,255,255,0.45)";
-  const labelColor = primary ? "#c9a55a" : blue ? "rgba(140,175,255,0.92)" : teal ? "rgba(120,210,180,0.92)" : purple ? "rgba(180,150,240,0.92)" : subtle ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.9)";
-  const arrowColor = primary ? "rgba(201,165,90,0.4)" : blue ? "rgba(120,160,255,0.35)" : teal ? "rgba(100,195,165,0.35)" : purple ? "rgba(160,130,220,0.35)" : subtle ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.2)";
+  const iconColor  = primary ? "#c9a55a" : blue ? "rgba(120,160,255,0.75)" : teal ? "rgba(100,195,165,0.85)" : purple ? "rgba(160,130,220,0.85)" : rose ? "rgba(220,110,140,0.85)" : subtle ? "rgba(255,255,255,0.28)" : "rgba(255,255,255,0.45)";
+  const labelColor = primary ? "#c9a55a" : blue ? "rgba(140,175,255,0.92)" : teal ? "rgba(120,210,180,0.92)" : purple ? "rgba(180,150,240,0.92)" : rose ? "rgba(235,130,155,0.92)" : subtle ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.9)";
+  const arrowColor = primary ? "rgba(201,165,90,0.4)" : blue ? "rgba(120,160,255,0.35)" : teal ? "rgba(100,195,165,0.35)" : purple ? "rgba(160,130,220,0.35)" : rose ? "rgba(220,110,140,0.35)" : subtle ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.2)";
 
   return (
     <TransitionLink
@@ -223,14 +234,15 @@ function ModeCard({
       className={`
         flex items-center gap-5 px-6 rounded-2xl border transition-all duration-150
         active:scale-[0.98] touch-manipulation
-        ${primary || blue || teal || purple ? "py-4" : subtle ? "py-3" : "py-4"}
-        ${primary || blue || teal || purple ? "" : "bg-white/[0.03] border-white/[0.08] hover:bg-white/[0.07]"}
+        ${primary || blue || teal || purple || rose ? "py-4" : subtle ? "py-3" : "py-4"}
+        ${primary || blue || teal || purple || rose ? "" : "bg-white/[0.03] border-white/[0.08] hover:bg-white/[0.07]"}
       `}
       style={
         primary ? { background: "rgba(201,165,90,0.08)", borderColor: "rgba(201,165,90,0.35)" }
         : blue   ? { background: "rgba(100,140,255,0.06)", borderColor: "rgba(120,160,255,0.28)" }
         : teal   ? { background: "rgba(100,195,165,0.06)", borderColor: "rgba(100,195,165,0.28)" }
         : purple ? { background: "rgba(160,130,220,0.06)", borderColor: "rgba(160,130,220,0.28)" }
+        : rose   ? { background: "rgba(220,110,140,0.06)", borderColor: "rgba(220,110,140,0.28)" }
         : {}
       }
     >
@@ -276,6 +288,17 @@ function InfoIcon() {
       <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.8" />
       <line x1="12" y1="11" x2="12" y2="17" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
       <circle cx="12" cy="7.5" r="1.2" fill="currentColor" />
+    </svg>
+  );
+}
+
+function BrainIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <path d="M9.5 3C7.6 3 6 4.6 6 6.5c0 .4.07.8.2 1.15C4.9 8.1 4 9.2 4 10.5c0 1 .5 1.9 1.3 2.5C5.1 13.3 5 13.65 5 14c0 1.7 1.3 3.1 3 3.25V20h8v-2.75C17.7 17.1 19 15.7 19 14c0-.35-.1-.7-.3-1C19.5 12.4 20 11.5 20 10.5c0-1.3-.9-2.4-2.2-2.85.13-.35.2-.75.2-1.15C18 4.6 16.4 3 14.5 3c-.8 0-1.55.28-2.13.75A2.98 2.98 0 0 0 12 3.5c-.35 0-.68.06-1 .17A3.47 3.47 0 0 0 9.5 3Z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+      <line x1="12" y1="6" x2="12" y2="17" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" opacity="0.4"/>
+      <line x1="9" y1="9" x2="12" y2="9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" opacity="0.4"/>
+      <line x1="12" y1="13" x2="15" y2="13" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" opacity="0.4"/>
     </svg>
   );
 }
