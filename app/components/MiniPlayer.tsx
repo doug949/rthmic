@@ -5,7 +5,7 @@ import { useAudio } from "@/app/contexts/AudioContext";
 export default function MiniPlayer() {
   const {
     currentTrackId, currentTitle, isPlaying, loadingId,
-    currentTime, duration, playerOpen, openPlayer,
+    currentTime, duration, playerOpen, openPlayer, stop,
   } = useAudio();
 
   // Don't show if nothing is playing, or the full-screen player is already open
@@ -57,10 +57,16 @@ export default function MiniPlayer() {
             {displayTitle}
           </p>
 
-          {/* "Tap to open" hint */}
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="flex-shrink-0 text-white/25">
-            <path d="M3 13L13 3M13 3H7M13 3V9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          {/* Dismiss */}
+          <button
+            onClick={(e) => { e.stopPropagation(); stop(); }}
+            className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full touch-manipulation active:bg-white/10 transition-colors"
+            aria-label="Dismiss player"
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="text-white/35">
+              <path d="M1 1L11 11M11 1L1 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
         </div>
       </button>
     </div>
