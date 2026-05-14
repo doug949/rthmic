@@ -124,11 +124,10 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
                   const ld = await lr.json() as { timedWords?: unknown };
                   if (!ld.timedWords) continue;
 
-                  menuSongs[i] = { ...menuSongs[i], timedLyrics: ld.timedWords } as typeof menuSongs[0] & { timedLyrics: unknown };
                   await fetch("/api/menu", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ slug: params.menuSlug, songs: menuSongs }),
+                    body: JSON.stringify({ slug: params.menuSlug, action: "updateSong", id: song.id, timedLyrics: ld.timedWords }),
                   });
                   console.log(`[gen] attached timed lyrics for menu ${params.menuSlug} song ${song.id}`);
                 } catch { /* non-critical */ }

@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { AppHeader } from "@/app/components/AppHeader";
 import { RevealBlock } from "@/app/components/RevealBlock";
 import { useGeneration } from "@/app/contexts/GenerationContext";
-import { useAudio } from "@/app/contexts/AudioContext";
 import type { SavedRhythm } from "@/app/api/library/route";
 
 const TEAL = {
@@ -28,12 +27,9 @@ type MenuSlots = Record<string, SavedRhythm[]>;
 
 export default function StructurePage() {
   const router = useRouter();
-  const { genPhase, startGeneration } = useGeneration();
-  const { handlePlayUrl, stop: stopAudio, currentTrackId, isPlaying } = useAudio();
+  const { genPhase } = useGeneration();
   const [menus, setMenus] = useState<MenuSlots>({});
   const [loading, setLoading] = useState(true);
-  const [newStyleSlug, setNewStyleSlug] = useState<string | null>(null);
-  const [genreInput, setGenreInput] = useState("");
   const prevGenPhase = useRef<string>("idle");
 
   const fetchMenus = async () => {
@@ -72,32 +68,6 @@ export default function StructurePage() {
     router.push(`/speak?${params.toString()}`);
   };
 
-  const triggerNewStyle = (tm: typeof TIME_MENUS[0]) => {
-    const songs = menus[tm.slug] ?? [];
-    if (!songs.length) return;
-    const lyrics = songs[0].lyrics ?? "";
-    const today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-    const title = `${tm.menuTitle} — ${today}`;
-    startGeneration({
-      lyrics,
-      style: "B",
-      title,
-      pillar: "Menus",
-      genre: genreInput.trim() || "Indie Electronic",
-      menuSlug: tm.slug,
-    });
-    setNewStyleSlug(null);
-    setGenreInput("");
-  };
-
-  const togglePlay = (song: SavedRhythm) => {
-    if (currentTrackId === song.id && isPlaying) {
-      stopAudio();
-    } else if (song.audioUrl) {
-      handlePlayUrl(song.id, song.audioUrl, song.title);
-    }
-  };
-
   return (
     <main
       className="relative z-10 min-h-screen flex flex-col px-6"
@@ -133,71 +103,18 @@ export default function StructurePage() {
                   style={{ background: TEAL.bg, borderColor: TEAL.border }}
                 >
                   {hasSongs ? (
-                    /* ── Active menu card ── */
-                    <div className="px-5 py-4">
-                      {/* Title row */}
-                      <div className="flex items-start justify-between gap-3 mb-3">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs uppercase tracking-widest mb-0.5" style={{ color: TEAL.dim }}>{tm.label}</p>
-                          <p className="text-sm font-medium leading-snug" style={{ color: TEAL.text }}>{firstSong.title}</p>
-                        </div>
-                        {/* Play button */}
-                        <button
-                          onClick={() => togglePlay(firstSong)}
-                          className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center touch-manipulation active:scale-95 transition-transform"
-                          style={{ background: TEAL.hover, border: `1px solid ${TEAL.border}` }}
-                        >
-                          {currentTrackId === firstSong.id && isPlaying
-                            ? <PauseIcon color={TEAL.text} />
-                            : <PlayIcon color={TEAL.text} />}
-                        </button>
+                    /* ── Active menu card — tap to open detail ── */
+                    <button
+                      onClick={() => router.push(`/structure/${tm.slug}`)}
+                      className="w-full flex items-center gap-4 px-6 py-5 text-left touch-manipulation active:scale-[0.98] transition-all"
+                    >
+                      <span className="flex-shrink-0" style={{ color: TEAL.dim }}><StructureIcon /></span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-base font-semibold tracking-wide" style={{ color: TEAL.text }}>{tm.label}</p>
+                        <p className="text-xs text-white/45 mt-0.5 truncate">{firstSong.title}</p>
                       </div>
-
-                      {/* Action row */}
-                      {newStyleSlug === tm.slug ? (
-                        <div className="flex gap-2 mt-2">
-                          <input
-                            autoFocus
-                            value={genreInput}
-                            onChange={(e) => setGenreInput(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === "Enter") triggerNewStyle(tm); if (e.key === "Escape") setNewStyleSlug(null); }}
-                            placeholder="e.g. Ambient Lo-fi, Drum & Bass"
-                            className="flex-1 bg-transparent text-sm text-white/80 placeholder-white/25 outline-none border-b py-1"
-                            style={{ borderColor: TEAL.border }}
-                          />
-                          <button
-                            onClick={() => triggerNewStyle(tm)}
-                            className="text-sm px-3 py-1 rounded-lg touch-manipulation"
-                            style={{ background: TEAL.hover, color: TEAL.text }}
-                          >
-                            Go
-                          </button>
-                          <button
-                            onClick={() => setNewStyleSlug(null)}
-                            className="text-sm px-2 py-1 text-white/30 touch-manipulation"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex gap-2 mt-1">
-                          <button
-                            onClick={() => goRecord(tm)}
-                            className="flex-1 text-xs py-2 rounded-xl touch-manipulation active:scale-[0.98] transition-transform"
-                            style={{ background: "rgba(100,195,165,0.08)", color: TEAL.dim, border: `1px solid ${TEAL.border}` }}
-                          >
-                            Record New
-                          </button>
-                          <button
-                            onClick={() => { setNewStyleSlug(tm.slug); setGenreInput(""); }}
-                            className="flex-1 text-xs py-2 rounded-xl touch-manipulation active:scale-[0.98] transition-transform"
-                            style={{ background: "rgba(100,195,165,0.08)", color: TEAL.dim, border: `1px solid ${TEAL.border}` }}
-                          >
-                            New Style
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                      <span className="text-lg flex-shrink-0" style={{ color: TEAL.border }}>›</span>
+                    </button>
                   ) : (
                     /* ── Empty — create card ── */
                     <button
@@ -225,23 +142,6 @@ export default function StructurePage() {
         )}
       </section>
     </main>
-  );
-}
-
-function PlayIcon({ color }: { color: string }) {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <path d="M3 2L12 7L3 12V2Z" fill={color} />
-    </svg>
-  );
-}
-
-function PauseIcon({ color }: { color: string }) {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <rect x="2" y="2" width="4" height="10" rx="1" fill={color} />
-      <rect x="8" y="2" width="4" height="10" rx="1" fill={color} />
-    </svg>
   );
 }
 
