@@ -43,13 +43,27 @@ interface UserProfile {
   vocalist: "none" | "male" | "female";
   adhdMode: boolean;
   simpleMode: boolean;
+  advancedPillars: string[];
 }
+
+const CONFIGURABLE_PILLARS = [
+  { slug: "mode",        label: "Mode" },
+  { slug: "movement",    label: "Movement" },
+  { slug: "explain",     label: "Explain" },
+  { slug: "mindset",     label: "Mindset" },
+  { slug: "journal",     label: "Journal" },
+  { slug: "epiphany",    label: "Epiphany" },
+  { slug: "memory",      label: "Memory" },
+  { slug: "booksummary", label: "Book Summary" },
+  { slug: "bridge",      label: "Bridge" },
+  { slug: "invite",      label: "Invite" },
+];
 
 export default function SettingsPage() {
   const router = useRouter();
 
   // ── Profile state ────────────────────────────────────────────────────────────
-  const [profile, setProfile] = useState<UserProfile>({ name: "", vocalist: "none", adhdMode: false, simpleMode: false });
+  const [profile, setProfile] = useState<UserProfile>({ name: "", vocalist: "none", adhdMode: false, simpleMode: false, advancedPillars: ["memory", "booksummary", "explain", "mindset"] });
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -81,7 +95,7 @@ export default function SettingsPage() {
       fetch("/api/settings").then(r => r.json()).catch(() => null),
       fetch("/api/genres").then(r => r.json()).catch(() => null),
     ]).then(([prof, gen]) => {
-      if (prof) setProfile({ name: prof.name ?? "", vocalist: prof.vocalist ?? "none", adhdMode: !!prof.adhdMode, simpleMode: !!prof.simpleMode });
+      if (prof) setProfile({ name: prof.name ?? "", vocalist: prof.vocalist ?? "none", adhdMode: !!prof.adhdMode, simpleMode: !!prof.simpleMode, advancedPillars: Array.isArray(prof.advancedPillars) ? prof.advancedPillars : ["memory", "booksummary", "explain", "mindset"] });
       if (gen?.genres) {
         setSlots(prev => prev.map((s, i) => ({
           ...s, style: gen.genres[i] ?? "", committed: !!(gen.genres[i]),
@@ -385,6 +399,42 @@ export default function SettingsPage() {
                 />
               </div>
             </button>
+          </div>
+
+          {/* Pillar configuration */}
+          <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] overflow-hidden mt-2">
+            <div className="px-5 py-3.5 border-b border-white/[0.06]">
+              <p className="text-sm font-medium" style={{ color: PURPLE.text }}>Pillar Configuration</p>
+              <p className="text-xs mt-0.5" style={{ color: PURPLE.dim }}>Set which pillars are Advanced — hidden when Simple Mode is on</p>
+            </div>
+            {CONFIGURABLE_PILLARS.map((p, i) => {
+              const isAdvanced = profile.advancedPillars.includes(p.slug);
+              const toggle = () => {
+                const next = isAdvanced
+                  ? profile.advancedPillars.filter(s => s !== p.slug)
+                  : [...profile.advancedPillars, p.slug];
+                updateProfile({ advancedPillars: next });
+              };
+              return (
+                <button
+                  key={p.slug}
+                  onClick={toggle}
+                  className="w-full flex items-center justify-between px-5 py-3 text-left touch-manipulation active:bg-white/[0.03] transition-colors"
+                  style={{ borderTop: i === 0 ? "none" : "1px solid rgba(255,255,255,0.05)" }}
+                >
+                  <span className="text-sm" style={{ color: isAdvanced ? PURPLE.text : "rgba(255,255,255,0.55)" }}>{p.label}</span>
+                  <span
+                    className="text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-full border"
+                    style={isAdvanced
+                      ? { color: PURPLE.text, borderColor: PURPLE.border, background: "rgba(160,130,220,0.12)" }
+                      : { color: "rgba(255,255,255,0.3)", borderColor: "rgba(255,255,255,0.08)", background: "transparent" }
+                    }
+                  >
+                    {isAdvanced ? "Advanced" : "Simple"}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </section>
 

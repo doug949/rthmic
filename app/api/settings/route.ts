@@ -5,11 +5,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "redis";
 
+export const DEFAULT_ADVANCED_PILLARS = ["memory", "booksummary", "explain", "mindset"];
+
 export interface UserSettings {
   name: string;
   vocalist: "none" | "male" | "female";
   adhdMode: boolean;
   simpleMode: boolean;
+  advancedPillars: string[];
 }
 
 const DEFAULT_SETTINGS: UserSettings = {
@@ -17,6 +20,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   vocalist: "none",
   adhdMode: false,
   simpleMode: false,
+  advancedPillars: DEFAULT_ADVANCED_PILLARS,
 };
 
 const REDIS_AVAILABLE = !!process.env.REDIS_URL;
@@ -69,6 +73,9 @@ export async function POST(request: NextRequest) {
   if (body.vocalist === "none" || body.vocalist === "male" || body.vocalist === "female") patch.vocalist = body.vocalist;
   if (typeof body.adhdMode === "boolean") patch.adhdMode = body.adhdMode;
   if (typeof body.simpleMode === "boolean") patch.simpleMode = body.simpleMode;
+  if (Array.isArray(body.advancedPillars) && body.advancedPillars.every((s: unknown) => typeof s === "string")) {
+    patch.advancedPillars = body.advancedPillars;
+  }
 
   if (!REDIS_AVAILABLE) return NextResponse.json({ ok: true });
 

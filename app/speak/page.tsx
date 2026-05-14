@@ -1134,6 +1134,7 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
   const [showInvite, setShowInvite] = useState(false);
   const [adhdMode, setAdhdMode] = useState(false);
   const [simpleMode, setSimpleMode] = useState(false);
+  const [advancedPillars, setAdvancedPillars] = useState<string[]>(["memory", "booksummary", "explain", "mindset"]);
   const [adhdOpen, setAdhdOpen] = useState(false);
   const [forYouOpen, setForYouOpen] = useState(false);
   const [subCatOpen, setSubCatOpen] = useState<Record<string, boolean>>({});
@@ -1146,6 +1147,7 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
     fetch("/api/settings").then(r => r.json()).then(s => {
       if (s.adhdMode) setAdhdMode(true);
       if (s.simpleMode) setSimpleMode(true);
+      if (Array.isArray(s.advancedPillars)) setAdvancedPillars(s.advancedPillars);
     }).catch(() => {});
   }, []);
 
@@ -1203,7 +1205,7 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
                 const pillars = group.slugs
                   .map(slug => FOR_YOU_PILLARS.find(p => p.slug === slug))
                   .filter(Boolean)
-                  .filter(p => !(simpleMode && p!.advanced)) as typeof PILLARS;
+                  .filter(p => !(simpleMode && advancedPillars.includes(p!.slug))) as typeof PILLARS;
                 if (pillars.length === 0) return null;
                 const isOpen = !!subCatOpen[group.label];
                 return (
