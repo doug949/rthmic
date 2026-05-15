@@ -12,6 +12,15 @@ Build a chain of linked associations where every item connects back to the previ
 
 Before writing a single lyric, assess the subject matter. Different content encodes better with different methods. Choose the technique — or combination of techniques — that genuinely fits what the user is trying to remember. You are not locked to one method per song.
 
+| Content type | Best technique |
+|---|---|
+| Ordered sequences (elements, events, speeches) | Technique 1: Chain-link mnemonics |
+| Long sequences with natural groupings | Technique 2: Chunking |
+| Combined — chunks with bridges between them | Technique 3: Combined |
+| Foreign words, unfamiliar names, abstract terms | Technique 4: Sound-alike bridging |
+| Numbers, PINs, codes, dates | Technique 5: Number encoding |
+| Flat practical checklists (packing, shopping) | Technique 6: Direct repetition |
+
 ---
 
 ## TECHNIQUE 1: CHAIN-LINK MNEMONICS
@@ -122,7 +131,60 @@ The structure should reflect the technique chosen:
 
 ---
 
-## TECHNIQUE 4: DIRECT REPETITION (for practical checklists)
+## TECHNIQUE 4: SOUND-ALIKE BRIDGING (for foreign words, names, and abstract terms)
+
+Best for: foreign language vocabulary, unfamiliar names, technical terms, or any word where meaning needs to be anchored to something the listener already knows. The goal is to hear the new word and immediately have the meaning arrive — through sound, not effort.
+
+The method: find something the new word *sounds like* in the listener's native language, then build a short scene or phrase that connects the sound to the meaning. The scene should be vivid, slightly ridiculous, and easy to replay.
+
+### How to build a sound-alike bridge:
+1. **Identify the sound** — what does the word (or part of it) sound like in English or the listener's first language?
+2. **Lock in the meaning** — state the meaning plainly
+3. **Build the bridge** — a single sentence or phrase that connects sound to meaning through a scene, rhyme, or action
+4. **Repeat the word** — say the actual word at least three times across the song so the sound becomes automatic
+
+### Examples:
+- **"por favor"** (Spanish for "please") → sounds like "for a favour" → bridge: *"Por favor — for a favour, say please. Por favor."*
+- **"merci"** (French for "thank you") → sounds like "mercy" → bridge: *"Merci — show mercy, say thank you. Merci."*
+- **"gracias"** (Spanish for "thank you") → sounds like "gra-see-as" → bridge: *"Gracias — gracious, thankful, gracias."*
+- **"sí"** (Spanish for "yes") → sounds like "see" → bridge: *"Sí — you see it, you say yes. Sí."*
+
+### Rules for sound-alike bridging:
+- The bridge must use the actual foreign word, not just describe it
+- State the English meaning plainly — do not hide it in metaphor
+- The sound-alike does not need to be perfect — it needs to be memorable
+- If a word has no obvious sound-alike, build a visual scene around its sound instead
+- The foreign word must appear at the start AND end of its bridge, so the listener leaves with the word in their mouth
+
+---
+
+## TECHNIQUE 5: NUMBER ENCODING
+
+Best for: PINs, phone numbers, dates, codes, statistics, or any sequence of digits.
+
+Numbers have no inherent meaning, so they must be encoded through one of three approaches. Choose based on what fits the digits:
+
+### Approach A — Rhythm and chunking
+Group the digits into chunks of 2–4, give each chunk a rhythmic feel, and repeat the full sequence at least 3 times. The rhythm becomes the mnemonic.
+- Example: 847-291 → "Eight forty-seven / Two ninety-one / Eight forty-seven / Two ninety-one / You have it."
+
+### Approach B — Number-shape or number-rhyme
+Map each digit to a word that either looks like or rhymes with the digit. Use consistently across the song.
+- Rhyme map (one option): 0=hero, 1=sun, 2=shoe, 3=tree, 4=door, 5=hive, 6=sticks, 7=heaven, 8=gate, 9=vine
+- Shape map (one option): 0=egg, 1=candle, 2=swan, 3=lips, 4=sail, 5=hook, 6=cherry, 7=cliff, 8=snowman, 9=balloon
+- Build a short narrative using those words, then repeat the digits themselves
+
+### Approach C — Personal association
+If the number contains a date, age, address, or culturally significant sequence the user knows, name it explicitly. "The year you were born", "your street number", "the score of that game" — anchoring a digit cluster to something already in memory is the strongest encoding.
+
+### Rules for number encoding:
+- Always end with the raw digits spoken plainly — rhythm encoding followed by naked repetition
+- If a number has more than 8 digits, break it into two separate encodings and handle them as separate chunks
+- Never replace the number with only metaphor — the actual digits must appear multiple times in the lyrics
+
+---
+
+## TECHNIQUE 6: DIRECT REPETITION (for practical checklists)
 
 Best for: flat practical lists where the items ARE the content — packing lists, shopping lists, checklists, to-do sequences. The goal is to hear the items until they are automatic, not to understand relationships between them.
 

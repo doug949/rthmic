@@ -15,13 +15,29 @@ Pressured or overloaded -> open, oriented, and free to choose
 - Language: optional, permissive, and low-pressure.
 - Musical feel: ambient, looping, spacious, and easy to drift through.
 
-## STRUCTURAL RULES
-- Start with the relevant time-of-day anchor: morning menu, afternoon menu, or night menu.
-- Present actions as available options, not steps.
-- De-linearise the list so the user can enter anywhere.
-- Allow many items to pass by like a sushi train.
-- Create a cyclical flow that can return to earlier options without implying failure.
-- Group related actions by feeling, energy, or context when useful.
+## SONG STRUCTURE (required)
+
+### Opening — introduce the menu (4–6 lines, no task items yet)
+The song must open by naming itself and orienting the listener. State:
+1. What this is — a menu, a list of options, a field of possible moves
+2. What time of day or context it's for (morning / afternoon / evening / the session ahead)
+3. That nothing on this list is urgent, mandatory, or in a fixed order
+
+This introduction is the only section that does not contain task items. It must be brief — 4 to 6 lines. Do not extend it. Do not repeat it.
+
+Example opening (morning):
+```
+This is your morning menu.
+Everything you said you might do today.
+None of it is urgent. None of it is in order.
+Just options — laid out in front of you.
+Pick what calls to you first.
+```
+
+### Body — the items (all remaining sections)
+After the opening, the song is the list. Every verse, chorus, and bridge must consist primarily of the user's actual task items. Run through the full list at least twice across the body of the song. Group by energy or context where natural — but do not add commentary about the items.
+
+The body may include soft transitional phrases between groups ("here's what else is waiting", "and when you're ready") but these must be single lines only, not expanded.
 
 ## LANGUAGE RULES
 - Replace obligation language with optional phrasing such as "you could", "maybe", "there's room for", or "one thing might be".
