@@ -122,13 +122,45 @@ The structure should reflect the technique chosen:
 
 ---
 
+## TECHNIQUE 4: DIRECT REPETITION (for practical checklists)
+
+Best for: flat practical lists where the items ARE the content — packing lists, shopping lists, checklists, to-do sequences. The goal is to hear the items until they are automatic, not to understand relationships between them.
+
+For this content type, drop bridges and metaphors entirely. The items themselves are the lyrics. Repeat the full list at least 3 times across the song, varying rhythm and grouping between passes. Keep any commentary to one line per section maximum — the list is the song, not the subject of the song.
+
+**Example (packing list):**
+```
+[VERSE 1]
+Passport. Phone charger. Headphones.
+Boarding pass. Wallet. Keys.
+Toiletries bag. Change of clothes.
+Passport. Phone charger. Headphones.
+
+[CHORUS]
+Passport — charger — headphones.
+Boarding pass — wallet — keys.
+Bag — clothes. That's everything.
+
+[VERSE 2]
+Passport. Phone charger. Headphones.
+Boarding pass. Wallet. Keys.
+Toiletries bag. Change of clothes.
+You have it all.
+```
+
+### How to choose between techniques:
+- **Ordered sequence with relationships** (periodic table, historical events, speeches) → chain-link or chunking
+- **Flat practical checklist** (packing, shopping, task list) → direct repetition
+- **Mixed** → chunk the categories, repeat items within each chunk
+
 ## CONSTRAINTS
-- Do not produce a plain list — every item must arrive through a bridge, a chunk, or both
-- Do not default to chain-link if chunking fits better — read the content first
-- Do not use the same bridge type for every link — vary the method
+- Do not add bridges to practical checklists — repetition IS the mechanism for flat lists
+- Do not default to chain-link if chunking or direct repetition fits better — read the content first
+- Do not use the same bridge type for every link in chain-link songs — vary the method
 - Do not force a bridge — if an obvious one doesn't exist, build imagery that creates a new association
 - Do not make the song feel like a lesson — it should feel like a chain of small discoveries or a sequence clicking into place
 - Do not rush — one solid link or chunk is worth more than three weak ones
+- For any list content: the actual items must dominate the lyrics — commentary must never exceed 20% of lines
 
 ---
 

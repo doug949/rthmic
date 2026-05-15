@@ -40,6 +40,7 @@ export default function SharePage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const rafRef = useRef<number | null>(null);
 
   // ── Detect sign-in ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -68,19 +69,36 @@ export default function SharePage() {
     if (!el || !rhythm?.audioUrl) return;
     el.src = rhythm.audioUrl;
 
-    const onTime  = () => setCurrentTime(el.currentTime);
     const onMeta  = () => setDuration(el.duration);
-    const onEnded = () => { setIsPlaying(false); setCurrentTime(0); };
+    const onEnded = () => { setIsPlaying(false); setCurrentTime(0); if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; } };
+    const onPlay  = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
 
-    el.addEventListener("timeupdate", onTime);
     el.addEventListener("loadedmetadata", onMeta);
     el.addEventListener("ended", onEnded);
+    el.addEventListener("play", onPlay);
+    el.addEventListener("pause", onPause);
     return () => {
-      el.removeEventListener("timeupdate", onTime);
       el.removeEventListener("loadedmetadata", onMeta);
       el.removeEventListener("ended", onEnded);
+      el.removeEventListener("play", onPlay);
+      el.removeEventListener("pause", onPause);
     };
   }, [rhythm]);
+
+  // ── rAF loop for smooth currentTime ──────────────────────────────────────
+  useEffect(() => {
+    if (!isPlaying) {
+      if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
+      return;
+    }
+    const tick = () => {
+      if (audioRef.current) setCurrentTime(audioRef.current.currentTime);
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => { if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; } };
+  }, [isPlaying]);
 
   // Auto-focus email input when form opens
   useEffect(() => {
@@ -131,12 +149,45 @@ export default function SharePage() {
     ? rhythm.lyrics.split("\n").map((l) => l.trim()).filter((l) => l && !l.match(/^\[.*\]$/))
     : [];
 
-  const introGap  = duration > 0 ? Math.min(10, duration * 0.07) : 0;
-  const lyricSpan = Math.max(0, duration - introGap);
-  const lineTime  = lyricsLines.length > 1 ? lyricSpan / lyricsLines.length : lyricSpan;
-  const currentIdx = (isPlaying && duration > 0 && currentTime >= introGap)
-    ? Math.min(Math.floor((currentTime - introGap) / lineTime), lyricsLines.length - 1)
-    : -1;
+  // Build per-line timing from timedLyrics if available, else equal-division fallback
+  const lineTimings: Array<{ startS: number; endS: number } | null> = (() => {
+    const tw = rhythm?.timedLyrics;
+    if (!tw || tw.length === 0) return [];
+    const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const lineWords: typeof tw[] = Array.from({ length: lyricsLines.length }, () => []);
+    let wi = 0;
+    for (let li = 0; li < lyricsLines.length && wi < tw.length; li++) {
+      const chars = norm(lyricsLines[li]).length;
+      let consumed = 0;
+      while (wi < tw.length && consumed < chars) {
+        lineWords[li].push(tw[wi]);
+        consumed += Math.max(1, norm(tw[wi].word).length);
+        wi++;
+      }
+    }
+    return lineWords.map((words) =>
+      words.length > 0 ? { startS: words[0].startS, endS: words[words.length - 1].endS } : null
+    );
+  })();
+
+  let currentIdx = -1;
+  if (lineTimings.length > 0) {
+    let last = -1;
+    for (let i = 0; i < lineTimings.length; i++) {
+      const t = lineTimings[i];
+      if (!t) continue;
+      if (currentTime >= t.startS) last = i;
+      if (currentTime >= t.startS && currentTime <= t.endS) { last = i; break; }
+    }
+    currentIdx = last;
+  } else {
+    const introGap  = duration > 0 ? Math.min(10, duration * 0.07) : 0;
+    const lyricSpan = Math.max(0, duration - introGap);
+    const lineTime  = lyricsLines.length > 1 ? lyricSpan / lyricsLines.length : lyricSpan;
+    if (isPlaying && duration > 0 && currentTime >= introGap) {
+      currentIdx = Math.min(Math.floor((currentTime - introGap) / lineTime), lyricsLines.length - 1);
+    }
+  }
 
   // ── Render: loading ───────────────────────────────────────────────────────
   if (state === "loading") {

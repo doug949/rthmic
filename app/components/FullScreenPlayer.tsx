@@ -270,8 +270,13 @@ export default function FullScreenPlayer() {
             <span className="text-[9px] tracking-wider">10s</span>
           </button>
 
-          {/* spacer to balance loop button */}
-          <div className="w-8" />
+          <button
+            onClick={restart}
+            className="flex flex-col items-center gap-0.5 text-white/35 active:text-white/70 transition-colors touch-manipulation"
+          >
+            <RestartIcon />
+            <span className="text-[9px] tracking-wider">start</span>
+          </button>
         </div>
 
         {/* Tag edit panel */}
@@ -588,6 +593,15 @@ function SkipFwdIcon() {
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="text-current">
       <path d="M13 7l5 5-5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M6 7l5 5-5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function RestartIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-current">
+      <path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-6.36 2.64L3 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3 3v5h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

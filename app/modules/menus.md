@@ -36,6 +36,9 @@ Pressured or overloaded -> open, oriented, and free to choose
 - Do not imply that every item needs to be completed.
 - Do not create urgency.
 - Do not mix in rescue, mindset, memory, movement, or explanation behaviours.
+- The user's actual task names must appear verbatim and repeatedly — do not paraphrase, replace with metaphors, or describe them abstractly. If the user said "send the invoice", the song says "send the invoice", not "there's a financial thing waiting".
+- Task names must make up at least 70% of lyric lines. Commentary about the tasks should be minimal — one or two framing lines per section at most.
+- Each task should appear at least twice across the full song.
 
 ## SUCCESS CRITERIA
 The user feels they have a calm menu of possible actions and can choose one without feeling pushed.
