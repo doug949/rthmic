@@ -17,8 +17,8 @@ Before writing a single lyric, assess the subject matter. Different content enco
 | Ordered sequences (elements, events, speeches) | Technique 1: Chain-link mnemonics |
 | Long sequences with natural groupings | Technique 2: Chunking |
 | Combined — chunks with bridges between them | Technique 3: Combined |
-| Foreign words, unfamiliar names, abstract terms | Technique 4: Sound-alike bridging |
-| Numbers, PINs, codes, dates | Technique 5: Number encoding |
+| Anything that needs a hook — foreign words, numbers with embedded meaning, names, jargon | Technique 4: Association hooks |
+| Numbers, PINs, codes, dates (no embedded meaning) | Technique 5: Number encoding |
 | Flat practical checklists (packing, shopping) | Technique 6: Direct repetition |
 
 ---
@@ -131,30 +131,50 @@ The structure should reflect the technique chosen:
 
 ---
 
-## TECHNIQUE 4: SOUND-ALIKE BRIDGING (for foreign words, names, and abstract terms)
+## TECHNIQUE 4: ASSOCIATION HOOKS (for any content that needs a memory peg)
 
-Best for: foreign language vocabulary, unfamiliar names, technical terms, or any word where meaning needs to be anchored to something the listener already knows. The goal is to hear the new word and immediately have the meaning arrive — through sound, not effort.
+Best for: anything that doesn't stick on its own — foreign words, unfamiliar names, abstract terms, numbers with meaning embedded in them, technical jargon, or any fragment where a hook can make it retrievable. This is not limited to language learning. Use it whenever a piece of content can be anchored to something the listener already knows.
 
-The method: find something the new word *sounds like* in the listener's native language, then build a short scene or phrase that connects the sound to the meaning. The scene should be vivid, slightly ridiculous, and easy to replay.
+The method: find something the content *sounds like*, *looks like*, *feels like*, or *is culturally associated with* — then build a brief, vivid bridge that connects the new thing to the known thing. The bridge does not need to be logical. It needs to be sticky.
 
-### How to build a sound-alike bridge:
-1. **Identify the sound** — what does the word (or part of it) sound like in English or the listener's first language?
-2. **Lock in the meaning** — state the meaning plainly
-3. **Build the bridge** — a single sentence or phrase that connects sound to meaning through a scene, rhyme, or action
-4. **Repeat the word** — say the actual word at least three times across the song so the sound becomes automatic
+### Types of association hooks (use whichever fits):
 
-### Examples:
-- **"por favor"** (Spanish for "please") → sounds like "for a favour" → bridge: *"Por favor — for a favour, say please. Por favor."*
-- **"merci"** (French for "thank you") → sounds like "mercy" → bridge: *"Merci — show mercy, say thank you. Merci."*
-- **"gracias"** (Spanish for "thank you") → sounds like "gra-see-as" → bridge: *"Gracias — gracious, thankful, gracias."*
-- **"sí"** (Spanish for "yes") → sounds like "see" → bridge: *"Sí — you see it, you say yes. Sí."*
+**Sound-alike** — the content sounds like a known word or phrase.
+- "Por favor" → sounds like "for a favour" → *"Por favor — for a favour, say please."*
+- "Merci" → sounds like "mercy" → *"Merci — show mercy, say thank you."*
 
-### Rules for sound-alike bridging:
-- The bridge must use the actual foreign word, not just describe it
-- State the English meaning plainly — do not hide it in metaphor
-- The sound-alike does not need to be perfect — it needs to be memorable
-- If a word has no obvious sound-alike, build a visual scene around its sound instead
-- The foreign word must appear at the start AND end of its bridge, so the listener leaves with the word in their mouth
+**Meaning-alike** — a number, symbol, or code has a culturally known meaning embedded in it.
+- 747 in a longer number → the Boeing 747 → *"Seven forty-seven — like the jet. It flies."*
+- 911 in a sequence → emergency services → *"Nine one one — you know what that means."*
+- 42 → the answer to everything (Hitchhiker's Guide) → *"Forty-two — the answer. Hold it."*
+
+**Shape or visual** — the content looks like something when written or spoken.
+- The number 8 looks like an hourglass or a snowman
+- The letter S curves like a snake
+- Use these when the digit or character appears isolated and needs to be distinguished
+
+**Rhythm peg** — the content fits a known rhythm or melody that makes it automatic.
+- A 10-digit number that fits the rhythm of a familiar song
+- A phrase that scans like a line the listener already knows by heart
+
+**Personal anchor** — the content matches something already in the listener's life.
+- A PIN that matches a birth year, house number, or memorable score
+- A name that matches someone they already know
+- State the anchor explicitly: *"Same as your mum's birthday — you already have it."*
+
+### How to build an association hook:
+1. **Find the hook** — what does this content remind you of? Sound, shape, meaning, cultural reference, personal connection?
+2. **State the content** — say it plainly first
+3. **State the hook** — name the connection in one line
+4. **Close with the content** — end on the actual thing to be remembered, not the hook
+
+The hook must be brief. One or two lines. The content bookends it.
+
+### Rules:
+- Use the actual content at the start AND end of its hook — the listener must leave with the real thing in their head, not just the analogy
+- The hook does not need to be clever — it needs to be fast and vivid
+- If no obvious hook exists, create a short absurd scene rather than forcing a weak connection
+- Hooks work best when slightly surprising or slightly funny — anything that makes the listener think "that's odd but it works"
 
 ---
 
