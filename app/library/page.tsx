@@ -29,10 +29,16 @@ export default function CatalogPage() {
   const fetchCounts = useCallback(async () => {
     try {
       const res = await fetch("/api/library");
-      if (!res.ok) return;
+      if (!res.ok) throw new Error();
       const data = await res.json();
-      setRhythms(data.rhythms ?? []);
-    } catch { /* counts optional */ }
+      const rhythms = data.rhythms ?? [];
+      setRhythms(rhythms);
+      const { saveLibraryCache } = await import("@/app/lib/libraryCache");
+      saveLibraryCache(rhythms);
+    } catch {
+      const { loadLibraryCache } = await import("@/app/lib/libraryCache");
+      setRhythms(loadLibraryCache());
+    }
   }, []);
 
   useEffect(() => { fetchCounts(); }, [fetchCounts]);

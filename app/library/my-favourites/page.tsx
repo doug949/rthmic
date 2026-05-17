@@ -58,10 +58,16 @@ function MyFavouritesInner() {
       const res = await fetch("/api/library");
       if (!res.ok) throw new Error("fetch failed");
       const data = await res.json();
-      setRhythms(data.rhythms ?? []);
+      const rhythms = data.rhythms ?? [];
+      setRhythms(rhythms);
       setLoadState("ready");
+      const { saveLibraryCache } = await import("@/app/lib/libraryCache");
+      saveLibraryCache(rhythms);
     } catch {
-      setLoadState("error");
+      const { loadLibraryCache } = await import("@/app/lib/libraryCache");
+      const cached = loadLibraryCache();
+      setRhythms(cached);
+      setLoadState(cached.length > 0 ? "ready" : "error");
     }
   }, []);
 
