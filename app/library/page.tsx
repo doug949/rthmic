@@ -79,14 +79,12 @@ export default function CatalogPage() {
             open={myRthmsOpen}
             onToggle={() => setMyRthmsOpen((o) => !o)}
           />
-          {myRthmsOpen && (
-            <div className="flex flex-col gap-2 pl-1">
-              <SubNavCard href="/library/my-rthms?period=today" icon={<TodayIcon />}  label="Today"      detail={todayCount > 0 ? `${todayCount} Rthms` : "None yet today"} />
-              <SubNavCard href="/library/my-rthms?period=week"  icon={<WeekIcon />}   label="This Week"  detail={weekCount  > 0 ? `${weekCount} Rthms`  : "None this week"}  />
-              <SubNavCard href="/library/my-rthms?period=month" icon={<MonthIcon />}  label="This Month" detail={monthCount > 0 ? `${monthCount} Rthms` : "None this month"} />
-              <SubNavCard href="/library/my-rthms"              icon={<MyRthmsIcon />} label="All Rthms" detail={myRthmsCount > 0 ? `${myRthmsCount} saved` : undefined}     />
-            </div>
-          )}
+          <AnimatedAccordion open={myRthmsOpen}>
+            <SubNavCard href="/library/my-rthms?period=today" icon={<TodayIcon />}  label="Today"      detail={todayCount > 0 ? `${todayCount} Rthms` : "None yet today"} />
+            <SubNavCard href="/library/my-rthms?period=week"  icon={<WeekIcon />}   label="This Week"  detail={weekCount  > 0 ? `${weekCount} Rthms`  : "None this week"}  />
+            <SubNavCard href="/library/my-rthms?period=month" icon={<MonthIcon />}  label="This Month" detail={monthCount > 0 ? `${monthCount} Rthms` : "None this month"} />
+            <SubNavCard href="/library/my-rthms"              icon={<MyRthmsIcon />} label="All Rthms" detail={myRthmsCount > 0 ? `${myRthmsCount} saved` : undefined}     />
+          </AnimatedAccordion>
         </div>
 
         {/* ── My Favourites ─────────────────────────────────────────────── */}
@@ -100,13 +98,11 @@ export default function CatalogPage() {
             onToggle={() => setMyFavouritesOpen((o) => !o)}
             gold
           />
-          {myFavouritesOpen && (
-            <div className="flex flex-col gap-2 pl-1">
-              <SubNavCard href="/library/my-favourites?open=explore" icon={<ExploreAllIcon />}  label="Explore All" detail={favouritesCount > 0 ? `${favouritesCount} Rthms` : undefined} gold />
-              <SubNavCard href="/library/my-favourites?open=tags"    icon={<TagsIcon />}        label="Tags"        detail="Browse by tag"   gold />
-              <SubNavCard href="/library/my-favourites?open=pillars" icon={<PillarsIcon />}     label="Pillars"     detail="Browse by pillar" gold />
-            </div>
-          )}
+          <AnimatedAccordion open={myFavouritesOpen}>
+            <SubNavCard href="/library/my-favourites?open=explore" icon={<ExploreAllIcon />}  label="Explore All" detail={favouritesCount > 0 ? `${favouritesCount} Rthms` : undefined} gold />
+            <SubNavCard href="/library/my-favourites?open=tags"    icon={<TagsIcon />}        label="Tags"        detail="Browse by tag"   gold />
+            <SubNavCard href="/library/my-favourites?open=pillars" icon={<PillarsIcon />}     label="Pillars"     detail="Browse by pillar" gold />
+          </AnimatedAccordion>
         </div>
 
         {/* ── The RTHMIC Library ────────────────────────────────────────── */}
@@ -118,11 +114,9 @@ export default function CatalogPage() {
             open={rthmicLibraryOpen}
             onToggle={() => setRthmicLibraryOpen((o) => !o)}
           />
-          {rthmicLibraryOpen && (
-            <div className="flex flex-col gap-2 pl-1">
-              <SubNavCard href="/explore" icon={<ExploreAllIcon />} label="Explore" detail="20 hand-selected Rthms" />
-            </div>
-          )}
+          <AnimatedAccordion open={rthmicLibraryOpen}>
+            <SubNavCard href="/explore" icon={<ExploreAllIcon />} label="Explore" detail="20 hand-selected Rthms" />
+          </AnimatedAccordion>
         </div>
 
         {/* ── Rthmix Albums ─────────────────────────────────────────────── */}
@@ -135,13 +129,13 @@ export default function CatalogPage() {
             onToggle={() => setRthmixAlbumsOpen((o) => !o)}
             dim
           />
-          {rthmixAlbumsOpen && (
-            <div className="rounded-2xl border border-white/[0.05] bg-white/[0.015] px-5 py-5 ml-1">
+          <AnimatedAccordion open={rthmixAlbumsOpen}>
+            <div className="rounded-2xl border border-white/[0.05] bg-white/[0.015] px-5 py-5">
               <p className="text-xs text-white/35 leading-relaxed">
                 Albums let you build ordered playlists of Rthms — like a personal album. Coming soon.
               </p>
             </div>
-          )}
+          </AnimatedAccordion>
         </div>
 
         {/* ── The Archive ───────────────────────────────────────────────── */}
@@ -155,20 +149,56 @@ export default function CatalogPage() {
             onToggle={() => setArchiveOpen((o) => !o)}
             dim
           />
-          {archiveOpen && (
-            <div className="flex flex-col gap-2 pl-1">
-              <SubNavCard
-                href="/library/archive"
-                icon={<ArchiveIcon />}
-                label="Archived Rthms"
-                detail={archiveCount > 0 ? `${archiveCount} kept` : "Empty"}
-              />
-            </div>
-          )}
+          <AnimatedAccordion open={archiveOpen}>
+            <SubNavCard
+              href="/library/archive"
+              icon={<ArchiveIcon />}
+              label="Archived Rthms"
+              detail={archiveCount > 0 ? `${archiveCount} kept` : "Empty"}
+            />
+          </AnimatedAccordion>
         </div>
 
       </section>
     </main>
+  );
+}
+
+// ─── Animated accordion body ──────────────────────────────────────────────────
+
+function AnimatedAccordion({ open, children }: { open: boolean; children: React.ReactNode }) {
+  const [mounted, setMounted] = useState(open);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setMounted(true);
+      // Two rAFs: first lets React commit the mount, second lets the browser paint
+      // before we flip `visible`, so the CSS transition actually runs.
+      const id = requestAnimationFrame(() =>
+        requestAnimationFrame(() => setVisible(true))
+      );
+      return () => cancelAnimationFrame(id);
+    } else {
+      setVisible(false);
+      const t = setTimeout(() => setMounted(false), 220);
+      return () => clearTimeout(t);
+    }
+  }, [open]);
+
+  if (!mounted) return null;
+
+  return (
+    <div
+      className="flex flex-col gap-2 pl-1"
+      style={{
+        opacity: visible ? 1 : 0,
+        transform: visible ? "translateY(0)" : "translateY(-6px)",
+        transition: "opacity 220ms ease, transform 240ms ease",
+      }}
+    >
+      {children}
+    </div>
   );
 }
 
