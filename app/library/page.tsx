@@ -168,20 +168,13 @@ export default function CatalogPage() {
 
 function AnimatedAccordion({ open, children }: { open: boolean; children: React.ReactNode }) {
   const [mounted, setMounted] = useState(open);
-  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     if (open) {
       setMounted(true);
-      // Two rAFs: first lets React commit the mount, second lets the browser paint
-      // before we flip `visible`, so the CSS transition actually runs.
-      const id = requestAnimationFrame(() =>
-        requestAnimationFrame(() => setVisible(true))
-      );
-      return () => cancelAnimationFrame(id);
     } else {
-      setVisible(false);
-      const t = setTimeout(() => setMounted(false), 220);
+      // Keep mounted until the exit animation finishes
+      const t = setTimeout(() => setMounted(false), 230);
       return () => clearTimeout(t);
     }
   }, [open]);
@@ -192,9 +185,7 @@ function AnimatedAccordion({ open, children }: { open: boolean; children: React.
     <div
       className="flex flex-col gap-2 pl-1"
       style={{
-        opacity: visible ? 1 : 0,
-        transform: visible ? "translateY(0)" : "translateY(-6px)",
-        transition: "opacity 220ms ease, transform 240ms ease",
+        animation: `${open ? "accordion-in" : "accordion-out"} 220ms ease forwards`,
       }}
     >
       {children}
