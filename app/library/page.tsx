@@ -43,9 +43,20 @@ export default function CatalogPage() {
 
   useEffect(() => { fetchCounts(); }, [fetchCounts]);
 
-  const myRthmsCount    = rhythms.filter((r) => r.status === "active").length;
+  const activeRthms     = rhythms.filter((r) => r.status === "active");
+  const myRthmsCount    = activeRthms.length;
   const favouritesCount = rhythms.filter((r) => r.status === "favourite").length;
   const archiveCount    = rhythms.filter((r) => r.status === "archived").length;
+
+  const startOf = (period: "today" | "week" | "month") => {
+    const d = new Date();
+    if (period === "today") { d.setHours(0, 0, 0, 0); return d.getTime(); }
+    if (period === "week")  { d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); d.setHours(0, 0, 0, 0); return d.getTime(); }
+    d.setDate(1); d.setHours(0, 0, 0, 0); return d.getTime();
+  };
+  const todayCount = activeRthms.filter((r) => r.savedAt >= startOf("today")).length;
+  const weekCount  = activeRthms.filter((r) => r.savedAt >= startOf("week")).length;
+  const monthCount = activeRthms.filter((r) => r.savedAt >= startOf("month")).length;
 
   return (
     <main
@@ -70,12 +81,10 @@ export default function CatalogPage() {
           />
           {myRthmsOpen && (
             <div className="flex flex-col gap-2 pl-1">
-              <SubNavCard
-                href="/library/my-rthms"
-                icon={<MyRthmsIcon />}
-                label="All Rthms"
-                detail={myRthmsCount > 0 ? `${myRthmsCount} saved` : undefined}
-              />
+              <SubNavCard href="/library/my-rthms?period=today" icon={<TodayIcon />}  label="Today"      detail={todayCount > 0 ? `${todayCount} Rthms` : "None yet today"} />
+              <SubNavCard href="/library/my-rthms?period=week"  icon={<WeekIcon />}   label="This Week"  detail={weekCount  > 0 ? `${weekCount} Rthms`  : "None this week"}  />
+              <SubNavCard href="/library/my-rthms?period=month" icon={<MonthIcon />}  label="This Month" detail={monthCount > 0 ? `${monthCount} Rthms` : "None this month"} />
+              <SubNavCard href="/library/my-rthms"              icon={<MyRthmsIcon />} label="All Rthms" detail={myRthmsCount > 0 ? `${myRthmsCount} saved` : undefined}     />
             </div>
           )}
         </div>
@@ -160,6 +169,45 @@ export default function CatalogPage() {
 
       </section>
     </main>
+  );
+}
+
+// ─── Period icons ─────────────────────────────────────────────────────────────
+
+function TodayIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+      <circle cx="10" cy="11" r="5.5" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M10 8.5v2.5l1.5 1.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M7 3h6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" opacity="0.5" />
+    </svg>
+  );
+}
+
+function WeekIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+      <rect x="2" y="5" width="16" height="12" rx="2" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M6 2v3M14 2v3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" opacity="0.5" />
+      <rect x="5" y="10" width="2.5" height="2.5" rx="0.5" fill="currentColor" />
+      <rect x="8.75" y="10" width="2.5" height="2.5" rx="0.5" fill="currentColor" opacity="0.6" />
+      <rect x="12.5" y="10" width="2.5" height="2.5" rx="0.5" fill="currentColor" opacity="0.3" />
+    </svg>
+  );
+}
+
+function MonthIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+      <rect x="2" y="5" width="16" height="12" rx="2" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M6 2v3M14 2v3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" opacity="0.5" />
+      <rect x="5"    y="10" width="2" height="2" rx="0.4" fill="currentColor" opacity="0.4" />
+      <rect x="9"    y="10" width="2" height="2" rx="0.4" fill="currentColor" opacity="0.4" />
+      <rect x="13"   y="10" width="2" height="2" rx="0.4" fill="currentColor" opacity="0.4" />
+      <rect x="5"    y="13" width="2" height="2" rx="0.4" fill="currentColor" opacity="0.4" />
+      <rect x="9"    y="13" width="2" height="2" rx="0.4" fill="currentColor" />
+      <rect x="13"   y="13" width="2" height="2" rx="0.4" fill="currentColor" opacity="0.4" />
+    </svg>
   );
 }
 

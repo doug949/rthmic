@@ -190,10 +190,6 @@ export function RhythmRow({
           title={rhythm.title}
           onClose={() => { setMoreOpen(false); setTagEditOpen(false); }}
           items={[
-            ...(rhythm.lyrics ? [{
-              icon: "≡", label: showLyrics ? "Hide Lyrics" : "Show Lyrics",
-              onClick: onToggleLyrics,
-            }] : []),
             {
               icon: "↺", label: "Recreate", sublabel: "New genre",
               onClick: onRecreate,

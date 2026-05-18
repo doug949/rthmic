@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AppHeader } from "@/app/components/AppHeader";
 import { RevealBlock } from "@/app/components/RevealBlock";
 import { TransitionLink } from "@/app/components/TransitionLink";
@@ -38,7 +38,9 @@ export default function MyRthmsPage() {
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const [shareToastId, setShareToastId]       = useState<string | null>(null);
   const [graduatedItems, setGraduatedItems]   = useState<Array<{ id: string; title: string }>>([]);
-  const [timePeriod, setTimePeriod]  = useState<TimePeriod>("all");
+  const searchParams = useSearchParams();
+  const initialPeriod = (["today","week","month","all"].includes(searchParams.get("period") ?? "")) ? searchParams.get("period") as TimePeriod : "all";
+  const [timePeriod, setTimePeriod]  = useState<TimePeriod>(initialPeriod);
   const [expanded, setExpanded]     = useState(false);
   const [deletedOpen, setDeletedOpen]   = useState(false);
   const [recreateRhythm, setRecreateRhythm] = useState<SavedRhythm | null>(null);
