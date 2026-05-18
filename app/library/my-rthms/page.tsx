@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { AppHeader } from "@/app/components/AppHeader";
 import { RevealBlock } from "@/app/components/RevealBlock";
 import { TransitionLink } from "@/app/components/TransitionLink";
@@ -38,9 +38,7 @@ export default function MyRthmsPage() {
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const [shareToastId, setShareToastId]       = useState<string | null>(null);
   const [graduatedItems, setGraduatedItems]   = useState<Array<{ id: string; title: string }>>([]);
-  const searchParams = useSearchParams();
-  const initialPeriod = (["today","week","month","all"].includes(searchParams.get("period") ?? "")) ? searchParams.get("period") as TimePeriod : "all";
-  const [timePeriod, setTimePeriod]  = useState<TimePeriod>(initialPeriod);
+  const [timePeriod, setTimePeriod]  = useState<TimePeriod>("all");
   const [expanded, setExpanded]     = useState(false);
   const [deletedOpen, setDeletedOpen]   = useState(false);
   const [recreateRhythm, setRecreateRhythm] = useState<SavedRhythm | null>(null);
@@ -69,6 +67,8 @@ export default function MyRthmsPage() {
   }, []);
 
   useEffect(() => {
+    const p = new URLSearchParams(window.location.search).get("period");
+    if (p && (["today","week","month","all"] as string[]).includes(p)) setTimePeriod(p as TimePeriod);
     fetchLibrary();
     const onMutated = () => fetchLibrary();
     window.addEventListener("library-mutated", onMutated);
