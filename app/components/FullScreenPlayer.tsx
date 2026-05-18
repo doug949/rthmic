@@ -9,6 +9,7 @@ import { useGeneration } from "@/app/contexts/GenerationContext";
 import type { SavedRhythm } from "@/app/api/library/route";
 import type { TimedWord } from "@/app/types/pipeline";
 import CustomStyleInput from "@/app/components/CustomStyleInput";
+import { useOfflineAudio } from "@/app/hooks/useOfflineAudio";
 
 function inferStyle(pillar: string): "A" | "B" {
   return (pillar || "").toLowerCase() === "movement" ? "A" : "B";
@@ -30,6 +31,7 @@ export default function FullScreenPlayer() {
   const [tagEditOpen, setTagEditOpen] = useState(false);
   const [tagInput, setTagInput]       = useState("");
   const [recreateOpen, setRecreateOpen] = useState(false);
+  const { isCached, cacheTrack, caching } = useOfflineAudio(rhythm?.audioUrl);
 
   // ── Fetch rhythm once per track (persists across player open/close) ───────
   useEffect(() => {
@@ -324,6 +326,15 @@ export default function FullScreenPlayer() {
               <ActionBtn onClick={handleUngraduate} icon="★" label="Unfavourite" gold />
             )}
             <ActionBtn onClick={handleArchive} icon="⊙" label={rhythm.status === "archived" ? "Restore" : "Archive"} />
+            {rhythm.audioUrl && (
+              <ActionBtn
+                onClick={cacheTrack}
+                icon={isCached ? "✓" : "↓"}
+                label={isCached ? "Offline" : caching ? "Saving…" : "Offline"}
+                sublabel={isCached ? "Available" : caching ? "Please wait" : "Save audio"}
+                active={isCached}
+              />
+            )}
             <ActionBtn
               onClick={handleRemove}
               icon="×"

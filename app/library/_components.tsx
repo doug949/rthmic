@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from "react";
 import type { SavedRhythm } from "@/app/api/library/route";
+import { useOfflineAudio } from "@/app/hooks/useOfflineAudio";
 
 export type { SavedRhythm };
 
@@ -51,6 +52,7 @@ export function RhythmRow({
 }) {
   const canPlay = !!rhythm.audioUrl;
   const mayBeExpired = Date.now() - rhythm.savedAt > 20 * 60 * 60 * 1000;
+  const { isCached, cacheTrack, caching } = useOfflineAudio(rhythm.audioUrl);
   const [tagEditOpen, setTagEditOpen] = useState(false);
   const [tagInput, setTagInput] = useState("");
 
@@ -191,6 +193,15 @@ export function RhythmRow({
           sublabel={rhythm.status === "archived" ? "Back to active" : "Keep but hide"}
           icon="⊙"
         />
+        {canPlay && (
+          <SmallBtn
+            onClick={cacheTrack}
+            label={isCached ? "Offline" : caching ? "Saving…" : "Offline"}
+            sublabel={isCached ? "Available" : caching ? "Please wait" : "Save audio"}
+            icon={isCached ? "✓" : "↓"}
+            active={isCached}
+          />
+        )}
         <SmallBtn onClick={onRemove} label={confirmingRemove ? "Confirm?" : "Remove"} sublabel={confirmingRemove ? "Tap again" : "Delete"} icon="×" danger confirming={confirmingRemove} />
       </div>
     </div>
