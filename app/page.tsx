@@ -5,15 +5,27 @@ import { useRouter } from "next/navigation";
 import { RevealBlock } from "@/app/components/RevealBlock";
 import { TransitionLink } from "@/app/components/TransitionLink";
 
+function greeting(): string {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 12) return "Good Morning";
+  if (h >= 12 && h < 17) return "Good Afternoon";
+  return "Good Evening";
+}
+
 export default function Home() {
   const router = useRouter();
   const [userCode, setUserCode] = useState("");
+  const [userName, setUserName] = useState("");
   const [open, setOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     const match = document.cookie.match(/(?:^|;\s*)rthmic_code=([^;]+)/);
     if (match) setUserCode(decodeURIComponent(match[1]));
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((d) => { if (d.name) setUserName(d.name); })
+      .catch(() => {});
   }, []);
 
   const handleLogout = async () => {
@@ -49,6 +61,11 @@ export default function Home() {
           <p className="text-xs mt-1.5 tracking-widest uppercase" style={{ color: "#c9a55a", opacity: 0.6 }}>
             Rthm-based action
           </p>
+          {(userName || userCode) && (
+            <p className="text-sm mt-4 font-light" style={{ color: "rgba(255,255,255,0.55)", letterSpacing: "0.02em" }}>
+              {greeting()}{userName ? `, ${userName}` : ""}
+            </p>
+          )}
 
           {/* Hamburger — top right of header */}
           <button

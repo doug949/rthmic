@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { AppHeader } from "@/app/components/AppHeader";
 import { RevealBlock } from "@/app/components/RevealBlock";
 import { TransitionLink } from "@/app/components/TransitionLink";
@@ -12,12 +13,22 @@ import type { SavedRhythm } from "@/app/api/library/route";
 import { RhythmRow, GraduatedPlaceholder } from "../_components";
 
 type LoadState = "loading" | "ready" | "error";
+type TimePeriod = "today" | "week" | "month" | "all";
 
 function inferStyle(pillar: string): "A" | "B" {
   return (pillar || "").toLowerCase() === "movement" ? "A" : "B";
 }
 
-const MY_RTHMS_PREVIEW = 8;
+function periodStart(period: TimePeriod): number {
+  if (period === "all") return 0;
+  const d = new Date();
+  if (period === "today") { d.setHours(0, 0, 0, 0); return d.getTime(); }
+  if (period === "week")  { d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); d.setHours(0, 0, 0, 0); return d.getTime(); }
+  // month
+  d.setDate(1); d.setHours(0, 0, 0, 0); return d.getTime();
+}
+
+const ALL_TIME_PREVIEW = 8;
 const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
 
 export default function MyRthmsPage() {
@@ -27,12 +38,14 @@ export default function MyRthmsPage() {
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const [shareToastId, setShareToastId]       = useState<string | null>(null);
   const [graduatedItems, setGraduatedItems]   = useState<Array<{ id: string; title: string }>>([]);
+  const [timePeriod, setTimePeriod]  = useState<TimePeriod>("all");
   const [expanded, setExpanded]     = useState(false);
   const [deletedOpen, setDeletedOpen]   = useState(false);
   const [recreateRhythm, setRecreateRhythm] = useState<SavedRhythm | null>(null);
 
   const { currentTrackId, isPlaying, currentTime, duration, handlePlayUrl } = useAudio();
   const { startGeneration } = useGeneration();
+  const router = useRouter();
   useSwipeBack("/library");
 
   const fetchLibrary = useCallback(async () => {
@@ -142,7 +155,11 @@ export default function MyRthmsPage() {
     setRecreateRhythm(null);
   };
 
-  const visibleRthms = expanded ? myRthms : myRthms.slice(0, MY_RTHMS_PREVIEW);
+  const start = periodStart(timePeriod);
+  const filteredRthms = myRthms.filter((r) => r.savedAt >= start);
+  const visibleRthms = timePeriod === "all" && !expanded
+    ? filteredRthms.slice(0, ALL_TIME_PREVIEW)
+    : filteredRthms;
 
   return (
     <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ animation: "page-enter 380ms ease forwards" }}>
@@ -181,40 +198,58 @@ export default function MyRthmsPage() {
                 <GraduatedPlaceholder
                   key={item.id}
                   title={item.title}
-                  onView={() => { dismissGraduated(item.id); }}
+                  onView={() => { dismissGraduated(item.id); router.push("/library/my-favourites"); }}
                   onDismiss={() => dismissGraduated(item.id)}
                 />
               ))}
 
-              {/* Song rows */}
-              {visibleRthms.map((rhythm) => (
-                <RhythmRow
-                  key={rhythm.id}
-                  rhythm={rhythm}
-                  playing={currentTrackId === rhythm.id && isPlaying}
-                  currentTime={currentTrackId === rhythm.id ? currentTime : 0}
-                  duration={currentTrackId === rhythm.id ? duration : 0}
-                  showLyrics={showLyricsId === rhythm.id}
-                  onToggleLyrics={() => setShowLyricsId(showLyricsId === rhythm.id ? null : rhythm.id)}
-                  onPlay={() => togglePlay(rhythm)}
-                  onGraduate={() => handleGraduate(rhythm.id)}
-                  onArchive={() => handleArchive(rhythm)}
-                  onRemove={() => handleRemove(rhythm.id)}
-                  onRecreate={() => setRecreateRhythm(rhythm)}
-                  onShare={() => handleShare(rhythm)}
-                  onTag={(tags) => handleTag(rhythm.id, tags)}
-                  confirmingRemove={confirmRemoveId === rhythm.id}
-                  shareToast={shareToastId === rhythm.id}
-                />
-              ))}
+              {/* Time period tabs */}
+              <TimePeriodTabs
+                active={timePeriod}
+                onChange={(p) => { setTimePeriod(p); setExpanded(false); }}
+                counts={{
+                  today: myRthms.filter((r) => r.savedAt >= periodStart("today")).length,
+                  week:  myRthms.filter((r) => r.savedAt >= periodStart("week")).length,
+                  month: myRthms.filter((r) => r.savedAt >= periodStart("month")).length,
+                  all:   myRthms.length,
+                }}
+              />
 
-              {myRthms.length > MY_RTHMS_PREVIEW && (
-                <button
-                  onClick={() => setExpanded((e) => !e)}
-                  className="text-[10px] text-white/50 uppercase tracking-widest py-2 touch-manipulation hover:text-white/65 transition-colors"
-                >
-                  {expanded ? "Show less ↑" : `+${myRthms.length - MY_RTHMS_PREVIEW} more ↓`}
-                </button>
+              {/* Song rows */}
+              {filteredRthms.length === 0 ? (
+                <p className="text-center text-sm text-white/30 py-8">No Rthms in this period</p>
+              ) : (
+                <>
+                  {visibleRthms.map((rhythm) => (
+                    <RhythmRow
+                      key={rhythm.id}
+                      rhythm={rhythm}
+                      playing={currentTrackId === rhythm.id && isPlaying}
+                      currentTime={currentTrackId === rhythm.id ? currentTime : 0}
+                      duration={currentTrackId === rhythm.id ? duration : 0}
+                      showLyrics={showLyricsId === rhythm.id}
+                      onToggleLyrics={() => setShowLyricsId(showLyricsId === rhythm.id ? null : rhythm.id)}
+                      onPlay={() => togglePlay(rhythm)}
+                      onGraduate={() => handleGraduate(rhythm.id)}
+                      onArchive={() => handleArchive(rhythm)}
+                      onRemove={() => handleRemove(rhythm.id)}
+                      onRecreate={() => setRecreateRhythm(rhythm)}
+                      onShare={() => handleShare(rhythm)}
+                      onTag={(tags) => handleTag(rhythm.id, tags)}
+                      confirmingRemove={confirmRemoveId === rhythm.id}
+                      shareToast={shareToastId === rhythm.id}
+                    />
+                  ))}
+
+                  {timePeriod === "all" && filteredRthms.length > ALL_TIME_PREVIEW && (
+                    <button
+                      onClick={() => setExpanded((e) => !e)}
+                      className="text-[10px] text-white/50 uppercase tracking-widest py-2 touch-manipulation hover:text-white/65 transition-colors"
+                    >
+                      {expanded ? "Show less ↑" : `+${filteredRthms.length - ALL_TIME_PREVIEW} more ↓`}
+                    </button>
+                  )}
+                </>
               )}
             </>
           )}
@@ -258,6 +293,55 @@ export default function MyRthmsPage() {
         />
       )}
     </main>
+  );
+}
+
+// ─── Time period tab bar ──────────────────────────────────────────────────────
+
+const PERIODS: { key: TimePeriod; label: string }[] = [
+  { key: "today", label: "Today" },
+  { key: "week",  label: "This Week" },
+  { key: "month", label: "This Month" },
+  { key: "all",   label: "All Time" },
+];
+
+function TimePeriodTabs({
+  active,
+  onChange,
+  counts,
+}: {
+  active: TimePeriod;
+  onChange: (p: TimePeriod) => void;
+  counts: Record<TimePeriod, number>;
+}) {
+  return (
+    <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
+      {PERIODS.map(({ key, label }) => {
+        const isActive = active === key;
+        return (
+          <button
+            key={key}
+            onClick={() => onChange(key)}
+            className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full touch-manipulation transition-all text-[11px] font-medium tracking-wide"
+            style={
+              isActive
+                ? { background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.9)", border: "1px solid rgba(255,255,255,0.18)" }
+                : { background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.4)", border: "1px solid rgba(255,255,255,0.06)" }
+            }
+          >
+            {label}
+            {counts[key] > 0 && (
+              <span
+                className="text-[10px] tabular-nums"
+                style={{ color: isActive ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.25)" }}
+              >
+                {counts[key]}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 

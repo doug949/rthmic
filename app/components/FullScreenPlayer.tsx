@@ -10,6 +10,7 @@ import type { SavedRhythm } from "@/app/api/library/route";
 import type { TimedWord } from "@/app/types/pipeline";
 import CustomStyleInput from "@/app/components/CustomStyleInput";
 import { useOfflineAudio } from "@/app/hooks/useOfflineAudio";
+import { MoreSheet } from "@/app/library/_components";
 
 function inferStyle(pillar: string): "A" | "B" {
   return (pillar || "").toLowerCase() === "movement" ? "A" : "B";
@@ -31,6 +32,7 @@ export default function FullScreenPlayer() {
   const [tagEditOpen, setTagEditOpen] = useState(false);
   const [tagInput, setTagInput]       = useState("");
   const [recreateOpen, setRecreateOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const { isCached, cacheTrack, caching } = useOfflineAudio(rhythm?.audioUrl);
 
   // ── Fetch rhythm once per track (persists across player open/close) ───────
@@ -313,36 +315,58 @@ export default function FullScreenPlayer() {
           </div>
         )}
 
-        {/* Action buttons */}
+        {/* Action buttons — primary only */}
         {rhythm && (
           <div className="flex border border-white/[0.07] rounded-2xl overflow-hidden bg-white/[0.02]">
-            <ActionBtn onClick={handleShare}  icon="↗" label={shareToast ? "Copied!" : "Share"} active={shareToast} />
-            <ActionBtn onClick={() => setRecreateOpen(true)} icon="↺" label="Recreate" />
-            <ActionBtn onClick={() => setTagEditOpen((v) => !v)} icon="⌗" label="Tags" sublabel={tags.length > 0 ? `${tags.length}` : undefined} active={tagEditOpen} />
+            <ActionBtn onClick={handleShare} icon="↗" label={shareToast ? "Copied!" : "Share"} active={shareToast} />
             {rhythm.status === "active" && (
-              <ActionBtn onClick={handleGraduate} icon="★" label="Favourite" />
+              <ActionBtn onClick={handleGraduate} icon="☆" label="Add to Favs" />
             )}
             {rhythm.status === "favourite" && (
-              <ActionBtn onClick={handleUngraduate} icon="★" label="Unfavourite" gold />
+              <ActionBtn onClick={handleUngraduate} icon="★" label="Tap to Remove" gold />
             )}
-            <ActionBtn onClick={handleArchive} icon="⊙" label={rhythm.status === "archived" ? "Restore" : "Archive"} />
-            {rhythm.audioUrl && (
-              <ActionBtn
-                onClick={cacheTrack}
-                icon={isCached ? "✓" : "↓"}
-                label={isCached ? "Offline" : caching ? "Saving…" : "Offline"}
-                sublabel={isCached ? "Available" : caching ? "Please wait" : "Save audio"}
-                active={isCached}
-              />
-            )}
-            <ActionBtn
-              onClick={handleRemove}
-              icon="×"
-              label={confirmRemove ? "Confirm?" : "Remove"}
-              danger
-              confirming={confirmRemove}
-            />
+            <ActionBtn onClick={() => setMoreOpen(true)} icon="···" label="More" />
           </div>
+        )}
+
+        {/* Overflow sheet */}
+        {moreOpen && rhythm && (
+          <MoreSheet
+            title={rhythm.title}
+            onClose={() => setMoreOpen(false)}
+            items={[
+              {
+                icon: "↺", label: "Recreate", sublabel: "New genre",
+                onClick: () => setRecreateOpen(true),
+              },
+              {
+                icon: "⌗", label: "Tags",
+                sublabel: tags.length > 0 ? `${tags.length} tag${tags.length > 1 ? "s" : ""}` : "Add tag",
+                active: tagEditOpen,
+                onClick: () => setTagEditOpen((v) => !v),
+              },
+              ...(rhythm.audioUrl ? [{
+                icon: isCached ? "✓" : caching ? "…" : "↓",
+                label: isCached ? "Available Offline" : caching ? "Saving…" : "Save Offline",
+                active: isCached,
+                onClick: () => { if (!isCached && !caching) cacheTrack(); },
+              }] : []),
+              {
+                icon: "⊙",
+                label: rhythm.status === "archived" ? "Restore" : "Archive",
+                sublabel: rhythm.status === "archived" ? "Back to active" : "Keep but hide",
+                onClick: handleArchive,
+              },
+              {
+                icon: "×",
+                label: confirmRemove ? "Confirm delete?" : "Remove",
+                sublabel: confirmRemove ? "Tap again to confirm" : "Delete permanently",
+                danger: true, confirming: confirmRemove,
+                onClick: handleRemove,
+                keepOpen: true,
+              },
+            ]}
+          />
         )}
       </div>
 

@@ -55,6 +55,7 @@ export function RhythmRow({
   const { isCached, cacheTrack, caching } = useOfflineAudio(rhythm.audioUrl);
   const [tagEditOpen, setTagEditOpen] = useState(false);
   const [tagInput, setTagInput] = useState("");
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const tags = rhythm.tags ?? [];
 
@@ -171,39 +172,59 @@ export function RhythmRow({
         </div>
       )}
 
-      {/* Action bar */}
+      {/* Action bar — primary actions only */}
       <div className="flex border-t border-white/[0.06]">
-        {rhythm.lyrics && (
-          <SmallBtn onClick={onToggleLyrics} label="Lyrics" icon="≡" active={showLyrics} />
-        )}
         <SmallBtn onClick={onShare} label={shareToast ? "Copied!" : "Share"} sublabel={shareToast ? "Link ready" : "Send link"} icon="↗" active={shareToast} />
-        <SmallBtn onClick={onRecreate} label="Recreate" sublabel="New genre" icon="↺" />
-        {onTag && (
-          <SmallBtn onClick={() => setTagEditOpen((v) => !v)} label="Tags" sublabel={tags.length > 0 ? `${tags.length} tag${tags.length > 1 ? "s" : ""}` : "Add tag"} icon="⌗" active={tagEditOpen} />
-        )}
         {onGraduate && (
-          <SmallBtn onClick={onGraduate} label="Favourite" sublabel="Add to Favs" icon="★" gold />
+          <SmallBtn onClick={onGraduate} label="Add to Favs" icon="☆" />
         )}
         {onUngraduate && (
-          <SmallBtn onClick={onUngraduate} label="Unfavourite" sublabel="Remove" icon="★" />
+          <SmallBtn onClick={onUngraduate} label="Tap to Remove" icon="★" gold />
         )}
-        <SmallBtn
-          onClick={onArchive}
-          label={rhythm.status === "archived" ? "Restore" : "Archive"}
-          sublabel={rhythm.status === "archived" ? "Back to active" : "Keep but hide"}
-          icon="⊙"
-        />
-        {canPlay && (
-          <SmallBtn
-            onClick={cacheTrack}
-            label={isCached ? "Offline" : caching ? "Saving…" : "Offline"}
-            sublabel={isCached ? "Available" : caching ? "Please wait" : "Save audio"}
-            icon={isCached ? "✓" : "↓"}
-            active={isCached}
-          />
-        )}
-        <SmallBtn onClick={onRemove} label={confirmingRemove ? "Confirm?" : "Remove"} sublabel={confirmingRemove ? "Tap again" : "Delete"} icon="×" danger confirming={confirmingRemove} />
+        <SmallBtn onClick={() => setMoreOpen(true)} label="More" icon="···" />
       </div>
+
+      {/* Overflow bottom sheet */}
+      {moreOpen && (
+        <MoreSheet
+          title={rhythm.title}
+          onClose={() => { setMoreOpen(false); setTagEditOpen(false); }}
+          items={[
+            ...(rhythm.lyrics ? [{
+              icon: "≡", label: showLyrics ? "Hide Lyrics" : "Show Lyrics",
+              onClick: onToggleLyrics,
+            }] : []),
+            {
+              icon: "↺", label: "Recreate", sublabel: "New genre",
+              onClick: onRecreate,
+            },
+            ...(onTag ? [{
+              icon: "⌗", label: "Tags", sublabel: tags.length > 0 ? `${tags.length} tag${tags.length > 1 ? "s" : ""}` : "Add tag",
+              active: tagEditOpen,
+              onClick: () => setTagEditOpen((v) => !v),
+            }] : []),
+            ...(canPlay ? [{
+              icon: isCached ? "✓" : caching ? "…" : "↓",
+              label: isCached ? "Available Offline" : caching ? "Saving…" : "Save Offline",
+              active: isCached,
+              onClick: () => { if (!isCached && !caching) cacheTrack(); },
+            }] : []),
+            {
+              icon: "⊙",
+              label: rhythm.status === "archived" ? "Restore" : "Archive",
+              sublabel: rhythm.status === "archived" ? "Back to active" : "Keep but hide",
+              onClick: onArchive,
+            },
+            {
+              icon: "×", label: confirmingRemove ? "Confirm delete?" : "Remove",
+              sublabel: confirmingRemove ? "Tap again to confirm" : "Delete permanently",
+              danger: true, confirming: confirmingRemove,
+              onClick: onRemove,
+              keepOpen: true,
+            },
+          ]}
+        />
+      )}
     </div>
   );
 }
@@ -308,6 +329,91 @@ export function GraduatedPlaceholder({
         </button>
       </div>
     </div>
+  );
+}
+
+// ─── MoreSheet ────────────────────────────────────────────────────────────────
+
+export type SheetItem = {
+  icon: string;
+  label: string;
+  sublabel?: string;
+  danger?: boolean;
+  confirming?: boolean;
+  active?: boolean;
+  gold?: boolean;
+  keepOpen?: boolean;
+  onClick: () => void;
+};
+
+export function MoreSheet({ title, onClose, items }: { title: string; onClose: () => void; items: SheetItem[] }) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setVisible(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  const handleClose = () => {
+    setVisible(false);
+    setTimeout(onClose, 280);
+  };
+
+  return (
+    <>
+      <div
+        className="fixed inset-0 z-50"
+        style={{
+          background: "rgba(0,0,0,0.55)",
+          backdropFilter: "blur(3px)",
+          WebkitBackdropFilter: "blur(3px)",
+          opacity: visible ? 1 : 0,
+          transition: "opacity 280ms ease",
+        }}
+        onClick={handleClose}
+      />
+      <div
+        className="fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl"
+        style={{
+          background: "rgba(16,16,26,0.98)",
+          borderTop: "1px solid rgba(255,255,255,0.09)",
+          transform: visible ? "translateY(0)" : "translateY(100%)",
+          transition: "transform 300ms cubic-bezier(0.32, 0.72, 0, 1)",
+        }}
+      >
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-9 h-[3px] rounded-full" style={{ background: "rgba(255,255,255,0.18)" }} />
+        </div>
+        <p className="text-center text-[11px] text-white/35 px-6 py-2 truncate">{title}</p>
+        <div className="px-3 pb-8 flex flex-col gap-1">
+          {items.map((item) => (
+            <button
+              key={item.label}
+              onClick={() => { item.onClick(); if (!item.keepOpen) handleClose(); }}
+              className="flex items-center gap-4 px-4 py-3.5 rounded-xl touch-manipulation w-full text-left transition-opacity active:opacity-70"
+              style={{
+                background: item.confirming ? "rgba(248,113,113,0.09)" : "rgba(255,255,255,0.04)",
+                color: item.confirming
+                  ? "rgba(248,113,113,0.9)"
+                  : item.danger
+                  ? "rgba(255,255,255,0.45)"
+                  : item.gold
+                  ? "rgba(201,165,90,0.85)"
+                  : item.active
+                  ? "rgba(255,255,255,0.85)"
+                  : "rgba(255,255,255,0.65)",
+              }}
+            >
+              <span className="text-lg w-6 text-center leading-none flex-shrink-0">{item.icon}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium leading-snug">{item.label}</p>
+                {item.sublabel && <p className="text-[11px] mt-0.5" style={{ color: "rgba(255,255,255,0.3)" }}>{item.sublabel}</p>}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -419,7 +525,7 @@ export function MyFavouritesIcon() {
     <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
       <path
         d="M10 3.5L11.9 7.6L16.4 8.27L13.2 11.4L13.97 15.9L10 13.77L6.03 15.9L6.8 11.4L3.6 8.27L8.1 7.6L10 3.5Z"
-        stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"
+        fill="currentColor" strokeLinejoin="round"
       />
     </svg>
   );
