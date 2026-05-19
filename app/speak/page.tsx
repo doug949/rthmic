@@ -1990,13 +1990,9 @@ function UnderstandingView({ pillar }: { pillar?: string | null }) {
             </p>
             <p className="text-xs text-white/25 mt-1">This usually takes 10–20 seconds.</p>
           </div>
-          <div
-            className="px-4 py-3 rounded-xl text-center"
-            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}
-          >
-            <p className="text-[11px] uppercase tracking-widest text-white/30">Next step</p>
-            <p className="text-xs text-white/50 mt-0.5">Choose your style</p>
-          </div>
+          <p className="text-[11px] text-white/25 tracking-widest uppercase text-center">
+            Next · Choose your style
+          </p>
         </div>
       </RevealBlock>
     </section>
