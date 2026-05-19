@@ -62,8 +62,10 @@ const BOOKSUMMARY_SUGGESTIONS = [
   "How to Win Friends and Influence People", "The Creative Act",
 ];
 
-function pickSuggestions(pool: string[], n = 3): string[] {
-  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+function pickSuggestions(pool: string[], n = 6, exclude: string[] = []): string[] {
+  const available = pool.filter((s) => !exclude.includes(s));
+  const source = available.length >= n ? available : pool;
+  const shuffled = [...source].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, n);
 }
 
@@ -1696,7 +1698,7 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
                   {pillar === "booksummary" ? "Or try a book" : "Or try a concept"}
                 </p>
                 <button
-                  onClick={() => setSuggestions(pickSuggestions(suggestionPool))}
+                  onClick={() => setSuggestions(pickSuggestions(suggestionPool, 6, suggestions))}
                   className="text-[10px] text-white/30 uppercase tracking-widest touch-manipulation active:text-white/60 transition-colors"
                 >
                   Shuffle
