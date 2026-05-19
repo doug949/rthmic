@@ -18,6 +18,8 @@ export default function Home() {
   const [userName, setUserName] = useState("");
   const [open, setOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [clearingQueue, setClearingQueue] = useState(false);
+  const [queueCleared, setQueueCleared] = useState<number | null>(null);
 
   useEffect(() => {
     const match = document.cookie.match(/(?:^|;\s*)rthmic_code=([^;]+)/);
@@ -27,6 +29,18 @@ export default function Home() {
       .then((d) => { if (d.name) setUserName(d.name); })
       .catch(() => {});
   }, []);
+
+  const handleClearQueue = async () => {
+    setClearingQueue(true);
+    try {
+      const res = await fetch("/api/clear-queue", { method: "POST" });
+      const data = await res.json();
+      setQueueCleared(data.cleared ?? 0);
+      setTimeout(() => setQueueCleared(null), 3000);
+    } finally {
+      setClearingQueue(false);
+    }
+  };
 
   const handleLogout = async () => {
     setOpen(false);
@@ -202,6 +216,19 @@ export default function Home() {
                 <div>
                   <p className="text-sm text-white/70 font-medium">Refresh App Cache</p>
                   <p className="text-xs text-white/30 mt-0.5">Clears cached data and reloads</p>
+                </div>
+              </button>
+              <button
+                onClick={handleClearQueue}
+                disabled={clearingQueue}
+                className="w-full flex items-center gap-4 px-4 py-4 rounded-xl touch-manipulation active:bg-white/[0.04] transition-colors text-left disabled:opacity-50"
+              >
+                <span className="text-white/35 text-lg leading-none">⊘</span>
+                <div>
+                  <p className="text-sm text-white/70 font-medium">
+                    {clearingQueue ? "Clearing…" : queueCleared !== null ? `Cleared ${queueCleared} job${queueCleared === 1 ? "" : "s"}` : "Clear Generation Queue"}
+                  </p>
+                  <p className="text-xs text-white/30 mt-0.5">Remove any stuck or pending Rthms</p>
                 </div>
               </button>
               <button
