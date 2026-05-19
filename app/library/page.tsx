@@ -167,28 +167,26 @@ export default function CatalogPage() {
 // ─── Animated accordion body ──────────────────────────────────────────────────
 
 function AnimatedAccordion({ open, children }: { open: boolean; children: React.ReactNode }) {
-  const [mounted, setMounted] = useState(open);
-
-  useEffect(() => {
-    if (open) {
-      setMounted(true);
-    } else {
-      // Keep mounted until the exit animation finishes
-      const t = setTimeout(() => setMounted(false), 230);
-      return () => clearTimeout(t);
-    }
-  }, [open]);
-
-  if (!mounted) return null;
-
   return (
     <div
-      className="flex flex-col gap-2 pl-1"
       style={{
-        animation: `${open ? "accordion-in" : "accordion-out"} 220ms ease forwards`,
+        display: "grid",
+        gridTemplateRows: open ? "1fr" : "0fr",
+        transition: "grid-template-rows 280ms cubic-bezier(0.4,0,0.2,1)",
       }}
     >
-      {children}
+      <div style={{ overflow: "hidden" }}>
+        <div
+          className="flex flex-col gap-2 pl-1 pb-1"
+          style={{
+            opacity: open ? 1 : 0,
+            transform: open ? "translateY(0)" : "translateY(-6px)",
+            transition: "opacity 220ms ease, transform 240ms ease",
+          }}
+        >
+          {children}
+        </div>
+      </div>
     </div>
   );
 }
