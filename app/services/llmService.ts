@@ -41,6 +41,7 @@ LYRICS SPEC v1.1:
 - Rhythm comes from cadence, repetition, and line weight — not rhyme
 - Structure: use [VERSE] / [CHORUS] / [BRIDGE] labels — write naturally within them
 - Length: as long as needed to fully install the idea, up to 5000 characters
+- Never use double-quote characters (") inside lyric lines — use single quotes or rewrite to avoid them
 
 SONG ENDINGS (REQUIRED):
 - The song must have a clear, conclusive closing section — no abrupt stops
@@ -813,6 +814,12 @@ export async function interpret(rawTranscript: string, overridePillar?: PillarTy
         role: "user",
         content: buildUserPrompt(pillar, transcript),
       },
+      // Prefill forces Claude to start with `{` — no code fences, no preamble, raw JSON only.
+      // The prefill character is NOT included in the response, so we prepend it below.
+      {
+        role: "assistant",
+        content: "{",
+      },
     ],
   });
 
@@ -821,11 +828,14 @@ export async function interpret(rawTranscript: string, overridePillar?: PillarTy
     throw new Error("LLM returned no text content");
   }
 
+  // Reconstruct full JSON — prefill `{` is not echoed back in the response
+  const fullText = "{" + textBlock.text;
+
   let parsed: LLMResult;
   try {
-    parsed = extractJson(textBlock.text);
+    parsed = extractJson(fullText);
   } catch {
-    throw new Error(`LLM returned unparseable JSON: ${textBlock.text.slice(0, 200)}`);
+    throw new Error(`LLM returned unparseable JSON: ${fullText.slice(0, 200)}`);
   }
 
   // Always enforce the pillar we determined — never let the LLM override it

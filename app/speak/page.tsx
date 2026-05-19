@@ -7,6 +7,7 @@ import { transitionTo as navigateTo } from "@/app/lib/pageTransition";
 import { AppHeader } from "@/app/components/AppHeader";
 import { useAudio } from "@/app/contexts/AudioContext";
 import { useGeneration } from "@/app/contexts/GenerationContext";
+import { usePillarTheme } from "@/app/contexts/PillarThemeContext";
 import type { PillarType, StateSummary, Song, SongStatus, SongStatusMap } from "@/app/types/pipeline";
 import { normalisePillar } from "@/app/types/pipeline";
 import type { StyleChoice } from "@/app/services/llmService";
@@ -113,6 +114,7 @@ interface UnderstandResult {
 
 export default function SpeakPage() {
   const router = useRouter();
+  const { setActivePillar } = usePillarTheme();
   const [phase, setPhase] = useState<Phase>("module");
   const [selectedPillar, _setSelectedPillar] = useState<string | null>(null);
   const [understandResult, setUnderstandResult] = useState<UnderstandResult | null>(null);
@@ -149,7 +151,11 @@ export default function SpeakPage() {
   const setSelectedPillar = (pillar: string | null) => {
     selectedPillarRef.current = pillar;      // sync — immediately visible everywhere
     _setSelectedPillar(pillar);              // async — triggers re-render
+    setActivePillar(pillar);                 // drives ambient background texture
   };
+
+  // Clear ambient background when speak page unmounts
+  useEffect(() => () => setActivePillar(null), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // MediaRecorder
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);

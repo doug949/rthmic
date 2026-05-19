@@ -11,6 +11,7 @@ import GenerationBanner from "@/app/components/GenerationBanner";
 import PageFooter from "@/app/components/PageFooter";
 import { AmbientBackground } from "@/app/components/AmbientBackground";
 import { PageTransitionLayer } from "@/app/components/PageTransitionLayer";
+import { PillarThemeProvider } from "@/app/contexts/PillarThemeContext";
 
 // Display font — wordmark, headings. Geometric, elegant, premium sans.
 const raleway = Raleway({
@@ -62,19 +63,21 @@ export default function RootLayout({
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
       </head>
       <body className="min-h-full flex flex-col bg-[#0d1628]">
-        <AmbientBackground />
-        <PageTransitionLayer />
-        <ServiceWorkerRegistration />
-        <SplashScreen />
-        <GenerationProvider>
-          <AudioProvider>
-            <GenerationBanner />
-            {children}
-            <MiniPlayer />
-            <FullScreenPlayer />
-            <PageFooter />
-          </AudioProvider>
-        </GenerationProvider>
+        <PillarThemeProvider>
+          <AmbientBackground />
+          <PageTransitionLayer />
+          <ServiceWorkerRegistration />
+          <SplashScreen />
+          <GenerationProvider>
+            <AudioProvider>
+              <GenerationBanner />
+              {children}
+              <MiniPlayer />
+              <FullScreenPlayer />
+              <PageFooter />
+            </AudioProvider>
+          </GenerationProvider>
+        </PillarThemeProvider>
       </body>
     </html>
   );

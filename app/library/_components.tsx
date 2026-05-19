@@ -250,6 +250,22 @@ export function RhythmRow({
               active: isCached,
               onClick: () => { if (!isCached && !caching) cacheTrack(); },
             }] : []),
+            ...(canPlay ? [{
+              icon: "⬇",
+              label: "Download",
+              sublabel: "Save to Files app",
+              onClick: () => {
+                const rawName = rhythm.title.replace(/\.mp3$/i, "");
+                const filename = encodeURIComponent(rawName);
+                const src = encodeURIComponent(rhythm.audioUrl!);
+                const a = document.createElement("a");
+                a.href = `/api/download?url=${src}&filename=${filename}`;
+                a.download = rawName + ".mp3";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+              },
+            }] : []),
             {
               icon: "⊙",
               label: rhythm.status === "archived" ? "Restore" : "Archive",
