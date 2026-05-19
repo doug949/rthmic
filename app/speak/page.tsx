@@ -13,8 +13,10 @@ import { normalisePillar } from "@/app/types/pipeline";
 import type { StyleChoice } from "@/app/services/llmService";
 import CustomStyleInput, { WaveDots } from "@/app/components/CustomStyleInput";
 import { RevealBlock } from "@/app/components/RevealBlock";
+import { QueuePill } from "@/app/components/QueuePill";
+import { useQueueStatus } from "@/app/hooks/useQueueStatus";
 
-type Phase = "module" | "priming" | "idle" | "recording" | "understanding" | "confirming" | "genre";
+type Phase = "module" | "priming" | "idle" | "recording" | "understanding" | "confirming" | "genre" | "queued";
 
 interface PillarPriming {
   headline: string;
@@ -132,6 +134,8 @@ export default function SpeakPage() {
     startGeneration,
     clearGeneration,
   } = useGeneration();
+
+  const { refresh: refreshQueueStatus } = useQueueStatus();
 
   const allTranscriptsRef = useRef<string[]>([]);
   const seedRef = useRef<string | null>(null);
@@ -486,13 +490,12 @@ export default function SpeakPage() {
     }
   };
 
-  // ─── Generate step ────────────────────────────────────────────────────────
+  // ─── Generate step — queues job in background ────────────────────────────
 
-  const runGenerate = (genre = "Indie Electronic") => {
+  const runGenerate = async (genre = "Indie Electronic") => {
     if (!understandResult) return;
     setErrorMsg("");
-    // selectedPillar is the authoritative source — if explicitly chosen, never allow
-    // understandResult.pillar (which came from the LLM) to override it.
+
     const finalPillar = (selectedPillarRef.current ?? selectedPillar)
       ? normalisePillar((selectedPillarRef.current ?? selectedPillar)!)
       : understandResult.pillar;
@@ -501,21 +504,38 @@ export default function SpeakPage() {
       ? `${menuTitleRef.current} — ${today}`
       : understandResult.title;
     const title = rawTitle.length > 80 ? rawTitle.slice(0, 77) + "…" : rawTitle;
-    // Build a one-line note from the state summary so library cards are self-explanatory
     const rawNote = understandResult.stateSummary.state?.trim();
     const note = rawNote
       ? (rawNote.length > 120 ? rawNote.slice(0, 117) + "…" : rawNote)
       : undefined;
 
-    startGeneration({
-      lyrics: understandResult.lyrics,
-      style: understandResult.style,
-      title,
-      pillar: finalPillar,
-      genre,
-      menuSlug: menuSlugRef.current ?? undefined,
-      note,
-    });
+    try {
+      const res = await fetch("/api/queue-generation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lyrics: understandResult.lyrics,
+          style: understandResult.style,
+          title,
+          pillar: finalPillar,
+          genre,
+          menuSlug: menuSlugRef.current ?? undefined,
+          note,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error ?? "Failed to queue generation");
+      }
+      // Job queued — show brief confirmation then reset to idle
+      refreshQueueStatus();
+      setPhase("queued");
+      setUnderstandResult(null);
+      allTranscriptsRef.current = [];
+      setTimeout(() => setPhase("idle"), 2000);
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Failed to queue generation");
+    }
   };
 
   // ─── Add more ─────────────────────────────────────────────────────────────
@@ -736,6 +756,13 @@ export default function SpeakPage() {
         }
       />
 
+      {/* Queue indicator — shown whenever background jobs are running */}
+      {genPhase === "idle" && phase !== "queued" && (
+        <div className="flex justify-center mb-2">
+          <QueuePill />
+        </div>
+      )}
+
       {/* Generation-context phases take priority */}
       {genPhase === "generating" && (
         <GeneratingView onCancel={reset} pillar={genPillar ?? selectedPillar} />
@@ -778,8 +805,18 @@ export default function SpeakPage() {
         />
       )}
 
+      {/* Queued confirmation — brief, then auto-resets to idle */}
+      {genPhase === "idle" && phase === "queued" && (
+        <div className="flex-1 flex flex-col items-center justify-center gap-3 pb-32">
+          <span style={{ fontSize: 28, color: "rgba(201,165,90,0.8)" }}>✓</span>
+          <p className="text-base font-medium" style={{ color: "rgba(201,165,90,0.9)" }}>Added to queue</p>
+          <p className="text-sm text-white/40 text-center">Your Rthm is generating in the background</p>
+          <QueuePill />
+        </div>
+      )}
+
       {/* Local phases — only shown when no active generation */}
-      {genPhase === "idle" && (
+      {genPhase === "idle" && phase !== "queued" && (
         <>
           {phase === "module" && (
             <PillarView
