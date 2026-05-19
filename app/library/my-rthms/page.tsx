@@ -40,8 +40,8 @@ export default function MyRthmsPage() {
   const [graduatedItems, setGraduatedItems]   = useState<Array<{ id: string; title: string }>>([]);
   const [timePeriod, setTimePeriod]     = useState<TimePeriod>("all");
   const [expanded, setExpanded]        = useState(false);
-  const [selectedRecentTag, setSelectedRecentTag] = useState<string | null>(null);
-  const [selectedOtherTags, setSelectedOtherTags] = useState<string[]>([]);
+  const [selectedPillar, setSelectedPillar] = useState<string | null>(null);
+  const [selectedTags, setSelectedTags]     = useState<string[]>([]);
   const [deletedOpen, setDeletedOpen]   = useState(false);
   const [recreateRhythm, setRecreateRhythm] = useState<SavedRhythm | null>(null);
 
@@ -159,28 +159,22 @@ export default function MyRthmsPage() {
     setRecreateRhythm(null);
   };
 
-  // ── Tag lists ─────────────────────────────────────────────────────────────
-  // Row 1 (recent, single-select): tags appearing on rthms from the last 7 days
-  // Row 2 (other, multi-select):   tags that only appear on older rthms
-  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  const recentTagSet = new Set<string>();
-  const olderTagSet  = new Set<string>();
+  // ── Pillar + Tag lists (from active rthms only) ───────────────────────────
+  const pillarSet = new Set<string>();
+  const tagSet    = new Set<string>();
   for (const r of myRthms) {
-    for (const tag of (r.tags ?? [])) {
-      if (r.savedAt >= sevenDaysAgo) recentTagSet.add(tag);
-      else olderTagSet.add(tag);
-    }
+    if (r.pillar) pillarSet.add(r.pillar);
+    for (const t of (r.tags ?? [])) tagSet.add(t);
   }
-  // Tags that appear in both buckets stay in row 1 only
-  const recentTags = [...recentTagSet].sort();
-  const otherTags  = [...olderTagSet].filter((t) => !recentTagSet.has(t)).sort();
+  const allPillars = [...pillarSet].sort();
+  const allTags    = [...tagSet].sort();
 
   // ── Filtering ─────────────────────────────────────────────────────────────
   const start = periodStart(timePeriod);
-  const activeTags = [...(selectedRecentTag ? [selectedRecentTag] : []), ...selectedOtherTags];
   const filteredRthms = myRthms
     .filter((r) => r.savedAt >= start)
-    .filter((r) => activeTags.length === 0 || activeTags.every((t) => (r.tags ?? []).includes(t)));
+    .filter((r) => !selectedPillar || r.pillar === selectedPillar)
+    .filter((r) => selectedTags.length === 0 || selectedTags.every((t) => (r.tags ?? []).includes(t)));
   const visibleRthms = timePeriod === "all" && !expanded
     ? filteredRthms.slice(0, ALL_TIME_PREVIEW)
     : filteredRthms;
@@ -230,7 +224,7 @@ export default function MyRthmsPage() {
               {/* Time period tabs */}
               <TimePeriodTabs
                 active={timePeriod}
-                onChange={(p) => { setTimePeriod(p); setExpanded(false); setSelectedRecentTag(null); setSelectedOtherTags([]); }}
+                onChange={(p) => { setTimePeriod(p); setExpanded(false); setSelectedPillar(null); setSelectedTags([]); }}
                 counts={{
                   today: myRthms.filter((r) => r.savedAt >= periodStart("today")).length,
                   week:  myRthms.filter((r) => r.savedAt >= periodStart("week")).length,
@@ -240,15 +234,15 @@ export default function MyRthmsPage() {
               />
 
               {/* Tag filter rows */}
-              {(recentTags.length > 0 || otherTags.length > 0) && (
+              {(allPillars.length > 0 || allTags.length > 0) && (
                 <TagFilterRows
-                  recentTags={recentTags}
-                  otherTags={otherTags}
-                  selectedRecentTag={selectedRecentTag}
-                  selectedOtherTags={selectedOtherTags}
-                  onSelectRecent={(tag) => setSelectedRecentTag(selectedRecentTag === tag ? null : tag)}
-                  onToggleOther={(tag) => setSelectedOtherTags((prev) =>
-                    prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+                  pillars={allPillars}
+                  tags={allTags}
+                  selectedPillar={selectedPillar}
+                  selectedTags={selectedTags}
+                  onSelectPillar={(p) => setSelectedPillar(selectedPillar === p ? null : p)}
+                  onToggleTag={(t) => setSelectedTags((prev) =>
+                    prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]
                   )}
                 />
               )}
@@ -256,7 +250,7 @@ export default function MyRthmsPage() {
               {/* Song rows */}
               {filteredRthms.length === 0 ? (
                 <p className="text-center text-sm text-white/30 py-8">
-                  {activeTags.length > 0 ? "No Rthms match these tags" : "No Rthms in this period"}
+                  {(selectedPillar || selectedTags.length > 0) ? "No Rthms match these filters" : "No Rthms in this period"}
                 </p>
               ) : (
                 <>
@@ -339,65 +333,75 @@ export default function MyRthmsPage() {
 // ─── Tag filter rows ──────────────────────────────────────────────────────────
 
 function TagFilterRows({
-  recentTags,
-  otherTags,
-  selectedRecentTag,
-  selectedOtherTags,
-  onSelectRecent,
-  onToggleOther,
+  pillars,
+  tags,
+  selectedPillar,
+  selectedTags,
+  onSelectPillar,
+  onToggleTag,
 }: {
-  recentTags: string[];
-  otherTags: string[];
-  selectedRecentTag: string | null;
-  selectedOtherTags: string[];
-  onSelectRecent: (tag: string) => void;
-  onToggleOther: (tag: string) => void;
+  pillars: string[];
+  tags: string[];
+  selectedPillar: string | null;
+  selectedTags: string[];
+  onSelectPillar: (p: string) => void;
+  onToggleTag: (t: string) => void;
 }) {
   return (
-    <div className="flex flex-col gap-2">
-      {/* Row 1 — recent tags, single select */}
-      <div className="flex gap-2 overflow-x-auto pb-0.5 -mx-1 px-1 scrollbar-none">
-        {recentTags.map((tag) => {
-          const active = selectedRecentTag === tag;
-          return (
-            <button
-              key={tag}
-              onClick={() => onSelectRecent(tag)}
-              className="flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-medium tracking-wide touch-manipulation transition-all"
-              style={
-                active
-                  ? { background: "rgba(255,255,255,0.18)", color: "rgba(255,255,255,0.95)", border: "1px solid rgba(255,255,255,0.3)" }
-                  : { background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.45)", border: "1px solid rgba(255,255,255,0.08)" }
-              }
-            >
-              {tag}
-            </button>
-          );
-        })}
-      </div>
+    <div className="flex flex-col gap-2.5">
 
-      {/* Row 2 — other tags, multi select */}
-      {otherTags.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto pb-0.5 -mx-1 px-1 scrollbar-none">
-          {otherTags.map((tag) => {
-            const active = selectedOtherTags.includes(tag);
-            return (
-              <button
-                key={tag}
-                onClick={() => onToggleOther(tag)}
-                className="flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-medium tracking-wide touch-manipulation transition-all"
-                style={
-                  active
-                    ? { background: "rgba(201,165,90,0.18)", color: "rgba(201,165,90,0.95)", border: "1px solid rgba(201,165,90,0.35)" }
-                    : { background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.38)", border: "1px solid rgba(255,255,255,0.07)" }
-                }
-              >
-                {tag}
-              </button>
-            );
-          })}
+      {/* Row 1 — Pillars, single select */}
+      {pillars.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[9px] uppercase tracking-widest text-white/25 px-0.5">Pillar</span>
+          <div className="flex gap-2 overflow-x-auto pb-0.5 -mx-1 px-1 scrollbar-none">
+            {pillars.map((p) => {
+              const active = selectedPillar === p;
+              return (
+                <button
+                  key={p}
+                  onClick={() => onSelectPillar(p)}
+                  className="flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-medium tracking-wide touch-manipulation transition-all"
+                  style={
+                    active
+                      ? { background: "rgba(255,255,255,0.16)", color: "rgba(255,255,255,0.95)", border: "1px solid rgba(255,255,255,0.28)" }
+                      : { background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.45)", border: "1px solid rgba(255,255,255,0.08)" }
+                  }
+                >
+                  {p.charAt(0) + p.slice(1).toLowerCase()}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
+
+      {/* Row 2 — Tags, multi select */}
+      {tags.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[9px] uppercase tracking-widest text-white/25 px-0.5">Tags</span>
+          <div className="flex gap-2 overflow-x-auto pb-0.5 -mx-1 px-1 scrollbar-none">
+            {tags.map((t) => {
+              const active = selectedTags.includes(t);
+              return (
+                <button
+                  key={t}
+                  onClick={() => onToggleTag(t)}
+                  className="flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-medium tracking-wide touch-manipulation transition-all"
+                  style={
+                    active
+                      ? { background: "rgba(201,165,90,0.18)", color: "rgba(201,165,90,0.95)", border: "1px solid rgba(201,165,90,0.35)" }
+                      : { background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.38)", border: "1px solid rgba(255,255,255,0.07)" }
+                  }
+                >
+                  {t}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
