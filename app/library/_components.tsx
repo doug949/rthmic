@@ -101,7 +101,10 @@ export function RhythmRow({
               : { background: playing ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.06)", borderColor: playing ? "rgba(255,255,255,0.30)" : "rgba(255,255,255,0.10)" }
           }
         >
-          {playing ? <PauseIcon /> : <PlayIcon />}
+          {playing
+            ? <PauseIcon color={favourite ? "rgba(201,165,90,0.9)" : "white"} />
+            : <PlayIcon  color={favourite ? "rgba(201,165,90,0.9)" : "white"} />
+          }
         </div>
         <div className="flex-1 min-w-0">
           <p
@@ -547,17 +550,17 @@ export function SubsectionCard({
 
 // ─── Primitive icons ──────────────────────────────────────────────────────────
 
-export function PlayIcon() {
+export function PlayIcon({ color = "white" }: { color?: string }) {
   return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="text-white ml-0.5">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="ml-0.5" style={{ color }}>
       <path d="M4 2.5L13 8L4 13.5V2.5Z" fill="currentColor" />
     </svg>
   );
 }
 
-export function PauseIcon() {
+export function PauseIcon({ color = "white" }: { color?: string }) {
   return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="text-white">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style={{ color }}>
       <rect x="3" y="2" width="3.5" height="12" rx="1" fill="currentColor" />
       <rect x="9.5" y="2" width="3.5" height="12" rx="1" fill="currentColor" />
     </svg>
