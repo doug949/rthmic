@@ -1971,17 +1971,26 @@ function UnderstandingView({ pillar }: { pillar?: string | null }) {
   return (
     <section className="flex-1 flex flex-col items-center justify-center pb-24 gap-8">
       <RevealBlock delay={0}>
-        <div className="text-center flex flex-col items-center gap-5">
-          <h2 className="text-xl font-light tracking-wide text-white" style={{ fontFamily: "var(--font-display)" }}>{copy.heading}</h2>
-          <p
-            key={stageIdx}
-            className="text-sm text-white/45"
-            style={{ minHeight: "1.25rem", animation: "fade-up 0.4s cubic-bezier(0.16,1,0.3,1) forwards" }}
+        <div className="flex flex-col items-center gap-8 w-full">
+          <SpectrumVisualiser />
+          <div className="text-center flex flex-col items-center gap-3 max-w-xs">
+            <h2 className="text-xl font-light tracking-wide text-white" style={{ fontFamily: "var(--font-display)" }}>{copy.heading}</h2>
+            <p
+              key={stageIdx}
+              className="text-sm text-white/45"
+              style={{ minHeight: "1.25rem", animation: "fade-up 0.4s cubic-bezier(0.16,1,0.3,1) forwards" }}
+            >
+              {copy.stages[stageIdx]}
+            </p>
+            <p className="text-xs text-white/25 mt-1">This usually takes 10–20 seconds.</p>
+          </div>
+          <div
+            className="px-4 py-3 rounded-xl text-center"
+            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}
           >
-            {copy.stages[stageIdx]}
-          </p>
-          <WaveDots />
-          <p className="text-xs text-white/25 mt-1">This usually takes 10–20 seconds.</p>
+            <p className="text-[11px] uppercase tracking-widest text-white/30">Next step</p>
+            <p className="text-xs text-white/50 mt-0.5">Choose your style</p>
+          </div>
         </div>
       </RevealBlock>
     </section>

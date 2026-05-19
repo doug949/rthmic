@@ -14,6 +14,14 @@ import { RhythmRow } from "../_components";
 type LoadState = "loading" | "ready" | "error";
 type TimePeriod = "today" | "week" | "month" | "all";
 
+interface QueueJob {
+  jobId: string;
+  title: string;
+  pillar: string;
+  status: "pending" | "generating";
+  createdAt: number;
+}
+
 function inferStyle(pillar: string): "A" | "B" {
   return (pillar || "").toLowerCase() === "movement" ? "A" : "B";
 }
@@ -42,6 +50,7 @@ export default function MyRthmsPage() {
   const [selectedTags, setSelectedTags]     = useState<string[]>([]);
   const [deletedOpen, setDeletedOpen]   = useState(false);
   const [recreateRhythm, setRecreateRhythm] = useState<SavedRhythm | null>(null);
+  const [queueJobs, setQueueJobs] = useState<QueueJob[]>([]);
 
   const { currentTrackId, isPlaying, currentTime, duration, handlePlayUrl } = useAudio();
   const { startGeneration } = useGeneration();
@@ -65,14 +74,28 @@ export default function MyRthmsPage() {
     }
   }, []);
 
+  const fetchQueueJobs = useCallback(async () => {
+    try {
+      const res = await fetch("/api/queue-jobs", { cache: "no-store" });
+      if (!res.ok) return;
+      const data = await res.json();
+      setQueueJobs(data.jobs ?? []);
+    } catch { /* ignore */ }
+  }, []);
+
   useEffect(() => {
     const p = new URLSearchParams(window.location.search).get("period");
     if (p && (["today","week","month","all"] as string[]).includes(p)) setTimePeriod(p as TimePeriod);
     fetchLibrary();
-    const onMutated = () => fetchLibrary();
+    fetchQueueJobs();
+    const onMutated = () => { fetchLibrary(); fetchQueueJobs(); };
     window.addEventListener("library-mutated", onMutated);
-    return () => window.removeEventListener("library-mutated", onMutated);
-  }, [fetchLibrary]);
+    const pollId = setInterval(() => { fetchQueueJobs(); fetchLibrary(); }, 15_000);
+    return () => {
+      window.removeEventListener("library-mutated", onMutated);
+      clearInterval(pollId);
+    };
+  }, [fetchLibrary, fetchQueueJobs]);
 
   const mutate = useCallback(async (body: Record<string, unknown>) => {
     await fetch("/api/library", {
@@ -188,7 +211,41 @@ export default function MyRthmsPage() {
 
       <section className="flex-1 flex flex-col gap-6 pb-16">
 
-        {/* ── New (unplayed) Rthms ─────────────────────────────────────────────── */}
+        {/* ── Generating (in queue) ────────────────────────────────────────────── */}
+        {queueJobs.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2 px-1">
+              <span className="text-[10px] uppercase tracking-widest text-white/35">Generating</span>
+              <span
+                className="inline-flex items-center justify-center text-[9px] font-semibold rounded-full px-1.5 py-0.5 leading-none"
+                style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)" }}
+              >
+                {queueJobs.length}
+              </span>
+            </div>
+            {queueJobs.map((job) => (
+              <div
+                key={job.jobId}
+                className="rounded-2xl border px-5 py-4 flex items-center gap-4"
+                style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.07)" }}
+              >
+                {/* Pulsing dot */}
+                <div className="flex-shrink-0 relative flex h-2.5 w-2.5">
+                  <span className="absolute inline-flex h-full w-full rounded-full animate-ping opacity-60" style={{ background: "rgba(255,255,255,0.3)" }} />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full" style={{ background: "rgba(255,255,255,0.25)" }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-white/60 truncate">{job.title}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-white/25 mt-0.5">
+                    {job.status === "generating" ? "Generating…" : "Queued"} · {job.pillar}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+      {/* ── New (unplayed) Rthms ─────────────────────────────────────────────── */}
         {newRthms.length > 0 && (
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2 px-1">
