@@ -32,6 +32,7 @@ export default function CatalogPage() {
   const [archiveOpen, setArchiveOpen]         = useState(false);
   const [rthmicLibraryOpen, setRthmicLibraryOpen] = useState(false);
   const [rthmixAlbumsOpen, setRthmixAlbumsOpen]   = useState(false);
+  const [clearingQueue, setClearingQueue]     = useState(false);
   useSwipeBack("/");
 
   const fetchCounts = useCallback(async () => {
@@ -102,6 +103,21 @@ export default function CatalogPage() {
               >
                 {queueJobs.length}
               </span>
+              <button
+                onClick={async () => {
+                  setClearingQueue(true);
+                  try {
+                    await fetch("/api/clear-queue", { method: "POST" });
+                    setQueueJobs([]);
+                  } catch { /* ignore */ }
+                  finally { setClearingQueue(false); }
+                }}
+                disabled={clearingQueue}
+                className="ml-auto text-[10px] uppercase tracking-widest touch-manipulation transition-colors disabled:opacity-40"
+                style={{ color: "rgba(255,255,255,0.25)" }}
+              >
+                {clearingQueue ? "Clearing…" : "Clear"}
+              </button>
             </div>
             {queueJobs.map((job) => (
               <div

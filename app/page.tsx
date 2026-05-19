@@ -34,8 +34,11 @@ export default function Home() {
     setClearingQueue(true);
     try {
       const res = await fetch("/api/clear-queue", { method: "POST" });
-      const data = await res.json();
+      const data = res.ok ? await res.json() : { cleared: 0 };
       setQueueCleared(data.cleared ?? 0);
+      setTimeout(() => setQueueCleared(null), 3000);
+    } catch {
+      setQueueCleared(0);
       setTimeout(() => setQueueCleared(null), 3000);
     } finally {
       setClearingQueue(false);
