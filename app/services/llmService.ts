@@ -814,12 +814,6 @@ export async function interpret(rawTranscript: string, overridePillar?: PillarTy
         role: "user",
         content: buildUserPrompt(pillar, transcript),
       },
-      // Prefill forces Claude to start with `{` — no code fences, no preamble, raw JSON only.
-      // The prefill character is NOT included in the response, so we prepend it below.
-      {
-        role: "assistant",
-        content: "{",
-      },
     ],
   });
 
@@ -828,8 +822,7 @@ export async function interpret(rawTranscript: string, overridePillar?: PillarTy
     throw new Error("LLM returned no text content");
   }
 
-  // Reconstruct full JSON — prefill `{` is not echoed back in the response
-  const fullText = "{" + textBlock.text;
+  const fullText = textBlock.text;
 
   let parsed: LLMResult;
   try {

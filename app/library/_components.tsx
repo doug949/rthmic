@@ -114,18 +114,18 @@ export function RhythmRow({
             {rhythm.title}
           </p>
           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-            <span className="text-[10px] text-white/50 uppercase tracking-wider">{rhythm.pillar}</span>
+            <span className="text-[10px] uppercase tracking-wider" style={{ color: favourite ? "rgba(201,165,90,0.6)" : "rgba(255,255,255,0.5)" }}>{rhythm.pillar}</span>
             {mayBeExpired && !playing && canPlay && (
-              <span className="text-[10px] text-white/50 uppercase tracking-wider">· may have expired</span>
+              <span className="text-[10px] uppercase tracking-wider" style={{ color: favourite ? "rgba(201,165,90,0.5)" : "rgba(255,255,255,0.5)" }}>· may have expired</span>
             )}
             {tags.map((tag) => (
-              <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.55)" }}>
+              <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: favourite ? "rgba(201,165,90,0.1)" : "rgba(255,255,255,0.06)", color: favourite ? "rgba(201,165,90,0.65)" : "rgba(255,255,255,0.55)" }}>
                 {tag}
               </span>
             ))}
           </div>
           {rhythm.note && (
-            <p className="text-[11px] mt-1 leading-snug" style={{ color: "rgba(255,255,255,0.4)" }}>
+            <p className="text-[11px] mt-1 leading-snug" style={{ color: favourite ? "rgba(201,165,90,0.5)" : "rgba(255,255,255,0.4)" }}>
               {rhythm.note}
             </p>
           )}
@@ -135,12 +135,12 @@ export function RhythmRow({
       {/* Progress bar */}
       {playing && duration > 0 && (
         <div className="px-5 pb-3">
-          <div className="h-[3px] bg-white/10 rounded-full">
-            <div className="h-full bg-white/40 rounded-full" style={{ width: `${(currentTime / duration) * 100}%` }} />
+          <div className="h-[3px] rounded-full" style={{ background: favourite ? "rgba(201,165,90,0.15)" : "rgba(255,255,255,0.1)" }}>
+            <div className="h-full rounded-full" style={{ width: `${(currentTime / duration) * 100}%`, background: favourite ? "rgba(201,165,90,0.5)" : "rgba(255,255,255,0.4)" }} />
           </div>
           <div className="flex justify-between mt-1">
-            <span className="text-xs text-white/50 tabular-nums">{fmt(currentTime)}</span>
-            <span className="text-xs text-white/50 tabular-nums">{fmt(duration)}</span>
+            <span className="text-xs tabular-nums" style={{ color: favourite ? "rgba(201,165,90,0.5)" : "rgba(255,255,255,0.5)" }}>{fmt(currentTime)}</span>
+            <span className="text-xs tabular-nums" style={{ color: favourite ? "rgba(201,165,90,0.5)" : "rgba(255,255,255,0.5)" }}>{fmt(duration)}</span>
           </div>
         </div>
       )}
@@ -152,7 +152,7 @@ export function RhythmRow({
 
       {/* Tag editing panel */}
       {tagEditOpen && (
-        <div className="px-5 pb-4 pt-2 border-t border-white/[0.05] flex flex-col gap-2">
+        <div className="px-5 pb-4 pt-2 flex flex-col gap-2" style={{ borderTop: `1px solid ${favourite ? "rgba(201,165,90,0.1)" : "rgba(255,255,255,0.05)"}` }}>
           <div className="flex flex-wrap gap-1.5 items-center">
             {tags.map((tag) => (
               <button
@@ -186,7 +186,7 @@ export function RhythmRow({
 
       {/* Note editing panel */}
       {noteEditOpen && (
-        <div className="px-5 pb-4 pt-2 border-t border-white/[0.05] flex flex-col gap-2">
+        <div className="px-5 pb-4 pt-2 flex flex-col gap-2" style={{ borderTop: `1px solid ${favourite ? "rgba(201,165,90,0.1)" : "rgba(255,255,255,0.05)"}` }}>
           <textarea
             value={noteInput}
             onChange={(e) => setNoteInput(e.target.value)}
@@ -216,15 +216,15 @@ export function RhythmRow({
       )}
 
       {/* Action bar — primary actions only */}
-      <div className="flex border-t border-white/[0.06]">
-        <SmallBtn onClick={onShare} label={shareToast ? "Copied!" : "Share"} sublabel={shareToast ? "Link ready" : "Send link"} icon="↗" active={shareToast} />
+      <div className="flex" style={{ borderTop: `1px solid ${favourite ? "rgba(201,165,90,0.12)" : "rgba(255,255,255,0.06)"}` }}>
+        <SmallBtn onClick={onShare} label={shareToast ? "Copied!" : "Share"} sublabel={shareToast ? "Link ready" : "Send link"} icon="↗" active={shareToast} gold={favourite} />
         {onGraduate && (
           <SmallBtn onClick={onGraduate} label="Add to Favs" icon="☆" />
         )}
         {onUngraduate && (
           <SmallBtn onClick={onUngraduate} label="Unfavourite" icon="★" gold />
         )}
-        <SmallBtn onClick={() => setMoreOpen(true)} label="More" icon="···" />
+        <SmallBtn onClick={() => setMoreOpen(true)} label="More" icon="···" gold={favourite} />
       </div>
 
       {/* Overflow bottom sheet */}
