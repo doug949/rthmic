@@ -123,7 +123,7 @@ export default function Home() {
         <RevealBlock delay={60}>
           <ModeCard
             href="/speak"
-            label="Speak"
+            label="Create a Rthm"
             description="Tell Rthmic what you need. Get on track."
             icon={<MicIcon />}
             primary
