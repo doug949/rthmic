@@ -115,6 +115,9 @@ export default function MyRthmsPage() {
   const handleTag = (id: string, tags: string[]) =>
     mutate({ action: "update", id, tags });
 
+  const handleNote = (id: string, note: string) =>
+    mutate({ action: "update", id, note });
+
   const handleRestore = (id: string) =>
     mutate({ action: "update", id, status: "active" });
 
@@ -270,6 +273,7 @@ export default function MyRthmsPage() {
                       onRecreate={() => setRecreateRhythm(rhythm)}
                       onShare={() => handleShare(rhythm)}
                       onTag={(tags) => handleTag(rhythm.id, tags)}
+                      onNote={(note) => handleNote(rhythm.id, note)}
                       confirmingRemove={confirmRemoveId === rhythm.id}
                       shareToast={shareToastId === rhythm.id}
                     />

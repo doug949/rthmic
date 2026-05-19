@@ -35,6 +35,7 @@ This is not a chapter-by-chapter breakdown. It is the ONE BIG IDEA — the thing
 ## Lyrical Approach
 
 - Plain, direct language. Conversational, not academic.
+- **Name the author early** — ideally in the first verse. Embed it naturally: "James Clear shows that…", "Brené Brown argues…", "As Malcolm Gladwell puts it…". The author should get credit, not a footnote.
 - The book's title or central concept should appear in the lyrics — not hidden, front and centre.
 - Use the specific language and terms the book introduces — "cue-routine-reward", "growth mindset", "compound effect", etc. These are the sticky bits.
 - Concrete examples beat abstract descriptions. The book probably has a good one — use it.

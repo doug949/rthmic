@@ -772,7 +772,7 @@ function buildUserPrompt(pillar: PillarType, transcript: string): string {
   }
 
   if (pillar === "BookSummary") {
-    return `${base}\n\nThe song title MUST follow this exact format: [Poetic Song Name] — Summary of "[Book Title]" by [Author Name]. Generate a short evocative song name (3–5 words) first, then append the book attribution. Extract the book title and author from the user's transcript. Example: "Tiny Things, Big Change — Summary of \\"Atomic Habits\\" by James Clear". Do not omit the attribution.`;
+    return `${base}\n\nThe song title MUST follow this exact format: [Poetic Song Name] — Summary of "[Book Title]" by [Author Name]. Generate a short evocative song name (3–5 words) first, then append the book attribution. Extract the book title and author from the user's transcript. Example: "Tiny Things, Big Change — Summary of \\"Atomic Habits\\" by James Clear". Do not omit the attribution.\n\nIMPORTANT: The author's name MUST appear naturally in the first verse — embedded as part of the lyric, not a label. Use a phrase like "[Author] argues that…", "[Author] shows that…", or "As [Author] puts it…". This gives the author credit and grounds the song in the source.`;
   }
 
   return base;

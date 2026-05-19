@@ -159,6 +159,25 @@ export default function CatalogPage() {
           </AnimatedAccordion>
         </div>
 
+        {/* ── Generation Log ────────────────────────────────────────────────── */}
+        <TransitionLink
+          href="/library/log"
+          className="flex items-center gap-4 px-5 py-4 rounded-2xl border touch-manipulation active:scale-[0.985] transition-all"
+          style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.06)" }}
+        >
+          <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
+            style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+            <span style={{ color: "rgba(255,255,255,0.3)" }}><GenLogIcon /></span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-base font-medium leading-snug" style={{ color: "rgba(255,255,255,0.55)", fontFamily: "var(--font-display)" }}>Generation Log</h2>
+            <p className="text-[11px] mt-0.5 leading-snug" style={{ color: "rgba(255,255,255,0.25)" }}>Timing and status for every Rthm you&apos;ve made</p>
+          </div>
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className="flex-shrink-0">
+            <path d="M5 3L11 8L5 13" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </TransitionLink>
+
       </section>
     </main>
   );
@@ -226,6 +245,17 @@ function MonthIcon() {
       <rect x="5"    y="13" width="2" height="2" rx="0.4" fill="currentColor" opacity="0.4" />
       <rect x="9"    y="13" width="2" height="2" rx="0.4" fill="currentColor" />
       <rect x="13"   y="13" width="2" height="2" rx="0.4" fill="currentColor" opacity="0.4" />
+    </svg>
+  );
+}
+
+function GenLogIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+      <rect x="3" y="3" width="14" height="2" rx="1" fill="currentColor" opacity="0.5" />
+      <rect x="3" y="7" width="10" height="2" rx="1" fill="currentColor" opacity="0.7" />
+      <rect x="3" y="11" width="12" height="2" rx="1" fill="currentColor" />
+      <rect x="3" y="15" width="7" height="2" rx="1" fill="currentColor" opacity="0.4" />
     </svg>
   );
 }

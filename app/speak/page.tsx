@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { TransitionLink } from "@/app/components/TransitionLink";
 import { transitionTo as navigateTo } from "@/app/lib/pageTransition";
@@ -62,6 +62,14 @@ const BOOKSUMMARY_SUGGESTIONS = [
 function pickSuggestions(pool: string[], n = 3): string[] {
   const shuffled = [...pool].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, n);
+}
+
+function fmtDuration(ms: number): string {
+  const totalSeconds = Math.round(ms / 1000);
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  if (m === 0) return `${s}s`;
+  return s === 0 ? `${m}m` : `${m}m ${s}s`;
 }
 
 // ─── Pillar-aware recording prompts ──────────────────────────────────────────
@@ -127,6 +135,10 @@ export default function SpeakPage() {
   const seedRef = useRef<string | null>(null);
   const menuSlugRef = useRef<string | null>(null);
   const menuTitleRef = useRef<string | null>(null);
+
+  // Track how long generation took so ResultsView can display "Generated in X"
+  const genStartedAtRef = useRef<number | null>(null);
+  const [genDurationMs, setGenDurationMs] = useState<number | null>(null);
   const [wasAutoStopped, setWasAutoStopped] = useState(false);
 
   // Ref mirror of selectedPillar — updated synchronously so stale closures
@@ -425,7 +437,11 @@ export default function SpeakPage() {
       }
       allTranscriptsRef.current.push(data.transcript);
       setUnderstandResult(data);
-      setPhase("confirming");
+      // booksummary + explain skip the confirmation screen — go straight to genre
+      const skipConfirm = ["booksummary", "explain"].includes(
+        (pillarAtRecordTime ?? "").toLowerCase()
+      );
+      setPhase(skipConfirm ? "genre" : "confirming");
     } catch (e) {
       const raw = e instanceof Error ? e.message : String(e);
       // Replace raw WebKit / browser errors with friendly messages
@@ -456,7 +472,8 @@ export default function SpeakPage() {
       const data: UnderstandResult = await res.json();
       if (pillar) data.pillar = normalisePillar(pillar);
       setUnderstandResult(data);
-      setPhase("confirming");
+      const skipConfirmText = ["booksummary", "explain"].includes((pillar ?? "").toLowerCase());
+      setPhase(skipConfirmText ? "genre" : "confirming");
     } catch (e) {
       setErrorMsg(e instanceof Error ? e.message : "Something went wrong");
       setPhase("idle");
@@ -474,9 +491,16 @@ export default function SpeakPage() {
       ? normalisePillar((selectedPillarRef.current ?? selectedPillar)!)
       : understandResult.pillar;
     const today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-    const title = menuTitleRef.current
+    const rawTitle = menuTitleRef.current
       ? `${menuTitleRef.current} — ${today}`
       : understandResult.title;
+    const title = rawTitle.length > 80 ? rawTitle.slice(0, 77) + "…" : rawTitle;
+    // Build a one-line note from the state summary so library cards are self-explanatory
+    const rawNote = understandResult.stateSummary.state?.trim();
+    const note = rawNote
+      ? (rawNote.length > 120 ? rawNote.slice(0, 117) + "…" : rawNote)
+      : undefined;
+
     startGeneration({
       lyrics: understandResult.lyrics,
       style: understandResult.style,
@@ -484,6 +508,7 @@ export default function SpeakPage() {
       pillar: finalPillar,
       genre,
       menuSlug: menuSlugRef.current ?? undefined,
+      note,
     });
   };
 
@@ -632,6 +657,17 @@ export default function SpeakPage() {
     goToPhase("genre");
   }, [clearGeneration, goToPhase]);
 
+  // Track generation duration: stamp start, compute elapsed when ready.
+  useEffect(() => {
+    if (genPhase === "generating") {
+      genStartedAtRef.current = Date.now();
+      setGenDurationMs(null);
+    } else if (genPhase === "ready" && genStartedAtRef.current !== null) {
+      setGenDurationMs(Date.now() - genStartedAtRef.current);
+      genStartedAtRef.current = null;
+    }
+  }, [genPhase]);
+
   // Start fresh when entering the Speak page — but don't wipe a completed generation
   // the user may be returning from navigation to see their results.
   useEffect(() => {
@@ -696,7 +732,7 @@ export default function SpeakPage() {
 
       {/* Generation-context phases take priority */}
       {genPhase === "generating" && (
-        <GeneratingView onCancel={reset} />
+        <GeneratingView onCancel={reset} pillar={genPillar ?? selectedPillar} />
       )}
 
       {genPhase === "ready" && (
@@ -720,6 +756,7 @@ export default function SpeakPage() {
           onSetLoop={setLoop}
           onRecreateGenre={understandResult ? handleRecreateGenre : undefined}
           isDedication={isDedication}
+          genDurationMs={genDurationMs ?? undefined}
         />
       )}
 
@@ -770,7 +807,7 @@ export default function SpeakPage() {
           {phase === "recording" && (
             <RecordingView orbRef={orbRef} onStop={stopRecording} seconds={recordingSeconds} maxSeconds={MAX_RECORDING_SECONDS} selectedPillar={selectedPillar} />
           )}
-          {phase === "understanding" && <UnderstandingView />}
+          {phase === "understanding" && <UnderstandingView pillar={selectedPillar} />}
           {phase === "confirming" && understandResult && (
             <ConfirmingView
               result={understandResult}
@@ -1214,7 +1251,7 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
                       onClick={() => setSubCatOpen(prev => ({ ...prev, [group.label]: !prev[group.label] }))}
                       className="w-full flex items-center justify-between py-2.5 px-1 touch-manipulation active:opacity-60 transition-opacity"
                     >
-                      <p className="text-[10px] uppercase tracking-[0.28em] text-white/35 font-medium">{group.label}</p>
+                      <p className="text-[10px] uppercase tracking-[0.28em] text-white/35 font-medium text-left flex-1 min-w-0">{group.label}</p>
                       <svg width="10" height="10" viewBox="0 0 12 12" fill="none"
                         style={{ color: "rgba(255,255,255,0.25)", transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform 200ms ease", flexShrink: 0 }}>
                         <path d="M2 4L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -1838,18 +1875,52 @@ function RecordingView({
 
 // ─── Understanding ────────────────────────────────────────────────────────────
 
-function UnderstandingView() {
-  const stages = ["Transcribing…", "Reading your state…", "Shaping your Rthm…", "Almost there…"];
+const UNDERSTANDING_COPY: Record<string, { heading: string; stages: string[] }> = {
+  booksummary: {
+    heading: "Reading the book",
+    stages: ["Transcribing…", "Identifying the book…", "Extracting the core idea…", "Almost there…"],
+  },
+  explain: {
+    heading: "Taking it in",
+    stages: ["Transcribing…", "Unpacking the concept…", "Finding the best angle…", "Almost there…"],
+  },
+  memory: {
+    heading: "Locking it in",
+    stages: ["Transcribing…", "Taking in what to remember…", "Building the anchor…", "Almost there…"],
+  },
+  mindset: {
+    heading: "Reading your mindset",
+    stages: ["Transcribing…", "Reading your mindset…", "Shaping the shift…", "Almost there…"],
+  },
+  mode: {
+    heading: "Reading where you're at",
+    stages: ["Transcribing…", "Reading where you're at…", "Setting the tone…", "Almost there…"],
+  },
+  movement: {
+    heading: "Reading your energy",
+    stages: ["Transcribing…", "Reading your energy…", "Building the movement…", "Almost there…"],
+  },
+  journal: {
+    heading: "Reading your moment",
+    stages: ["Transcribing…", "Reading your moment…", "Capturing it in sound…", "Almost there…"],
+  },
+  epiphany: {
+    heading: "Taking in your insight",
+    stages: ["Transcribing…", "Taking in your insight…", "Crystallising it…", "Almost there…"],
+  },
+};
+
+function UnderstandingView({ pillar }: { pillar?: string | null }) {
+  const key = (pillar ?? "").toLowerCase();
+  const copy = UNDERSTANDING_COPY[key] ?? {
+    heading: "Understanding you",
+    stages: ["Transcribing…", "Reading your state…", "Shaping your Rthm…", "Almost there…"],
+  };
   const [stageIdx, setStageIdx] = useState(0);
-  const [visible, setVisible] = useState(true);
 
   useEffect(() => {
     const id = setInterval(() => {
-      setVisible(false);
-      setTimeout(() => {
-        setStageIdx((i) => (i + 1) % stages.length);
-        setVisible(true);
-      }, 350);
+      setStageIdx((i) => (i + 1) % copy.stages.length);
     }, 2800);
     return () => clearInterval(id);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1858,12 +1929,13 @@ function UnderstandingView() {
     <section className="flex-1 flex flex-col items-center justify-center pb-24 gap-8">
       <RevealBlock delay={0}>
         <div className="text-center flex flex-col items-center gap-5">
-          <h2 className="text-xl font-light tracking-wide text-white" style={{ fontFamily: "var(--font-display)" }}>Understanding you</h2>
+          <h2 className="text-xl font-light tracking-wide text-white" style={{ fontFamily: "var(--font-display)" }}>{copy.heading}</h2>
           <p
+            key={stageIdx}
             className="text-sm text-white/45"
-            style={{ opacity: visible ? 1 : 0, transition: "opacity 350ms ease", minHeight: "1.25rem" }}
+            style={{ minHeight: "1.25rem", animation: "fade-up 0.4s cubic-bezier(0.16,1,0.3,1) forwards" }}
           >
-            {stages[stageIdx]}
+            {copy.stages[stageIdx]}
           </p>
           <WaveDots />
           <p className="text-xs text-white/25 mt-1">This usually takes 10–20 seconds.</p>
@@ -2265,53 +2337,157 @@ function GenreView({
 
 // ─── Generating ───────────────────────────────────────────────────────────────
 
-function GeneratingView({ onCancel }: { onCancel: () => void }) {
-  const stages = [
-    "Composing your Rthm…",
-    "Setting it to music…",
-    "Laying down the track…",
-    "Finishing up…",
-  ];
+const GENERATING_COPY: Record<string, { heading: string; stages: string[] }> = {
+  booksummary: {
+    heading: "Building your Book Rthm",
+    stages: ["Distilling the core idea…", "Setting it to music…", "Laying down the track…", "Finishing up…"],
+  },
+  explain: {
+    heading: "Building your Explanation Rthm",
+    stages: ["Unpacking the concept…", "Setting it to music…", "Laying down the track…", "Finishing up…"],
+  },
+  memory: {
+    heading: "Building your Memory Rthm",
+    stages: ["Encoding the memory…", "Setting it to music…", "Laying down the track…", "Finishing up…"],
+  },
+  mindset: {
+    heading: "Building your Mindset Rthm",
+    stages: ["Composing the shift…", "Setting it to music…", "Laying down the track…", "Finishing up…"],
+  },
+  mode: {
+    heading: "Setting your Mode",
+    stages: ["Composing your Rthm…", "Setting the tone…", "Laying down the track…", "Finishing up…"],
+  },
+  movement: {
+    heading: "Building your Movement Rthm",
+    stages: ["Building the energy…", "Setting it to music…", "Laying down the track…", "Finishing up…"],
+  },
+  journal: {
+    heading: "Capturing your moment",
+    stages: ["Composing your Rthm…", "Setting it to music…", "Laying down the track…", "Finishing up…"],
+  },
+  epiphany: {
+    heading: "Crystallising your insight",
+    stages: ["Shaping the insight…", "Setting it to music…", "Laying down the track…", "Finishing up…"],
+  },
+};
+
+function GeneratingView({ onCancel, pillar }: { onCancel: () => void; pillar?: string | null }) {
+  const key = (pillar ?? "").toLowerCase();
+  const copy = GENERATING_COPY[key] ?? {
+    heading: "Building your Rthms",
+    stages: ["Composing your Rthm…", "Setting it to music…", "Laying down the track…", "Finishing up…"],
+  };
+  const stages = copy.stages;
   const [stageIdx, setStageIdx] = useState(0);
-  const [visible, setVisible]   = useState(true);
 
   useEffect(() => {
     const id = setInterval(() => {
-      setVisible(false);
-      setTimeout(() => {
-        setStageIdx((i) => Math.min(i + 1, stages.length - 1));
-        setVisible(true);
-      }, 400);
-    }, 22000); // each stage ~22s — aligns loosely with the 1-2min total
+      setStageIdx((i) => Math.min(i + 1, stages.length - 1));
+    }, 22000);
     return () => clearInterval(id);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <section className="flex-1 flex flex-col items-center justify-center pb-24 gap-8">
+    <section className="flex-1 flex flex-col items-center justify-center pb-24 gap-10">
       <RevealBlock delay={0}>
-        <div className="text-center max-w-xs flex flex-col items-center gap-5">
-          <h2 className="text-xl font-light tracking-wide text-white" style={{ fontFamily: "var(--font-display)" }}>Building your Rthms</h2>
-          <WaveDots gold />
-          <p
-            className="text-sm text-white/40"
-            style={{ opacity: visible ? 1 : 0, transition: "opacity 400ms ease", minHeight: "1.25rem" }}
-          >
-            {stages[stageIdx]}
-          </p>
-          <p className="text-xs text-white/30 leading-relaxed">
-            This takes 1–2 minutes. You can navigate away — a notification will appear when ready.
-          </p>
+        <div className="flex flex-col items-center gap-8 w-full">
+
+          {/* ── Spectrum visualiser ───────────────────────────────────────── */}
+          <SpectrumVisualiser />
+
+          {/* ── Text block ───────────────────────────────────────────────── */}
+          <div className="text-center flex flex-col items-center gap-3 max-w-xs">
+            <h2
+              className="text-xl font-light tracking-wide text-white"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              {copy.heading}
+            </h2>
+            {/* key forces a fresh DOM node on each stage so the fade-in
+                animation replays cleanly — no opacity transition race */}
+            <p
+              key={stageIdx}
+              className="text-sm"
+              style={{
+                color: "rgba(201,165,90,0.65)",
+                minHeight: "1.25rem",
+                animation: "fade-up 0.5s cubic-bezier(0.16,1,0.3,1) forwards",
+              }}
+            >
+              {stages[stageIdx]}
+            </p>
+            <p className="text-xs text-white/25 leading-relaxed">
+              This takes 1–3 minutes. You can navigate away — a notification will appear when ready.
+            </p>
+          </div>
         </div>
       </RevealBlock>
-      <RevealBlock delay={100}>
+
+      <RevealBlock delay={200}>
         <button
           onClick={onCancel}
-          className="text-xs text-white/25 hover:text-white/45 transition-colors touch-manipulation uppercase tracking-widest"
+          className="text-xs text-white/20 hover:text-white/40 transition-colors touch-manipulation uppercase tracking-widest"
         >
           Cancel
         </button>
       </RevealBlock>
     </section>
+  );
+}
+
+// ─── Spectrum visualiser ──────────────────────────────────────────────────────
+
+function SpectrumVisualiser() {
+  const BAR_COUNT = 34;
+
+  // Stable per-bar config — never changes between renders
+  const bars = React.useMemo(() => Array.from({ length: BAR_COUNT }, (_, i) => {
+    const pos    = i / (BAR_COUNT - 1);          // 0..1
+    const dist   = Math.abs(pos - 0.5) * 2;      // 0 (centre) → 1 (edge)
+    const maxH   = 18 + (1 - dist * dist * 0.75) * 82; // edges ~18px, centre ~100px
+    const dur    = (0.55 + Math.random() * 0.9).toFixed(2);
+    const delay  = (-Math.random() * 2.5).toFixed(2);
+    const alpha  = (0.35 + (1 - dist) * 0.5).toFixed(2);
+    return { maxH, dur, delay, alpha };
+  }), []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <div
+      className="relative w-full"
+      style={{ height: 108 }}
+    >
+      {/* Ambient glow behind bars */}
+      <div
+        className="absolute inset-x-0 bottom-0"
+        style={{
+          height: 60,
+          background: "radial-gradient(ellipse 70% 100% at 50% 100%, rgba(201,165,90,0.12) 0%, transparent 70%)",
+          pointerEvents: "none",
+        }}
+      />
+
+      {/* Bars */}
+      <div
+        className="absolute inset-0 flex items-end justify-center"
+        style={{ gap: 3, paddingBottom: 1 }}
+      >
+        {bars.map(({ maxH, dur, delay, alpha }, i) => (
+          <div
+            key={i}
+            style={{
+              flex: 1,
+              maxWidth: 7,
+              height: maxH,
+              borderRadius: "3px 3px 1px 1px",
+              background: `rgba(201,165,90,${alpha})`,
+              transformOrigin: "bottom",
+              animation: `spectrum-bar ${dur}s ease-in-out infinite ${delay}s`,
+            }}
+          />
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -2339,6 +2515,7 @@ function ResultsView({
   onSetLoop,
   onRecreateGenre,
   isDedication,
+  genDurationMs,
 }: {
   songs: Song[];
   songStatus: SongStatusMap;
@@ -2359,6 +2536,7 @@ function ResultsView({
   onSetLoop: (enabled: boolean) => void;
   onRecreateGenre?: () => void;
   isDedication?: boolean;
+  genDurationMs?: number;
 }) {
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const [showPlayer, setShowPlayer] = useState(false);
@@ -2425,10 +2603,15 @@ function ResultsView({
       </RevealBlock>
 
       <RevealBlock delay={40}>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <p className="text-[10px] text-white/40 uppercase tracking-[0.2em]">
             {isDedication ? "Your Bridge is ready" : "Generated for you"}
           </p>
+          {genDurationMs != null && (
+            <span className="text-[10px] text-white/25 uppercase tracking-wider">
+              in {fmtDuration(genDurationMs)}
+            </span>
+          )}
           {pillar && (
             <span className="text-[10px] text-white/35 border border-white/[0.10] rounded-full px-2.5 py-0.5 uppercase tracking-widest">
               {pillar}

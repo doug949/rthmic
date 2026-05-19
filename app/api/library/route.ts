@@ -26,6 +26,7 @@ export interface SavedRhythm {
   status: "active" | "favourite" | "archived" | "deleted";
   deletedAt?: number;
   tags?: string[];
+  note?: string;
   sunoClipId?: string;      // raw Suno clip ID (audioId) for timed-lyrics API
   sunoTaskId?: string;      // Suno task ID — required alongside audioId to fetch timed lyrics
   timedLyrics?: TimedWord[]; // word-level synchronized lyric data from Suno
@@ -148,6 +149,7 @@ export async function POST(request: NextRequest) {
           const next: SavedRhythm = { ...r };
           if (body.status      !== undefined) next.status      = body.status as SavedRhythm["status"];
           if (body.tags        !== undefined) next.tags        = body.tags as string[];
+          if (body.note        !== undefined) next.note        = body.note as string;
           if (body.timedLyrics !== undefined) next.timedLyrics = body.timedLyrics as TimedWord[];
           if (next.status !== "deleted") delete next.deletedAt;
           return next;

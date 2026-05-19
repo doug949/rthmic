@@ -26,6 +26,7 @@ export function RhythmRow({
   onRecreate,
   onShare,
   onTag,
+  onNote,
   confirmingRemove,
   shareToast,
   dimmed,
@@ -45,6 +46,7 @@ export function RhythmRow({
   onRecreate: () => void;
   onShare: () => void;
   onTag?: (tags: string[]) => void;
+  onNote?: (note: string) => void;
   confirmingRemove?: boolean;
   shareToast?: boolean;
   dimmed?: boolean;
@@ -55,6 +57,8 @@ export function RhythmRow({
   const { isCached, cacheTrack, caching } = useOfflineAudio(rhythm.audioUrl);
   const [tagEditOpen, setTagEditOpen] = useState(false);
   const [tagInput, setTagInput] = useState("");
+  const [noteEditOpen, setNoteEditOpen] = useState(false);
+  const [noteInput, setNoteInput] = useState(rhythm.note ?? "");
   const [moreOpen, setMoreOpen] = useState(false);
 
   const tags = rhythm.tags ?? [];
@@ -101,7 +105,7 @@ export function RhythmRow({
         </div>
         <div className="flex-1 min-w-0">
           <p
-            className={`text-sm font-semibold leading-snug truncate ${playing ? "text-white" : favourite ? "" : "text-white/75"}`}
+            className={`text-sm font-semibold leading-snug ${playing ? "text-white" : favourite ? "" : "text-white/75"}`}
             style={!playing && favourite ? { color: "rgba(201,165,90,0.9)" } : undefined}
           >
             {rhythm.title}
@@ -117,6 +121,11 @@ export function RhythmRow({
               </span>
             ))}
           </div>
+          {rhythm.note && (
+            <p className="text-[11px] mt-1 leading-snug" style={{ color: "rgba(255,255,255,0.4)" }}>
+              {rhythm.note}
+            </p>
+          )}
         </div>
       </button>
 
@@ -172,6 +181,37 @@ export function RhythmRow({
         </div>
       )}
 
+      {/* Note editing panel */}
+      {noteEditOpen && (
+        <div className="px-5 pb-4 pt-2 border-t border-white/[0.05] flex flex-col gap-2">
+          <textarea
+            value={noteInput}
+            onChange={(e) => setNoteInput(e.target.value)}
+            placeholder="Add a short note about this Rthm…"
+            rows={2}
+            className="w-full text-[12px] bg-transparent outline-none placeholder:text-white/25 resize-none leading-relaxed"
+            style={{ color: "rgba(255,255,255,0.7)" }}
+            autoFocus
+          />
+          <div className="flex gap-3">
+            <button
+              onClick={() => { onNote?.(noteInput.trim()); setNoteEditOpen(false); }}
+              className="text-[11px] touch-manipulation transition-colors"
+              style={{ color: "rgba(255,255,255,0.55)" }}
+            >
+              Save
+            </button>
+            <button
+              onClick={() => { setNoteInput(rhythm.note ?? ""); setNoteEditOpen(false); }}
+              className="text-[11px] touch-manipulation transition-colors"
+              style={{ color: "rgba(255,255,255,0.28)" }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Action bar — primary actions only */}
       <div className="flex border-t border-white/[0.06]">
         <SmallBtn onClick={onShare} label={shareToast ? "Copied!" : "Share"} sublabel={shareToast ? "Link ready" : "Send link"} icon="↗" active={shareToast} />
@@ -188,7 +228,7 @@ export function RhythmRow({
       {moreOpen && (
         <MoreSheet
           title={rhythm.title}
-          onClose={() => { setMoreOpen(false); setTagEditOpen(false); }}
+          onClose={() => setMoreOpen(false)}
           items={[
             {
               icon: "↺", label: "Recreate", sublabel: "New genre",
@@ -197,7 +237,12 @@ export function RhythmRow({
             ...(onTag ? [{
               icon: "⌗", label: "Tags", sublabel: tags.length > 0 ? `${tags.length} tag${tags.length > 1 ? "s" : ""}` : "Add tag",
               active: tagEditOpen,
-              onClick: () => setTagEditOpen((v) => !v),
+              onClick: () => { setTagEditOpen((v) => !v); setNoteEditOpen(false); },
+            }] : []),
+            ...(onNote ? [{
+              icon: "✎", label: "Note", sublabel: rhythm.note ? rhythm.note.slice(0, 30) + (rhythm.note.length > 30 ? "…" : "") : "Add a note",
+              active: noteEditOpen,
+              onClick: () => { setNoteEditOpen((v) => !v); setTagEditOpen(false); },
             }] : []),
             ...(canPlay ? [{
               icon: isCached ? "✓" : caching ? "…" : "↓",

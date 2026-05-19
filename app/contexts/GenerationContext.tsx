@@ -20,6 +20,7 @@ export interface StartParams {
   pillar: PillarType;
   genre: string;
   menuSlug?: string;
+  note?: string;
 }
 
 interface GenerationContextValue {
@@ -50,8 +51,8 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
     setGenLyrics(params.lyrics);
     setGenError("");
 
+    const genStart = Date.now();
     try {
-      const genStart = Date.now();
       const startRes = await fetch("/api/start-generation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -69,7 +70,7 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
       const { taskId } = await startRes.json();
       console.log(`[gen] task started: ${taskId} (${Date.now() - genStart}ms to start)`);
 
-      const MAX_POLLS = 48;
+      const MAX_POLLS = 150; // 150 × 2s = 5 minutes
       for (let i = 0; i < MAX_POLLS; i++) {
         await new Promise((r) => setTimeout(r, 2000));
         if (gen !== generationRef.current) return; // superseded by a newer generation
@@ -87,6 +88,24 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
           if (gen !== generationRef.current) return;
           const songs = poll.songs as Song[];
           console.log(`[gen] ready after ${((Date.now() - genStart) / 1000).toFixed(1)}s total`);
+
+          // Log generation success
+          fetch("/api/genlog", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: crypto.randomUUID(),
+              timestamp: genStart,
+              title: params.title,
+              pillar: params.pillar,
+              genre: params.genre,
+              style: params.style,
+              status: "success",
+              durationMs: Date.now() - genStart,
+              songs: songs.map((s: { id: string; title: string }) => ({ id: s.id, title: s.title })),
+            }),
+          }).catch(() => {});
+
           setGenSongs(songs);
           setGenPhase("ready");
 
@@ -148,6 +167,7 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
                       lyrics: params.lyrics,
                       sunoClipId: song.sunoClipId,
                       sunoTaskId: song.sunoTaskId,
+                      ...(params.note ? { note: params.note } : {}),
                     },
                   }),
                 });
@@ -191,6 +211,24 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
       throw new Error("Rthms took too long to generate — please try again");
     } catch (e) {
       if (gen !== generationRef.current) return;
+
+      // Log generation failure
+      fetch("/api/genlog", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: crypto.randomUUID(),
+          timestamp: genStart,
+          title: params.title ?? "",
+          pillar: params.pillar ?? "",
+          genre: params.genre ?? "",
+          style: params.style ?? "",
+          status: (e instanceof Error && e.message.includes("too long")) ? "timeout" : "failed",
+          durationMs: Date.now() - genStart,
+          error: e instanceof Error ? e.message : "Unknown error",
+        }),
+      }).catch(() => {});
+
       setGenError(e instanceof Error ? e.message : "Generation failed");
       setGenPhase("failed");
     }

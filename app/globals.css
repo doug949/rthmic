@@ -108,3 +108,18 @@ html, body {
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom);
 }
+
+/* ─── Hide scrollbars on scroll containers ───────────────────────────────── */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* ─── Spectrum bar animation (GeneratingView) ────────────────────────────── */
+@keyframes spectrum-bar {
+  0%, 100% { transform: scaleY(0.08); opacity: 0.25; }
+  50%       { transform: scaleY(1);   opacity: 1;    }
+}

@@ -75,12 +75,13 @@ export function AppHeader({ backLabel = "← Back", onBack, title }: AppHeaderPr
       {/* ⌂ Home — always present, always goes to / */}
       <button
         onClick={handleHome}
-        className="w-8 h-8 flex items-center justify-center rounded-full touch-manipulation active:bg-white/[0.06] transition-colors"
+        className="flex items-center gap-1.5 px-2 h-8 rounded-full touch-manipulation active:bg-white/[0.06] transition-colors"
         style={{ color: "rgba(255,255,255,0.45)" }}
         aria-label="Home"
         title="Home"
       >
         <HomeIcon />
+        <span className="text-sm uppercase tracking-widest leading-none">Home</span>
       </button>
     </header>
   );
@@ -88,10 +89,8 @@ export function AppHeader({ backLabel = "← Back", onBack, title }: AppHeaderPr
 
 function HomeIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-      <path d="M3 12L12 3L21 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M5 10V20C5 20.55 5.45 21 6 21H9V16H15V21H18C18.55 21 19 20.55 19 20V10"
-        stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ display: "block" }}>
+      <path d="M12 3L2 11H5V21H19V11H22L12 3Z" fill="currentColor" />
     </svg>
   );
 }

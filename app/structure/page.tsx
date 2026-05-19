@@ -16,11 +16,11 @@ const TEAL = {
 };
 
 const TIME_MENUS = [
-  { slug: "morning",       label: "Morning Menu",  menuTitle: "The Morning Menu",  description: "Start the day with intention",                      seed: "My morning routine — the things I want to do as I start the day" },
-  { slug: "start-the-day", label: "Start the Day", menuTitle: "Start the Day",     description: "Lay out everything you need to get through today",   seed: "Everything I need to get through today — tasks, priorities, intentions" },
-  { slug: "afternoon",     label: "Afternoon",      menuTitle: "Afternoon",         description: "Check in and finish strong",                         seed: "My afternoon — what I still need to do and how I want to finish the day" },
-  { slug: "end-of-day",    label: "End of Day",     menuTitle: "End of Day",        description: "Close out what happened and what carries over",      seed: "Wrapping up the day — what happened, what's done, what carries over" },
-  { slug: "before-bed",    label: "Before Bed",     menuTitle: "Before Bed",        description: "Let go and wind down",                               seed: "My evening wind-down — what I want to let go of and how I want to rest" },
+  { slug: "morning",       label: "Morning Menu",  menuTitle: "The Morning Menu",  description: "What does a great morning look like?",             seed: "My morning routine — the things I want to do as I start the day" },
+  { slug: "start-the-day", label: "Start the Day", menuTitle: "Start the Day",     description: "What would make today a success?",                  seed: "Everything I need to get through today — tasks, priorities, intentions" },
+  { slug: "afternoon",     label: "Afternoon",      menuTitle: "Afternoon",         description: "What still needs to happen?",                       seed: "My afternoon — what I still need to do and how I want to finish the day" },
+  { slug: "end-of-day",    label: "End of Day",     menuTitle: "End of Day",        description: "How do you close a day well?",                      seed: "Wrapping up the day — what happened, what's done, what carries over" },
+  { slug: "before-bed",    label: "Before Bed",     menuTitle: "Before Bed",        description: "What would morning you thank you for?",             seed: "My evening wind-down — what I want to let go of and how I want to rest" },
 ];
 
 type MenuSlots = Record<string, SavedRhythm[]>;
@@ -58,16 +58,6 @@ export default function StructurePage() {
     prevGenPhase.current = genPhase;
   }, [genPhase]);
 
-  const goRecord = (tm: typeof TIME_MENUS[0]) => {
-    const params = new URLSearchParams({
-      pillar: "Menus",
-      seed: tm.seed,
-      menuSlug: tm.slug,
-      menuTitle: tm.menuTitle,
-    });
-    router.push(`/speak?${params.toString()}`);
-  };
-
   return (
     <main
       className="relative z-10 min-h-screen flex flex-col px-6"
@@ -102,35 +92,22 @@ export default function StructurePage() {
                   className="w-full rounded-2xl border"
                   style={{ background: TEAL.bg, borderColor: TEAL.border }}
                 >
-                  {hasSongs ? (
-                    /* ── Active menu card — tap to open detail ── */
-                    <button
-                      onClick={() => router.push(`/structure/${tm.slug}`)}
-                      className="w-full flex items-center gap-4 px-6 py-5 text-left touch-manipulation active:scale-[0.98] transition-all"
-                    >
-                      <span className="flex-shrink-0" style={{ color: TEAL.dim }}><StructureIcon /></span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-base font-semibold tracking-wide" style={{ color: TEAL.text }}>{tm.label}</p>
-                        <p className="text-xs text-white/45 mt-0.5 truncate">{firstSong.title}</p>
-                      </div>
-                      <span className="text-lg flex-shrink-0" style={{ color: TEAL.border }}>›</span>
-                    </button>
-                  ) : (
-                    /* ── Empty — create card ── */
-                    <button
-                      onClick={() => goRecord(tm)}
-                      className="w-full flex items-center gap-4 px-6 py-5 text-left touch-manipulation active:scale-[0.98] transition-all"
-                    >
-                      <span className="flex-shrink-0" style={{ color: TEAL.dim }}>
-                        <StructureIcon />
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-base font-semibold tracking-wide" style={{ color: TEAL.text }}>{tm.label}</p>
-                        <p className="text-xs text-white/45 mt-0.5">{tm.description}</p>
-                      </div>
-                      <span className="text-lg flex-shrink-0" style={{ color: TEAL.border }}>+</span>
-                    </button>
-                  )}
+                  {/* Both filled and empty tap through to the detail page */}
+                  <button
+                    onClick={() => router.push(`/structure/${tm.slug}`)}
+                    className="w-full flex items-center gap-4 px-6 py-5 text-left touch-manipulation active:scale-[0.98] transition-all"
+                  >
+                    <span className="flex-shrink-0" style={{ color: TEAL.dim }}><StructureIcon /></span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-base font-semibold tracking-wide" style={{ color: TEAL.text }}>{tm.label}</p>
+                      <p className="text-xs text-white/45 mt-0.5 leading-snug">
+                        {hasSongs ? firstSong.title : tm.description}
+                      </p>
+                    </div>
+                    <span className="text-lg flex-shrink-0" style={{ color: TEAL.border }}>
+                      {hasSongs ? "›" : "+"}
+                    </span>
+                  </button>
                 </div>
               </RevealBlock>
             );

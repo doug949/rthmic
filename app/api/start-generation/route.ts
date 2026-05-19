@@ -54,7 +54,7 @@ function buildMusicStyle(_style: StyleChoice, genre: string): string {
   return `${base}${FADE_SUFFIX}`;
 }
 
-export const maxDuration = 15;
+export const maxDuration = 30;
 
 export async function POST(req: NextRequest) {
   if (!process.env.SUNO_API_KEY) {
