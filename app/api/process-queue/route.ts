@@ -240,10 +240,16 @@ async function processUserQueue(
 // ─── Cron entry point ─────────────────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
-  const isCron = req.headers.get("x-vercel-cron") === "1";
-  const hasSecret = req.nextUrl.searchParams.get("secret") === process.env.CRON_SECRET;
-  if (!isCron && !hasSecret) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  // Vercel cron sends: Authorization: Bearer <CRON_SECRET>
+  // CRON_SECRET is auto-injected by Vercel; if unset (local dev) allow all.
+  const cronSecret = process.env.CRON_SECRET;
+  if (cronSecret) {
+    const auth = req.headers.get("authorization");
+    const isCron = auth === `Bearer ${cronSecret}`;
+    const hasSecret = req.nextUrl.searchParams.get("secret") === cronSecret;
+    if (!isCron && !hasSecret) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
   }
   if (!process.env.SUNO_API_KEY || !process.env.REDIS_URL) {
     return NextResponse.json({ error: "Not configured" }, { status: 500 });
