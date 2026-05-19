@@ -43,7 +43,7 @@ export default function CatalogPage() {
 
   useEffect(() => { fetchCounts(); }, [fetchCounts]);
 
-  const activeRthms     = rhythms.filter((r) => r.status === "active" || r.status === "favourite");
+  const activeRthms     = rhythms.filter((r) => r.status === "new" || r.status === "active" || r.status === "favourite");
   const myRthmsCount    = activeRthms.length;
   const favouritesCount = rhythms.filter((r) => r.status === "favourite").length;
   const archiveCount    = rhythms.filter((r) => r.status === "archived").length;

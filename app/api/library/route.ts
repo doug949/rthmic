@@ -23,7 +23,7 @@ export interface SavedRhythm {
   audioUrl?: string;
   lyrics?: string;
   savedAt: number;
-  status: "active" | "favourite" | "archived" | "deleted";
+  status: "new" | "active" | "favourite" | "archived" | "deleted";
   deletedAt?: number;
   tags?: string[];
   note?: string;

@@ -85,6 +85,7 @@ export default function MyRthmsPage() {
   }, [fetchLibrary]);
 
   const now = Date.now();
+  const newRthms      = rhythms.filter((r) => r.status === "new");
   const myRthms       = rhythms.filter((r) => r.status === "active" || r.status === "favourite");
   const recentlyDeleted = rhythms.filter(
     (r) => r.status === "deleted" && r.deletedAt !== undefined && now - r.deletedAt < THIRTY_DAYS
@@ -121,7 +122,10 @@ export default function MyRthmsPage() {
   const togglePlay = useCallback((rhythm: SavedRhythm) => {
     if (!rhythm.audioUrl) return;
     handlePlayUrl(rhythm.id, rhythm.audioUrl, rhythm.title);
-  }, [handlePlayUrl]);
+    if (rhythm.status === "new") {
+      mutate({ action: "update", id: rhythm.id, status: "active" });
+    }
+  }, [handlePlayUrl, mutate]);
 
   const handleShare = async (rhythm: SavedRhythm) => {
     try {
@@ -183,6 +187,42 @@ export default function MyRthmsPage() {
       </RevealBlock>
 
       <section className="flex-1 flex flex-col gap-6 pb-16">
+
+        {/* ── New (unplayed) Rthms ─────────────────────────────────────────────── */}
+        {newRthms.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2 px-1">
+              <span className="text-[10px] uppercase tracking-widest text-white/35">New</span>
+              <span
+                className="inline-flex items-center justify-center text-[9px] font-semibold rounded-full px-1.5 py-0.5 leading-none"
+                style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)" }}
+              >
+                {newRthms.length}
+              </span>
+            </div>
+            {newRthms.map((rhythm) => (
+              <RhythmRow
+                key={rhythm.id}
+                rhythm={rhythm}
+                playing={currentTrackId === rhythm.id && isPlaying}
+                currentTime={currentTrackId === rhythm.id ? currentTime : 0}
+                duration={currentTrackId === rhythm.id ? duration : 0}
+                showLyrics={showLyricsId === rhythm.id}
+                onToggleLyrics={() => setShowLyricsId(showLyricsId === rhythm.id ? null : rhythm.id)}
+                onPlay={() => togglePlay(rhythm)}
+                onGraduate={() => handleGraduate(rhythm.id)}
+                onArchive={() => handleArchive(rhythm)}
+                onRemove={() => handleRemove(rhythm.id)}
+                onRecreate={() => setRecreateRhythm(rhythm)}
+                onShare={() => handleShare(rhythm)}
+                onTag={(tags) => handleTag(rhythm.id, tags)}
+                onNote={(note) => handleNote(rhythm.id, note)}
+                confirmingRemove={confirmRemoveId === rhythm.id}
+                shareToast={shareToastId === rhythm.id}
+              />
+            ))}
+          </div>
+        )}
 
         {/* ── Active Rthms ─────────────────────────────────────────────────────── */}
         <div className="flex flex-col gap-2">

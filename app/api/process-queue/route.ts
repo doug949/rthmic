@@ -141,7 +141,7 @@ async function pollJob(
       sunoClipId: clipId || undefined,
       sunoTaskId: job.sunoTaskId,
       savedAt: Date.now(),
-      status: "active",
+      status: "new",
       ...(job.note ? { note: job.note } : {}),
     };
 
