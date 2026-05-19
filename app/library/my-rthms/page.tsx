@@ -38,8 +38,10 @@ export default function MyRthmsPage() {
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const [shareToastId, setShareToastId]       = useState<string | null>(null);
   const [graduatedItems, setGraduatedItems]   = useState<Array<{ id: string; title: string }>>([]);
-  const [timePeriod, setTimePeriod]  = useState<TimePeriod>("all");
-  const [expanded, setExpanded]     = useState(false);
+  const [timePeriod, setTimePeriod]     = useState<TimePeriod>("all");
+  const [expanded, setExpanded]        = useState(false);
+  const [selectedRecentTag, setSelectedRecentTag] = useState<string | null>(null);
+  const [selectedOtherTags, setSelectedOtherTags] = useState<string[]>([]);
   const [deletedOpen, setDeletedOpen]   = useState(false);
   const [recreateRhythm, setRecreateRhythm] = useState<SavedRhythm | null>(null);
 
@@ -157,8 +159,23 @@ export default function MyRthmsPage() {
     setRecreateRhythm(null);
   };
 
+  // ── Tag lists (sorted by most-recently-used) ─────────────────────────────
+  const tagRecency = new Map<string, number>();
+  for (const r of myRthms) {
+    for (const tag of (r.tags ?? [])) {
+      if ((tagRecency.get(tag) ?? 0) < r.savedAt) tagRecency.set(tag, r.savedAt);
+    }
+  }
+  const sortedTags = [...tagRecency.entries()].sort((a, b) => b[1] - a[1]).map(([t]) => t);
+  const recentTags = sortedTags.slice(0, 5);
+  const otherTags  = sortedTags.slice(5);
+
+  // ── Filtering ─────────────────────────────────────────────────────────────
   const start = periodStart(timePeriod);
-  const filteredRthms = myRthms.filter((r) => r.savedAt >= start);
+  const activeTags = [...(selectedRecentTag ? [selectedRecentTag] : []), ...selectedOtherTags];
+  const filteredRthms = myRthms
+    .filter((r) => r.savedAt >= start)
+    .filter((r) => activeTags.length === 0 || activeTags.every((t) => (r.tags ?? []).includes(t)));
   const visibleRthms = timePeriod === "all" && !expanded
     ? filteredRthms.slice(0, ALL_TIME_PREVIEW)
     : filteredRthms;
@@ -208,7 +225,7 @@ export default function MyRthmsPage() {
               {/* Time period tabs */}
               <TimePeriodTabs
                 active={timePeriod}
-                onChange={(p) => { setTimePeriod(p); setExpanded(false); }}
+                onChange={(p) => { setTimePeriod(p); setExpanded(false); setSelectedRecentTag(null); setSelectedOtherTags([]); }}
                 counts={{
                   today: myRthms.filter((r) => r.savedAt >= periodStart("today")).length,
                   week:  myRthms.filter((r) => r.savedAt >= periodStart("week")).length,
@@ -217,9 +234,25 @@ export default function MyRthmsPage() {
                 }}
               />
 
+              {/* Tag filter rows */}
+              {sortedTags.length > 0 && (
+                <TagFilterRows
+                  recentTags={recentTags}
+                  otherTags={otherTags}
+                  selectedRecentTag={selectedRecentTag}
+                  selectedOtherTags={selectedOtherTags}
+                  onSelectRecent={(tag) => setSelectedRecentTag(selectedRecentTag === tag ? null : tag)}
+                  onToggleOther={(tag) => setSelectedOtherTags((prev) =>
+                    prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+                  )}
+                />
+              )}
+
               {/* Song rows */}
               {filteredRthms.length === 0 ? (
-                <p className="text-center text-sm text-white/30 py-8">No Rthms in this period</p>
+                <p className="text-center text-sm text-white/30 py-8">
+                  {activeTags.length > 0 ? "No Rthms match these tags" : "No Rthms in this period"}
+                </p>
               ) : (
                 <>
                   {visibleRthms.map((rhythm) => (
@@ -295,6 +328,72 @@ export default function MyRthmsPage() {
         />
       )}
     </main>
+  );
+}
+
+// ─── Tag filter rows ──────────────────────────────────────────────────────────
+
+function TagFilterRows({
+  recentTags,
+  otherTags,
+  selectedRecentTag,
+  selectedOtherTags,
+  onSelectRecent,
+  onToggleOther,
+}: {
+  recentTags: string[];
+  otherTags: string[];
+  selectedRecentTag: string | null;
+  selectedOtherTags: string[];
+  onSelectRecent: (tag: string) => void;
+  onToggleOther: (tag: string) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      {/* Row 1 — recent tags, single select */}
+      <div className="flex gap-2 overflow-x-auto pb-0.5 -mx-1 px-1 scrollbar-none">
+        {recentTags.map((tag) => {
+          const active = selectedRecentTag === tag;
+          return (
+            <button
+              key={tag}
+              onClick={() => onSelectRecent(tag)}
+              className="flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-medium tracking-wide touch-manipulation transition-all"
+              style={
+                active
+                  ? { background: "rgba(255,255,255,0.18)", color: "rgba(255,255,255,0.95)", border: "1px solid rgba(255,255,255,0.3)" }
+                  : { background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.45)", border: "1px solid rgba(255,255,255,0.08)" }
+              }
+            >
+              {tag}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Row 2 — other tags, multi select */}
+      {otherTags.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-0.5 -mx-1 px-1 scrollbar-none">
+          {otherTags.map((tag) => {
+            const active = selectedOtherTags.includes(tag);
+            return (
+              <button
+                key={tag}
+                onClick={() => onToggleOther(tag)}
+                className="flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-medium tracking-wide touch-manipulation transition-all"
+                style={
+                  active
+                    ? { background: "rgba(201,165,90,0.18)", color: "rgba(201,165,90,0.95)", border: "1px solid rgba(201,165,90,0.35)" }
+                    : { background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.38)", border: "1px solid rgba(255,255,255,0.07)" }
+                }
+              >
+                {tag}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 
