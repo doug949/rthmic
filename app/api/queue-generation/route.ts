@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "redis";
-import { withRedisQueue, getUserJobIds, getJob, pushJob, updateJob } from "@/app/lib/queueLib";
+import { withRedisQueue, getUserJobIds, getJob, pushJob, updateJob, indexTaskId } from "@/app/lib/queueLib";
 import type { QueueJob } from "@/app/lib/queueLib";
 import { toSunoPronunciation } from "@/app/lib/sunoLyrics";
 import type { StyleChoice } from "@/app/services/llmService";
@@ -152,6 +152,7 @@ export async function POST(req: NextRequest) {
       job.status = "generating";
       job.updatedAt = Date.now();
       await updateJob(client, job);
+      await indexTaskId(client, taskId, jobId); // webhook reverse-lookup
       console.log(`[queue] job ${jobId} started immediately → Suno task ${taskId}`);
     } else {
       console.warn(`[queue] immediate start failed for ${jobId}, cron will retry`);

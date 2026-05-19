@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "redis";
 import {
   withRedisQueue, getUserJobIds, getJob, updateJob,
-  removeJobFromUserList, USERS_KEY, userQueueKey,
+  removeJobFromUserList, USERS_KEY, userQueueKey, indexTaskId,
 } from "@/app/lib/queueLib";
 import type { QueueJob } from "@/app/lib/queueLib";
 import type { SavedRhythm } from "@/app/api/library/route";
@@ -182,6 +182,7 @@ async function startJob(
   job.status = "generating";
   job.updatedAt = Date.now();
   await updateJob(client, job);
+  await indexTaskId(client, taskId, job.jobId); // webhook reverse-lookup
   console.log(`[queue] started job ${job.jobId} → Suno task ${taskId}`);
 }
 

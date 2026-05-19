@@ -38,6 +38,8 @@ export async function withRedisQueue<T>(
   }
 }
 
+export function taskIdKey(sunoTaskId: string) { return `queue:taskid:${sunoTaskId}`; }
+
 export async function pushJob(job: QueueJob): Promise<void> {
   await withRedisQueue(async (client) => {
     const pipe = client.multi();
@@ -47,6 +49,21 @@ export async function pushJob(job: QueueJob): Promise<void> {
     pipe.sAdd(USERS_KEY, job.userId);
     await pipe.exec();
   });
+}
+
+export async function indexTaskId(
+  client: ReturnType<typeof createClient>,
+  sunoTaskId: string,
+  jobId: string
+): Promise<void> {
+  await client.set(taskIdKey(sunoTaskId), jobId, { EX: JOB_TTL_SECONDS });
+}
+
+export async function jobIdForTaskId(
+  client: ReturnType<typeof createClient>,
+  sunoTaskId: string
+): Promise<string | null> {
+  return client.get(taskIdKey(sunoTaskId));
 }
 
 export async function getJob(
