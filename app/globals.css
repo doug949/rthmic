@@ -123,6 +123,12 @@ html, body {
   display: none;
 }
 
+/* ─── Letter wipe (wordmark) ─────────────────────────────────────────────── */
+@keyframes letter-wipe {
+  from { clip-path: inset(0 100% 0 0); }
+  to   { clip-path: inset(0 0% 0 0);   }
+}
+
 /* ─── Spectrum bar animation (GeneratingView) ────────────────────────────── */
 @keyframes spectrum-bar {
   0%, 100% { transform: scaleY(0.08); opacity: 0.25; }

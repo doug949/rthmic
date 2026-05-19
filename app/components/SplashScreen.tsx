@@ -42,7 +42,19 @@ export default function SplashScreen() {
             color: "#c9a55a",
           }}
         >
-          RTHMIC
+          {"RTHMIC".split("").map((letter, i) => (
+            <span
+              key={i}
+              style={{
+                display: "inline-block",
+                animation: `letter-wipe 220ms cubic-bezier(0.4,0,0.2,1) forwards`,
+                animationDelay: `${200 + i * 55}ms`,
+                clipPath: "inset(0 100% 0 0)",
+              }}
+            >
+              {letter}
+            </span>
+          ))}
         </h1>
         <span
           style={{
