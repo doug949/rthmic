@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { AppHeader } from "@/app/components/AppHeader";
 import { RevealBlock } from "@/app/components/RevealBlock";
 import { TransitionLink } from "@/app/components/TransitionLink";
@@ -10,7 +9,7 @@ import { useGeneration } from "@/app/contexts/GenerationContext";
 import { useAudio } from "@/app/contexts/AudioContext";
 import CustomStyleInput from "@/app/components/CustomStyleInput";
 import type { SavedRhythm } from "@/app/api/library/route";
-import { RhythmRow, GraduatedPlaceholder } from "../_components";
+import { RhythmRow } from "../_components";
 
 type LoadState = "loading" | "ready" | "error";
 type TimePeriod = "today" | "week" | "month" | "all";
@@ -37,7 +36,6 @@ export default function MyRthmsPage() {
   const [showLyricsId, setShowLyricsId] = useState<string | null>(null);
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const [shareToastId, setShareToastId]       = useState<string | null>(null);
-  const [graduatedItems, setGraduatedItems]   = useState<Array<{ id: string; title: string }>>([]);
   const [timePeriod, setTimePeriod]     = useState<TimePeriod>("all");
   const [expanded, setExpanded]        = useState(false);
   const [selectedPillar, setSelectedPillar] = useState<string | null>(null);
@@ -47,7 +45,6 @@ export default function MyRthmsPage() {
 
   const { currentTrackId, isPlaying, currentTime, duration, handlePlayUrl } = useAudio();
   const { startGeneration } = useGeneration();
-  const router = useRouter();
   useSwipeBack("/library");
 
   const fetchLibrary = useCallback(async () => {
@@ -88,7 +85,7 @@ export default function MyRthmsPage() {
   }, [fetchLibrary]);
 
   const now = Date.now();
-  const myRthms       = rhythms.filter((r) => r.status === "active");
+  const myRthms       = rhythms.filter((r) => r.status === "active" || r.status === "favourite");
   const recentlyDeleted = rhythms.filter(
     (r) => r.status === "deleted" && r.deletedAt !== undefined && now - r.deletedAt < THIRTY_DAYS
   );
@@ -106,11 +103,11 @@ export default function MyRthmsPage() {
   const handleArchive = (rhythm: SavedRhythm) =>
     mutate({ action: "update", id: rhythm.id, status: "archived" });
 
-  const handleGraduate = (id: string) => {
-    const rhythm = myRthms.find((r) => r.id === id);
-    if (rhythm) setGraduatedItems((prev) => [{ id, title: rhythm.title }, ...prev]);
+  const handleGraduate = (id: string) =>
     mutate({ action: "update", id, status: "favourite" });
-  };
+
+  const handleUngraduate = (id: string) =>
+    mutate({ action: "update", id, status: "active" });
 
   const handleTag = (id: string, tags: string[]) =>
     mutate({ action: "update", id, tags });
@@ -120,9 +117,6 @@ export default function MyRthmsPage() {
 
   const handleRestore = (id: string) =>
     mutate({ action: "update", id, status: "active" });
-
-  const dismissGraduated = (id: string) =>
-    setGraduatedItems((prev) => prev.filter((g) => g.id !== id));
 
   const togglePlay = useCallback((rhythm: SavedRhythm) => {
     if (!rhythm.audioUrl) return;
@@ -202,7 +196,7 @@ export default function MyRthmsPage() {
               <p className="text-sm text-white/50">Couldn't load library. Check your connection.</p>
             </div>
           )}
-          {loadState === "ready" && myRthms.length === 0 && graduatedItems.length === 0 && (
+          {loadState === "ready" && myRthms.length === 0 && (
             <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5 py-12 flex flex-col items-center gap-3">
               <p className="text-sm text-white/50 text-center leading-relaxed">
                 Rthms you generate will appear here.
@@ -212,18 +206,8 @@ export default function MyRthmsPage() {
               </TransitionLink>
             </div>
           )}
-          {loadState === "ready" && (myRthms.length > 0 || graduatedItems.length > 0) && (
+          {loadState === "ready" && myRthms.length > 0 && (
             <>
-              {/* Graduated placeholders */}
-              {graduatedItems.map((item) => (
-                <GraduatedPlaceholder
-                  key={item.id}
-                  title={item.title}
-                  onView={() => { dismissGraduated(item.id); router.push("/library/my-favourites"); }}
-                  onDismiss={() => dismissGraduated(item.id)}
-                />
-              ))}
-
               {/* Time period tabs */}
               <TimePeriodTabs
                 active={timePeriod}
@@ -267,7 +251,9 @@ export default function MyRthmsPage() {
                       showLyrics={showLyricsId === rhythm.id}
                       onToggleLyrics={() => setShowLyricsId(showLyricsId === rhythm.id ? null : rhythm.id)}
                       onPlay={() => togglePlay(rhythm)}
-                      onGraduate={() => handleGraduate(rhythm.id)}
+                      favourite={rhythm.status === "favourite"}
+                      onGraduate={rhythm.status === "active" ? () => handleGraduate(rhythm.id) : undefined}
+                      onUngraduate={rhythm.status === "favourite" ? () => handleUngraduate(rhythm.id) : undefined}
                       onArchive={() => handleArchive(rhythm)}
                       onRemove={() => handleRemove(rhythm.id)}
                       onRecreate={() => setRecreateRhythm(rhythm)}
