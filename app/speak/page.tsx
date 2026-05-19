@@ -40,33 +40,11 @@ interface PillarDefinition {
 
 // ─── Suggestion chips for explain + booksummary ───────────────────────────────
 
-const EXPLAIN_SUGGESTIONS = [
-  "Quantum entanglement", "Compound interest", "The zettelkasten method",
-  "Cognitive dissonance", "The Dunning-Kruger effect", "Bayes' theorem",
-  "The prisoner's dilemma", "Emergence in complex systems", "Flow state",
-  "First principles thinking", "The butterfly effect", "Neuroplasticity",
-  "Opportunity cost", "The observer effect", "The sunk cost fallacy",
-  "Confirmation bias", "The Pareto principle", "Game theory",
-  "Second-order effects", "Entropy", "Occam's razor", "The Overton window",
-  "Survivorship bias", "The OODA loop", "Inversion thinking",
-];
-
-const BOOKSUMMARY_SUGGESTIONS = [
-  "Atomic Habits", "Thinking, Fast and Slow", "Sapiens",
-  "The Power of Now", "Man's Search for Meaning", "Deep Work",
-  "The Lean Startup", "Antifragile", "Mindset", "The 4-Hour Work Week",
-  "Quiet", "The Subtle Art of Not Giving a F*ck", "Essentialism",
-  "The Alchemist", "Good to Great", "Zero to One",
-  "The Body Keeps the Score", "Breath", "Range", "12 Rules for Life",
-  "Daring Greatly", "The Obstacle Is the Way", "Thinking in Bets",
-  "How to Win Friends and Influence People", "The Creative Act",
-];
-
-function pickSuggestions(pool: string[], n = 6, exclude: string[] = []): string[] {
-  const available = pool.filter((s) => !exclude.includes(s));
-  const source = available.length >= n ? available : pool;
-  const shuffled = [...source].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, n);
+async function fetchSuggestions(pillar: string): Promise<string[]> {
+  const res = await fetch(`/api/suggestions?pillar=${pillar}`, { cache: "no-store" });
+  if (!res.ok) return [];
+  const data = await res.json();
+  return data.suggestions ?? [];
 }
 
 function fmtDuration(ms: number): string {
@@ -1643,8 +1621,26 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
     "Take your time. You don't need to know what you're going to say to begin.",
   ];
 
-  const suggestionPool = pillar === "explain" ? EXPLAIN_SUGGESTIONS : pillar === "booksummary" ? BOOKSUMMARY_SUGGESTIONS : null;
-  const [suggestions, setSuggestions] = useState<string[]>(() => suggestionPool ? pickSuggestions(suggestionPool) : []);
+  const hasSuggestions = pillar === "explain" || pillar === "booksummary";
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(hasSuggestions);
+  const [shuffling, setShuffling] = useState(false);
+
+  useEffect(() => {
+    if (!hasSuggestions) return;
+    let cancelled = false;
+    fetchSuggestions(pillar!).then((s) => {
+      if (!cancelled) { setSuggestions(s); setSuggestionsLoading(false); }
+    });
+    return () => { cancelled = true; };
+  }, [pillar, hasSuggestions]);
+
+  async function handleShuffle() {
+    setShuffling(true);
+    const s = await fetchSuggestions(pillar!);
+    setSuggestions(s);
+    setShuffling(false);
+  }
 
   return (
     <section className="flex-1 flex flex-col justify-between pb-10">
@@ -1690,7 +1686,7 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
           ))}
         </div>
 
-        {suggestionPool && suggestions.length > 0 && (
+        {hasSuggestions && (
           <RevealBlock delay={180 + instructions.length * 45}>
             <div className="flex flex-col gap-3 border-t border-white/[0.06] pt-4">
               <div className="flex items-center justify-between">
@@ -1698,38 +1694,46 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
                   {pillar === "booksummary" ? "Or try a book" : "Or try a concept"}
                 </p>
                 <button
-                  onClick={() => setSuggestions(pickSuggestions(suggestionPool, 6, suggestions))}
-                  className="text-[10px] text-white/30 uppercase tracking-widest touch-manipulation active:text-white/60 transition-colors"
+                  onClick={handleShuffle}
+                  disabled={shuffling || suggestionsLoading}
+                  className="text-[10px] text-white/30 uppercase tracking-widest touch-manipulation active:text-white/60 transition-colors disabled:opacity-40"
                 >
-                  Shuffle
+                  {shuffling ? "…" : "Shuffle"}
                 </button>
               </div>
               <div className="flex flex-wrap gap-2">
-                {suggestions.map((s) => {
-                  return (
-                    <button
-                      key={s}
-                      onClick={() => onReady(s, true)}
-                      className="text-xs px-3 py-1.5 rounded-full touch-manipulation transition-all active:scale-95"
-                      style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.5)" }}
-                    >
-                      {s}
-                    </button>
-                  );
-                })}
+                {suggestionsLoading
+                  ? Array.from({ length: 6 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="h-7 rounded-full animate-pulse"
+                        style={{ width: `${64 + (i % 3) * 24}px`, background: "rgba(255,255,255,0.06)" }}
+                      />
+                    ))
+                  : suggestions.map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => onReady(s, true)}
+                        className="text-xs px-3 py-1.5 rounded-full touch-manipulation transition-all active:scale-95"
+                        style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.5)" }}
+                      >
+                        {s}
+                      </button>
+                    ))
+                }
               </div>
             </div>
           </RevealBlock>
         )}
 
-        <RevealBlock delay={180 + instructions.length * 45 + (suggestionPool ? 45 : 0)}>
+        <RevealBlock delay={180 + instructions.length * 45 + (hasSuggestions ? 45 : 0)}>
           <p className="text-xs text-white/40 leading-relaxed border-t border-white/[0.06] pt-4">
             {p?.footnote ?? "Most people speak for 1–3 minutes. After 5 minutes Rthmic will capture what you've said — you'll have the option to add more if it feels right."}
           </p>
         </RevealBlock>
       </div>
 
-      <RevealBlock delay={180 + instructions.length * 45 + 50} className="flex-shrink-0">
+      <RevealBlock delay={180 + instructions.length * 45 + (hasSuggestions ? 95 : 50)} className="flex-shrink-0">
         <button
           onClick={() => onReady()}
           className="w-full py-5 rounded-2xl text-sm font-semibold tracking-wide active:scale-[0.98] transition-all touch-manipulation"
