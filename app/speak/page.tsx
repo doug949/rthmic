@@ -1926,7 +1926,7 @@ function RecordingView({
 
 const UNDERSTANDING_COPY: Record<string, { heading: string; stages: string[] }> = {
   booksummary: {
-    heading: "Reading the book",
+    heading: "Absorbing the ideas",
     stages: ["Transcribing…", "Identifying the book…", "Extracting the core idea…", "Almost there…"],
   },
   explain: {
