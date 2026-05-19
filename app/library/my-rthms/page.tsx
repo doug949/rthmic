@@ -159,16 +159,21 @@ export default function MyRthmsPage() {
     setRecreateRhythm(null);
   };
 
-  // ── Tag lists (sorted by most-recently-used) ─────────────────────────────
-  const tagRecency = new Map<string, number>();
+  // ── Tag lists ─────────────────────────────────────────────────────────────
+  // Row 1 (recent, single-select): tags appearing on rthms from the last 7 days
+  // Row 2 (other, multi-select):   tags that only appear on older rthms
+  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const recentTagSet = new Set<string>();
+  const olderTagSet  = new Set<string>();
   for (const r of myRthms) {
     for (const tag of (r.tags ?? [])) {
-      if ((tagRecency.get(tag) ?? 0) < r.savedAt) tagRecency.set(tag, r.savedAt);
+      if (r.savedAt >= sevenDaysAgo) recentTagSet.add(tag);
+      else olderTagSet.add(tag);
     }
   }
-  const sortedTags = [...tagRecency.entries()].sort((a, b) => b[1] - a[1]).map(([t]) => t);
-  const recentTags = sortedTags.slice(0, 5);
-  const otherTags  = sortedTags.slice(5);
+  // Tags that appear in both buckets stay in row 1 only
+  const recentTags = [...recentTagSet].sort();
+  const otherTags  = [...olderTagSet].filter((t) => !recentTagSet.has(t)).sort();
 
   // ── Filtering ─────────────────────────────────────────────────────────────
   const start = periodStart(timePeriod);
@@ -235,7 +240,7 @@ export default function MyRthmsPage() {
               />
 
               {/* Tag filter rows */}
-              {sortedTags.length > 0 && (
+              {(recentTags.length > 0 || otherTags.length > 0) && (
                 <TagFilterRows
                   recentTags={recentTags}
                   otherTags={otherTags}
