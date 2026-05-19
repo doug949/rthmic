@@ -8,9 +8,12 @@ export function proxy(request: NextRequest) {
   if (
     pathname.startsWith("/login") ||
     pathname.startsWith("/api/auth") ||
-    pathname.startsWith("/r/") ||         // shared Rthm pages
-    pathname.startsWith("/api/share") ||      // share token lookup (POST is auth-gated at handler level)
-    pathname.startsWith("/api/request-access") // beta access request — public, no session needed
+    pathname.startsWith("/r/") ||              // shared Rthm pages
+    pathname.startsWith("/api/share") ||       // share token lookup (POST is auth-gated at handler level)
+    pathname.startsWith("/api/request-access") || // beta access request — public
+    pathname.startsWith("/api/suno-webhook") || // Suno calls this — no session cookie
+    pathname.startsWith("/api/process-queue") || // Vercel cron — auth via CRON_SECRET header
+    pathname.startsWith("/api/poll-generation")  // polled by cron self-call and frontend
   ) {
     return NextResponse.next();
   }
