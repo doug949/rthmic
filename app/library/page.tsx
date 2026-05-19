@@ -17,8 +17,16 @@ import {
   ArchiveIcon,
 } from "./_components";
 
+interface QueueJob {
+  jobId: string;
+  title: string;
+  pillar: string;
+  status: "pending" | "generating";
+}
+
 export default function CatalogPage() {
   const [rhythms, setRhythms]                 = useState<SavedRhythm[]>([]);
+  const [queueJobs, setQueueJobs]             = useState<QueueJob[]>([]);
   const [myRthmsOpen, setMyRthmsOpen]         = useState(false);
   const [myFavouritesOpen, setMyFavouritesOpen] = useState(false);
   const [archiveOpen, setArchiveOpen]         = useState(false);
@@ -41,7 +49,21 @@ export default function CatalogPage() {
     }
   }, []);
 
-  useEffect(() => { fetchCounts(); }, [fetchCounts]);
+  const fetchQueueJobs = useCallback(async () => {
+    try {
+      const res = await fetch("/api/queue-jobs", { cache: "no-store" });
+      if (!res.ok) return;
+      const data = await res.json();
+      setQueueJobs(data.jobs ?? []);
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => {
+    fetchCounts();
+    fetchQueueJobs();
+    const pollId = setInterval(() => { fetchQueueJobs(); fetchCounts(); }, 15_000);
+    return () => clearInterval(pollId);
+  }, [fetchCounts, fetchQueueJobs]);
 
   const activeRthms     = rhythms.filter((r) => r.status === "new" || r.status === "active" || r.status === "favourite");
   const myRthmsCount    = activeRthms.length;
@@ -68,6 +90,39 @@ export default function CatalogPage() {
       </RevealBlock>
 
       <section className="flex-1 flex flex-col gap-5 pb-16">
+
+        {/* ── Generating queue ──────────────────────────────────────────── */}
+        {queueJobs.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2 px-1">
+              <span className="text-[10px] uppercase tracking-widest text-white/35">Generating</span>
+              <span
+                className="inline-flex items-center justify-center text-[9px] font-semibold rounded-full px-1.5 py-0.5 leading-none"
+                style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)" }}
+              >
+                {queueJobs.length}
+              </span>
+            </div>
+            {queueJobs.map((job) => (
+              <div
+                key={job.jobId}
+                className="rounded-2xl border px-5 py-4 flex items-center gap-4"
+                style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.07)" }}
+              >
+                <div className="flex-shrink-0 relative flex h-2.5 w-2.5">
+                  <span className="absolute inline-flex h-full w-full rounded-full animate-ping opacity-60" style={{ background: "rgba(255,255,255,0.3)" }} />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full" style={{ background: "rgba(255,255,255,0.25)" }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-white/60 truncate">{job.title}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-white/25 mt-0.5">
+                    {job.status === "generating" ? "Generating…" : "Queued"} · {job.pillar}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* ── My Rthms ─────────────────────────────────────────────────── */}
         <div className="flex flex-col gap-2">
