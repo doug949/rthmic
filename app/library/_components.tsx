@@ -219,7 +219,7 @@ export function RhythmRow({
           <SmallBtn onClick={onGraduate} label="Add to Favs" icon="☆" />
         )}
         {onUngraduate && (
-          <SmallBtn onClick={onUngraduate} label="Tap to Remove" icon="★" gold />
+          <SmallBtn onClick={onUngraduate} label="Unfavourite" icon="★" gold />
         )}
         <SmallBtn onClick={() => setMoreOpen(true)} label="More" icon="···" />
       </div>
