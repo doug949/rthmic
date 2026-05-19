@@ -1,69 +1,28 @@
 // GET /api/process-queue — Vercel Cron handler (runs every minute).
 // For each user with queued jobs:
-//   1. Poll all "generating" jobs → save to library if done
-//   2. Start "pending" jobs up to a cap of MAX_CONCURRENT per user
+//   1. Poll all "generating" jobs via our own /api/poll-generation (battle-tested)
+//   2. Save completed songs to library as status "new"
+//   3. Start "pending" jobs up to MAX_CONCURRENT per user
+//   4. Mark any job generating > MAX_AGE_MS as failed (stuck guard)
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "redis";
 import {
   withRedisQueue, getUserJobIds, getJob, updateJob,
-  removeJobFromUserList, USERS_KEY,
-  userQueueKey,
+  removeJobFromUserList, USERS_KEY, userQueueKey,
 } from "@/app/lib/queueLib";
 import type { QueueJob } from "@/app/lib/queueLib";
 import type { SavedRhythm } from "@/app/api/library/route";
-import type { TimedWord } from "@/app/types/pipeline";
+import type { Song, TimedWord } from "@/app/types/pipeline";
 
 export const maxDuration = 60;
 
 const MAX_CONCURRENT = 5;
-const BASE_URL = "https://api.sunoapi.org/api/v1";
-const CALLBACK_URL = "https://rthmic.vercel.app/api/suno-webhook";
+const MAX_AGE_MS = 20 * 60 * 1000; // mark failed after 20 min stuck generating
+const APP_URL = "https://rthmic.vercel.app";
+const SUNO_BASE = "https://api.sunoapi.org/api/v1";
 
-// ─── Suno helpers (mirrors poll-generation/route.ts logic) ───────────────────
-
-type SunoClip = Record<string, unknown>;
-
-function extractClips(node: unknown, depth = 0): SunoClip[] {
-  if (depth > 4 || !node || typeof node !== "object") return [];
-  if (Array.isArray(node)) {
-    if (node.length > 0) {
-      const first = node[0] as Record<string, unknown>;
-      if (first.audio_url || first.stream_audio_url || first.id) return node as SunoClip[];
-    }
-    for (const item of node) {
-      const found = extractClips(item, depth + 1);
-      if (found.length > 0) return found;
-    }
-    return [];
-  }
-  const obj = node as Record<string, unknown>;
-  const priorityKeys = ["clips", "data", "response", "songs", "results", "records"];
-  for (const key of priorityKeys) {
-    if (obj[key]) {
-      const found = extractClips(obj[key], depth + 1);
-      if (found.length > 0) return found;
-    }
-  }
-  for (const [key, val] of Object.entries(obj)) {
-    if (!priorityKeys.includes(key) && Array.isArray(val) && val.length > 0) {
-      const found = extractClips(val, depth + 1);
-      if (found.length > 0) return found;
-    }
-  }
-  return [];
-}
-
-function getAudioUrl(clip: SunoClip): string | undefined {
-  const candidates = [clip.stream_audio_url, clip.audio_url, clip.url, clip.mp3_url, clip.audioUrl, clip.streamUrl, clip.stream_url];
-  for (const c of candidates) {
-    if (typeof c === "string" && c.startsWith("http")) return c;
-  }
-}
-
-const STILL_WAITING = new Set(["PENDING", "GENERATING", "IN_QUEUE", "QUEUED", "TEXT_SUCCESS", "RUNNING"]);
-
-// ─── Library save (direct Redis write, mirrors /api/library POST save) ────────
+// ─── Library save (direct Redis, mirrors /api/library POST save) ──────────────
 
 async function saveToLibrary(
   client: ReturnType<typeof createClient>,
@@ -73,24 +32,37 @@ async function saveToLibrary(
   const key = `lib:${userId}`;
   const raw = await client.get(key);
   const all: SavedRhythm[] = raw ? JSON.parse(raw) : [];
+  // Avoid duplicate if already saved (cron retry safety)
+  if (all.some((r) => r.id === rhythm.id)) return;
   all.unshift(rhythm);
   await client.set(key, JSON.stringify(all));
 }
 
-// ─── Fetch timed lyrics (best-effort, non-blocking) ──────────────────────────
+// ─── Attach timed lyrics to an already-saved rhythm (best-effort) ────────────
 
-async function fetchTimedLyrics(taskId: string, audioId: string): Promise<TimedWord[] | null> {
+async function attachTimedLyrics(userId: string, songId: string, taskId: string, audioId: string) {
   try {
-    const res = await fetch(
-      `https://rthmic.vercel.app/api/timed-lyrics?taskId=${encodeURIComponent(taskId)}&audioId=${encodeURIComponent(audioId)}`
-    );
-    if (!res.ok) return null;
+    const res = await fetch(`${APP_URL}/api/timed-lyrics?taskId=${encodeURIComponent(taskId)}&audioId=${encodeURIComponent(audioId)}`);
+    if (!res.ok) return;
     const data = await res.json() as { timedWords?: TimedWord[] };
-    return data.timedWords ?? null;
-  } catch { return null; }
+    if (!data.timedWords?.length) return;
+
+    const client = createClient({ url: process.env.REDIS_URL });
+    await client.connect();
+    try {
+      const key = `lib:${userId}`;
+      const raw = await client.get(key);
+      const all: SavedRhythm[] = raw ? JSON.parse(raw) : [];
+      const idx = all.findIndex((r) => r.id === songId);
+      if (idx !== -1) {
+        all[idx].timedLyrics = data.timedWords;
+        await client.set(key, JSON.stringify(all));
+      }
+    } finally { await client.disconnect(); }
+  } catch { /* non-critical */ }
 }
 
-// ─── Poll a generating job ────────────────────────────────────────────────────
+// ─── Poll one generating job via /api/poll-generation ────────────────────────
 
 async function pollJob(
   client: ReturnType<typeof createClient>,
@@ -98,73 +70,62 @@ async function pollJob(
 ): Promise<"still-waiting" | "saved" | "failed"> {
   if (!job.sunoTaskId) return "failed";
 
-  const res = await fetch(
-    `${BASE_URL}/generate/record-info?taskId=${encodeURIComponent(job.sunoTaskId)}`,
-    { headers: { Authorization: `Bearer ${process.env.SUNO_API_KEY}` } }
-  );
-  if (!res.ok) return "still-waiting";
-
-  const json = await res.json();
-  const task = json.data;
-  const rawStatus = (
-    (typeof task === "object" && task !== null ? (task as Record<string, unknown>).status : null) ??
-    json.status ?? ""
-  ).toString().toUpperCase();
-
-  if (rawStatus === "FAILED" || rawStatus === "GENERATE_AUDIO_FAILED" || rawStatus === "CREATE_TASK_FAILED") {
+  // Staleness guard — if generating for too long, give up
+  if (Date.now() - job.updatedAt > MAX_AGE_MS) {
+    console.error(`[queue] Job ${job.jobId} timed out after ${Math.round((Date.now() - job.updatedAt) / 60000)} min`);
     job.status = "failed";
     await updateJob(client, job);
     return "failed";
   }
 
-  const clips = extractClips(json);
-  const playableClips = clips.filter((c) => getAudioUrl(c));
-  if (playableClips.length === 0 || STILL_WAITING.has(rawStatus)) return "still-waiting";
+  // Proxy through our own poll endpoint — reuses the same battle-tested parsing
+  let pollData: { status: string; songs?: Song[] };
+  try {
+    const res = await fetch(
+      `${APP_URL}/api/poll-generation?taskId=${encodeURIComponent(job.sunoTaskId)}&t=${Date.now()}`,
+      { cache: "no-store" }
+    );
+    if (!res.ok) {
+      console.warn(`[queue] poll-generation HTTP ${res.status} for job ${job.jobId}`);
+      return "still-waiting";
+    }
+    pollData = await res.json();
+  } catch (err) {
+    console.warn(`[queue] poll-generation fetch error for job ${job.jobId}:`, err);
+    return "still-waiting";
+  }
 
-  // Ready — save both clips to library
-  const songs = [playableClips[0], playableClips[1] ?? playableClips[0]];
-  const baseTitle = String(playableClips[0].title ?? job.title);
+  console.log(`[queue] job ${job.jobId} poll → ${pollData.status}`);
 
-  for (let i = 0; i < songs.length; i++) {
-    const clip = songs[i];
-    const clipId = String(clip.id ?? "");
-    const songId = `${clipId || "suno"}-${i}`;
-    const title = i === 0 ? baseTitle : `${baseTitle} (Variation)`;
-    const audioUrl = getAudioUrl(clip);
+  if (pollData.status === "failed") {
+    job.status = "failed";
+    await updateJob(client, job);
+    return "failed";
+  }
 
+  if (pollData.status !== "ready" || !pollData.songs?.length) return "still-waiting";
+
+  // Save both songs to library
+  for (let i = 0; i < pollData.songs.length; i++) {
+    const song = pollData.songs[i];
     const rhythm: SavedRhythm = {
-      id: songId,
-      title,
+      id: song.id,
+      title: song.title,
       pillar: job.pillar,
-      audioUrl,
+      audioUrl: song.audioUrl,
       lyrics: job.lyrics,
-      sunoClipId: clipId || undefined,
-      sunoTaskId: job.sunoTaskId,
+      sunoClipId: song.sunoClipId,
+      sunoTaskId: song.sunoTaskId,
       savedAt: Date.now(),
       status: "new",
       ...(job.note ? { note: job.note } : {}),
     };
-
     await saveToLibrary(client, job.userId, rhythm);
+    console.log(`[queue] saved ${rhythm.id} (${rhythm.title}) for user ${job.userId}`);
 
-    // Best-effort timed lyrics (non-blocking)
-    if (clipId && job.sunoTaskId) {
-      fetchTimedLyrics(job.sunoTaskId, clipId).then(async (timedLyrics) => {
-        if (!timedLyrics) return;
-        try {
-          const c2 = createClient({ url: process.env.REDIS_URL });
-          await c2.connect();
-          const key = `lib:${job.userId}`;
-          const raw = await c2.get(key);
-          const all: SavedRhythm[] = raw ? JSON.parse(raw) : [];
-          const idx = all.findIndex((r) => r.id === songId);
-          if (idx !== -1) {
-            all[idx].timedLyrics = timedLyrics;
-            await c2.set(key, JSON.stringify(all));
-          }
-          await c2.disconnect();
-        } catch { /* non-critical */ }
-      }).catch(() => {});
+    // Best-effort timed lyrics — fire and forget
+    if (song.sunoClipId && song.sunoTaskId) {
+      attachTimedLyrics(job.userId, song.id, song.sunoTaskId, song.sunoClipId).catch(() => {});
     }
   }
 
@@ -173,13 +134,13 @@ async function pollJob(
   return "saved";
 }
 
-// ─── Start a pending job ──────────────────────────────────────────────────────
+// ─── Start a pending job via Suno API ────────────────────────────────────────
 
 async function startJob(
   client: ReturnType<typeof createClient>,
   job: QueueJob
 ): Promise<void> {
-  const res = await fetch(`${BASE_URL}/generate`, {
+  const res = await fetch(`${SUNO_BASE}/generate`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${process.env.SUNO_API_KEY}`,
@@ -192,7 +153,7 @@ async function startJob(
       prompt: job.lyrics,
       style: job.genre,
       title: job.title,
-      callBackUrl: CALLBACK_URL,
+      callBackUrl: `${APP_URL}/api/suno-webhook`,
     }),
   });
 
@@ -211,7 +172,7 @@ async function startJob(
     json.taskId;
 
   if (!taskId) {
-    console.error(`[queue] No taskId for ${job.jobId}: ${JSON.stringify(json).slice(0, 200)}`);
+    console.error(`[queue] No taskId for ${job.jobId}: ${JSON.stringify(json).slice(0, 300)}`);
     job.status = "failed";
     await updateJob(client, job);
     return;
@@ -219,8 +180,9 @@ async function startJob(
 
   job.sunoTaskId = taskId;
   job.status = "generating";
+  job.updatedAt = Date.now();
   await updateJob(client, job);
-  console.log(`[queue] Started job ${job.jobId} → Suno task ${taskId}`);
+  console.log(`[queue] started job ${job.jobId} → Suno task ${taskId}`);
 }
 
 // ─── Process one user's queue ─────────────────────────────────────────────────
@@ -238,22 +200,21 @@ async function processUserQueue(
 
   let started = 0, completed = 0, failed = 0;
 
-  // Poll generating jobs first
+  // 1. Poll all generating jobs
   for (const job of jobs.filter((j) => j.status === "generating")) {
     const result = await pollJob(client, job);
     if (result === "saved") { completed++; await removeJobFromUserList(client, userId, job.jobId); }
     if (result === "failed") { failed++; await removeJobFromUserList(client, userId, job.jobId); }
   }
 
-  // Count still-generating after polling
-  const refreshed = await getUserJobIds(client, userId);
+  // 2. Count still-generating, start pending up to cap
+  const afterPoll = await getUserJobIds(client, userId);
   let generating = 0;
-  for (const jobId of refreshed) {
+  for (const jobId of afterPoll) {
     const j = await getJob(client, jobId);
     if (j?.status === "generating") generating++;
   }
 
-  // Start pending jobs up to cap
   for (const job of jobs.filter((j) => j.status === "pending")) {
     if (generating >= MAX_CONCURRENT) break;
     await startJob(client, job);
@@ -261,7 +222,7 @@ async function processUserQueue(
     started++;
   }
 
-  // Clean up user from global set if no active jobs remain
+  // 3. Clean up user from global set if no active jobs remain
   const remaining = await getUserJobIds(client, userId);
   let anyActive = false;
   for (const jobId of remaining) {
@@ -279,7 +240,6 @@ async function processUserQueue(
 // ─── Cron entry point ─────────────────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
-  // Vercel sets this header on all cron invocations
   const isCron = req.headers.get("x-vercel-cron") === "1";
   const hasSecret = req.nextUrl.searchParams.get("secret") === process.env.CRON_SECRET;
   if (!isCron && !hasSecret) {
@@ -293,19 +253,19 @@ export async function GET(req: NextRequest) {
 
   await withRedisQueue(async (client) => {
     const userIds = await client.sMembers(USERS_KEY);
-    console.log(`[queue/cron] Processing ${userIds.length} users`);
+    console.log(`[queue/cron] Processing ${userIds.length} user(s)`);
 
     for (const userId of userIds) {
       try {
         const result = await processUserQueue(client, userId);
         summary[userId] = result;
-        console.log(`[queue/cron] ${userId}: started=${result.started} completed=${result.completed} failed=${result.failed}`);
+        console.log(`[queue/cron] ${userId} → started=${result.started} completed=${result.completed} failed=${result.failed}`);
       } catch (err) {
-        console.error(`[queue/cron] Error processing user ${userId}:`, err);
+        console.error(`[queue/cron] Error for user ${userId}:`, err);
         summary[userId] = { error: String(err) };
       }
     }
   });
 
-  return NextResponse.json({ ok: true, summary });
+  return NextResponse.json({ ok: true, processed: Object.keys(summary).length, summary });
 }
