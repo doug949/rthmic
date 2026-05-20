@@ -113,7 +113,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
             lastTime = audio.currentTime;
             lastAdvanceAt = Date.now();
             recoverRetries = 0;
-          } else if (Date.now() - lastAdvanceAt > 5000) {
+          } else if (Date.now() - lastAdvanceAt > 2500) {
             // currentTime hasn't moved in 5s while supposedly playing — genuinely stalled
             if (recoverRetries >= 3) {
               clearInterval(stallInterval!); stallInterval = null;
@@ -247,8 +247,12 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       audioRef.current.pause();
       setIsPlaying(false);
     } else {
-      audioRef.current.play().catch(console.error);
-      setIsPlaying(true);
+      audioRef.current.play()
+        .then(() => setIsPlaying(true))
+        .catch((err) => {
+          console.warn("Resume failed:", err.message);
+          setIsPlaying(false);
+        });
     }
   }, [isPlaying]);
 
