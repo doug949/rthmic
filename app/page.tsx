@@ -121,8 +121,8 @@ export default function Home() {
         {/* ── tile grid — rows glide in one after another ── */}
         <div className="grid grid-cols-2 gap-1.5 pb-4">
           {HOME_TILES.map((tile, i) => {
-            // Each row starts 1100ms after the previous (duration 1400ms) — small 300ms tail overlap
-            const rowDelay = Math.floor(i / 2) * 1100;
+            // Each row starts 600ms after the previous (duration 1400ms) — rows clearly overlap
+            const rowDelay = Math.floor(i / 2) * 600;
             return (
               <div
                 key={tile.label}
