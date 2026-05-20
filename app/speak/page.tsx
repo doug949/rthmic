@@ -728,7 +728,7 @@ export default function SpeakPage() {
       />
 
       <AppHeader
-        title="Speak"
+        title="Create"
         onBack={
           phase === "understanding" || genPhase === "generating"
             ? null       // disabled during async operations
@@ -1192,10 +1192,8 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
   const [openInfo, setOpenInfo] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
-  const [adhdMode, setAdhdMode] = useState(false);
   const [simpleMode, setSimpleMode] = useState(false);
   const [advancedPillars, setAdvancedPillars] = useState<string[]>(["memory", "booksummary", "explain", "mindset"]);
-  const [adhdOpen, setAdhdOpen] = useState(false);
   const [forYouOpen, setForYouOpen] = useState(false);
   const [subCatOpen, setSubCatOpen] = useState<Record<string, boolean>>({});
   const [forSomeoneElseOpen, setForSomeoneElseOpen] = useState(false);
@@ -1205,7 +1203,6 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
     const code = getSignedInCode();
     setShowInvite(code !== null && ADMIN_CODES.includes(code));
     fetch("/api/settings").then(r => r.json()).then(s => {
-      if (s.adhdMode) setAdhdMode(true);
       if (s.simpleMode) setSimpleMode(true);
       if (Array.isArray(s.advancedPillars)) setAdvancedPillars(s.advancedPillars);
     }).catch(() => {});
@@ -1417,46 +1414,6 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
           </div>
         </div>
 
-        {/* ── ADHD Mode pillars — only visible when adhdMode is on ── */}
-        {adhdMode && (
-          <>
-            <RevealBlock delay={PILLARS.length * 28 + 20}>
-              <button
-                onClick={() => setAdhdOpen((v) => !v)}
-                className="w-full flex items-center justify-between py-2.5 mt-2 touch-manipulation active:opacity-70 transition-opacity"
-              >
-                <div className="flex items-center gap-2.5">
-                  <span style={{ color: "rgba(160,130,220,0.65)" }}><BrainIcon /></span>
-                  <p className="text-sm font-medium tracking-wide" style={{ color: "rgba(180,150,240,0.85)" }}>ADHD</p>
-                </div>
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
-                  style={{ color: "rgba(160,130,220,0.55)", transform: adhdOpen ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform 220ms ease", flexShrink: 0 }}>
-                  <path d="M2 4L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
-            </RevealBlock>
-            <div style={{ display: "grid", gridTemplateRows: adhdOpen ? "1fr" : "0fr", transition: "grid-template-rows 260ms ease" }}>
-              <div style={{ overflow: "hidden" }}>
-                <div className="flex flex-col gap-2 pb-1">
-                  {ADHD_PILLARS.map((p) => (
-                    <div key={p.slug} className="rounded-2xl border overflow-hidden" style={{ borderColor: "rgba(160,130,220,0.18)", background: "rgba(160,130,220,0.04)" }}>
-                      <div className="flex items-center gap-3.5 pl-5 pr-2 py-4">
-                        {p.icon && <span className="flex-shrink-0" style={{ color: "rgba(160,130,220,0.7)" }}>{p.icon}</span>}
-                        <button onClick={() => onSelect(p.slug)} className="flex-1 min-w-0 text-left touch-manipulation">
-                          <p className="text-base font-semibold tracking-wide" style={{ color: "rgba(180,150,240,0.92)" }}>{p.label}</p>
-                          <p className="text-xs text-white/40 mt-0.5">{p.tagline}</p>
-                        </button>
-                        <button onClick={() => openModal(p.slug)} className="flex items-center justify-center w-14 touch-manipulation active:bg-white/[0.04] transition-colors" aria-label="Learn more">
-                          <InfoIcon />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </>
-        )}
 
         {/* Let RTHMIC decide */}
         <RevealBlock delay={PILLARS.length * 28 + 38}>
