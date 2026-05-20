@@ -1683,7 +1683,7 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
             <button
               onClick={openLightbox}
               className="relative w-full rounded-2xl overflow-hidden touch-manipulation active:brightness-90 transition-all"
-              style={{ aspectRatio: "16/9", border: "1px solid rgba(255,255,255,0.08)" }}
+              style={{ aspectRatio: "9/16", border: "1px solid rgba(255,255,255,0.08)" }}
             >
               <img src={PILLAR_IMAGES[pillar]} alt="Preview" className="w-full h-full object-cover" />
               <div className="absolute inset-0 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.18)" }}>
