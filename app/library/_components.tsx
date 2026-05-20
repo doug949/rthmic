@@ -57,8 +57,8 @@ export function RhythmRow({
 }) {
   // colour theme — priority: favourite > isNew > default
   const P = isNew && !favourite ? {
-    border:      (active: boolean) => active ? "rgba(139,92,246,0.45)"  : "rgba(109,40,217,0.28)",
-    bg:          (active: boolean) => active ? "rgba(109,40,217,0.10)"  : "rgba(109,40,217,0.05)",
+    border:      (active: boolean) => active ? "rgba(139,92,246,0.48)"  : "rgba(109,40,217,0.34)",
+    bg:          (active: boolean) => active ? "rgba(109,40,217,0.14)"  : "rgba(109,40,217,0.08)",
     btnBorder:   (active: boolean) => active ? "rgba(139,92,246,0.55)"  : "rgba(109,40,217,0.35)",
     btnBg:       (active: boolean) => active ? "rgba(109,40,217,0.30)"  : "rgba(109,40,217,0.12)",
     icon:    "rgb(167,139,250)",
@@ -104,7 +104,7 @@ export function RhythmRow({
           ? { background: playing ? "rgba(201,165,90,0.07)" : "rgba(201,165,90,0.03)", borderColor: playing ? "rgba(201,165,90,0.35)" : "rgba(201,165,90,0.15)" }
           : P
           ? { background: P.bg(playing), borderColor: P.border(playing) }
-          : { background: playing ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.03)", borderColor: playing ? "rgba(255,255,255,0.20)" : "rgba(255,255,255,0.08)" }
+          : { background: playing ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.06)", borderColor: playing ? "rgba(255,255,255,0.24)" : "rgba(255,255,255,0.11)" }
       }
     >
       {/* Play button row */}
