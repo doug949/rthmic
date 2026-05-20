@@ -1045,6 +1045,7 @@ function cfHls(id: string)   { return `https://${CF_CUSTOMER}/${id}/manifest/vid
 const CF_IDS: Record<string, string> = {
   default:  "2e1d19d0dc33f42e7031bf59e9d1f586",
   movement: "ffa96f93e7048b669defa6cc27aba93a",
+  mode:     "d56a1fa7c5f67801269d123a7c8655d5",
 };
 
 const ALL_PILLAR_SLUGS = [...FOR_YOU_PILLARS.map((p) => p.slug), "auto"];
