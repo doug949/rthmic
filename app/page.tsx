@@ -132,10 +132,19 @@ export default function Home() {
         <RevealBlock delay={120}>
           <ModeCard
             href="/library"
-            label="Your Rthmic and Rthmix Catalog"
+            label="Your Rthmic Catalog"
             description="Your generated Rthms and the curated collection."
             icon={<PlayIcon />}
             blue
+          />
+        </RevealBlock>
+        <RevealBlock delay={145}>
+          <ModeCard
+            href="/library"
+            label="Rthmix Compilations"
+            description="Curated Rthm collections for focus, movement, and flow."
+            icon={<PlayIcon />}
+            amber
           />
         </RevealBlock>
         <RevealBlock delay={160}>
@@ -267,6 +276,7 @@ function ModeCard({
   icon,
   primary,
   blue,
+  amber,
   teal,
   purple,
   rose,
@@ -278,14 +288,15 @@ function ModeCard({
   icon: React.ReactNode;
   primary?: boolean;
   blue?: boolean;
+  amber?: boolean;
   teal?: boolean;
   purple?: boolean;
   rose?: boolean;
   subtle?: boolean;
 }) {
-  const iconColor  = primary ? "#c9a55a" : blue ? "rgba(120,160,255,0.75)" : teal ? "rgba(100,195,165,0.85)" : purple ? "rgba(160,130,220,0.85)" : rose ? "rgba(220,110,140,0.85)" : subtle ? "rgba(255,255,255,0.28)" : "rgba(255,255,255,0.45)";
-  const labelColor = primary ? "#c9a55a" : blue ? "rgba(140,175,255,0.92)" : teal ? "rgba(120,210,180,0.92)" : purple ? "rgba(180,150,240,0.92)" : rose ? "rgba(235,130,155,0.92)" : subtle ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.9)";
-  const arrowColor = primary ? "rgba(201,165,90,0.4)" : blue ? "rgba(120,160,255,0.35)" : teal ? "rgba(100,195,165,0.35)" : purple ? "rgba(160,130,220,0.35)" : rose ? "rgba(220,110,140,0.35)" : subtle ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.2)";
+  const iconColor  = primary ? "#c9a55a" : blue ? "rgba(120,160,255,0.75)" : amber ? "rgba(230,155,60,0.85)" : teal ? "rgba(100,195,165,0.85)" : purple ? "rgba(160,130,220,0.85)" : rose ? "rgba(220,110,140,0.85)" : subtle ? "rgba(255,255,255,0.28)" : "rgba(255,255,255,0.45)";
+  const labelColor = primary ? "#c9a55a" : blue ? "rgba(140,175,255,0.92)" : amber ? "rgba(240,170,80,0.95)" : teal ? "rgba(120,210,180,0.92)" : purple ? "rgba(180,150,240,0.92)" : rose ? "rgba(235,130,155,0.92)" : subtle ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.9)";
+  const arrowColor = primary ? "rgba(201,165,90,0.4)" : blue ? "rgba(120,160,255,0.35)" : amber ? "rgba(230,155,60,0.35)" : teal ? "rgba(100,195,165,0.35)" : purple ? "rgba(160,130,220,0.35)" : rose ? "rgba(220,110,140,0.35)" : subtle ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.2)";
 
   return (
     <TransitionLink
@@ -293,12 +304,13 @@ function ModeCard({
       className={`
         flex items-center gap-5 px-6 rounded-2xl border transition-all duration-150
         active:scale-[0.98] touch-manipulation
-        ${primary || blue || teal || purple || rose ? "py-4" : subtle ? "py-3" : "py-4"}
-        ${primary || blue || teal || purple || rose ? "" : "bg-white/[0.03] border-white/[0.08] hover:bg-white/[0.07]"}
+        ${primary || blue || amber || teal || purple || rose ? "py-4" : subtle ? "py-3" : "py-4"}
+        ${primary || blue || amber || teal || purple || rose ? "" : "bg-white/[0.03] border-white/[0.08] hover:bg-white/[0.07]"}
       `}
       style={
         primary ? { background: "rgba(201,165,90,0.08)", borderColor: "rgba(201,165,90,0.35)" }
         : blue   ? { background: "rgba(100,140,255,0.06)", borderColor: "rgba(120,160,255,0.28)" }
+        : amber  ? { background: "rgba(230,155,60,0.06)", borderColor: "rgba(230,155,60,0.28)" }
         : teal   ? { background: "rgba(100,195,165,0.06)", borderColor: "rgba(100,195,165,0.28)" }
         : purple ? { background: "rgba(160,130,220,0.06)", borderColor: "rgba(160,130,220,0.28)" }
         : rose   ? { background: "rgba(220,110,140,0.06)", borderColor: "rgba(220,110,140,0.28)" }
