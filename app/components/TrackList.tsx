@@ -46,9 +46,13 @@ export default function TrackList() {
 
       let url: string;
       if (audioKey) {
-        const res = await fetch(`/api/stream?key=${encodeURIComponent(audioKey)}`);
-        const data = await res.json();
-        url = data.url;
+        try {
+          const res = await fetch(`/api/stream?key=${encodeURIComponent(audioKey)}`);
+          const data = res.ok ? await res.json() : null;
+          url = typeof data?.url === "string" ? data.url : `/api/proxy-audio?id=${encodeURIComponent(trackId)}`;
+        } catch {
+          url = `/api/proxy-audio?id=${encodeURIComponent(trackId)}`;
+        }
       } else {
         url = `/api/proxy-audio?id=${encodeURIComponent(trackId)}`;
       }

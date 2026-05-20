@@ -2498,16 +2498,21 @@ function GeneratingView({ onCancel, pillar }: { onCancel: () => void; pillar?: s
 function SpectrumVisualiser({ color = DEFAULT_COLOR }: { color?: string }) {
   const BAR_COUNT = 34;
 
+  const variation = (seed: number) => {
+    const x = Math.sin(seed * 12.9898) * 43758.5453;
+    return x - Math.floor(x);
+  };
+
   // Stable per-bar config — never changes between renders
   const bars = React.useMemo(() => Array.from({ length: BAR_COUNT }, (_, i) => {
     const pos    = i / (BAR_COUNT - 1);          // 0..1
     const dist   = Math.abs(pos - 0.5) * 2;      // 0 (centre) → 1 (edge)
     const maxH   = 18 + (1 - dist * dist * 0.75) * 82; // edges ~18px, centre ~100px
-    const dur    = (0.55 + Math.random() * 0.9).toFixed(2);
-    const delay  = (-Math.random() * 2.5).toFixed(2);
+    const dur    = (0.55 + variation(i + 1) * 0.9).toFixed(2);
+    const delay  = (-variation(i + 101) * 2.5).toFixed(2);
     const alpha  = (0.35 + (1 - dist) * 0.5).toFixed(2);
     return { maxH, dur, delay, alpha };
-  }), []); // eslint-disable-line react-hooks/exhaustive-deps
+  }), []);
 
   return (
     <div

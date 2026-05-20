@@ -188,7 +188,9 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   );
 
   // Keep the ref current so the error handler can call attachAndPlay without a stale closure
-  attachAndPlayRef.current = attachAndPlay;
+  useEffect(() => {
+    attachAndPlayRef.current = attachAndPlay;
+  }, [attachAndPlay]);
 
   const handlePlay = useCallback(
     async (trackId: string, audioKey: string) => {
@@ -214,9 +216,13 @@ export function AudioProvider({ children }: { children: ReactNode }) {
 
       let url: string;
       if (audioKey) {
-        const res = await fetch(`/api/stream?key=${encodeURIComponent(audioKey)}`);
-        const data = await res.json();
-        url = data.url;
+        try {
+          const res = await fetch(`/api/stream?key=${encodeURIComponent(audioKey)}`);
+          const data = res.ok ? await res.json() : null;
+          url = typeof data?.url === "string" ? data.url : `/api/proxy-audio?id=${encodeURIComponent(trackId)}`;
+        } catch {
+          url = `/api/proxy-audio?id=${encodeURIComponent(trackId)}`;
+        }
       } else {
         url = `/api/proxy-audio?id=${encodeURIComponent(trackId)}`;
       }

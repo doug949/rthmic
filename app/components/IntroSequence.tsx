@@ -23,10 +23,8 @@ export default function IntroSequence() {
   const [contentOpacity,   setContentOpacity]   = useState(0);
   const [showLogo,         setShowLogo]         = useState(false);
 
-  // Pick once on mount — stable across re-renders
-  const [quote] = useState(
-    () => QUOTES[Math.floor(Math.random() * QUOTES.length)]
-  );
+  // Deterministic for SSR/hydration; randomized after mount before it fades in.
+  const [quote, setQuote] = useState(QUOTES[0]);
 
   const skip = () => {
     sessionStorage.setItem(SEEN_KEY, "1");
@@ -44,6 +42,8 @@ export default function IntroSequence() {
     let cancelled = false;
 
     const run = async () => {
+      setQuote(QUOTES[Math.floor(Math.random() * QUOTES.length)]);
+
       // ── Quote ──────────────────────────────────────────────────
       await sleep(80);
       if (cancelled) return;
