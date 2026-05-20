@@ -122,7 +122,7 @@ export default function Home() {
       <section className="flex-1 flex flex-col pb-6">
         {/* ── 3×2 tile grid — top 6 ── */}
         <RevealBlock delay={60}>
-          <div className="grid grid-cols-3 gap-1.5 pb-4">
+          <div className="grid grid-cols-2 gap-1.5 pb-4">
             {HOME_TILES.map((tile, i) => (
               <HomeTile key={tile.label} tile={tile} delay={60 + i * 30} />
             ))}
