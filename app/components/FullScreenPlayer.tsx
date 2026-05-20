@@ -190,11 +190,37 @@ export default function FullScreenPlayer() {
   const displayTitle  = rhythm?.title ?? currentTitle ?? "Playing…";
   const displayPillar = rhythm?.pillar ?? null;
   const hasAudio      = !!rhythm?.audioUrl || !!currentTrackId;
+  const isFavourite   = rhythm?.status === "favourite";
+  const theme = isFavourite
+    ? {
+        bg: "#140f08",
+        topButtonBg: "rgba(201,165,90,0.10)",
+        topButtonBorder: "1px solid rgba(201,165,90,0.16)",
+        title: "rgba(201,165,90,0.95)",
+        muted: "rgba(201,165,90,0.52)",
+        faint: "rgba(201,165,90,0.24)",
+        playBg: "rgba(201,165,90,0.18)",
+        playBorder: "1px solid rgba(201,165,90,0.36)",
+        actionBg: "rgba(201,165,90,0.04)",
+        actionBorder: "rgba(201,165,90,0.14)",
+      }
+    : {
+        bg: "#0a1020",
+        topButtonBg: "rgba(255,255,255,0.06)",
+        topButtonBorder: "none",
+        title: "rgba(255,255,255,0.85)",
+        muted: "rgba(255,255,255,0.4)",
+        faint: "rgba(255,255,255,0.35)",
+        playBg: "rgba(255,255,255,0.12)",
+        playBorder: "1px solid rgba(255,255,255,0.18)",
+        actionBg: "rgba(255,255,255,0.02)",
+        actionBorder: "rgba(255,255,255,0.07)",
+      };
 
   return (
     <div
       className="fixed inset-0 z-50 flex flex-col overflow-hidden"
-      style={{ background: "#0a1020" }}
+      style={{ background: theme.bg }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
@@ -203,26 +229,26 @@ export default function FullScreenPlayer() {
         <button
           onClick={closePlayer}
           className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full touch-manipulation active:scale-90 transition-transform"
-          style={{ background: "rgba(255,255,255,0.06)" }}
+          style={{ background: theme.topButtonBg, border: theme.topButtonBorder }}
           aria-label="Close player"
         >
-          <ChevronDownIcon />
+          <ChevronDownIcon color={isFavourite ? "rgba(201,165,90,0.75)" : undefined} />
         </button>
         <div className="flex-1 min-w-0 text-center">
           {displayPillar && (
-            <p className="text-[10px] uppercase tracking-widest text-white/40 mb-0.5">{displayPillar}</p>
+            <p className="text-[10px] uppercase tracking-widest mb-0.5" style={{ color: theme.muted }}>{displayPillar}</p>
           )}
-          <p className="text-sm font-semibold text-white/85 truncate px-2" style={{ fontFamily: "var(--font-display)" }}>
+          <p className="text-sm font-semibold truncate px-2" style={{ fontFamily: "var(--font-display)", color: theme.title }}>
             {displayTitle}
           </p>
         </div>
         <button
           onClick={() => { closePlayer(); router.push("/library/my-rthms"); }}
           className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full touch-manipulation active:scale-90 transition-transform"
-          style={{ background: "rgba(255,255,255,0.06)" }}
+          style={{ background: theme.topButtonBg, border: theme.topButtonBorder }}
           aria-label="Go to My Rthms"
         >
-          <LibraryIcon />
+          <LibraryIcon color={isFavourite ? "rgba(201,165,90,0.75)" : undefined} />
         </button>
       </div>
 
@@ -235,10 +261,11 @@ export default function FullScreenPlayer() {
             duration={duration}
             isPlaying={isPlaying}
             timedLyrics={rhythm.timedLyrics}
+            gold={isFavourite}
           />
         ) : (
           <div className="flex items-center justify-center h-full">
-            <p className="text-white/30 text-sm">No lyrics available</p>
+            <p className="text-sm" style={{ color: theme.faint }}>No lyrics available</p>
           </div>
         )}
       </div>
@@ -251,10 +278,10 @@ export default function FullScreenPlayer() {
         {/* Seek bar */}
         {hasAudio && (
           <div className="mb-4">
-            <SeekBar currentTime={currentTime} duration={duration} onSeek={seek} />
+            <SeekBar currentTime={currentTime} duration={duration} onSeek={seek} gold={isFavourite} />
             <div className="flex justify-between mt-1.5">
-              <span className="text-[10px] text-white/35 tabular-nums">{fmt(currentTime)}</span>
-              <span className="text-[10px] text-white/35 tabular-nums">{duration > 0 ? fmt(duration) : "--:--"}</span>
+              <span className="text-[10px] tabular-nums" style={{ color: theme.faint }}>{fmt(currentTime)}</span>
+              <span className="text-[10px] tabular-nums" style={{ color: theme.faint }}>{duration > 0 ? fmt(duration) : "--:--"}</span>
             </div>
           </div>
         )}
@@ -272,7 +299,8 @@ export default function FullScreenPlayer() {
 
           <button
             onClick={() => skip(-10)}
-            className="flex flex-col items-center gap-0.5 text-white/40 active:text-white/70 transition-colors touch-manipulation"
+            className="flex flex-col items-center gap-0.5 active:text-white/70 transition-colors touch-manipulation"
+            style={{ color: theme.muted }}
           >
             <SkipBackIcon />
             <span className="text-[9px] tracking-wider">10s</span>
@@ -281,14 +309,15 @@ export default function FullScreenPlayer() {
           <button
             onClick={handleTogglePlay}
             className="w-16 h-16 rounded-full flex items-center justify-center active:scale-95 transition-transform touch-manipulation"
-            style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.18)" }}
+            style={{ background: theme.playBg, border: theme.playBorder, color: isFavourite ? "rgba(201,165,90,0.9)" : undefined }}
           >
             {isPlaying ? <PauseIcon size={22} /> : <PlayIcon size={22} />}
           </button>
 
           <button
             onClick={() => skip(10)}
-            className="flex flex-col items-center gap-0.5 text-white/40 active:text-white/70 transition-colors touch-manipulation"
+            className="flex flex-col items-center gap-0.5 active:text-white/70 transition-colors touch-manipulation"
+            style={{ color: theme.muted }}
           >
             <SkipFwdIcon />
             <span className="text-[9px] tracking-wider">10s</span>
@@ -296,7 +325,8 @@ export default function FullScreenPlayer() {
 
           <button
             onClick={restart}
-            className="flex flex-col items-center gap-0.5 text-white/35 active:text-white/70 transition-colors touch-manipulation"
+            className="flex flex-col items-center gap-0.5 active:text-white/70 transition-colors touch-manipulation"
+            style={{ color: theme.faint }}
           >
             <RestartIcon />
             <span className="text-[9px] tracking-wider">start</span>
@@ -305,7 +335,10 @@ export default function FullScreenPlayer() {
 
         {/* Tag edit panel */}
         {tagEditOpen && rhythm && (
-          <div className="mb-3 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 flex flex-col gap-2">
+          <div
+            className="mb-3 rounded-2xl border px-4 py-3 flex flex-col gap-2"
+            style={{ borderColor: theme.actionBorder, background: theme.actionBg }}
+          >
             <div className="flex flex-wrap gap-1.5 items-center">
               {tags.map((tag) => (
                 <button
@@ -337,15 +370,15 @@ export default function FullScreenPlayer() {
 
         {/* Action buttons — primary only */}
         {rhythm && (
-          <div className="flex border border-white/[0.07] rounded-2xl overflow-hidden bg-white/[0.02]">
-            <ActionBtn onClick={handleShare} icon="↗" label={shareToast ? "Copied!" : "Share"} active={shareToast} />
+          <div className="flex border rounded-2xl overflow-hidden" style={{ borderColor: theme.actionBorder, background: theme.actionBg }}>
+            <ActionBtn onClick={handleShare} icon="↗" label={shareToast ? "Copied!" : "Share"} active={shareToast} gold={isFavourite} />
             {(rhythm.status === "active" || rhythm.status === "new") && (
               <ActionBtn onClick={handleGraduate} icon="☆" label="Add to Favs" />
             )}
             {rhythm.status === "favourite" && (
               <ActionBtn onClick={handleUngraduate} icon="★" label="Unfavourite" gold />
             )}
-            <ActionBtn onClick={() => setMoreOpen(true)} icon="···" label="More" />
+            <ActionBtn onClick={() => setMoreOpen(true)} icon="···" label="More" gold={isFavourite} />
           </div>
         )}
 
@@ -424,12 +457,14 @@ function FullLyricsView({
   duration,
   isPlaying,
   timedLyrics,
+  gold,
 }: {
   lyrics: string;
   currentTime: number;
   duration: number;
   isPlaying: boolean;
   timedLyrics?: TimedWord[];
+  gold?: boolean;
 }) {
   const lines = lyrics
     .split("\n")
@@ -514,7 +549,10 @@ function FullLyricsView({
   return (
     <div className="px-6 py-6 flex flex-col gap-0.5">
       {timedLyrics && timedLyrics.length > 0 && (
-        <p className="text-[9px] uppercase tracking-widest text-white/15 mb-3 text-center">
+        <p
+          className="text-[9px] uppercase tracking-widest mb-3 text-center"
+          style={{ color: gold ? "rgba(201,165,90,0.22)" : "rgba(255,255,255,0.15)" }}
+        >
           Synced
         </p>
       )}
@@ -525,7 +563,7 @@ function FullLyricsView({
             <p
               key={i}
               className="text-[10px] uppercase tracking-widest mt-5 mb-2 first:mt-0"
-              style={{ color: "rgba(255,255,255,0.25)" }}
+              style={{ color: gold ? "rgba(201,165,90,0.38)" : "rgba(255,255,255,0.25)" }}
             >
               {line.replace(/^\[|\]$/g, "")}
             </p>
@@ -541,7 +579,9 @@ function FullLyricsView({
             ref={isCurrentLine ? currentRef : null}
             className="text-base leading-relaxed transition-all duration-300"
             style={{
-              color: isCurrentLine ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.38)",
+              color: isCurrentLine
+                ? gold ? "rgba(201,165,90,0.96)" : "rgba(255,255,255,0.95)"
+                : gold ? "rgba(201,165,90,0.46)" : "rgba(255,255,255,0.38)",
               fontWeight: isCurrentLine ? 500 : 400,
             }}
           >
@@ -557,7 +597,7 @@ function FullLyricsView({
 
 // ─── Seek bar ─────────────────────────────────────────────────────────────────
 
-function SeekBar({ currentTime, duration, onSeek }: { currentTime: number; duration: number; onSeek: (t: number) => void }) {
+function SeekBar({ currentTime, duration, onSeek, gold }: { currentTime: number; duration: number; onSeek: (t: number) => void; gold?: boolean }) {
   const barRef = useRef<HTMLDivElement>(null);
   const progress = duration > 0 ? currentTime / duration : 0;
 
@@ -582,10 +622,10 @@ function SeekBar({ currentTime, duration, onSeek }: { currentTime: number; durat
       onTouchStart={handleTouch}
       onTouchMove={handleTouch}
     >
-      <div className="w-full h-1 rounded-full relative overflow-hidden" style={{ background: "rgba(255,255,255,0.12)" }}>
+      <div className="w-full h-1 rounded-full relative overflow-hidden" style={{ background: gold ? "rgba(201,165,90,0.18)" : "rgba(255,255,255,0.12)" }}>
         <div
           className="h-full rounded-full transition-none"
-          style={{ width: `${progress * 100}%`, background: "rgba(255,255,255,0.55)" }}
+          style={{ width: `${progress * 100}%`, background: gold ? "rgba(201,165,90,0.64)" : "rgba(255,255,255,0.55)" }}
         />
       </div>
     </div>
@@ -622,7 +662,7 @@ function ActionBtn({
 
 function PlayIcon({ size = 18 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" className="text-white ml-0.5">
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" className="ml-0.5">
       <path d="M5 3.5L17 10L5 16.5V3.5Z" fill="currentColor" />
     </svg>
   );
@@ -630,16 +670,16 @@ function PlayIcon({ size = 18 }: { size?: number }) {
 
 function PauseIcon({ size = 18 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" className="text-white">
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none">
       <rect x="4" y="3" width="4" height="14" rx="1.5" fill="currentColor" />
       <rect x="12" y="3" width="4" height="14" rx="1.5" fill="currentColor" />
     </svg>
   );
 }
 
-function ChevronDownIcon() {
+function ChevronDownIcon({ color }: { color?: string }) {
   return (
-    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" className="text-white/60">
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" className={color ? undefined : "text-white/60"} style={color ? { color } : undefined}>
       <path d="M4 7L10 13L16 7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
@@ -672,9 +712,9 @@ function RestartIcon() {
   );
 }
 
-function LibraryIcon() {
+function LibraryIcon({ color }: { color?: string }) {
   return (
-    <svg width="16" height="16" viewBox="0 0 20 20" fill="none" className="text-white/60">
+    <svg width="16" height="16" viewBox="0 0 20 20" fill="none" className={color ? undefined : "text-white/60"} style={color ? { color } : undefined}>
       <rect x="3" y="4" width="4" height="13" rx="1.5" fill="currentColor" opacity="0.5" />
       <rect x="8.5" y="4" width="4" height="13" rx="1.5" fill="currentColor" opacity="0.75" />
       <rect x="14" y="4" width="4" height="13" rx="1.5" fill="currentColor" />
