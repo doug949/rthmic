@@ -16,7 +16,10 @@ function extractClips(node: unknown, depth = 0): Record<string, unknown>[] {
   if (depth > 5 || !node || typeof node !== "object") return [];
   if (Array.isArray(node)) {
     const first = node[0] as Record<string, unknown> | undefined;
-    if (first && (first.audio_url || first.stream_audio_url || first.id)) return node as Record<string, unknown>[];
+    if (first && (
+      first.audioUrl || first.sourceStreamAudioUrl || first.audio_url ||
+      first.source_stream_audio_url || first.streamAudioUrl || first.stream_audio_url || first.id
+    )) return node as Record<string, unknown>[];
     for (const item of node) {
       const found = extractClips(item, depth + 1);
       if (found.length > 0) return found;
@@ -24,7 +27,7 @@ function extractClips(node: unknown, depth = 0): Record<string, unknown>[] {
     return [];
   }
   const obj = node as Record<string, unknown>;
-  for (const key of ["clips", "data", "response", "songs", "results", "records"]) {
+  for (const key of ["clips", "sunoData", "data", "response", "songs", "results", "records"]) {
     if (obj[key]) {
       const found = extractClips(obj[key], depth + 1);
       if (found.length > 0) return found;
@@ -72,6 +75,11 @@ function describeShape(node: unknown, depth = 0): unknown {
 function inferSunoClipId(rhythm: SavedRhythm): string {
   if (rhythm.sunoClipId) return rhythm.sunoClipId;
   return rhythm.id.replace(/-\d+$/, "");
+}
+
+function clipMatches(clip: Record<string, unknown>, clipId: string): boolean {
+  if ([clip.id, clip.audioId, clip.songId, clip.clipId].some((v) => String(v ?? "") === clipId)) return true;
+  return Object.values(clip).some((v) => typeof v === "string" && v.includes(clipId));
 }
 
 function safeUrlLabel(rawUrl: string): string {
@@ -137,7 +145,7 @@ export async function GET(req: NextRequest) {
     const json = await sunoRes.json();
     const clips = extractClips(json);
     const clipId = inferSunoClipId(rhythm);
-    const clip = clips.find((c) => String(c.id ?? "") === clipId) ?? null;
+    const clip = clips.find((c) => clipMatches(c, clipId)) ?? null;
     const allResponseUrls = [...new Map(collectUrls(json).map((u) => [u.url, u])).values()];
     const responseUrlProbes = await Promise.all(allResponseUrls.map(async (entry) => ({
       path: entry.path,

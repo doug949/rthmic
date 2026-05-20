@@ -10,6 +10,11 @@ import { uploadAudioToWasabi } from "@/app/lib/wasabiUpload";
 
 const SUNO_BASE = "https://api.sunoapi.org/api/v1";
 
+function clipMatches(clip: Record<string, unknown>, clipId: string): boolean {
+  if ([clip.id, clip.audioId, clip.songId, clip.clipId].some((v) => String(v ?? "") === clipId)) return true;
+  return Object.values(clip).some((v) => typeof v === "string" && v.includes(clipId));
+}
+
 async function getFreshAudioUrl(rhythm: SavedRhythm): Promise<string | null> {
   if (!rhythm.sunoTaskId || !process.env.SUNO_API_KEY) return null;
   try {
@@ -25,14 +30,22 @@ async function getFreshAudioUrl(rhythm: SavedRhythm): Promise<string | null> {
       if (!node || typeof node !== "object") return;
       if (Array.isArray(node)) { node.forEach(walk); return; }
       const obj = node as Record<string, unknown>;
-      if (obj.audio_url || obj.stream_audio_url || obj.audioUrl || obj.url || obj.mp3_url) { clips.push(obj); return; }
+      if (
+        obj.audioUrl || obj.sourceStreamAudioUrl || obj.audio_url ||
+        obj.source_stream_audio_url || obj.streamAudioUrl || obj.stream_audio_url ||
+        obj.url || obj.mp3_url
+      ) { clips.push(obj); return; }
       Object.values(obj).forEach(walk);
     };
     walk(json);
     const clipId = rhythm.sunoClipId ?? rhythm.id.replace(/-\d+$/, "");
-    const clip = clips.find((c) => String(c.id ?? "") === clipId) ?? clips[0];
+    const clip = clips.find((c) => clipMatches(c, clipId)) ?? clips[0];
     if (!clip) return null;
-    const url = [clip.stream_audio_url, clip.audio_url, clip.audioUrl, clip.url, clip.mp3_url, clip.streamUrl, clip.stream_url]
+    const url = [
+      clip.audioUrl, clip.sourceStreamAudioUrl, clip.audio_url, clip.source_stream_audio_url,
+      clip.url, clip.mp3_url, clip.streamAudioUrl, clip.stream_audio_url,
+      clip.streamUrl, clip.stream_url,
+    ]
       .find((u) => typeof u === "string" && (u as string).startsWith("http"));
     return (url as string) ?? null;
   } catch {

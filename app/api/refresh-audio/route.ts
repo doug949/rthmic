@@ -15,11 +15,14 @@ function requireAuth(request: NextRequest): string | null {
 
 function getAudioUrl(clip: Record<string, unknown>): string | undefined {
   const candidates = [
-    clip.stream_audio_url,
+    clip.audioUrl,
+    clip.sourceStreamAudioUrl,
     clip.audio_url,
+    clip.source_stream_audio_url,
     clip.url,
     clip.mp3_url,
-    clip.audioUrl,
+    clip.streamAudioUrl,
+    clip.stream_audio_url,
     clip.streamUrl,
     clip.stream_url,
   ];
@@ -33,7 +36,10 @@ function extractClips(node: unknown, depth = 0): Record<string, unknown>[] {
   if (depth > 4 || !node || typeof node !== "object") return [];
   if (Array.isArray(node)) {
     const first = node[0] as Record<string, unknown> | undefined;
-    if (first && (first.audio_url || first.stream_audio_url || first.id)) return node as Record<string, unknown>[];
+    if (first && (
+      first.audioUrl || first.sourceStreamAudioUrl || first.audio_url ||
+      first.source_stream_audio_url || first.streamAudioUrl || first.stream_audio_url || first.id
+    )) return node as Record<string, unknown>[];
     for (const item of node) {
       const found = extractClips(item, depth + 1);
       if (found.length > 0) return found;
@@ -41,7 +47,7 @@ function extractClips(node: unknown, depth = 0): Record<string, unknown>[] {
     return [];
   }
   const obj = node as Record<string, unknown>;
-  for (const key of ["clips", "data", "response", "songs", "results", "records"]) {
+  for (const key of ["clips", "sunoData", "data", "response", "songs", "results", "records"]) {
     if (obj[key]) {
       const found = extractClips(obj[key], depth + 1);
       if (found.length > 0) return found;
@@ -54,6 +60,11 @@ function inferSunoClipId(rhythmId: string, rhythms: SavedRhythm[]): string {
   const rhythm = rhythms.find((r) => r.id === rhythmId);
   if (rhythm?.sunoClipId) return rhythm.sunoClipId;
   return rhythmId.replace(/-\d+$/, "");
+}
+
+function clipMatches(clip: Record<string, unknown>, clipId: string): boolean {
+  if ([clip.id, clip.audioId, clip.songId, clip.clipId].some((v) => String(v ?? "") === clipId)) return true;
+  return Object.values(clip).some((v) => typeof v === "string" && v.includes(clipId));
 }
 
 export async function GET(request: NextRequest) {
@@ -89,7 +100,7 @@ export async function GET(request: NextRequest) {
   }
 
   const clipId = inferSunoClipId(rhythmId, rhythms);
-  const clip = clips.find((c) => String(c.id ?? "") === clipId) ?? clips[0];
+  const clip = clips.find((c) => clipMatches(c, clipId)) ?? clips[0];
   const freshUrl = getAudioUrl(clip);
   if (!freshUrl) return NextResponse.json({ error: "No audio URL in clip" }, { status: 404 });
 
