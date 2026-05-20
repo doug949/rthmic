@@ -1062,10 +1062,11 @@ const PILLAR_GRID = [
   ...FOR_YOU_PILLARS.map((p) => ({
     slug: p.slug,
     label: p.label,
+    icon: p.icon ?? null,
     image: PILLAR_IMAGES[p.slug] ?? null,
     video: PILLAR_VIDEOS[p.slug] ?? null,
   })),
-  { slug: "auto", label: "Surprise me", image: PILLAR_IMAGES["auto"] ?? null, video: PILLAR_VIDEOS["auto"] ?? null },
+  { slug: "auto", label: "Surprise me", icon: null, image: PILLAR_IMAGES["auto"] ?? null, video: PILLAR_VIDEOS["auto"] ?? null },
 ];
 
 // ─── The Vault — coming-soon reflective pillars ───────────────────────────────
@@ -1281,16 +1282,13 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
                     className="absolute inset-0"
                     style={{ background: "linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.25) 55%, transparent 100%)" }}
                   />
-                  {p.slug === "auto" && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-white/20 text-2xl">?</span>
-                    </div>
-                  )}
                 </button>
 
-                {/* Label */}
-                <div className="absolute bottom-0 left-0 right-0 p-2 pointer-events-none">
-                  <p className="text-[10px] font-semibold text-white/90 leading-tight tracking-wide">{p.label}</p>
+                {/* Icon + Label centered at bottom */}
+                <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-1 pb-3 px-1 pointer-events-none">
+                  {p.icon && <span className="text-white/70" style={{ transform: "scale(0.75)", transformOrigin: "center" }}>{p.icon}</span>}
+                  {p.slug === "auto" && <span className="text-white/25 text-xl mb-0.5">?</span>}
+                  <p className="text-[10px] font-semibold text-white/90 leading-tight tracking-wide text-center">{p.label}</p>
                 </div>
 
               </div>
@@ -1655,7 +1653,7 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
           >
             <HlsVideo
               src={videoSrc}
-              controls
+              controls={false}
               onEnded={closeLightbox}
               className="w-full"
               style={{ display: "block", maxHeight: "70vh", objectFit: "cover" }}
@@ -1667,29 +1665,38 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
     <section className="flex-1 flex flex-col justify-between pb-10">
       <div className="flex-1 overflow-y-auto flex flex-col gap-6 py-6">
 
-        {/* Pillar badge + preview button */}
+        {/* Pillar badge */}
         {pillarDef && (
           <RevealBlock delay={0}>
-            <div className="flex items-center gap-3">
-              <span
-                className="self-start text-[10px] px-2.5 py-1 rounded-full uppercase tracking-widest font-medium"
-                style={{ background: "rgba(201,165,90,0.12)", color: "#c9a55a", border: "1px solid rgba(201,165,90,0.25)" }}
-              >
-                {pillarDef.label}
-              </span>
-              {videoSrc && (
-                <button
-                  onClick={openLightbox}
-                  className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest touch-manipulation active:opacity-60 transition-opacity"
-                  style={{ color: "rgba(255,255,255,0.3)" }}
+            <span
+              className="self-start text-[10px] px-2.5 py-1 rounded-full uppercase tracking-widest font-medium"
+              style={{ background: "rgba(201,165,90,0.12)", color: "#c9a55a", border: "1px solid rgba(201,165,90,0.25)" }}
+            >
+              {pillarDef.label}
+            </span>
+          </RevealBlock>
+        )}
+
+        {/* Thumbnail — tap to preview video */}
+        {videoSrc && pillar && PILLAR_IMAGES[pillar] && (
+          <RevealBlock delay={15}>
+            <button
+              onClick={openLightbox}
+              className="relative w-full rounded-2xl overflow-hidden touch-manipulation active:brightness-90 transition-all"
+              style={{ aspectRatio: "16/9", border: "1px solid rgba(255,255,255,0.08)" }}
+            >
+              <img src={PILLAR_IMAGES[pillar]} alt="Preview" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.18)" }}>
+                <div
+                  className="w-11 h-11 rounded-full flex items-center justify-center"
+                  style={{ background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.3)" }}
                 >
-                  <svg width="10" height="11" viewBox="0 0 10 11" fill="none">
-                    <path d="M2 1.5L8.5 5.5L2 9.5V1.5Z" fill="currentColor" />
+                  <svg width="13" height="15" viewBox="0 0 13 15" fill="none">
+                    <path d="M1.5 1.5L11.5 7.5L1.5 13.5V1.5Z" fill="white" />
                   </svg>
-                  Preview
-                </button>
-              )}
-            </div>
+                </div>
+              </div>
+            </button>
           </RevealBlock>
         )}
 
