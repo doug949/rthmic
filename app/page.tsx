@@ -236,7 +236,10 @@ function HomeTile({ tile }: { tile: typeof HOME_TILES[number]; delay?: number })
           src={tile.image}
           alt={tile.label}
           className="absolute inset-0 w-full h-full object-cover"
-          style={tile.imageScale ? { transform: `scale(${tile.imageScale})` } : undefined}
+          style={{
+            ...(tile.imageScale ? { transform: `scale(${tile.imageScale})` } : {}),
+            ...(tile.comingSoon ? { opacity: 0.3 } : {}),
+          }}
         />
       ) : (
         <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse at 60% 30%, ${tile.accent} 0%, transparent 70%)` }} />
@@ -262,7 +265,7 @@ function HomeTile({ tile }: { tile: typeof HOME_TILES[number]; delay?: number })
     </div>
   );
 
-  if (tile.comingSoon) return <div style={{ opacity: 0.35 }}>{inner}</div>;
+  if (tile.comingSoon) return <div>{inner}</div>;
   return <TransitionLink href={tile.href} className="active:opacity-70 transition-opacity block">{inner}</TransitionLink>;
 }
 
