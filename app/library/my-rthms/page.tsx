@@ -158,7 +158,10 @@ export default function MyRthmsPage() {
 
   const togglePlay = useCallback((rhythm: SavedRhythm) => {
     if (!rhythm.audioUrl) return;
-    handlePlayUrl(rhythm.id, rhythm.audioUrl, rhythm.title);
+    handlePlayUrl(rhythm.id, rhythm.audioUrl, rhythm.title, {
+      sunoTaskId: rhythm.sunoTaskId,
+      rhythmId: rhythm.id,
+    });
     if (rhythm.status === "new") {
       mutate({ action: "update", id: rhythm.id, status: "active" });
     }
@@ -245,12 +248,12 @@ export default function MyRthmsPage() {
               >
                 {/* Pulsing dot */}
                 <div className="flex-shrink-0 relative flex h-2.5 w-2.5">
-                  <span className="absolute inline-flex h-full w-full rounded-full animate-ping opacity-60" style={{ background: "rgba(255,255,255,0.3)" }} />
-                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full" style={{ background: "rgba(255,255,255,0.25)" }} />
+                  <span className="absolute inline-flex h-full w-full rounded-full animate-ping opacity-60" style={{ background: job.status === "generating" ? "rgba(109,40,217,0.8)" : "rgba(255,255,255,0.3)" }} />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full" style={{ background: job.status === "generating" ? "rgb(109,40,217)" : "rgba(255,255,255,0.25)" }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-white/60 truncate">{job.title}</p>
-                  <p className="text-[10px] uppercase tracking-wider text-white/25 mt-0.5">
+                  <p className="text-sm truncate" style={{ color: job.status === "generating" ? "rgb(167,139,250)" : "rgba(255,255,255,0.6)" }}>{job.title}</p>
+                  <p className="text-[10px] uppercase tracking-wider mt-0.5" style={{ color: job.status === "generating" ? "rgb(139,92,246)" : "rgba(255,255,255,0.25)" }}>
                     {job.status === "generating" ? "Generating…" : "Queued"} · {job.pillar}
                   </p>
                 </div>

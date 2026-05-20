@@ -24,7 +24,7 @@ interface AudioContextValue {
   /** Play a library track via signed URL fetch from /api/stream */
   handlePlay: (trackId: string, audioKey: string) => Promise<void>;
   /** Play any song via a direct audio URL (Suno-generated, share page, etc.) */
-  handlePlayUrl: (id: string, url: string, title?: string) => Promise<void>;
+  handlePlayUrl: (id: string, url: string, title?: string, meta?: { sunoTaskId?: string; rhythmId?: string }) => Promise<void>;
   /** Toggle play/pause for the currently loaded track (no URL needed) */
   togglePlayPause: () => void;
   /** Stop playback and clear state */
@@ -47,9 +47,10 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   const [duration, setDuration]             = useState(0);
   const [playerOpen, setPlayerOpen]         = useState(false);
 
-  const audioRef      = useRef<HTMLAudioElement | null>(null);
-  const generationRef = useRef(0);
-  const rafRef        = useRef<number | null>(null);
+  const audioRef         = useRef<HTMLAudioElement | null>(null);
+  const generationRef    = useRef(0);
+  const rafRef           = useRef<number | null>(null);
+  const attachAndPlayRef = useRef<((id: string, url: string, generation: number, meta?: { sunoTaskId?: string; rhythmId?: string }) => void) | null>(null);
 
   const openPlayer  = useCallback(() => setPlayerOpen(true),  []);
   const closePlayer = useCallback(() => setPlayerOpen(false), []);
@@ -74,7 +75,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   }, [stopCurrent]);
 
   const attachAndPlay = useCallback(
-    (id: string, url: string, generation: number) => {
+    (id: string, url: string, generation: number, meta?: { sunoTaskId?: string; rhythmId?: string }) => {
       if (generation !== generationRef.current) return;
 
       setLoadingId(null);
@@ -103,10 +104,27 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         audio.play().catch(() => setIsPlaying(false));
       });
 
-      // Catch expired / unreachable URLs — stop silently failing
-      audio.addEventListener("error", () => {
+      // Catch expired / unreachable URLs — auto-refresh Suno CDN URLs, otherwise stop
+      audio.addEventListener("error", async () => {
         if (generation !== generationRef.current) return;
         console.warn("Audio error:", audio.error?.code, audio.error?.message);
+
+        if (meta?.sunoTaskId && meta?.rhythmId) {
+          try {
+            const res = await fetch(
+              `/api/refresh-audio?taskId=${encodeURIComponent(meta.sunoTaskId)}&id=${encodeURIComponent(meta.rhythmId)}`
+            );
+            if (res.ok) {
+              const { url: freshUrl } = await res.json();
+              const freshGen = ++generationRef.current;
+              attachAndPlayRef.current?.(id, freshUrl, freshGen, meta);
+              return;
+            }
+          } catch {
+            console.warn("Audio refresh failed");
+          }
+        }
+
         setIsPlaying(false);
         setLoadingId(null);
       });
@@ -120,6 +138,9 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     },
     []
   );
+
+  // Keep the ref current so the error handler can call attachAndPlay without a stale closure
+  attachAndPlayRef.current = attachAndPlay;
 
   const handlePlay = useCallback(
     async (trackId: string, audioKey: string) => {
@@ -152,7 +173,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   );
 
   const handlePlayUrl = useCallback(
-    async (id: string, url: string, title?: string) => {
+    async (id: string, url: string, title?: string, meta?: { sunoTaskId?: string; rhythmId?: string }) => {
       if (currentTrackId === id) {
         if (isPlaying) {
           audioRef.current?.pause();
@@ -174,7 +195,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       setIsPlaying(false);
       setPlayerOpen(true); // auto-open full-screen player
 
-      attachAndPlay(id, url, generation);
+      attachAndPlay(id, url, generation, meta);
     },
     [currentTrackId, isPlaying, stopCurrent, attachAndPlay]
   );
