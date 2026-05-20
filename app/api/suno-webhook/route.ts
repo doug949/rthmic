@@ -9,6 +9,7 @@ import {
   USERS_KEY, userQueueKey, withRedisQueue,
 } from "@/app/lib/queueLib";
 import type { SavedRhythm } from "@/app/api/library/route";
+import { uploadAudioToWasabi } from "@/app/lib/wasabiUpload";
 
 type SunoClip = Record<string, unknown>;
 
@@ -117,17 +118,19 @@ export async function POST(req: NextRequest) {
         return;
       }
 
-      // Save up to 2 clips to library
+      // Save up to 2 clips to library, then upload audio to Wasabi
       const toSave = clips.slice(0, 2);
       for (let i = 0; i < toSave.length; i++) {
         const clip = toSave[i];
         const rawClipId = String(clip.id ?? "");
         const baseTitle = String(clip.title ?? job.title);
+        const clipAudioUrl = getAudioUrl(clip)!;
+        const rhythmId = `${rawClipId || "suno"}-${i}`;
         const rhythm: SavedRhythm = {
-          id: `${rawClipId || "suno"}-${i}`,
+          id: rhythmId,
           title: i === 0 ? baseTitle : `${baseTitle} (Variation)`,
           pillar: job.pillar,
-          audioUrl: getAudioUrl(clip)!,
+          audioUrl: clipAudioUrl,
           lyrics: job.lyrics,
           sunoClipId: rawClipId || undefined,
           sunoTaskId: taskId,
@@ -137,6 +140,27 @@ export async function POST(req: NextRequest) {
         };
         await saveToLibrary(client, job.userId, rhythm);
         console.log(`[webhook] saved ${rhythm.id} ("${rhythm.title}") for user ${job.userId}`);
+
+        // Upload audio to Wasabi — best-effort, updates Redis with audioKey if successful
+        const wasabiKey = `rhythms/${job.userId}/${rhythmId}.mp3`;
+        uploadAudioToWasabi(clipAudioUrl, wasabiKey)
+          .then(async () => {
+            try {
+              const libKey = `lib:${job.userId}`;
+              const raw2 = await client.get(libKey);
+              if (!raw2) return;
+              const all: SavedRhythm[] = JSON.parse(raw2);
+              const idx = all.findIndex((r) => r.id === rhythmId);
+              if (idx !== -1) {
+                all[idx].audioKey = wasabiKey;
+                await client.set(libKey, JSON.stringify(all));
+                console.log(`[webhook] Wasabi upload done: ${wasabiKey}`);
+              }
+            } catch (e) {
+              console.warn(`[webhook] Wasabi Redis patch failed for ${rhythmId}:`, e);
+            }
+          })
+          .catch((e) => console.warn(`[webhook] Wasabi upload failed for ${rhythmId}:`, e));
       }
 
       // Mark job done and clean up

@@ -266,10 +266,10 @@ export default function MyRthmsPage() {
         {newRthms.length > 0 && (
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2 px-1">
-              <span className="text-[10px] uppercase tracking-widest text-white/35">New</span>
+              <span className="text-[10px] uppercase tracking-widest" style={{ color: "rgb(139,92,246)" }}>New</span>
               <span
                 className="inline-flex items-center justify-center text-[9px] font-semibold rounded-full px-1.5 py-0.5 leading-none"
-                style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)" }}
+                style={{ background: "rgba(109,40,217,0.2)", color: "rgb(167,139,250)" }}
               >
                 {newRthms.length}
               </span>
@@ -300,6 +300,7 @@ export default function MyRthmsPage() {
                   <div style={selectMode ? { paddingLeft: 36, opacity: isSelected ? 1 : 0.5, transition: "opacity 150ms" } : {}}>
                     <RhythmRow
                       rhythm={rhythm}
+                      isNew
                       playing={currentTrackId === rhythm.id && isPlaying}
                       currentTime={currentTrackId === rhythm.id ? currentTime : 0}
                       duration={currentTrackId === rhythm.id ? duration : 0}

@@ -7,6 +7,7 @@ export const maxDuration = 30;
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "redis";
 import type { SavedRhythm } from "@/app/api/library/route";
+import { getWasabiSignedUrl } from "@/app/lib/wasabiUpload";
 
 const BASE_URL = "https://api.sunoapi.org/api/v1";
 
@@ -87,10 +88,20 @@ export async function GET(request: NextRequest) {
     } catch { /* fall through */ }
   }
 
-  if (!rhythm?.audioUrl) return new NextResponse("Not found", { status: 404 });
+  if (!rhythm?.audioUrl && !rhythm?.audioKey) return new NextResponse("Not found", { status: 404 });
 
-  // Try to get a fresh URL from Suno; fall back to stored URL
-  const audioUrl = (await getFreshUrl(rhythm)) ?? rhythm.audioUrl;
+  // Prefer permanent Wasabi storage; fall back to fresh Suno URL or stored URL
+  let audioUrl: string;
+  if (rhythm.audioKey) {
+    try {
+      audioUrl = await getWasabiSignedUrl(rhythm.audioKey);
+    } catch (e) {
+      console.warn("[proxy-audio] Wasabi signed URL failed, falling back:", e);
+      audioUrl = (await getFreshUrl(rhythm)) ?? rhythm.audioUrl ?? "";
+    }
+  } else {
+    audioUrl = (await getFreshUrl(rhythm)) ?? rhythm.audioUrl ?? "";
+  }
 
   // Pipe the audio through — pass through Range headers for seek support
   const range = request.headers.get("range");

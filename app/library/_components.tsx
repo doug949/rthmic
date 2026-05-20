@@ -31,6 +31,7 @@ export function RhythmRow({
   shareToast,
   dimmed,
   favourite,
+  isNew,
 }: {
   rhythm: SavedRhythm;
   playing: boolean;
@@ -51,8 +52,23 @@ export function RhythmRow({
   shareToast?: boolean;
   dimmed?: boolean;
   favourite?: boolean;
+  isNew?: boolean;
 }) {
-  const canPlay = !!rhythm.audioUrl;
+  // colour theme — priority: favourite > isNew > default
+  const P = isNew && !favourite ? {
+    border:      (active: boolean) => active ? "rgba(139,92,246,0.45)"  : "rgba(109,40,217,0.28)",
+    bg:          (active: boolean) => active ? "rgba(109,40,217,0.10)"  : "rgba(109,40,217,0.05)",
+    btnBorder:   (active: boolean) => active ? "rgba(139,92,246,0.55)"  : "rgba(109,40,217,0.35)",
+    btnBg:       (active: boolean) => active ? "rgba(109,40,217,0.30)"  : "rgba(109,40,217,0.12)",
+    icon:    "rgb(167,139,250)",
+    title:   "rgb(167,139,250)",
+    sub:     "rgb(139,92,246)",
+    bar:     "rgba(109,40,217,0.18)",
+    barFill: "rgba(139,92,246,0.6)",
+    divider: "rgba(109,40,217,0.18)",
+    action:  "rgba(167,139,250,0.75)",
+  } : null;
+  const canPlay = !!rhythm.audioUrl || !!rhythm.audioKey;
   const mayBeExpired = Date.now() - rhythm.savedAt > 20 * 60 * 60 * 1000;
   const { isCached, cacheTrack, caching } = useOfflineAudio(rhythm.audioUrl);
   const [tagEditOpen, setTagEditOpen] = useState(false);
@@ -85,6 +101,8 @@ export function RhythmRow({
       style={
         favourite
           ? { background: playing ? "rgba(201,165,90,0.07)" : "rgba(201,165,90,0.03)", borderColor: playing ? "rgba(201,165,90,0.35)" : "rgba(201,165,90,0.15)" }
+          : P
+          ? { background: P.bg(playing), borderColor: P.border(playing) }
           : { background: playing ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.03)", borderColor: playing ? "rgba(255,255,255,0.20)" : "rgba(255,255,255,0.08)" }
       }
     >
@@ -99,23 +117,25 @@ export function RhythmRow({
           style={
             favourite
               ? { background: playing ? "rgba(201,165,90,0.25)" : "rgba(201,165,90,0.08)", borderColor: playing ? "rgba(201,165,90,0.5)" : "rgba(201,165,90,0.2)" }
+              : P
+              ? { background: P.btnBg(playing), borderColor: P.btnBorder(playing) }
               : { background: playing ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.06)", borderColor: playing ? "rgba(255,255,255,0.30)" : "rgba(255,255,255,0.10)" }
           }
         >
           {playing
-            ? <PauseIcon color={favourite ? "rgba(201,165,90,0.9)" : "white"} />
-            : <PlayIcon  color={favourite ? "rgba(201,165,90,0.9)" : "white"} />
+            ? <PauseIcon color={favourite ? "rgba(201,165,90,0.9)" : P ? P.icon : "white"} />
+            : <PlayIcon  color={favourite ? "rgba(201,165,90,0.9)" : P ? P.icon : "white"} />
           }
         </div>
         <div className="flex-1 min-w-0">
           <p
-            className={`text-sm font-semibold leading-snug ${playing ? "text-white" : favourite ? "" : "text-white/75"}`}
-            style={!playing && favourite ? { color: "rgba(201,165,90,0.9)" } : undefined}
+            className={`text-sm font-semibold leading-snug ${playing ? "text-white" : favourite || P ? "" : "text-white/75"}`}
+            style={playing ? undefined : favourite ? { color: "rgba(201,165,90,0.9)" } : P ? { color: P.title } : undefined}
           >
             {rhythm.title}
           </p>
           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-            <span className="text-[10px] uppercase tracking-wider" style={{ color: favourite ? "rgba(201,165,90,0.6)" : "rgba(255,255,255,0.5)" }}>{rhythm.pillar}</span>
+            <span className="text-[10px] uppercase tracking-wider" style={{ color: favourite ? "rgba(201,165,90,0.6)" : P ? P.sub : "rgba(255,255,255,0.5)" }}>{rhythm.pillar}</span>
             {mayBeExpired && !playing && canPlay && (
               <span className="text-[10px] uppercase tracking-wider" style={{ color: favourite ? "rgba(201,165,90,0.5)" : "rgba(255,255,255,0.5)" }}>· may have expired</span>
             )}
@@ -136,12 +156,12 @@ export function RhythmRow({
       {/* Progress bar */}
       {playing && duration > 0 && (
         <div className="px-5 pb-3">
-          <div className="h-[3px] rounded-full" style={{ background: favourite ? "rgba(201,165,90,0.15)" : "rgba(255,255,255,0.1)" }}>
-            <div className="h-full rounded-full" style={{ width: `${(currentTime / duration) * 100}%`, background: favourite ? "rgba(201,165,90,0.5)" : "rgba(255,255,255,0.4)" }} />
+          <div className="h-[3px] rounded-full" style={{ background: favourite ? "rgba(201,165,90,0.15)" : P ? P.bar : "rgba(255,255,255,0.1)" }}>
+            <div className="h-full rounded-full" style={{ width: `${(currentTime / duration) * 100}%`, background: favourite ? "rgba(201,165,90,0.5)" : P ? P.barFill : "rgba(255,255,255,0.4)" }} />
           </div>
           <div className="flex justify-between mt-1">
-            <span className="text-xs tabular-nums" style={{ color: favourite ? "rgba(201,165,90,0.5)" : "rgba(255,255,255,0.5)" }}>{fmt(currentTime)}</span>
-            <span className="text-xs tabular-nums" style={{ color: favourite ? "rgba(201,165,90,0.5)" : "rgba(255,255,255,0.5)" }}>{fmt(duration)}</span>
+            <span className="text-xs tabular-nums" style={{ color: favourite ? "rgba(201,165,90,0.5)" : P ? P.sub : "rgba(255,255,255,0.5)" }}>{fmt(currentTime)}</span>
+            <span className="text-xs tabular-nums" style={{ color: favourite ? "rgba(201,165,90,0.5)" : P ? P.sub : "rgba(255,255,255,0.5)" }}>{fmt(duration)}</span>
           </div>
         </div>
       )}
@@ -217,15 +237,15 @@ export function RhythmRow({
       )}
 
       {/* Action bar — primary actions only */}
-      <div className="flex" style={{ borderTop: `1px solid ${favourite ? "rgba(201,165,90,0.12)" : "rgba(255,255,255,0.06)"}` }}>
-        <SmallBtn onClick={onShare} label={shareToast ? "Copied!" : "Share"} sublabel={shareToast ? "Link ready" : "Send link"} icon="↗" active={shareToast} gold={favourite} />
+      <div className="flex" style={{ borderTop: `1px solid ${favourite ? "rgba(201,165,90,0.12)" : P ? P.divider : "rgba(255,255,255,0.06)"}` }}>
+        <SmallBtn onClick={onShare} label={shareToast ? "Copied!" : "Share"} sublabel={shareToast ? "Link ready" : "Send link"} icon="↗" active={shareToast} gold={favourite} purple={!!P} />
         {onGraduate && (
-          <SmallBtn onClick={onGraduate} label="Add to Favs" icon="☆" />
+          <SmallBtn onClick={onGraduate} label="Add to Favs" icon="☆" purple={!!P} />
         )}
         {onUngraduate && (
           <SmallBtn onClick={onUngraduate} label="Unfavourite" icon="★" gold />
         )}
-        <SmallBtn onClick={() => setMoreOpen(true)} label="More" icon="···" gold={favourite} />
+        <SmallBtn onClick={() => setMoreOpen(true)} label="More" icon="···" gold={favourite} purple={!!P} />
       </div>
 
       {/* Overflow bottom sheet */}
@@ -488,9 +508,9 @@ export function MoreSheet({ title, onClose, items }: { title: string; onClose: (
 
 // ─── SmallBtn ─────────────────────────────────────────────────────────────────
 
-export function SmallBtn({ onClick, label, sublabel, icon, danger, confirming, active, gold }: {
+export function SmallBtn({ onClick, label, sublabel, icon, danger, confirming, active, gold, purple }: {
   onClick: () => void; label: string; sublabel?: string; icon: string;
-  danger?: boolean; confirming?: boolean; active?: boolean; gold?: boolean;
+  danger?: boolean; confirming?: boolean; active?: boolean; gold?: boolean; purple?: boolean;
 }) {
   return (
     <button
@@ -498,10 +518,10 @@ export function SmallBtn({ onClick, label, sublabel, icon, danger, confirming, a
       className={`flex-1 flex flex-col items-center gap-1 py-3 touch-manipulation transition-colors
         ${confirming ? "text-red-400/90"
           : danger ? "text-white/45 hover:text-red-400/80"
-          : gold ? ""
+          : gold || purple ? ""
           : active ? "text-white/80"
           : "text-white/55 hover:text-white/75"}`}
-      style={gold ? { color: "rgba(201,165,90,0.75)" } : undefined}
+      style={gold ? { color: "rgba(201,165,90,0.75)" } : purple ? { color: "rgba(167,139,250,0.75)" } : undefined}
     >
       <span className="text-base leading-none">{icon}</span>
       <span className="uppercase tracking-wider text-[10px] font-medium">{label}</span>

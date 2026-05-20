@@ -14,6 +14,7 @@ import {
 import type { QueueJob } from "@/app/lib/queueLib";
 import type { SavedRhythm } from "@/app/api/library/route";
 import type { Song, TimedWord } from "@/app/types/pipeline";
+import { uploadAudioToWasabi } from "@/app/lib/wasabiUpload";
 
 export const maxDuration = 60;
 
@@ -122,6 +123,29 @@ async function pollJob(
     };
     await saveToLibrary(client, job.userId, rhythm);
     console.log(`[queue] saved ${rhythm.id} (${rhythm.title}) for user ${job.userId}`);
+
+    // Upload audio to Wasabi — fire and forget, patches audioKey into Redis when done
+    if (song.audioUrl) {
+      const wasabiKey = `rhythms/${job.userId}/${song.id}.mp3`;
+      uploadAudioToWasabi(song.audioUrl, wasabiKey)
+        .then(async () => {
+          try {
+            const libKey2 = `lib:${job.userId}`;
+            const raw2 = await client.get(libKey2);
+            if (!raw2) return;
+            const all: SavedRhythm[] = JSON.parse(raw2);
+            const idx = all.findIndex((r) => r.id === song.id);
+            if (idx !== -1) {
+              all[idx].audioKey = wasabiKey;
+              await client.set(libKey2, JSON.stringify(all));
+              console.log(`[queue] Wasabi upload done: ${wasabiKey}`);
+            }
+          } catch (e) {
+            console.warn(`[queue] Wasabi Redis patch failed for ${song.id}:`, e);
+          }
+        })
+        .catch((e) => console.warn(`[queue] Wasabi upload failed for ${song.id}:`, e));
+    }
 
     // Best-effort timed lyrics — fire and forget
     if (song.sunoClipId && song.sunoTaskId) {

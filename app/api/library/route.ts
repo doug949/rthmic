@@ -30,6 +30,7 @@ export interface SavedRhythm {
   sunoClipId?: string;      // raw Suno clip ID (audioId) for timed-lyrics API
   sunoTaskId?: string;      // Suno task ID — required alongside audioId to fetch timed lyrics
   timedLyrics?: TimedWord[]; // word-level synchronized lyric data from Suno
+  audioKey?: string;        // Wasabi S3 key — present once audio is permanently stored
 }
 
 const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
