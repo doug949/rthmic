@@ -19,6 +19,7 @@ export default function Home() {
   const [refreshing, setRefreshing] = useState(false);
   const [clearingQueue, setClearingQueue] = useState(false);
   const [queueCleared, setQueueCleared] = useState<number | null>(null);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     const match = document.cookie.match(/(?:^|;\s*)rthmic_code=([^;]+)/);
@@ -27,6 +28,18 @@ export default function Home() {
       .then((r) => r.json())
       .then((d) => { if (d.name) setUserName(d.name); })
       .catch(() => {});
+  }, []);
+
+  // Wait for all resources (images) to load, then settle 300ms before animating
+  useEffect(() => {
+    let t: ReturnType<typeof setTimeout>;
+    const go = () => { t = setTimeout(() => setReady(true), 300); };
+    if (document.readyState === "complete") {
+      go();
+    } else {
+      window.addEventListener("load", go, { once: true });
+    }
+    return () => { clearTimeout(t); window.removeEventListener("load", go); };
   }, []);
 
   const handleClearQueue = async () => {
@@ -67,7 +80,7 @@ export default function Home() {
   };
 
   return (
-    <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ animation: "page-enter 1800ms cubic-bezier(0.16,1,0.3,1) forwards" }}>
+    <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ opacity: ready ? undefined : 0, animation: ready ? "page-enter 1800ms cubic-bezier(0.16,1,0.3,1) both" : undefined }}>
       {/* Wordmark + hamburger */}
       <header className="relative pt-6 pb-3">
         <h1 className="text-3xl tracking-[0.18em] uppercase" style={{ fontFamily: "var(--font-display)", fontWeight: 300, color: "#c9a55a" }}>
@@ -108,13 +121,14 @@ export default function Home() {
         {/* ── tile grid — rows glide in one after another ── */}
         <div className="grid grid-cols-2 gap-1.5 pb-4">
           {HOME_TILES.map((tile, i) => {
-            // Rows start at 300ms then each row overlaps the previous by ~120ms into its 520ms animation
-            const rowDelay = 900 + Math.floor(i / 2) * 420;
+            // Each row starts 1100ms after the previous (duration 1400ms) — small 300ms tail overlap
+            const rowDelay = Math.floor(i / 2) * 1100;
             return (
               <div
                 key={tile.label}
                 style={{
-                  animation: `tile-enter 1560ms cubic-bezier(0.16,1,0.3,1) ${rowDelay}ms both`,
+                  opacity: ready ? undefined : 0,
+                  animation: ready ? `tile-enter 1400ms cubic-bezier(0.16,1,0.3,1) ${rowDelay}ms both` : undefined,
                 }}
               >
                 <HomeTile tile={tile} />
