@@ -156,29 +156,12 @@ export default function MyRthmsPage() {
     exitSelectMode();
   };
 
-  const togglePlay = useCallback(async (rhythm: SavedRhythm) => {
+  const togglePlay = useCallback((rhythm: SavedRhythm) => {
     if (!rhythm.audioUrl) return;
-
-    // Always fetch a fresh Suno URL before playing — CDN links expire within hours
-    let playUrl = rhythm.audioUrl;
-    if (rhythm.sunoTaskId) {
-      try {
-        const res = await fetch(
-          `/api/refresh-audio?taskId=${encodeURIComponent(rhythm.sunoTaskId)}&id=${encodeURIComponent(rhythm.id)}`
-        );
-        if (res.ok) {
-          const { url } = await res.json();
-          playUrl = url;
-        }
-      } catch {
-        // fall back to stored URL
-      }
-    }
-
-    handlePlayUrl(rhythm.id, playUrl, rhythm.title, {
-      sunoTaskId: rhythm.sunoTaskId,
-      rhythmId: rhythm.id,
-    });
+    // Route through our proxy — fetches a fresh Suno URL server-side and pipes
+    // the audio back so iOS never has to handle expired CDN links directly.
+    const proxyUrl = `/api/proxy-audio?id=${encodeURIComponent(rhythm.id)}`;
+    handlePlayUrl(rhythm.id, proxyUrl, rhythm.title);
     if (rhythm.status === "new") {
       mutate({ action: "update", id: rhythm.id, status: "active" });
     }
