@@ -1056,10 +1056,12 @@ function cfThumb(id: string) { return `https://${CF_CUSTOMER}/${id}/thumbnails/t
 function cfHls(id: string)   { return `https://${CF_CUSTOMER}/${id}/manifest/video.m3u8`; }
 
 const CF_IDS: Record<string, string> = {
-  default:  "2e1d19d0dc33f42e7031bf59e9d1f586",
-  movement: "ffa96f93e7048b669defa6cc27aba93a",
-  mode:     "d56a1fa7c5f67801269d123a7c8655d5",
-  mindset:  "74617a6612c0b3f71125e948496281bf",
+  default:     "2e1d19d0dc33f42e7031bf59e9d1f586",
+  movement:    "ffa96f93e7048b669defa6cc27aba93a",
+  mode:        "d56a1fa7c5f67801269d123a7c8655d5",
+  mindset:     "74617a6612c0b3f71125e948496281bf",
+  menus:       "2196630801f603d5a4e81913b7f2b154",
+  booksummary: "2e1d19d0dc33f42e7031bf59e9d1f586",
 };
 
 const ALL_PILLAR_SLUGS = [...FOR_YOU_PILLARS.map((p) => p.slug), "auto"];
