@@ -77,7 +77,7 @@ export default function Home() {
           music to live by
         </p>
         {(userName || userCode) && (
-          <p className="text-xs mt-2 font-light" style={{ color: "rgba(255,255,255,0.45)", letterSpacing: "0.02em" }}>
+          <p className="text-xs mt-2 font-light" style={{ color: "rgba(255,255,255,0.85)", letterSpacing: "0.02em" }}>
             {greeting()}{userName ? `, ${userName}` : ""}
           </p>
         )}
