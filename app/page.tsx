@@ -71,7 +71,7 @@ export default function Home() {
     <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ animation: "page-enter 380ms ease forwards" }}>
       {/* Wordmark + hamburger */}
       <RevealBlock delay={0}>
-        <header className="relative pt-10 pb-6">
+        <header className="relative pt-6 pb-3">
           <h1 className="text-3xl tracking-[0.4em] uppercase" style={{ fontFamily: "var(--font-display)", fontWeight: 300, color: "#c9a55a" }}>
             {"RTHMIC".split("").map((letter, i) => (
               <span
@@ -88,7 +88,7 @@ export default function Home() {
             ))}
           </h1>
           <p className="text-xs mt-1.5 tracking-widest uppercase" style={{ color: "#c9a55a", opacity: 0.6 }}>
-            Rthm-based action
+            music to change your mind
           </p>
           {(userName || userCode) && (
             <p className="text-sm mt-4 font-light" style={{ color: "rgba(255,255,255,0.55)", letterSpacing: "0.02em" }}>
