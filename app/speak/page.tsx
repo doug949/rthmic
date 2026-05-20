@@ -1550,7 +1550,13 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
 
 // ─── Priming ──────────────────────────────────────────────────────────────────
 
-function HlsVideo({ src, className, style }: { src: string; className?: string; style?: React.CSSProperties }) {
+function HlsVideo({ src, className, style, controls = true, onEnded }: {
+  src: string;
+  className?: string;
+  style?: React.CSSProperties;
+  controls?: boolean;
+  onEnded?: () => void;
+}) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -1577,7 +1583,8 @@ function HlsVideo({ src, className, style }: { src: string; className?: string; 
     <video
       ref={videoRef}
       playsInline
-      controls
+      controls={controls}
+      onEnded={onEnded}
       className={className}
       style={style}
     />
@@ -1616,23 +1623,54 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
   }
 
   const videoSrc = pillar ? PILLAR_VIDEOS[pillar] ?? null : null;
+  const [videoOverlay, setVideoOverlay] = useState(!!videoSrc);
+  const [videoExiting, setVideoExiting] = useState(false);
+
+  const dismissVideo = () => {
+    setVideoExiting(true);
+    setTimeout(() => setVideoOverlay(false), 420);
+  };
 
   return (
+    <>
+      {/* ── Fullscreen video overlay ── */}
+      {videoOverlay && videoSrc && (
+        <div
+          className="fixed inset-0 z-40 flex flex-col bg-black"
+          style={{
+            opacity: videoExiting ? 0 : 1,
+            transform: videoExiting ? "translateY(32px)" : "translateY(0)",
+            transition: "opacity 420ms ease, transform 420ms ease",
+          }}
+          onClick={dismissVideo}
+        >
+          <HlsVideo
+            src={videoSrc}
+            controls={false}
+            onEnded={dismissVideo}
+            className="w-full h-full"
+            style={{ objectFit: "cover", display: "block" }}
+          />
+          {/* Continue button */}
+          <div
+            className="absolute bottom-0 left-0 right-0 flex flex-col items-center pb-safe"
+            style={{ background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%)", paddingBottom: "max(env(safe-area-inset-bottom), 32px)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={dismissVideo}
+              className="px-8 py-3.5 rounded-full text-sm font-semibold tracking-wide touch-manipulation active:scale-95 transition-transform"
+              style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.25)", color: "rgba(255,255,255,0.9)" }}
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+      )}
+
     <section className="flex-1 flex flex-col justify-between pb-10">
       <div className="flex-1 overflow-y-auto flex flex-col gap-6 py-6">
 
-        {/* Video preview */}
-        {videoSrc && (
-          <RevealBlock delay={0}>
-            <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.08)" }}>
-              <HlsVideo
-                src={videoSrc}
-                className="w-full"
-                style={{ maxHeight: "38vh", objectFit: "cover", display: "block" }}
-              />
-            </div>
-          </RevealBlock>
-        )}
 
         {/* Pillar badge */}
         {pillarDef && (
@@ -1731,6 +1769,7 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
         </button>
       </RevealBlock>
     </section>
+    </>
   );
 }
 
