@@ -11,11 +11,25 @@ interface BatchResult {
   failedTracks: { id: string; reason: string }[];
 }
 
+interface RepairResult {
+  done: boolean;
+  repaired: number;
+  failed: number;
+  remaining: number;
+  checked: number;
+  healthy: number;
+  badTotal: number;
+  repairedTracks: { id: string; title: string; source: string }[];
+  failedTracks: { id: string; title: string; reason: string }[];
+}
+
 export default function BackfillPage() {
   const [running, setRunning] = useState(false);
+  const [repairing, setRepairing] = useState(false);
   const [done, setDone] = useState(false);
   const [totalUploaded, setTotalUploaded] = useState(0);
   const [totalFailed, setTotalFailed] = useState(0);
+  const [totalRepaired, setTotalRepaired] = useState(0);
   const [remaining, setRemaining] = useState<number | null>(null);
   const [log, setLog] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -75,6 +89,55 @@ export default function BackfillPage() {
     setRunning(false);
   };
 
+  const repair = async () => {
+    setRepairing(true);
+    setDone(false);
+    setError(null);
+    abortRef.current = false;
+
+    let batchNum = 0;
+    while (!abortRef.current) {
+      batchNum++;
+      addLog(`Repair batch ${batchNum} — checking Wasabi objects…`);
+      let res: Response;
+      try {
+        res = await fetch("/api/admin/repair-wasabi?batch=10");
+      } catch (e) {
+        setError(`Network error: ${e}`);
+        break;
+      }
+
+      if (!res.ok) {
+        const text = await res.text();
+        setError(`HTTP ${res.status}: ${text}`);
+        break;
+      }
+
+      const data: RepairResult = await res.json();
+      setTotalRepaired((n) => n + data.repaired);
+      setTotalFailed((n) => n + data.failed);
+      setRemaining(data.remaining);
+
+      addLog(
+        `Repair batch ${batchNum} done — checked ${data.checked}, healthy ${data.healthy}, bad ${data.badTotal}, repaired ${data.repaired}, failed ${data.failed}, ${data.remaining} remaining`
+      );
+      if (data.repairedTracks.length > 0)
+        addLog(`  Repaired: ${data.repairedTracks.map((t) => `${t.title} (${t.source})`).join(", ")}`);
+      if (data.failedTracks.length > 0)
+        addLog(`  Failed: ${data.failedTracks.map((f) => `${f.title || f.id}: ${f.reason}`).join(" | ")}`);
+
+      if (data.done) {
+        setDone(true);
+        addLog("Wasabi repair complete — no zero-byte/missing audioKey objects remain.");
+        break;
+      }
+
+      await new Promise((r) => setTimeout(r, 500));
+    }
+
+    setRepairing(false);
+  };
+
   const stop = () => {
     abortRef.current = true;
     addLog("Stopping after current batch…");
@@ -100,7 +163,7 @@ export default function BackfillPage() {
       <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem" }}>
         <button
           onClick={run}
-          disabled={running}
+          disabled={running || repairing}
           style={{
             background: running ? "rgba(109,40,217,0.3)" : "rgba(109,40,217,0.8)",
             color: "white",
@@ -113,7 +176,22 @@ export default function BackfillPage() {
         >
           {running ? "Running…" : done ? "Run Again" : "Start Backfill"}
         </button>
-        {running && (
+        <button
+          onClick={repair}
+          disabled={running || repairing}
+          style={{
+            background: repairing ? "rgba(14,165,233,0.3)" : "rgba(14,165,233,0.75)",
+            color: "white",
+            border: "none",
+            borderRadius: "8px",
+            padding: "0.6rem 1.4rem",
+            cursor: running || repairing ? "default" : "pointer",
+            fontSize: "0.9rem",
+          }}
+        >
+          {repairing ? "Repairing…" : "Repair Wasabi"}
+        </button>
+        {(running || repairing) && (
           <button
             onClick={stop}
             style={{
@@ -142,6 +220,7 @@ export default function BackfillPage() {
       >
         {[
           { label: "Uploaded", value: totalUploaded, color: "rgb(167,139,250)" },
+          { label: "Repaired", value: totalRepaired, color: "rgb(125,211,252)" },
           { label: "Failed", value: totalFailed, color: "rgb(252,165,165)" },
           { label: "Remaining", value: remaining ?? "—", color: "rgba(255,255,255,0.5)" },
         ].map(({ label, value, color }) => (
