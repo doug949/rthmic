@@ -46,10 +46,13 @@ export function AmbientBackground() {
           width: "100%",
           height: "100%",
           objectFit: "cover",
-          opacity: 0.6,
+          opacity: 1,
           transition: "opacity 1.1s ease",
         }}
       />
+
+      {/* Dark scrim to deepen the background image */}
+      <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)" }} />
 
       {/* Photographic pillar texture */}
       {!isDefault && (
