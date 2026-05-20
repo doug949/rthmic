@@ -507,12 +507,12 @@ export default function SpeakPage() {
         const err = await res.json();
         throw new Error(err.error ?? "Failed to queue generation");
       }
-      // Job queued — show brief confirmation then reset to idle
+      // Job queued — navigate to library so user sees the generating section
       refreshQueueStatus();
       setPhase("queued");
       setUnderstandResult(null);
       allTranscriptsRef.current = [];
-      setTimeout(() => setPhase("idle"), 2000);
+      setTimeout(() => navigateTo("/library", router), 1200);
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Failed to queue generation");
     }

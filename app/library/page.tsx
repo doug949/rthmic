@@ -10,7 +10,6 @@ import {
   MyRthmsIcon,
   MyFavouritesIcon,
   RthmicLibraryIcon,
-  RthmixIcon,
   ExploreAllIcon,
   TagsIcon,
   PillarsIcon,
@@ -31,8 +30,7 @@ export default function CatalogPage() {
   const [myFavouritesOpen, setMyFavouritesOpen] = useState(false);
   const [archiveOpen, setArchiveOpen]         = useState(false);
   const [rthmicLibraryOpen, setRthmicLibraryOpen] = useState(false);
-  const [rthmixAlbumsOpen, setRthmixAlbumsOpen]   = useState(false);
-  const [clearingQueue, setClearingQueue]     = useState(false);
+const [clearingQueue, setClearingQueue]     = useState(false);
   useSwipeBack("/");
 
   const fetchCounts = useCallback(async () => {
@@ -190,24 +188,6 @@ export default function CatalogPage() {
           </AnimatedAccordion>
         </div>
 
-        {/* ── Rthmix Albums ─────────────────────────────────────────────── */}
-        <div className="flex flex-col gap-2">
-          <SectionAccordionHeader
-            icon={<RthmixIcon />}
-            title="Rthmix Albums"
-            description="Ordered Rthm sequences — coming soon."
-            open={rthmixAlbumsOpen}
-            onToggle={() => setRthmixAlbumsOpen((o) => !o)}
-            dim
-          />
-          <AnimatedAccordion open={rthmixAlbumsOpen}>
-            <div className="rounded-2xl border border-white/[0.05] bg-white/[0.015] px-5 py-5">
-              <p className="text-xs text-white/35 leading-relaxed">
-                Albums let you build ordered playlists of Rthms — like a personal album. Coming soon.
-              </p>
-            </div>
-          </AnimatedAccordion>
-        </div>
 
         {/* ── The Archive ───────────────────────────────────────────────── */}
         <div className="flex flex-col gap-2">
