@@ -825,7 +825,7 @@ export default function SpeakPage() {
             }} />
           )}
           {phase === "idle" && (
-            <IdleView onRecord={startRecording} onPaste={runWithPastedLyrics} errorMsg={errorMsg} selectedPillar={selectedPillar} />
+            <IdleView onRecord={startRecording} errorMsg={errorMsg} selectedPillar={selectedPillar} />
           )}
           {phase === "recording" && (
             <RecordingView orbRef={orbRef} onStop={stopRecording} seconds={recordingSeconds} maxSeconds={MAX_RECORDING_SECONDS} selectedPillar={selectedPillar} />
@@ -1792,80 +1792,8 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
 
 // ─── Idle ─────────────────────────────────────────────────────────────────────
 
-function IdleView({ onRecord, onPaste, errorMsg, selectedPillar }: { onRecord: () => void; onPaste: (lyrics: string, title: string) => void; errorMsg: string; selectedPillar: string | null }) {
-  const [showPaste, setShowPaste] = useState(false);
+function IdleView({ onRecord, errorMsg, selectedPillar }: { onRecord: () => void; errorMsg: string; selectedPillar: string | null }) {
   const [micRequesting, setMicRequesting] = useState(false);
-  const [pastedLyrics, setPastedLyrics] = useState("");
-  const [pastedTitle, setPastedTitle] = useState("");
-
-  if (showPaste) {
-    return (
-      <section className="flex-1 flex flex-col px-0 pt-6 pb-8 gap-5">
-        <RevealBlock delay={0}>
-          <div>
-            <h2 className="text-xl font-light tracking-wide text-white leading-snug" style={{ fontFamily: "var(--font-display)" }}>Paste your lyrics</h2>
-            <p className="text-sm text-white/50 mt-1">Your words, set to music.</p>
-          </div>
-        </RevealBlock>
-
-        <RevealBlock delay={40}>
-          <textarea
-            value={pastedLyrics}
-            onChange={(e) => setPastedLyrics(e.target.value)}
-            placeholder="Paste or type your lyrics here…"
-            rows={12}
-            className="w-full rounded-2xl px-4 py-3 text-sm text-white/80 placeholder-white/20 resize-none focus:outline-none"
-            style={{
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              fontFamily: "inherit",
-              lineHeight: "1.6",
-            }}
-            autoFocus
-          />
-        </RevealBlock>
-
-        <RevealBlock delay={60}>
-          <input
-            type="text"
-            value={pastedTitle}
-            onChange={(e) => setPastedTitle(e.target.value)}
-            placeholder="Song title (optional)"
-            className="w-full rounded-2xl px-4 py-3 text-sm text-white/80 placeholder-white/25 focus:outline-none"
-            style={{
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.08)",
-              fontFamily: "inherit",
-            }}
-          />
-        </RevealBlock>
-
-        <RevealBlock delay={80}>
-          <div className="flex gap-3">
-            <button
-              onClick={() => setShowPaste(false)}
-              className="flex-1 py-3.5 rounded-2xl text-sm text-white/40 touch-manipulation"
-              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}
-            >
-              Back
-            </button>
-            <button
-              onClick={() => {
-                const lyrics = pastedLyrics.trim();
-                if (!lyrics) return;
-                onPaste(lyrics, pastedTitle.trim() || "My Rthm");
-              }}
-              disabled={!pastedLyrics.trim()}
-              className="flex-1 py-3.5 rounded-2xl text-sm font-medium text-white touch-manipulation active:scale-[0.98] transition-all disabled:opacity-30"
-              style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.15)" }}
-            >
-              Create Rthm →
-            </button>
-          </div>
-        </RevealBlock>
-      </section>
-    );
-  }
 
   const idleHeading  = (selectedPillar && PILLAR_PROMPT[selectedPillar])   ?? "Speak freely";
   const idleSubtitle = (selectedPillar && PILLAR_SUBTITLE[selectedPillar]) ?? "Two Rthms will be built for you.";
@@ -1896,17 +1824,6 @@ function IdleView({ onRecord, onPaste, errorMsg, selectedPillar }: { onRecord: (
 
       {micRequesting && (
         <p className="text-xs text-white/35 tracking-wide animate-pulse">Requesting microphone…</p>
-      )}
-
-      {!micRequesting && (
-        <RevealBlock delay={100}>
-          <button
-            onClick={() => setShowPaste(true)}
-            className="text-xs text-white/30 hover:text-white/50 transition-colors touch-manipulation tracking-wide"
-          >
-            or paste your own lyrics
-          </button>
-        </RevealBlock>
       )}
 
       {errorMsg && (
