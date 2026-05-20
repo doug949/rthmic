@@ -12,7 +12,7 @@ import type { SavedRhythm } from "@/app/api/library/route";
 import { RhythmRow } from "../_components";
 
 type LoadState = "loading" | "ready" | "error";
-type TimePeriod = "today" | "week" | "month" | "all" | "charts";
+type TimePeriod = "today" | "week" | "month" | "all";
 
 interface QueueJob {
   jobId: string;
@@ -27,7 +27,7 @@ function inferStyle(pillar: string): "A" | "B" {
 }
 
 function periodStart(period: TimePeriod): number {
-  if (period === "all" || period === "charts") return 0;
+  if (period === "all") return 0;
   const d = new Date();
   if (period === "today") { d.setHours(0, 0, 0, 0); return d.getTime(); }
   if (period === "week")  { d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); d.setHours(0, 0, 0, 0); return d.getTime(); }
@@ -46,6 +46,7 @@ export default function MyRthmsPage() {
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const [shareToastId, setShareToastId]       = useState<string | null>(null);
   const [timePeriod, setTimePeriod]     = useState<TimePeriod>("all");
+  const [chartsMode, setChartsMode]     = useState(false);
   const [expanded, setExpanded]        = useState(false);
   const [selectedPillar, setSelectedPillar] = useState<string | null>(null);
   const [selectedTags, setSelectedTags]     = useState<string[]>([]);
@@ -89,7 +90,12 @@ export default function MyRthmsPage() {
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search).get("period");
-    if (p && (["today","week","month","all","charts"] as string[]).includes(p)) setTimePeriod(p as TimePeriod);
+    if (p === "charts") {
+      setTimePeriod("all");
+      setChartsMode(true);
+    } else if (p && (["today","week","month","all"] as string[]).includes(p)) {
+      setTimePeriod(p as TimePeriod);
+    }
     fetchLibrary();
     fetchQueueJobs();
     const onMutated = () => { fetchLibrary(); fetchQueueJobs(); };
@@ -210,7 +216,7 @@ export default function MyRthmsPage() {
     setRecreateRhythm(null);
   };
 
-  // ── Pillar + Tag lists (from active rthms only) ───────────────────────────
+  // ── Rthmic category + tag lists (from active rthms only) ──────────────────
   const pillarSet = new Set<string>();
   const tagSet    = new Set<string>();
   for (const r of myRthms) {
@@ -224,17 +230,17 @@ export default function MyRthmsPage() {
   const start = periodStart(timePeriod);
   const filteredRthms = myRthms
     .filter((r) => r.savedAt >= start)
-    .filter((r) => timePeriod !== "charts" || (r.playCount ?? 0) > 0)
+    .filter((r) => !chartsMode || (r.playCount ?? 0) > 0)
     .filter((r) => !selectedPillar || r.pillar === selectedPillar)
     .filter((r) => selectedTags.length === 0 || selectedTags.every((t) => (r.tags ?? []).includes(t)));
-  const orderedRthms = timePeriod === "charts"
+  const orderedRthms = chartsMode
     ? [...filteredRthms].sort((a, b) =>
         (b.playCount ?? 0) - (a.playCount ?? 0) ||
         (b.lastPlayedAt ?? 0) - (a.lastPlayedAt ?? 0) ||
         b.savedAt - a.savedAt
       )
     : filteredRthms;
-  const visibleRthms = timePeriod === "charts"
+  const visibleRthms = chartsMode
     ? orderedRthms.slice(0, CHART_LIMIT)
     : timePeriod === "all" && !expanded
     ? orderedRthms.slice(0, ALL_TIME_PREVIEW)
@@ -379,16 +385,27 @@ export default function MyRthmsPage() {
                 </button>
               </div>
 
-              {/* Time period tabs */}
+              <ChartsFeature
+                active={chartsMode}
+                count={myRthms.filter((r) => (r.playCount ?? 0) > 0).length}
+                onClick={() => {
+                  setChartsMode((active) => !active);
+                  setTimePeriod("all");
+                  setExpanded(false);
+                  setSelectedPillar(null);
+                  setSelectedTags([]);
+                }}
+              />
+
+              {/* Release date tabs */}
               <TimePeriodTabs
                 active={timePeriod}
-                onChange={(p) => { setTimePeriod(p); setExpanded(false); setSelectedPillar(null); setSelectedTags([]); }}
+                onChange={(p) => { setTimePeriod(p); setChartsMode(false); setExpanded(false); setSelectedPillar(null); setSelectedTags([]); }}
                 counts={{
                   today: myRthms.filter((r) => r.savedAt >= periodStart("today")).length,
                   week:  myRthms.filter((r) => r.savedAt >= periodStart("week")).length,
                   month: myRthms.filter((r) => r.savedAt >= periodStart("month")).length,
                   all:   myRthms.length,
-                  charts: myRthms.filter((r) => (r.playCount ?? 0) > 0).length,
                 }}
               />
 
@@ -411,7 +428,7 @@ export default function MyRthmsPage() {
                 <p className="text-center text-sm text-white/30 py-8">
                   {(selectedPillar || selectedTags.length > 0)
                     ? "No Rthms match these filters"
-                    : timePeriod === "charts"
+                    : chartsMode
                     ? "Play a few Rthms and your chart will appear here"
                     : "No Rthms in this period"}
                 </p>
@@ -444,7 +461,7 @@ export default function MyRthmsPage() {
                         <div style={selectMode ? { paddingLeft: 36, opacity: isSelected ? 1 : 0.5, transition: "opacity 150ms" } : {}}>
                           <RhythmRow
                             rhythm={rhythm}
-                            chartRank={timePeriod === "charts" ? orderedRthms.findIndex((r) => r.id === rhythm.id) + 1 : undefined}
+                            chartRank={chartsMode ? orderedRthms.findIndex((r) => r.id === rhythm.id) + 1 : undefined}
                             playing={currentTrackId === rhythm.id && isPlaying}
                             currentTime={currentTrackId === rhythm.id ? currentTime : 0}
                             duration={currentTrackId === rhythm.id ? duration : 0}
@@ -468,7 +485,7 @@ export default function MyRthmsPage() {
                     );
                   })}
 
-                  {timePeriod === "charts" && orderedRthms.length > CHART_LIMIT && (
+                  {chartsMode && orderedRthms.length > CHART_LIMIT && (
                     <p className="text-center text-[10px] uppercase tracking-widest text-white/25 py-2">
                       Showing top {CHART_LIMIT} all time
                     </p>
@@ -572,10 +589,10 @@ function TagFilterRows({
   return (
     <div className="flex flex-col gap-2.5">
 
-      {/* Row 1 — Pillars, single select */}
+      {/* Row 1 — Rthmic Categories, single select */}
       {pillars.length > 0 && (
         <div className="flex flex-col gap-1.5">
-          <span className="text-[9px] uppercase tracking-widest text-white/25 px-0.5">Pillar</span>
+          <span className="text-[9px] uppercase tracking-widest text-white/25 px-0.5">Rthmic Categories</span>
           <div className="flex gap-2 overflow-x-auto pb-0.5 -mx-1 px-1 scrollbar-none">
             {pillars.map((p) => {
               const active = selectedPillar === p;
@@ -628,14 +645,57 @@ function TagFilterRows({
   );
 }
 
-// ─── Time period tab bar ──────────────────────────────────────────────────────
+// ─── Rthmic Charts feature toggle ─────────────────────────────────────────────
+
+function ChartsFeature({
+  active,
+  count,
+  onClick,
+}: {
+  active: boolean;
+  count: number;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full rounded-2xl border px-4 py-3 text-left touch-manipulation transition-all active:scale-[0.99]"
+      style={
+        active
+          ? { background: "rgba(201,165,90,0.10)", borderColor: "rgba(201,165,90,0.32)" }
+          : { background: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.08)" }
+      }
+    >
+      <div className="flex items-center gap-3">
+        <div
+          className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+          style={{ background: active ? "rgba(201,165,90,0.18)" : "rgba(255,255,255,0.06)", color: active ? "rgba(201,165,90,0.95)" : "rgba(255,255,255,0.45)" }}
+        >
+          #
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold" style={{ color: active ? "rgba(201,165,90,0.95)" : "rgba(255,255,255,0.72)" }}>
+            Rthmic Charts
+          </p>
+          <p className="text-[10px] uppercase tracking-wider mt-0.5" style={{ color: active ? "rgba(201,165,90,0.55)" : "rgba(255,255,255,0.32)" }}>
+            Top 20 · All-time plays{count > 0 ? ` · ${count} ranked` : ""}
+          </p>
+        </div>
+        <span className="text-[10px] uppercase tracking-widest" style={{ color: active ? "rgba(201,165,90,0.72)" : "rgba(255,255,255,0.28)" }}>
+          {active ? "On" : "View"}
+        </span>
+      </div>
+    </button>
+  );
+}
+
+// ─── Release date tab bar ────────────────────────────────────────────────────
 
 const PERIODS: { key: TimePeriod; label: string }[] = [
   { key: "today", label: "Today" },
   { key: "week",  label: "This Week" },
   { key: "month", label: "This Month" },
   { key: "all",   label: "All Time" },
-  { key: "charts", label: "Charts" },
 ];
 
 function TimePeriodTabs({
@@ -648,32 +708,35 @@ function TimePeriodTabs({
   counts: Record<TimePeriod, number>;
 }) {
   return (
-    <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
-      {PERIODS.map(({ key, label }) => {
-        const isActive = active === key;
-        return (
-          <button
-            key={key}
-            onClick={() => onChange(key)}
-            className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full touch-manipulation transition-all text-[11px] font-medium tracking-wide"
-            style={
-              isActive
-                ? { background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.9)", border: "1px solid rgba(255,255,255,0.18)" }
-                : { background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.4)", border: "1px solid rgba(255,255,255,0.06)" }
-            }
-          >
-            {label}
-            {counts[key] > 0 && (
-              <span
-                className="text-[10px] tabular-nums"
-                style={{ color: isActive ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.25)" }}
-              >
-                {counts[key]}
-              </span>
-            )}
-          </button>
-        );
-      })}
+    <div className="flex flex-col gap-1.5">
+      <span className="text-[9px] uppercase tracking-widest text-white/25 px-0.5">Release Date</span>
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
+        {PERIODS.map(({ key, label }) => {
+          const isActive = active === key;
+          return (
+            <button
+              key={key}
+              onClick={() => onChange(key)}
+              className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full touch-manipulation transition-all text-[11px] font-medium tracking-wide"
+              style={
+                isActive
+                  ? { background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.9)", border: "1px solid rgba(255,255,255,0.18)" }
+                  : { background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.4)", border: "1px solid rgba(255,255,255,0.06)" }
+              }
+            >
+              {label}
+              {counts[key] > 0 && (
+                <span
+                  className="text-[10px] tabular-nums"
+                  style={{ color: isActive ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.25)" }}
+                >
+                  {counts[key]}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
