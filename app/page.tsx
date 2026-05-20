@@ -70,7 +70,7 @@ export default function Home() {
     <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ animation: "page-enter 1800ms cubic-bezier(0.16,1,0.3,1) forwards" }}>
       {/* Wordmark + hamburger */}
       <header className="relative pt-6 pb-3">
-        <h1 className="text-3xl tracking-wide uppercase" style={{ fontFamily: "var(--font-display)", fontWeight: 300, color: "#c9a55a" }}>
+        <h1 className="text-3xl tracking-[0.18em] uppercase" style={{ fontFamily: "var(--font-display)", fontWeight: 300, color: "#c9a55a" }}>
           RTHMIC
         </h1>
         <p className="text-xs mt-1.5 tracking-widest uppercase" style={{ color: "#c9a55a", opacity: 0.6 }}>
@@ -262,7 +262,7 @@ function HomeTile({ tile }: { tile: typeof HOME_TILES[number]; delay?: number })
     </div>
   );
 
-  if (tile.comingSoon) return <div>{inner}</div>;
+  if (tile.comingSoon) return <div style={{ opacity: 0.35 }}>{inner}</div>;
   return <TransitionLink href={tile.href} className="active:opacity-70 transition-opacity block">{inner}</TransitionLink>;
 }
 
