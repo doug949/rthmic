@@ -1566,6 +1566,7 @@ function HlsVideo({ src, className, style, controls = true, autoPlay = false, on
 
     if (video.canPlayType("application/vnd.apple.mpegurl")) {
       video.src = src;
+      if (autoPlay) video.play().catch(() => {});
       return;
     }
 
@@ -1575,10 +1576,15 @@ function HlsVideo({ src, className, style, controls = true, autoPlay = false, on
       hlsInstance = new Hls();
       hlsInstance.loadSource(src);
       hlsInstance.attachMedia(videoRef.current);
+      if (autoPlay) {
+        hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+          videoRef.current?.play().catch(() => {});
+        });
+      }
     });
 
     return () => { hlsInstance?.destroy(); };
-  }, [src]);
+  }, [src, autoPlay]);
 
   return (
     <video
