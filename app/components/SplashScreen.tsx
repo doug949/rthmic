@@ -8,7 +8,9 @@ const FADE_MS = 333;
 type Phase = "fadein" | "playing" | "fadeout" | "gone";
 
 export default function SplashScreen() {
-  const [phase, setPhase] = useState<Phase | null>(null);
+  // Start as "fadein" so <video> is in the DOM on the very first render.
+  // That means videoRef.current is valid by the time useEffect fires.
+  const [phase, setPhase] = useState<Phase>("fadein");
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -16,18 +18,11 @@ export default function SplashScreen() {
       setPhase("gone");
       return;
     }
-    // Mount the video first (phase="fadein"), then play + reveal it
-    setPhase("fadein");
-  }, []);
-
-  // Once the video element is in the DOM, start playing and fade in
-  useEffect(() => {
-    if (phase !== "fadein") return;
-    videoRef.current?.play().catch(() => finish());
+    // videoRef.current is guaranteed non-null here — video mounted above
+    videoRef.current?.play().catch(() => {/* autoplay policy blocked it — stay on fadein */});
     const t = setTimeout(() => setPhase("playing"), FADE_MS);
     return () => clearTimeout(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase]);
+  }, []);
 
   const finish = () => {
     sessionStorage.setItem("rthmic_intro_seen", "1");
@@ -35,7 +30,7 @@ export default function SplashScreen() {
     setTimeout(() => setPhase("gone"), FADE_MS);
   };
 
-  if (phase === null || phase === "gone") return null;
+  if (phase === "gone") return null;
 
   // Black overlay: opaque during fadein/fadeout, transparent while playing
   const overlayOpaque = phase === "fadein" || phase === "fadeout";
