@@ -1,6 +1,7 @@
 "use client";
 
 import { usePillarTheme } from "@/app/contexts/PillarThemeContext";
+import type { CSSProperties } from "react";
 
 // ─── Per-pillar tint colors (R,G,B) ─────────────────────────────────────────
 
@@ -67,10 +68,11 @@ export function AmbientBackground() {
             width: "100%",
             height: "100%",
             objectFit: "cover",
-            opacity: 0.085,
+            opacity: 0,
+            "--ambient-opacity": 0.085,
             mixBlendMode: "luminosity",
             animation: "ambient-fade-in 1.4s ease forwards",
-          }}
+          } as CSSProperties}
         />
       )}
 
