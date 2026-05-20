@@ -1041,9 +1041,18 @@ const PILLAR_IMAGES: Record<string, string> = {
   explain: "/images/pillars/explain.jpg",
 };
 
+const PILLAR_VIDEOS: Record<string, string> = {
+  explain: "/videos/pillars/explain.mp4",
+};
+
 const PILLAR_GRID = [
-  ...FOR_YOU_PILLARS.map((p) => ({ slug: p.slug, label: p.label, image: PILLAR_IMAGES[p.slug] ?? null })),
-  { slug: "auto", label: "Surprise me", image: null },
+  ...FOR_YOU_PILLARS.map((p) => ({
+    slug: p.slug,
+    label: p.label,
+    image: PILLAR_IMAGES[p.slug] ?? null,
+    video: PILLAR_VIDEOS[p.slug] ?? null,
+  })),
+  { slug: "auto", label: "Surprise me", image: null, video: null },
 ];
 
 // ─── The Vault — coming-soon reflective pillars ───────────────────────────────
@@ -1205,6 +1214,11 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
   const [advancedPillars, setAdvancedPillars] = useState<string[]>(["memory", "booksummary", "explain", "mindset"]);
   const [forSomeoneElseOpen, setForSomeoneElseOpen] = useState(false);
   const [vaultOpen, setVaultOpen] = useState(false);
+  const [videoSlug, setVideoSlug] = useState<string | null>(null);
+  const [videoVisible, setVideoVisible] = useState(false);
+
+  const openVideo = (slug: string) => { setVideoSlug(slug); requestAnimationFrame(() => setVideoVisible(true)); };
+  const closeVideo = () => { setVideoVisible(false); setTimeout(() => setVideoSlug(null), 260); };
 
   useEffect(() => {
     const code = getSignedInCode();
@@ -1236,35 +1250,103 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
         <RevealBlock delay={0}>
           <div className="grid grid-cols-3 gap-1.5 pb-4">
             {PILLAR_GRID.map((p) => (
-              <button
+              <div
                 key={p.slug}
-                onClick={() => onSelect(p.slug)}
-                className="relative rounded-xl overflow-hidden touch-manipulation active:scale-95 transition-transform"
+                className="relative rounded-xl overflow-hidden"
                 style={{ aspectRatio: "3/4", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
               >
-                {p.image && (
-                  <img
-                    src={p.image}
-                    alt={p.label}
-                    className="absolute inset-0 w-full h-full object-cover"
+                {/* Main tap area → create */}
+                <button
+                  onClick={() => onSelect(p.slug)}
+                  className="absolute inset-0 touch-manipulation active:brightness-75 transition-all"
+                  aria-label={`Create ${p.label}`}
+                >
+                  {p.image && (
+                    <img src={p.image} alt={p.label} className="absolute inset-0 w-full h-full object-cover" />
+                  )}
+                  <div
+                    className="absolute inset-0"
+                    style={{ background: "linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.25) 55%, transparent 100%)" }}
                   />
-                )}
-                <div
-                  className="absolute inset-0"
-                  style={{ background: "linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.25) 55%, transparent 100%)" }}
-                />
-                <div className="absolute bottom-0 left-0 right-0 p-2">
+                  {p.slug === "auto" && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-white/20 text-2xl">?</span>
+                    </div>
+                  )}
+                </button>
+
+                {/* Label */}
+                <div className="absolute bottom-0 left-0 right-0 p-2 pointer-events-none">
                   <p className="text-[10px] font-semibold text-white/90 leading-tight tracking-wide">{p.label}</p>
                 </div>
-                {p.slug === "auto" && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-white/20 text-2xl">?</span>
-                  </div>
+
+                {/* Play button — only shown when video exists */}
+                {p.video && (
+                  <button
+                    onClick={() => openVideo(p.slug)}
+                    className="absolute top-1.5 right-1.5 flex items-center justify-center w-6 h-6 rounded-full touch-manipulation active:scale-90 transition-transform"
+                    style={{ background: "rgba(0,0,0,0.55)", border: "1px solid rgba(255,255,255,0.2)" }}
+                    aria-label={`Preview ${p.label}`}
+                  >
+                    <svg width="8" height="9" viewBox="0 0 8 9" fill="none">
+                      <path d="M1.5 1.5L6.5 4.5L1.5 7.5V1.5Z" fill="white" />
+                    </svg>
+                  </button>
                 )}
-              </button>
+              </div>
             ))}
           </div>
         </RevealBlock>
+
+        {/* ── Video preview modal ── */}
+        {videoSlug && (() => {
+          const p = PILLAR_GRID.find((x) => x.slug === videoSlug);
+          if (!p) return null;
+          return (
+            <div
+              className="fixed inset-0 z-50 flex flex-col items-center justify-center px-6"
+              style={{
+                background: "rgba(0,0,0,0.88)",
+                opacity: videoVisible ? 1 : 0,
+                transition: "opacity 260ms ease",
+              }}
+              onClick={closeVideo}
+            >
+              <div
+                className="w-full max-w-sm rounded-2xl overflow-hidden"
+                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)" }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {p.video && (
+                  <video
+                    src={p.video}
+                    autoPlay
+                    playsInline
+                    controls
+                    className="w-full"
+                    style={{ maxHeight: "60vh", objectFit: "cover" }}
+                  />
+                )}
+                <div className="px-5 py-4 flex flex-col gap-3">
+                  <p className="text-base font-semibold text-white/90 tracking-wide">{p.label}</p>
+                  <button
+                    onClick={() => { closeVideo(); setTimeout(() => onSelect(p.slug), 120); }}
+                    className="w-full py-3.5 rounded-xl text-sm font-semibold tracking-wide touch-manipulation active:scale-[0.98] transition-transform"
+                    style={{ background: "rgba(201,165,90,0.15)", border: "1px solid rgba(201,165,90,0.35)", color: "rgba(220,185,110,0.95)" }}
+                  >
+                    Create →
+                  </button>
+                  <button
+                    onClick={closeVideo}
+                    className="w-full py-2.5 text-xs text-white/35 touch-manipulation"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* ── For Someone Else — collapsible, starts collapsed ── */}
         <RevealBlock delay={PILLARS.length * 28 + 10}>
