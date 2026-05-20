@@ -224,7 +224,7 @@ const HOME_TILES: {
   { href: "/structure", label: "Structure",             shortLabel: "Structure",  icon: <MenusIcon />,   accent: "rgba(100,195,165,0.5)", image: "/images/tiles/structure.jpg", imageScale: 1.12 },
   { href: "/speak",     label: "ADHD Collection",       shortLabel: "ADHD Collection",       icon: <BrainIcon />,   accent: "rgba(220,110,140,0.5)", image: "/images/tiles/adhd.jpg" },
   { href: "/settings",  label: "Settings",              shortLabel: "Settings",   icon: <EQIcon />,      accent: "rgba(160,130,220,0.5)", image: "/images/tiles/settings.jpg", imageScale: 1.12 },
-  { href: "/feedback",  label: "Share Feedback",        shortLabel: "Feedback",   icon: <BubbleIcon />,  accent: "rgba(255,255,255,0.2)" },
+  { href: "/feedback",  label: "Share Feedback",        shortLabel: "Feedback",   icon: <BubbleIcon />,  accent: "rgba(255,255,255,0.2)", image: "/images/tiles/feedback.jpg" },
   { href: "/understand",label: "About RTHMIC",          shortLabel: "About",      icon: <InfoIcon />,    accent: "rgba(255,255,255,0.15)" },
 ];
 
