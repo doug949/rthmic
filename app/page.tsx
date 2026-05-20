@@ -143,7 +143,7 @@ export default function Home() {
             href="/library"
             label="Rthmix Compilations"
             description="Extended learning, personal goals and ideas that build."
-            icon={<RecordIcon />}
+            icon={<CassetteIcon />}
             amber
             comingSoon
           />
@@ -372,23 +372,21 @@ function PlayIcon() {
   );
 }
 
-function RecordIcon() {
+function CassetteIcon() {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <clipPath id="record-sleeve-clip">
-          <rect x="0" y="0" width="24" height="15.5" />
-        </clipPath>
-      </defs>
-      {/* Record — clipped so bottom sits inside sleeve */}
-      <g clipPath="url(#record-sleeve-clip)">
-        <circle cx="12" cy="13" r="9" stroke="currentColor" strokeWidth="1.6" />
-        <circle cx="12" cy="13" r="6" stroke="currentColor" strokeWidth="0.8" opacity="0.4" />
-        <circle cx="12" cy="13" r="3.5" stroke="currentColor" strokeWidth="1.1" opacity="0.7" />
-        <circle cx="12" cy="13" r="1" fill="currentColor" />
-      </g>
-      {/* Sleeve */}
-      <rect x="2" y="15" width="20" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
+      {/* Outer shell */}
+      <rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="1.6" />
+      {/* Reels */}
+      <circle cx="8.5" cy="13" r="2.5" stroke="currentColor" strokeWidth="1.3" />
+      <circle cx="15.5" cy="13" r="2.5" stroke="currentColor" strokeWidth="1.3" />
+      <circle cx="8.5" cy="13" r="0.8" fill="currentColor" />
+      <circle cx="15.5" cy="13" r="0.8" fill="currentColor" />
+      {/* Tape window cutout */}
+      <path d="M6 13 Q8.5 10.5 11 13" stroke="currentColor" strokeWidth="1" opacity="0.5" fill="none" />
+      <path d="M13 13 Q15.5 10.5 18 13" stroke="currentColor" strokeWidth="1" opacity="0.5" fill="none" />
+      {/* Label area */}
+      <rect x="5" y="6.5" width="14" height="4" rx="0.5" stroke="currentColor" strokeWidth="0.8" opacity="0.4" />
     </svg>
   );
 }
