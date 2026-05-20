@@ -7,7 +7,7 @@ import type { Song } from "@/app/types/pipeline";
 
 const BASE_URL = "https://api.sunoapi.org/api/v1";
 
-export const maxDuration = 10;
+export const maxDuration = 20;
 
 type SunoClip = Record<string, unknown>;
 
@@ -51,7 +51,7 @@ function extractClips(node: unknown, depth = 0): SunoClip[] {
 
 const STILL_WAITING = new Set(["PENDING", "GENERATING", "IN_QUEUE", "QUEUED", "TEXT_SUCCESS", "RUNNING"]);
 
-function getAudioUrl(clip: Record<string, unknown>): string | undefined {
+function getAudioUrlCandidates(clip: Record<string, unknown>): string[] {
   const candidates = [
     clip.audioUrl,
     clip.sourceStreamAudioUrl,
@@ -64,10 +64,34 @@ function getAudioUrl(clip: Record<string, unknown>): string | undefined {
     clip.streamUrl,
     clip.stream_url,
   ];
-  for (const c of candidates) {
-    if (typeof c === "string" && c.startsWith("http")) return c;
+  return candidates.filter((c): c is string => typeof c === "string" && c.startsWith("http"));
+}
+
+async function probePlayableAudio(url: string): Promise<boolean> {
+  try {
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(5000),
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "audio/mpeg,audio/*;q=0.9,*/*;q=0.8",
+        "Referer": "https://sunoapi.org/",
+        "Range": "bytes=0-1023",
+      },
+    });
+    if (!res.ok && res.status !== 206) return false;
+    const contentType = res.headers.get("Content-Type") ?? "";
+    if (!contentType.startsWith("audio/")) return false;
+    const body = await res.arrayBuffer();
+    return body.byteLength > 0;
+  } catch {
+    return false;
   }
-  return undefined;
+}
+
+async function getPlayableAudioUrl(clip: Record<string, unknown>): Promise<string | undefined> {
+  for (const url of getAudioUrlCandidates(clip)) {
+    if (await probePlayableAudio(url)) return url;
+  }
 }
 
 export async function GET(req: NextRequest) {
@@ -109,28 +133,37 @@ export async function GET(req: NextRequest) {
     }
 
     const clips = extractClips(json);
-    const playableClips = clips.filter(c => getAudioUrl(c));
-
-    console.log(`Found ${clips.length} clips (${playableClips.length} playable), status="${rawStatus}"`);
 
     const stillWaiting = STILL_WAITING.has(rawStatus);
 
-    if (playableClips.length > 0 && !stillWaiting) {
-      const toSong = (clip: SunoClip, idx: number): Song => {
+    const playableEntries: { clip: SunoClip; audioUrl: string }[] = [];
+    if (!stillWaiting) {
+      for (const clip of clips) {
+        const audioUrl = await getPlayableAudioUrl(clip);
+        if (audioUrl) playableEntries.push({ clip, audioUrl });
+        if (playableEntries.length >= 2) break;
+      }
+    }
+
+    console.log(`Found ${clips.length} clips (${playableEntries.length} byte-tested playable), status="${rawStatus}"`);
+
+    if (playableEntries.length > 0 && !stillWaiting) {
+      const toSong = (entry: { clip: SunoClip; audioUrl: string }, idx: number): Song => {
+        const { clip, audioUrl } = entry;
         const baseTitle = String(clip.title ?? `RTHM ${idx + 1}`);
         const rawClipId = String(clip.id ?? "");
         return {
           id: `${rawClipId || "suno"}-${idx}`,
           title: idx === 0 ? baseTitle : `${baseTitle} (Variation)`,
-          audioUrl: getAudioUrl(clip),
+          audioUrl,
           sunoClipId: rawClipId || undefined,
           sunoTaskId: taskId,
         };
       };
 
       const songs: [Song, Song] = [
-        toSong(playableClips[0], 0),
-        toSong(playableClips[1] ?? playableClips[0], 1),
+        toSong(playableEntries[0], 0),
+        toSong(playableEntries[1] ?? playableEntries[0], 1),
       ];
 
       return NextResponse.json(

@@ -6,6 +6,7 @@ import { AppHeader } from "@/app/components/AppHeader";
 import { RevealBlock } from "@/app/components/RevealBlock";
 import { useGeneration } from "@/app/contexts/GenerationContext";
 import { useAudio } from "@/app/contexts/AudioContext";
+import { usePillarTheme } from "@/app/contexts/PillarThemeContext";
 import type { SavedRhythm } from "@/app/api/library/route";
 
 const TEAL = {
@@ -127,6 +128,7 @@ export default function MenuDetailPage({ params }: { params: Promise<{ slug: str
   const tm = TIME_MENUS.find((m) => m.slug === slug);
   const { genPhase, startGeneration } = useGeneration();
   const { handlePlayUrl, stop: stopAudio, currentTrackId, isPlaying } = useAudio();
+  const { setActivePillar } = usePillarTheme();
 
   const [songs, setSongs] = useState<SavedRhythm[]>([]);
   const [loading, setLoading] = useState(true);
@@ -146,6 +148,11 @@ export default function MenuDetailPage({ params }: { params: Promise<{ slug: str
   };
 
   useEffect(() => { fetchSongs(); }, [slug]);
+
+  useEffect(() => {
+    setActivePillar("menus");
+    return () => setActivePillar(null);
+  }, [setActivePillar]);
 
   useEffect(() => {
     if (prevGenPhase.current === "generating" && genPhase === "ready") {

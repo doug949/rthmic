@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AppHeader } from "@/app/components/AppHeader";
 import { RevealBlock } from "@/app/components/RevealBlock";
 import { useGeneration } from "@/app/contexts/GenerationContext";
+import { usePillarTheme } from "@/app/contexts/PillarThemeContext";
 import type { SavedRhythm } from "@/app/api/library/route";
 
 const TEAL = {
@@ -28,6 +29,7 @@ type MenuSlots = Record<string, SavedRhythm[]>;
 export default function StructurePage() {
   const router = useRouter();
   const { genPhase } = useGeneration();
+  const { setActivePillar } = usePillarTheme();
   const [menus, setMenus] = useState<MenuSlots>({});
   const [loading, setLoading] = useState(true);
   const prevGenPhase = useRef<string>("idle");
@@ -50,6 +52,11 @@ export default function StructurePage() {
   };
 
   useEffect(() => { fetchMenus(); }, []);
+
+  useEffect(() => {
+    setActivePillar("menus");
+    return () => setActivePillar(null);
+  }, [setActivePillar]);
 
   useEffect(() => {
     if (prevGenPhase.current === "generating" && genPhase === "ready") {

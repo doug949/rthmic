@@ -106,14 +106,10 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
             }),
           }).catch(() => {});
 
-          setGenSongs(songs);
-          setGenPhase("ready");
-
-          // Auto-save to library (or menu slot) sequentially to avoid Redis read-write race,
-          // then background-fetch timed lyrics and attach them.
-          const saveAll = async () => {
+          // Persist the core records before flipping to ready, so menus/library
+          // refresh against data that actually exists. Timed lyrics stay async.
+          const saveCore = async () => {
             if (params.menuSlug) {
-              // Save all songs as a single menu slot entry
               const menuSongs = songs.map((song) => ({
                 id: song.id,
                 title: params.title,
@@ -130,8 +126,33 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ slug: params.menuSlug, songs: menuSongs }),
               });
+            } else {
+              for (const song of songs) {
+                await fetch("/api/library", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    action: "save",
+                    rhythm: {
+                      id: song.id,
+                      title: song.title,
+                      pillar: params.pillar,
+                      audioUrl: song.audioUrl,
+                      lyrics: params.lyrics,
+                      sunoClipId: song.sunoClipId,
+                      sunoTaskId: song.sunoTaskId,
+                      ...(params.note ? { note: params.note } : {}),
+                    },
+                  }),
+                });
+              }
+            }
+          };
 
+          const attachTimedLyrics = async () => {
+            if (params.menuSlug) {
               // Background: fetch timed lyrics and re-save the full menu slot
+
               for (let i = 0; i < songs.length; i++) {
                 const song = songs[i];
                 if (!song.sunoClipId || !song.sunoTaskId) continue;
@@ -152,27 +173,6 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
                 } catch { /* non-critical */ }
               }
             } else {
-              // Standard library save — sequential to avoid Redis read-write race
-              for (const song of songs) {
-                await fetch("/api/library", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    action: "save",
-                    rhythm: {
-                      id: song.id,
-                      title: song.title,
-                      pillar: params.pillar,
-                      audioUrl: song.audioUrl,
-                      lyrics: params.lyrics,
-                      sunoClipId: song.sunoClipId,
-                      sunoTaskId: song.sunoTaskId,
-                      ...(params.note ? { note: params.note } : {}),
-                    },
-                  }),
-                });
-              }
-
               // Background: fetch word-level timed lyrics for each clip and patch into library.
               // Requires both taskId and audioId (clipId). Non-blocking — failures are silently swallowed.
               for (const song of songs) {
@@ -199,7 +199,12 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
               }
             }
           };
-          saveAll().catch(console.error);
+
+          await saveCore();
+          if (gen !== generationRef.current) return;
+          setGenSongs(songs);
+          setGenPhase("ready");
+          attachTimedLyrics().catch(console.error);
           return;
         }
 
