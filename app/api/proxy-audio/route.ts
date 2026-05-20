@@ -105,18 +105,20 @@ export async function GET(request: NextRequest) {
 
   // Pipe the audio through — pass through Range headers for seek support
   const range = request.headers.get("range");
-  let upstream = await fetch(audioUrl, {
-    headers: range ? { Range: range } : {},
-  });
+  const cdnHeaders: Record<string, string> = {
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Accept": "audio/mpeg,audio/*;q=0.9,*/*;q=0.8",
+    "Referer": "https://sunoapi.org/",
+  };
+  if (range) cdnHeaders["Range"] = range;
+  let upstream = await fetch(audioUrl, { headers: cdnHeaders });
 
   // If Wasabi fetch failed (signed URL for non-existent object), fall back to Suno
   if (!upstream.ok && upstream.status !== 206 && rhythm.audioKey) {
     console.warn(`[proxy-audio] Wasabi fetch failed (${upstream.status}) for ${rhythm.audioKey} — falling back to Suno`);
     const fallbackUrl = (await getFreshUrl(rhythm)) ?? rhythm.audioUrl;
     if (fallbackUrl) {
-      upstream = await fetch(fallbackUrl, {
-        headers: range ? { Range: range } : {},
-      });
+      upstream = await fetch(fallbackUrl, { headers: cdnHeaders });
     }
   }
 
