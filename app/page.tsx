@@ -375,15 +375,20 @@ function PlayIcon() {
 function RecordIcon() {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      {/* Outer disc */}
-      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.6" />
-      {/* Groove rings */}
-      <circle cx="12" cy="12" r="7.5" stroke="currentColor" strokeWidth="0.8" opacity="0.35" />
-      <circle cx="12" cy="12" r="5.5" stroke="currentColor" strokeWidth="0.8" opacity="0.35" />
-      {/* Label */}
-      <circle cx="12" cy="12" r="3.5" stroke="currentColor" strokeWidth="1.2" opacity="0.7" />
-      {/* Centre hole */}
-      <circle cx="12" cy="12" r="1" fill="currentColor" />
+      <defs>
+        <clipPath id="record-sleeve-clip">
+          <rect x="0" y="0" width="24" height="15.5" />
+        </clipPath>
+      </defs>
+      {/* Record — clipped so bottom sits inside sleeve */}
+      <g clipPath="url(#record-sleeve-clip)">
+        <circle cx="12" cy="13" r="9" stroke="currentColor" strokeWidth="1.6" />
+        <circle cx="12" cy="13" r="6" stroke="currentColor" strokeWidth="0.8" opacity="0.4" />
+        <circle cx="12" cy="13" r="3.5" stroke="currentColor" strokeWidth="1.1" opacity="0.7" />
+        <circle cx="12" cy="13" r="1" fill="currentColor" />
+      </g>
+      {/* Sleeve */}
+      <rect x="2" y="15" width="20" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
     </svg>
   );
 }
