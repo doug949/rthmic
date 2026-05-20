@@ -1810,14 +1810,21 @@ function IdleView({ onRecord, errorMsg, selectedPillar }: { onRecord: () => void
       <RevealBlock delay={60}>
         <div className="relative flex items-center justify-center">
           <style>{`
-            @keyframes ready-ring {
-              0%, 55%, 100% { opacity: 0; transform: scale(1); }
-              20% { opacity: 0.22; transform: scale(1.18); }
-              45% { opacity: 0; transform: scale(1.32); }
+            @keyframes rim-spin {
+              from { transform: rotate(0deg); }
+              to   { transform: rotate(360deg); }
             }
           `}</style>
           {!micRequesting && (
-            <span className="absolute w-28 h-28 rounded-full pointer-events-none" style={{ animation: "ready-ring 4s ease-in-out infinite", border: "1px solid rgba(255,255,255,0.5)" }} />
+            <span
+              className="absolute w-28 h-28 rounded-full pointer-events-none"
+              style={{
+                background: "conic-gradient(from 0deg, transparent 0%, transparent 74%, rgba(255,255,255,0.08) 78%, rgba(255,255,255,0.55) 83%, rgba(255,255,255,0.8) 86%, rgba(255,255,255,0.55) 89%, rgba(255,255,255,0.08) 93%, transparent 96%, transparent 100%)",
+                WebkitMaskImage: "radial-gradient(circle, transparent 51px, black 53px)",
+                maskImage: "radial-gradient(circle, transparent 51px, black 53px)",
+                animation: "rim-spin 6s linear infinite",
+              }}
+            />
           )}
           <button
             onClick={() => { setMicRequesting(true); onRecord(); }}
