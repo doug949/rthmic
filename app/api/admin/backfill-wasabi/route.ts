@@ -96,10 +96,10 @@ export async function GET(req: NextRequest) {
           let sourceUrl = rhythm.audioUrl;
           try {
             await uploadAudioToWasabi(sourceUrl, wasabiKey);
-          } catch {
-            console.warn(`[backfill] stored URL failed for ${rhythm.id}, trying Suno API refresh`);
+          } catch (storedErr) {
+            console.warn(`[backfill] stored URL failed for ${rhythm.id}: ${storedErr}`);
             const freshUrl = await getFreshAudioUrl(rhythm);
-            if (!freshUrl) throw new Error("Suno API returned no URL");
+            if (!freshUrl) throw new Error(`stored URL: ${String(storedErr).slice(0, 120)}; Suno API returned no URL`);
             sourceUrl = freshUrl;
             await uploadAudioToWasabi(sourceUrl, wasabiKey);
           }
