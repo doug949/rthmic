@@ -230,7 +230,7 @@ const HOME_TILES: {
   { href: "/library/my-rthms", label: "My Rthms",      shortLabel: "My Rthms",   icon: <PlayIcon />,    accent: "rgba(100,140,255,0.5)", image: "/images/tiles/my-rthms.jpg" },
   { href: "/library",   label: "Rthmix",                shortLabel: "Rthmix",     icon: <CassetteIcon />, accent: "rgba(230,155,60,0.5)", image: "/images/tiles/rthmix.jpg", comingSoon: true },
   { href: "/structure", label: "Structure",             shortLabel: "Structure",  icon: <MenusIcon />,   accent: "rgba(100,195,165,0.5)" },
-  { href: "/speak",     label: "ADHD Collection",       shortLabel: "ADHD",       icon: <BrainIcon />,   accent: "rgba(220,110,140,0.5)", image: "/images/tiles/adhd.jpg" },
+  { href: "/speak",     label: "ADHD Collection",       shortLabel: "ADHD Collection",       icon: <BrainIcon />,   accent: "rgba(220,110,140,0.5)", image: "/images/tiles/adhd.jpg" },
   { href: "/settings",  label: "Settings",              shortLabel: "Settings",   icon: <EQIcon />,      accent: "rgba(160,130,220,0.5)" },
 ];
 
