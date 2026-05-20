@@ -1037,6 +1037,15 @@ const FOR_YOU_SUBCATEGORIES = [
 // Menus pillar is accessible via /structure — excluded from the speak catalog
 const FOR_YOU_PILLARS = PILLARS.filter((p) => p.slug !== "menus");
 
+const PILLAR_IMAGES: Record<string, string> = {
+  explain: "/images/pillars/explain.jpg",
+};
+
+const PILLAR_GRID = [
+  ...FOR_YOU_PILLARS.map((p) => ({ slug: p.slug, label: p.label, image: PILLAR_IMAGES[p.slug] ?? null })),
+  { slug: "auto", label: "Surprise me", image: null },
+];
+
 // ─── The Vault — coming-soon reflective pillars ───────────────────────────────
 
 const VAULT_PILLARS: PillarDefinition[] = [
@@ -1194,8 +1203,6 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
   const [showInvite, setShowInvite] = useState(false);
   const [simpleMode, setSimpleMode] = useState(false);
   const [advancedPillars, setAdvancedPillars] = useState<string[]>(["memory", "booksummary", "explain", "mindset"]);
-  const [forYouOpen, setForYouOpen] = useState(false);
-  const [subCatOpen, setSubCatOpen] = useState<Record<string, boolean>>({});
   const [forSomeoneElseOpen, setForSomeoneElseOpen] = useState(false);
   const [vaultOpen, setVaultOpen] = useState(false);
 
@@ -1225,94 +1232,39 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
       </RevealBlock>
 
       <div className="flex flex-col gap-2">
-        {/* ── For You in the Moment — collapsible, starts collapsed ── */}
+        {/* ── Pillar image grid — 3×3 ── */}
         <RevealBlock delay={0}>
-          <button
-            onClick={() => setForYouOpen((v) => !v)}
-            className="w-full flex items-center justify-between py-2.5 touch-manipulation active:opacity-70 transition-opacity"
-          >
-            <div className="flex items-center gap-2.5">
-              <span style={{ color: "rgba(201,165,90,0.65)" }}><ForYouIcon /></span>
-              <p className="text-sm font-medium tracking-wide" style={{ color: "rgba(201,165,90,0.85)" }}>For you in the moment</p>
-            </div>
-            <svg
-              width="12" height="12" viewBox="0 0 12 12" fill="none"
-              style={{
-                color: "rgba(201,165,90,0.55)",
-                transform: forYouOpen ? "rotate(0deg)" : "rotate(-90deg)",
-                transition: "transform 220ms ease",
-                flexShrink: 0,
-              }}
-            >
-              <path d="M2 4L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-        </RevealBlock>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateRows: forYouOpen ? "1fr" : "0fr",
-            transition: "grid-template-rows 260ms ease",
-          }}
-        >
-          <div style={{ overflow: "hidden" }}>
-            <div className="flex flex-col pb-1 gap-0.5">
-              {FOR_YOU_SUBCATEGORIES.map((group) => {
-                const pillars = group.slugs
-                  .map(slug => FOR_YOU_PILLARS.find(p => p.slug === slug))
-                  .filter(Boolean)
-                  .filter(p => !(simpleMode && advancedPillars.includes(p!.slug))) as typeof PILLARS;
-                if (pillars.length === 0) return null;
-                const isOpen = !!subCatOpen[group.label];
-                return (
-                  <div key={group.label}>
-                    <button
-                      onClick={() => setSubCatOpen(prev => ({ ...prev, [group.label]: !prev[group.label] }))}
-                      className="w-full flex items-center justify-between py-2.5 px-1 touch-manipulation active:opacity-60 transition-opacity"
-                    >
-                      <p className="text-[10px] uppercase tracking-[0.28em] text-white/35 font-medium text-left flex-1 min-w-0">{group.label}</p>
-                      <svg width="10" height="10" viewBox="0 0 12 12" fill="none"
-                        style={{ color: "rgba(255,255,255,0.25)", transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform 200ms ease", flexShrink: 0 }}>
-                        <path d="M2 4L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </button>
-                    <div style={{ display: "grid", gridTemplateRows: isOpen ? "1fr" : "0fr", transition: "grid-template-rows 240ms ease" }}>
-                      <div style={{ overflow: "hidden" }}>
-                        <div className="flex flex-col gap-2 pb-2">
-                          {pillars.map((p) => (
-                            <div key={p.slug} className="rounded-2xl border border-white/[0.08] bg-white/[0.03] overflow-hidden">
-                              <div className="flex items-stretch">
-                                <button
-                                  onClick={() => onSelect(p.slug)}
-                                  className="flex-1 flex items-center gap-3.5 pl-5 pr-3 py-4 text-left touch-manipulation active:bg-white/[0.05] transition-colors"
-                                >
-                                  {p.icon && <span className="flex-shrink-0 text-white/35">{p.icon}</span>}
-                                  <div className="min-w-0">
-                                    <p className="text-base font-semibold text-white/80 tracking-wide">{p.label}</p>
-                                    <p className="text-xs text-white/50 mt-0.5">{p.tagline}</p>
-                                  </div>
-                                </button>
-                                <div className="w-px self-stretch my-3 bg-white/[0.06]" />
-                                <button
-                                  onClick={() => openModal(p.slug)}
-                                  className="flex items-center justify-center w-14 touch-manipulation active:bg-white/[0.04] transition-colors"
-                                  aria-label="Learn more"
-                                >
-                                  <InfoIcon />
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
+          <div className="grid grid-cols-3 gap-1.5 pb-4">
+            {PILLAR_GRID.map((p) => (
+              <button
+                key={p.slug}
+                onClick={() => onSelect(p.slug)}
+                className="relative rounded-xl overflow-hidden touch-manipulation active:scale-95 transition-transform"
+                style={{ aspectRatio: "3/4", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
+              >
+                {p.image && (
+                  <img
+                    src={p.image}
+                    alt={p.label}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                )}
+                <div
+                  className="absolute inset-0"
+                  style={{ background: "linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.25) 55%, transparent 100%)" }}
+                />
+                <div className="absolute bottom-0 left-0 right-0 p-2">
+                  <p className="text-[10px] font-semibold text-white/90 leading-tight tracking-wide">{p.label}</p>
+                </div>
+                {p.slug === "auto" && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-white/20 text-2xl">?</span>
                   </div>
-                );
-              })}
-            </div>
+                )}
+              </button>
+            ))}
           </div>
-        </div>
+        </RevealBlock>
 
         {/* ── For Someone Else — collapsible, starts collapsed ── */}
         <RevealBlock delay={PILLARS.length * 28 + 10}>
