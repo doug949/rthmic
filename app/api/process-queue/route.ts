@@ -106,9 +106,23 @@ async function pollJob(
 
   if (pollData.status !== "ready" || !pollData.songs?.length) return "still-waiting";
 
-  // Save both songs to library
+  // Save both songs to library. Because these are shown as playable immediately,
+  // wait for the permanent audio copy where possible instead of saving first
+  // and patching audioKey in a later background task.
   for (let i = 0; i < pollData.songs.length; i++) {
     const song = pollData.songs[i];
+    const wasabiKey = `rhythms/${job.userId}/${song.id}.mp3`;
+    let audioKey: string | undefined;
+
+    if (song.audioUrl) {
+      try {
+        audioKey = await uploadAudioToWasabi(song.audioUrl, wasabiKey);
+        console.log(`[queue] Wasabi upload done before save: ${wasabiKey}`);
+      } catch (e) {
+        console.warn(`[queue] Wasabi upload failed before save for ${song.id}, saving Suno fallback:`, e);
+      }
+    }
+
     const rhythm: SavedRhythm = {
       id: song.id,
       title: song.title,
@@ -119,38 +133,11 @@ async function pollJob(
       sunoTaskId: song.sunoTaskId,
       savedAt: Date.now(),
       status: "new",
+      ...(audioKey ? { audioKey } : {}),
       ...(job.note ? { note: job.note } : {}),
     };
     await saveToLibrary(client, job.userId, rhythm);
     console.log(`[queue] saved ${rhythm.id} (${rhythm.title}) for user ${job.userId}`);
-
-    // Upload audio to Wasabi — fire and forget, patches audioKey into Redis when done
-    if (song.audioUrl) {
-      const wasabiKey = `rhythms/${job.userId}/${song.id}.mp3`;
-      uploadAudioToWasabi(song.audioUrl, wasabiKey)
-        .then(async () => {
-          // Use a fresh client — the handler's client may have disconnected by now
-          const patchClient = createClient({ url: process.env.REDIS_URL });
-          try {
-            await patchClient.connect();
-            const libKey2 = `lib:${job.userId}`;
-            const raw2 = await patchClient.get(libKey2);
-            if (!raw2) return;
-            const all: SavedRhythm[] = JSON.parse(raw2);
-            const idx = all.findIndex((r) => r.id === song.id);
-            if (idx !== -1) {
-              all[idx].audioKey = wasabiKey;
-              await patchClient.set(libKey2, JSON.stringify(all));
-              console.log(`[queue] Wasabi upload done: ${wasabiKey}`);
-            }
-          } catch (e) {
-            console.warn(`[queue] Wasabi Redis patch failed for ${song.id}:`, e);
-          } finally {
-            await patchClient.disconnect();
-          }
-        })
-        .catch((e) => console.warn(`[queue] Wasabi upload failed for ${song.id}:`, e));
-    }
 
     // Best-effort timed lyrics — fire and forget
     if (song.sunoClipId && song.sunoTaskId) {

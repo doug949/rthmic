@@ -11,6 +11,8 @@ import {
 import type { SavedRhythm } from "@/app/api/library/route";
 import { uploadAudioToWasabi } from "@/app/lib/wasabiUpload";
 
+export const maxDuration = 60;
+
 type SunoClip = Record<string, unknown>;
 
 function getAudioUrl(clip: SunoClip): string | undefined {
@@ -21,6 +23,27 @@ function getAudioUrl(clip: SunoClip): string | undefined {
   ];
   for (const c of candidates) {
     if (typeof c === "string" && c.startsWith("http")) return c;
+  }
+}
+
+async function probePlayableAudio(url: string): Promise<boolean> {
+  try {
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(5000),
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "audio/mpeg,audio/*;q=0.9,*/*;q=0.8",
+        "Referer": "https://sunoapi.org/",
+        "Range": "bytes=0-1023",
+      },
+    });
+    if (!res.ok && res.status !== 206) return false;
+    const contentType = res.headers.get("Content-Type") ?? "";
+    if (!contentType.startsWith("audio/")) return false;
+    const body = await res.arrayBuffer();
+    return body.byteLength > 0;
+  } catch {
+    return false;
   }
 }
 
@@ -112,24 +135,43 @@ export async function POST(req: NextRequest) {
         return;
       }
 
-      // Extract clips from the webhook body
-      const clips = extractClips(body).filter((c) => getAudioUrl(c));
-      console.log(`[webhook] job ${jobId}: ${clips.length} playable clips`);
+      // Extract clips from the webhook body and byte-test their audio before
+      // making them visible. Some Suno callbacks include URLs before the CDN
+      // object is actually readable.
+      const clips = extractClips(body);
+      const playable: Array<{ clip: SunoClip; audioUrl: string }> = [];
+      for (const clip of clips) {
+        const audioUrl = getAudioUrl(clip);
+        if (!audioUrl) continue;
+        if (await probePlayableAudio(audioUrl)) playable.push({ clip, audioUrl });
+        if (playable.length >= 2) break;
+      }
+      console.log(`[webhook] job ${jobId}: ${clips.length} clips, ${playable.length} byte-tested playable`);
 
-      if (clips.length === 0) {
-        // Webhook fired before clips were ready (e.g. TEXT_SUCCESS phase) — cron will catch it
+      if (playable.length === 0) {
+        // Webhook fired before audio was readable — cron will catch it
         console.log("[webhook] no playable clips yet, cron will poll");
         return;
       }
 
-      // Save up to 2 clips to library, then upload audio to Wasabi
-      const toSave = clips.slice(0, 2);
+      // Save up to 2 clips only after audio is readable. Prefer a completed
+      // Wasabi copy so first play uses permanent storage rather than a fresh CDN race.
+      const toSave = playable.slice(0, 2);
       for (let i = 0; i < toSave.length; i++) {
-        const clip = toSave[i];
+        const { clip, audioUrl: clipAudioUrl } = toSave[i];
         const rawClipId = String(clip.id ?? "");
         const baseTitle = String(clip.title ?? job.title);
-        const clipAudioUrl = getAudioUrl(clip)!;
         const rhythmId = `${rawClipId || "suno"}-${i}`;
+        const wasabiKey = `rhythms/${job.userId}/${rhythmId}.mp3`;
+        let audioKey: string | undefined;
+
+        try {
+          audioKey = await uploadAudioToWasabi(clipAudioUrl, wasabiKey);
+          console.log(`[webhook] Wasabi upload done before save: ${wasabiKey}`);
+        } catch (e) {
+          console.warn(`[webhook] Wasabi upload failed before save for ${rhythmId}, saving Suno fallback:`, e);
+        }
+
         const rhythm: SavedRhythm = {
           id: rhythmId,
           title: i === 0 ? baseTitle : `${baseTitle} (Variation)`,
@@ -140,36 +182,11 @@ export async function POST(req: NextRequest) {
           sunoTaskId: taskId,
           savedAt: Date.now(),
           status: "new",
+          ...(audioKey ? { audioKey } : {}),
           ...(job.note ? { note: job.note } : {}),
         };
         await saveToLibrary(client, job.userId, rhythm);
         console.log(`[webhook] saved ${rhythm.id} ("${rhythm.title}") for user ${job.userId}`);
-
-        // Upload audio to Wasabi — best-effort, updates Redis with audioKey if successful
-        const wasabiKey = `rhythms/${job.userId}/${rhythmId}.mp3`;
-        uploadAudioToWasabi(clipAudioUrl, wasabiKey)
-          .then(async () => {
-            // Use a fresh client — the handler's client may have disconnected by now
-            const patchClient = createClient({ url: process.env.REDIS_URL });
-            try {
-              await patchClient.connect();
-              const libKey = `lib:${job.userId}`;
-              const raw2 = await patchClient.get(libKey);
-              if (!raw2) return;
-              const all: SavedRhythm[] = JSON.parse(raw2);
-              const idx = all.findIndex((r) => r.id === rhythmId);
-              if (idx !== -1) {
-                all[idx].audioKey = wasabiKey;
-                await patchClient.set(libKey, JSON.stringify(all));
-                console.log(`[webhook] Wasabi upload done: ${wasabiKey}`);
-              }
-            } catch (e) {
-              console.warn(`[webhook] Wasabi Redis patch failed for ${rhythmId}:`, e);
-            } finally {
-              await patchClient.disconnect();
-            }
-          })
-          .catch((e) => console.warn(`[webhook] Wasabi upload failed for ${rhythmId}:`, e));
       }
 
       // Mark job done and clean up

@@ -13,6 +13,8 @@ import CustomStyleInput from "@/app/components/CustomStyleInput";
 import { useOfflineAudio } from "@/app/hooks/useOfflineAudio";
 import { MoreSheet } from "@/app/library/_components";
 
+const LYRIC_SYNC_LEAD_SECONDS = 0.35;
+
 function inferStyle(pillar: string): "A" | "B" {
   return (pillar || "").toLowerCase() === "movement" ? "A" : "B";
 }
@@ -514,6 +516,7 @@ function FullLyricsView({
 
   // ── Current line resolution ───────────────────────────────────────────────
   let currentNonTagLineIdx = -1;
+  const lyricClock = currentTime + LYRIC_SYNC_LEAD_SECONDS;
 
   if (timedLyrics && lineTimings.length > 0) {
     // Find the line whose window contains currentTime; if between lines use the last started
@@ -521,8 +524,8 @@ function FullLyricsView({
     for (let li = 0; li < lineTimings.length; li++) {
       const t = lineTimings[li];
       if (!t) continue;
-      if (currentTime >= t.startS) lastStarted = li;
-      if (currentTime >= t.startS && currentTime <= t.endS) { lastStarted = li; break; }
+      if (lyricClock >= t.startS) lastStarted = li;
+      if (lyricClock >= t.startS && lyricClock <= t.endS) { lastStarted = li; break; }
     }
     currentNonTagLineIdx = lastStarted;
   } else {
@@ -530,9 +533,9 @@ function FullLyricsView({
     const introGap = duration > 0 ? Math.min(10, duration * 0.07) : 0;
     const lyricSpan = Math.max(0, duration - introGap);
     const lineTime = nonTagLines.length > 1 ? lyricSpan / nonTagLines.length : lyricSpan;
-    if (isPlaying && duration > 0 && currentTime >= introGap) {
+    if (isPlaying && duration > 0 && lyricClock >= introGap) {
       currentNonTagLineIdx = Math.min(
-        Math.floor((currentTime - introGap) / lineTime),
+        Math.floor((lyricClock - introGap) / lineTime),
         nonTagLines.length - 1
       );
     }

@@ -5,6 +5,8 @@ import { useParams } from "next/navigation";
 import { RevealBlock } from "@/app/components/RevealBlock";
 import type { SavedRhythm } from "@/app/api/library/route";
 
+const LYRIC_SYNC_LEAD_SECONDS = 0.35;
+
 type PageState = "loading" | "ready" | "notfound" | "error";
 type AccessState = "idle" | "form" | "submitting" | "sent" | "err";
 
@@ -171,21 +173,22 @@ export default function SharePage() {
   })();
 
   let currentIdx = -1;
+  const lyricClock = currentTime + LYRIC_SYNC_LEAD_SECONDS;
   if (lineTimings.length > 0) {
     let last = -1;
     for (let i = 0; i < lineTimings.length; i++) {
       const t = lineTimings[i];
       if (!t) continue;
-      if (currentTime >= t.startS) last = i;
-      if (currentTime >= t.startS && currentTime <= t.endS) { last = i; break; }
+      if (lyricClock >= t.startS) last = i;
+      if (lyricClock >= t.startS && lyricClock <= t.endS) { last = i; break; }
     }
     currentIdx = last;
   } else {
     const introGap  = duration > 0 ? Math.min(10, duration * 0.07) : 0;
     const lyricSpan = Math.max(0, duration - introGap);
     const lineTime  = lyricsLines.length > 1 ? lyricSpan / lyricsLines.length : lyricSpan;
-    if (isPlaying && duration > 0 && currentTime >= introGap) {
-      currentIdx = Math.min(Math.floor((currentTime - introGap) / lineTime), lyricsLines.length - 1);
+    if (isPlaying && duration > 0 && lyricClock >= introGap) {
+      currentIdx = Math.min(Math.floor((lyricClock - introGap) / lineTime), lyricsLines.length - 1);
     }
   }
 
