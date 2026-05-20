@@ -93,29 +93,43 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         setDuration(0);
       });
 
-      // Mid-stream recovery — handles both `waiting` (buffering pause) and `stalled`
-      // without calling audio.load(), which destroys the buffer and breaks seek.
-      let recoverTimer: ReturnType<typeof setTimeout> | null = null;
+      // Stall detection via currentTime polling — the only reliable approach on iOS Safari.
+      // iOS keeps audio.paused = false even when buffering has stopped, so event-based
+      // approaches (waiting/stalled) either don't fire or can't distinguish a real stall.
+      let lastTime = -1;
+      let lastAdvanceAt = Date.now();
       let recoverRetries = 0;
+      let stallInterval: ReturnType<typeof setInterval> | null = null;
 
-      const scheduleRecover = (delayMs: number) => {
-        if (recoverTimer) clearTimeout(recoverTimer);
-        recoverTimer = setTimeout(() => {
-          if (generation !== generationRef.current || !audio.paused) return;
-          if (recoverRetries >= 3) { setIsPlaying(false); return; }
-          recoverRetries++;
-          // Back up half a second to avoid sitting exactly at a buffer gap edge
-          audio.currentTime = Math.max(0, audio.currentTime - 0.5);
-          audio.play().catch(() => setIsPlaying(false));
-        }, delayMs);
+      const startStallCheck = () => {
+        if (stallInterval) return;
+        lastTime = audio.currentTime;
+        lastAdvanceAt = Date.now();
+        stallInterval = setInterval(() => {
+          if (audio.paused || audio.ended || generation !== generationRef.current) {
+            clearInterval(stallInterval!); stallInterval = null; return;
+          }
+          if (audio.currentTime !== lastTime) {
+            lastTime = audio.currentTime;
+            lastAdvanceAt = Date.now();
+            recoverRetries = 0;
+          } else if (Date.now() - lastAdvanceAt > 5000) {
+            // currentTime hasn't moved in 5s while supposedly playing — genuinely stalled
+            if (recoverRetries >= 3) {
+              clearInterval(stallInterval!); stallInterval = null;
+              setIsPlaying(false); return;
+            }
+            recoverRetries++;
+            lastAdvanceAt = Date.now();
+            audio.currentTime = Math.max(0, audio.currentTime - 0.5);
+            audio.play().catch(() => setIsPlaying(false));
+          }
+        }, 1000);
       };
 
-      audio.addEventListener("waiting", () => scheduleRecover(5000));
-      audio.addEventListener("stalled", () => scheduleRecover(3000));
-      audio.addEventListener("playing", () => {
-        if (recoverTimer) { clearTimeout(recoverTimer); recoverTimer = null; }
-        recoverRetries = 0;
-      });
+      audio.addEventListener("playing", startStallCheck);
+      audio.addEventListener("pause",   () => { if (stallInterval) { clearInterval(stallInterval); stallInterval = null; } });
+      audio.addEventListener("ended",   () => { if (stallInterval) { clearInterval(stallInterval); stallInterval = null; } });
 
       // Error handler — network errors retry with same URL; src errors try refresh
       audio.addEventListener("error", async () => {
