@@ -8,6 +8,38 @@ import { createClient } from "redis";
 import type { SavedRhythm } from "@/app/api/library/route";
 import { uploadAudioToWasabi } from "@/app/lib/wasabiUpload";
 
+const SUNO_BASE = "https://api.sunoapi.org/api/v1";
+
+async function getFreshAudioUrl(rhythm: SavedRhythm): Promise<string | null> {
+  if (!rhythm.sunoTaskId || !process.env.SUNO_API_KEY) return null;
+  try {
+    const res = await fetch(
+      `${SUNO_BASE}/generate/record-info?taskId=${encodeURIComponent(rhythm.sunoTaskId)}`,
+      { headers: { Authorization: `Bearer ${process.env.SUNO_API_KEY}` } }
+    );
+    if (!res.ok) return null;
+    const json = await res.json();
+    // Walk the response tree to find clips
+    const clips: Record<string, unknown>[] = [];
+    const walk = (node: unknown) => {
+      if (!node || typeof node !== "object") return;
+      if (Array.isArray(node)) { node.forEach(walk); return; }
+      const obj = node as Record<string, unknown>;
+      if (obj.audio_url || obj.stream_audio_url) { clips.push(obj); return; }
+      Object.values(obj).forEach(walk);
+    };
+    walk(json);
+    const [clipId] = rhythm.id.split("-");
+    const clip = clips.find((c) => String(c.id ?? "") === clipId) ?? clips[0];
+    if (!clip) return null;
+    const url = [clip.stream_audio_url, clip.audio_url, clip.url, clip.mp3_url]
+      .find((u) => typeof u === "string" && (u as string).startsWith("http"));
+    return (url as string) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export const maxDuration = 60;
 
 function requireAuth(req: NextRequest): boolean {
@@ -60,12 +92,22 @@ export async function GET(req: NextRequest) {
 
         const wasabiKey = `rhythms/${userId}/${rhythm.id}.mp3`;
         try {
-          await uploadAudioToWasabi(rhythm.audioUrl, wasabiKey);
+          // Try stored URL first; if it 404s fetch a fresh one from Suno API
+          let sourceUrl = rhythm.audioUrl;
+          try {
+            await uploadAudioToWasabi(sourceUrl, wasabiKey);
+          } catch {
+            console.warn(`[backfill] stored URL failed for ${rhythm.id}, trying Suno API refresh`);
+            const freshUrl = await getFreshAudioUrl(rhythm);
+            if (!freshUrl) throw new Error("Suno API returned no URL");
+            sourceUrl = freshUrl;
+            await uploadAudioToWasabi(sourceUrl, wasabiKey);
+          }
           rhythm.audioKey = wasabiKey;
           dirty = true;
           uploaded.push(rhythm.title);
           processed++;
-          remaining--; // this one is now done
+          remaining--;
           console.log(`[backfill] uploaded ${wasabiKey}`);
         } catch (e) {
           failed.push({ id: rhythm.id, reason: String(e) });
