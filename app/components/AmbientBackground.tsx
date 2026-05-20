@@ -38,7 +38,7 @@ export function AmbientBackground() {
       {/* Background texture — default state only */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/bg.jpg"
+        src="/vinyl.jpg"
         alt=""
         style={{
           position: "absolute",
