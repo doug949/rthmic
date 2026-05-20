@@ -10,6 +10,7 @@ import { useAudio } from "@/app/contexts/AudioContext";
 import CustomStyleInput from "@/app/components/CustomStyleInput";
 import type { SavedRhythm } from "@/app/api/library/route";
 import { RhythmRow } from "../_components";
+import { BUILD_UPON_GENRE, buildUponLyrics, buildUponTitle } from "@/app/lib/buildUpon";
 
 type LoadState = "loading" | "ready" | "error";
 type TimePeriod = "today" | "week" | "month" | "all";
@@ -216,6 +217,17 @@ export default function MyRthmsPage() {
     setRecreateRhythm(null);
   };
 
+  const handleBuildUpon = (rhythm: SavedRhythm) => {
+    startGeneration({
+      lyrics: buildUponLyrics(rhythm),
+      style: inferStyle(rhythm.pillar),
+      title: buildUponTitle(rhythm.title),
+      pillar: rhythm.pillar,
+      genre: BUILD_UPON_GENRE,
+      note: `Built upon: ${rhythm.title}`,
+    });
+  };
+
   // ── Rthmic category + tag lists (from active rthms only) ──────────────────
   const pillarSet = new Set<string>();
   const tagSet    = new Set<string>();
@@ -337,6 +349,7 @@ export default function MyRthmsPage() {
                       onArchive={() => handleArchive(rhythm)}
                       onRemove={() => handleRemove(rhythm.id)}
                       onRecreate={() => setRecreateRhythm(rhythm)}
+                      onBuildUpon={() => handleBuildUpon(rhythm)}
                       onShare={() => handleShare(rhythm)}
                       onTag={(tags) => handleTag(rhythm.id, tags)}
                       onNote={(note) => handleNote(rhythm.id, note)}
@@ -474,6 +487,7 @@ export default function MyRthmsPage() {
                             onArchive={() => handleArchive(rhythm)}
                             onRemove={() => handleRemove(rhythm.id)}
                             onRecreate={() => setRecreateRhythm(rhythm)}
+                            onBuildUpon={() => handleBuildUpon(rhythm)}
                             onShare={() => handleShare(rhythm)}
                             onTag={(tags) => handleTag(rhythm.id, tags)}
                             onNote={(note) => handleNote(rhythm.id, note)}

@@ -9,6 +9,7 @@ import { useAudio } from "@/app/contexts/AudioContext";
 import CustomStyleInput from "@/app/components/CustomStyleInput";
 import type { SavedRhythm } from "@/app/api/library/route";
 import { RhythmRow } from "../_components";
+import { BUILD_UPON_GENRE, buildUponLyrics, buildUponTitle } from "@/app/lib/buildUpon";
 
 type LoadState = "loading" | "ready" | "error";
 
@@ -84,8 +85,8 @@ export default function ArchivePage() {
     mutate({ action: "update", id, tags });
 
   const togglePlay = useCallback((rhythm: SavedRhythm) => {
-    if (!rhythm.audioUrl) return;
-    handlePlayUrl(rhythm.id, rhythm.audioUrl, rhythm.title);
+    if (!rhythm.audioUrl && !rhythm.audioKey) return;
+    handlePlayUrl(rhythm.id, `/api/proxy-audio?id=${encodeURIComponent(rhythm.id)}`, rhythm.title);
   }, [handlePlayUrl]);
 
   const handleShare = async (rhythm: SavedRhythm) => {
@@ -119,6 +120,17 @@ export default function ArchivePage() {
       genre,
     });
     setRecreateRhythm(null);
+  };
+
+  const handleBuildUpon = (rhythm: SavedRhythm) => {
+    startGeneration({
+      lyrics: buildUponLyrics(rhythm),
+      style: inferStyle(rhythm.pillar),
+      title: buildUponTitle(rhythm.title),
+      pillar: rhythm.pillar,
+      genre: BUILD_UPON_GENRE,
+      note: `Built upon: ${rhythm.title}`,
+    });
   };
 
   return (
@@ -173,6 +185,7 @@ export default function ArchivePage() {
                 onArchive={() => handleRestore(rhythm)}
                 onRemove={() => handleRemove(rhythm.id)}
                 onRecreate={() => setRecreateRhythm(rhythm)}
+                onBuildUpon={() => handleBuildUpon(rhythm)}
                 onShare={() => handleShare(rhythm)}
                 onTag={(tags) => handleTag(rhythm.id, tags)}
                 confirmingRemove={confirmRemoveId === rhythm.id}

@@ -59,6 +59,7 @@ export default function StudioPage() {
         </div>
 
         <StudioAction title="Export Rthm" detail="Prepare a track for use in a video, deck, page, workshop, or client context." status="Next" />
+        <StudioAction title="RTHMIX Album Generator" detail="Turn a goal into track zero, ordered unlock tracks, and a reflective bonus track. Intended for gradual generation." status="Prototype next" />
         <StudioAction title="Use-Case Builder" detail="Create a Rthm around a specific scenario rather than a personal moment." status="Planned" />
         <StudioAction title="Studio Notes" detail="Collect production notes, export intent, and follow-up tasks for Codex." status="Planned" />
         <StudioAction title="Style Archetypes" detail="Review and tune the named style characters that shape generated music." status="Planned" />

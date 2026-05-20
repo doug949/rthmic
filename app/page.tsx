@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TransitionLink } from "@/app/components/TransitionLink";
+import { AUDIO_CACHE } from "@/app/hooks/useOfflineAudio";
 
 const SCREEN_FADE_MS = 1800;
 const TILE_ENTER_MS = 1600;
@@ -30,6 +31,7 @@ export default function Home() {
   const [userName, setUserName] = useState("");
   const [open, setOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [clearingAudio, setClearingAudio] = useState(false);
   const [clearingQueue, setClearingQueue] = useState(false);
   const [queueCleared, setQueueCleared] = useState<number | null>(null);
   const [screenReady, setScreenReady] = useState(false);
@@ -95,10 +97,19 @@ export default function Home() {
       }
       if ("caches" in window) {
         const keys = await caches.keys();
-        await Promise.all(keys.map((k) => caches.delete(k)));
+        await Promise.all(keys.filter((k) => k !== AUDIO_CACHE).map((k) => caches.delete(k)));
       }
     } finally {
       window.location.reload();
+    }
+  };
+
+  const handleClearOfflineAudio = async () => {
+    setClearingAudio(true);
+    try {
+      if ("caches" in window) await caches.delete(AUDIO_CACHE);
+    } finally {
+      setClearingAudio(false);
     }
   };
 
@@ -216,7 +227,18 @@ export default function Home() {
                 <span className="text-white/35 text-lg leading-none">↺</span>
                 <div>
                   <p className="text-sm text-white/70 font-medium">Refresh App Cache</p>
-                  <p className="text-xs text-white/30 mt-0.5">Clears cached data and reloads</p>
+                  <p className="text-xs text-white/30 mt-0.5">Clears app files, keeps offline audio</p>
+                </div>
+              </button>
+              <button
+                onClick={handleClearOfflineAudio}
+                disabled={clearingAudio}
+                className="w-full flex items-center gap-4 px-4 py-4 rounded-xl touch-manipulation active:bg-white/[0.04] transition-colors text-left disabled:opacity-50"
+              >
+                <span className="text-white/35 text-lg leading-none">↓</span>
+                <div>
+                  <p className="text-sm text-white/70 font-medium">{clearingAudio ? "Clearing…" : "Clear Offline Audio"}</p>
+                  <p className="text-xs text-white/30 mt-0.5">Removes saved tracks from this device only</p>
                 </div>
               </button>
               <button

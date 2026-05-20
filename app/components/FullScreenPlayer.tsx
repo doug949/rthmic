@@ -12,6 +12,7 @@ import type { TimedWord } from "@/app/types/pipeline";
 import CustomStyleInput from "@/app/components/CustomStyleInput";
 import { useOfflineAudio } from "@/app/hooks/useOfflineAudio";
 import { MoreSheet } from "@/app/library/_components";
+import { BUILD_UPON_GENRE, buildUponLyrics, buildUponTitle } from "@/app/lib/buildUpon";
 
 const LYRIC_SYNC_LEAD_SECONDS = 0.35;
 
@@ -37,7 +38,8 @@ export default function FullScreenPlayer() {
   const [tagInput, setTagInput]       = useState("");
   const [recreateOpen, setRecreateOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
-  const { isCached, cacheTrack, caching } = useOfflineAudio(rhythm?.audioUrl);
+  const offlineUrl = rhythm ? `/api/proxy-audio?id=${encodeURIComponent(rhythm.id)}` : undefined;
+  const { isCached, cacheTrack, caching } = useOfflineAudio(offlineUrl);
 
   // ── Fetch rhythm once per track (persists across player open/close) ───────
   useEffect(() => {
@@ -395,12 +397,29 @@ export default function FullScreenPlayer() {
                 onClick: () => setRecreateOpen(true),
               },
               {
+                icon: "+",
+                label: "Build upon this",
+                sublabel: "Extend the concept",
+                onClick: () => {
+                  startGeneration({
+                    lyrics: buildUponLyrics(rhythm),
+                    style: inferStyle(rhythm.pillar),
+                    title: buildUponTitle(rhythm.title),
+                    pillar: rhythm.pillar,
+                    genre: BUILD_UPON_GENRE,
+                    note: `Built upon: ${rhythm.title}`,
+                  });
+                  setMoreOpen(false);
+                  closePlayer();
+                },
+              },
+              {
                 icon: "⌗", label: "Tags",
                 sublabel: tags.length > 0 ? `${tags.length} tag${tags.length > 1 ? "s" : ""}` : "Add tag",
                 active: tagEditOpen,
                 onClick: () => setTagEditOpen((v) => !v),
               },
-              ...(rhythm.audioUrl ? [{
+              ...(rhythm.audioUrl || rhythm.audioKey ? [{
                 icon: isCached ? "✓" : caching ? "…" : "↓",
                 label: isCached ? "Available Offline" : caching ? "Saving…" : "Save Offline",
                 active: isCached,

@@ -25,6 +25,7 @@ export function RhythmRow({
   onArchive,
   onRemove,
   onRecreate,
+  onBuildUpon,
   onShare,
   onTag,
   onNote,
@@ -47,6 +48,7 @@ export function RhythmRow({
   onArchive: () => void;
   onRemove: () => void;
   onRecreate: () => void;
+  onBuildUpon?: () => void;
   onShare: () => void;
   onTag?: (tags: string[]) => void;
   onNote?: (note: string) => void;
@@ -73,7 +75,8 @@ export function RhythmRow({
   } : null;
   const canPlay = !!rhythm.audioUrl || !!rhythm.audioKey;
   const mayBeExpired = Date.now() - rhythm.savedAt > 20 * 60 * 60 * 1000;
-  const { isCached, cacheTrack, caching } = useOfflineAudio(rhythm.audioUrl);
+  const offlineUrl = canPlay ? `/api/proxy-audio?id=${encodeURIComponent(rhythm.id)}` : undefined;
+  const { isCached, cacheTrack, caching } = useOfflineAudio(offlineUrl);
   const [tagEditOpen, setTagEditOpen] = useState(false);
   const [tagInput, setTagInput] = useState("");
   const [noteEditOpen, setNoteEditOpen] = useState(false);
@@ -269,6 +272,12 @@ export function RhythmRow({
               icon: "↺", label: "Recreate", sublabel: "New genre",
               onClick: onRecreate,
             },
+            ...(onBuildUpon ? [{
+              icon: "+",
+              label: "Build upon this",
+              sublabel: "Extend the concept",
+              onClick: onBuildUpon,
+            }] : []),
             ...(onTag ? [{
               icon: "⌗", label: "Tags", sublabel: tags.length > 0 ? `${tags.length} tag${tags.length > 1 ? "s" : ""}` : "Add tag",
               active: tagEditOpen,
