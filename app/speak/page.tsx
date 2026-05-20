@@ -1648,7 +1648,12 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
   const [lightboxVisible, setLightboxVisible] = useState(false);
 
   const openLightbox  = () => { setLightboxOpen(true);  requestAnimationFrame(() => setLightboxVisible(true)); };
-  const closeLightbox = () => { setLightboxVisible(false); setTimeout(() => setLightboxOpen(false), 300); };
+  const closeLightbox = () => {
+    // Pause all video elements so iOS releases the audio session back to the audio element
+    document.querySelectorAll("video").forEach((v) => v.pause());
+    setLightboxVisible(false);
+    setTimeout(() => setLightboxOpen(false), 300);
+  };
 
   return (
     <>
