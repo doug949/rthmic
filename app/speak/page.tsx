@@ -71,6 +71,19 @@ const PILLAR_PROMPT: Record<string, string> = {
   invite:      "Speak about them",
 };
 
+// RGB triples for spectrum visualiser — one per pillar
+const PILLAR_COLOR: Record<string, string> = {
+  memory:      "201,165,90",   // warm gold
+  mindset:     "120,160,220",  // soft blue
+  mode:        "90,200,160",   // teal
+  movement:    "120,210,100",  // green
+  journal:     "180,130,220",  // lavender
+  epiphany:    "230,190,60",   // bright gold
+  explain:     "100,170,230",  // sky blue
+  booksummary: "210,130,80",   // amber-orange
+};
+const DEFAULT_COLOR = "201,165,90";
+
 const PILLAR_SUBTITLE: Record<string, string> = {
   memory:      "Rthmic will lock it in.",
   menus:       "Rthmic will carry your list.",
@@ -1942,6 +1955,7 @@ const UNDERSTANDING_COPY: Record<string, { heading: string; stages: string[] }> 
 
 function UnderstandingView({ pillar }: { pillar?: string | null }) {
   const key = (pillar ?? "").toLowerCase();
+  const pillarColor = PILLAR_COLOR[key] ?? DEFAULT_COLOR;
   const copy = UNDERSTANDING_COPY[key] ?? {
     heading: "Understanding you",
     stages: ["Transcribing…", "Reading your state…", "Shaping your Rthm…", "Almost there…"],
@@ -1959,7 +1973,7 @@ function UnderstandingView({ pillar }: { pillar?: string | null }) {
     <section className="flex-1 flex flex-col items-center justify-center pb-24 gap-8">
       <RevealBlock delay={0}>
         <div className="flex flex-col items-center gap-8 w-full">
-          <SpectrumVisualiser />
+          <SpectrumVisualiser color={pillarColor} />
           <div className="text-center flex flex-col items-center gap-3 max-w-xs">
             <h2 className="text-xl font-light tracking-wide text-white" style={{ fontFamily: "var(--font-display)" }}>{copy.heading}</h2>
             <p
@@ -2409,6 +2423,7 @@ const GENERATING_COPY: Record<string, { heading: string; stages: string[] }> = {
 
 function GeneratingView({ onCancel, pillar }: { onCancel: () => void; pillar?: string | null }) {
   const key = (pillar ?? "").toLowerCase();
+  const pillarColor = PILLAR_COLOR[key] ?? DEFAULT_COLOR;
   const copy = GENERATING_COPY[key] ?? {
     heading: "Building your Rthms",
     stages: ["Composing your Rthm…", "Setting it to music…", "Laying down the track…", "Finishing up…"],
@@ -2429,7 +2444,7 @@ function GeneratingView({ onCancel, pillar }: { onCancel: () => void; pillar?: s
         <div className="flex flex-col items-center gap-8 w-full">
 
           {/* ── Spectrum visualiser ───────────────────────────────────────── */}
-          <SpectrumVisualiser />
+          <SpectrumVisualiser color={pillarColor} />
 
           {/* ── Text block ───────────────────────────────────────────────── */}
           <div className="text-center flex flex-col items-center gap-3 max-w-xs">
@@ -2473,7 +2488,7 @@ function GeneratingView({ onCancel, pillar }: { onCancel: () => void; pillar?: s
 
 // ─── Spectrum visualiser ──────────────────────────────────────────────────────
 
-function SpectrumVisualiser() {
+function SpectrumVisualiser({ color = DEFAULT_COLOR }: { color?: string }) {
   const BAR_COUNT = 34;
 
   // Stable per-bar config — never changes between renders
@@ -2497,7 +2512,7 @@ function SpectrumVisualiser() {
         className="absolute inset-x-0 bottom-0"
         style={{
           height: 60,
-          background: "radial-gradient(ellipse 70% 100% at 50% 100%, rgba(201,165,90,0.12) 0%, transparent 70%)",
+          background: `radial-gradient(ellipse 70% 100% at 50% 100%, rgba(${color},0.12) 0%, transparent 70%)`,
           pointerEvents: "none",
         }}
       />
@@ -2515,7 +2530,7 @@ function SpectrumVisualiser() {
               maxWidth: 7,
               height: maxH,
               borderRadius: "3px 3px 1px 1px",
-              background: `rgba(201,165,90,${alpha})`,
+              background: `rgba(${color},${alpha})`,
               transformOrigin: "bottom",
               animation: `spectrum-bar ${dur}s ease-in-out infinite ${delay}s`,
             }}
