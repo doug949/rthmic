@@ -156,9 +156,26 @@ export default function MyRthmsPage() {
     exitSelectMode();
   };
 
-  const togglePlay = useCallback((rhythm: SavedRhythm) => {
+  const togglePlay = useCallback(async (rhythm: SavedRhythm) => {
     if (!rhythm.audioUrl) return;
-    handlePlayUrl(rhythm.id, rhythm.audioUrl, rhythm.title, {
+
+    // Always fetch a fresh Suno URL before playing — CDN links expire within hours
+    let playUrl = rhythm.audioUrl;
+    if (rhythm.sunoTaskId) {
+      try {
+        const res = await fetch(
+          `/api/refresh-audio?taskId=${encodeURIComponent(rhythm.sunoTaskId)}&id=${encodeURIComponent(rhythm.id)}`
+        );
+        if (res.ok) {
+          const { url } = await res.json();
+          playUrl = url;
+        }
+      } catch {
+        // fall back to stored URL
+      }
+    }
+
+    handlePlayUrl(rhythm.id, playUrl, rhythm.title, {
       sunoTaskId: rhythm.sunoTaskId,
       rhythmId: rhythm.id,
     });
