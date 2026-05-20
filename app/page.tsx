@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { RevealBlock } from "@/app/components/RevealBlock";
 import { TransitionLink } from "@/app/components/TransitionLink";
 
 function greeting(): string {
@@ -70,54 +69,40 @@ export default function Home() {
   return (
     <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ animation: "page-enter 600ms cubic-bezier(0.16,1,0.3,1) forwards" }}>
       {/* Wordmark + hamburger */}
-      <RevealBlock delay={0}>
-        <header className="relative pt-6 pb-3">
-          <h1 className="text-3xl tracking-wide uppercase" style={{ fontFamily: "var(--font-display)", fontWeight: 300, color: "#c9a55a" }}>
-            {"RTHMIC".split("").map((letter, i) => (
-              <span
-                key={i}
-                style={{
-                  display: "inline-block",
-                  opacity: 0,
-                  animation: `letter-fade 320ms ease forwards`,
-                  animationDelay: `${i * 45}ms`,
-                }}
-              >
-                {letter}
-              </span>
-            ))}
-          </h1>
-          <p className="text-xs mt-1.5 tracking-widest uppercase" style={{ color: "#c9a55a", opacity: 0, animation: "letter-fade 400ms ease 280ms forwards" }}>
-            music to live by
+      <header className="relative pt-6 pb-3">
+        <h1 className="text-3xl tracking-wide uppercase" style={{ fontFamily: "var(--font-display)", fontWeight: 300, color: "#c9a55a" }}>
+          RTHMIC
+        </h1>
+        <p className="text-xs mt-1.5 tracking-widest uppercase" style={{ color: "#c9a55a", opacity: 0.6 }}>
+          music to live by
+        </p>
+        {(userName || userCode) && (
+          <p className="text-xs mt-2 font-light" style={{ color: "rgba(255,255,255,0.45)", letterSpacing: "0.02em" }}>
+            {greeting()}{userName ? `, ${userName}` : ""}
           </p>
-          {(userName || userCode) && (
-            <p className="text-xs mt-2 font-light" style={{ color: "rgba(255,255,255,0.45)", letterSpacing: "0.02em" }}>
-              {greeting()}{userName ? `, ${userName}` : ""}
-            </p>
-          )}
+        )}
 
-          {/* Hamburger — top right of header */}
-          <button
-            onClick={() => setOpen(true)}
-            className="absolute top-10 right-0 touch-manipulation flex flex-col items-center justify-center"
-            style={{ width: 32, height: 32, gap: 4, opacity: 0.35 }}
-            aria-label="Menu"
-          >
-            {[0, 1, 2].map((i) => (
-              <span
-                key={i}
-                style={{
-                  display: "block",
-                  width: i === 1 ? 12 : 16,
-                  height: 1.5,
-                  borderRadius: 1,
-                  background: "rgba(255,255,255,0.8)",
-                }}
-              />
-            ))}
-          </button>
-        </header>
-      </RevealBlock>
+        {/* Hamburger — top right of header */}
+        <button
+          onClick={() => setOpen(true)}
+          className="absolute top-10 right-0 touch-manipulation flex flex-col items-center justify-center"
+          style={{ width: 32, height: 32, gap: 4, opacity: 0.35 }}
+          aria-label="Menu"
+        >
+          {[0, 1, 2].map((i) => (
+            <span
+              key={i}
+              style={{
+                display: "block",
+                width: i === 1 ? 12 : 16,
+                height: 1.5,
+                borderRadius: 1,
+                background: "rgba(255,255,255,0.8)",
+              }}
+            />
+          ))}
+        </button>
+      </header>
 
       <section className="flex-1 flex flex-col pb-6 mt-1">
         {/* ── tile grid — rows glide in one after another ── */}
