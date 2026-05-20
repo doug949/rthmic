@@ -1550,11 +1550,12 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
 
 // ─── Priming ──────────────────────────────────────────────────────────────────
 
-function HlsVideo({ src, className, style, controls = true, onEnded }: {
+function HlsVideo({ src, className, style, controls = true, autoPlay = false, onEnded }: {
   src: string;
   className?: string;
   style?: React.CSSProperties;
   controls?: boolean;
+  autoPlay?: boolean;
   onEnded?: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -1583,6 +1584,7 @@ function HlsVideo({ src, className, style, controls = true, onEnded }: {
     <video
       ref={videoRef}
       playsInline
+      autoPlay={autoPlay}
       controls={controls}
       onEnded={onEnded}
       className={className}
@@ -1654,6 +1656,7 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
             <HlsVideo
               src={videoSrc}
               controls={false}
+              autoPlay
               onEnded={closeLightbox}
               className="w-full"
               style={{ display: "block", maxHeight: "70vh", objectFit: "cover" }}
