@@ -110,6 +110,15 @@ export default function MyRthmsPage() {
     window.dispatchEvent(new CustomEvent("library-mutated"));
   }, [fetchLibrary]);
 
+  const updateRhythmLocal = useCallback((id: string, patch: Partial<SavedRhythm>) => {
+    setRhythms((prev) => prev.map((r) => r.id === id ? { ...r, ...patch } : r));
+  }, []);
+
+  const updateRhythm = useCallback((id: string, patch: Partial<SavedRhythm>) => {
+    updateRhythmLocal(id, patch);
+    mutate({ action: "update", id, ...patch });
+  }, [mutate, updateRhythmLocal]);
+
   const now = Date.now();
   const newRthms      = rhythms.filter((r) => r.status === "new");
   const myRthms       = rhythms.filter((r) => r.status === "active" || r.status === "favourite");
@@ -128,22 +137,22 @@ export default function MyRthmsPage() {
   };
 
   const handleArchive = (rhythm: SavedRhythm) =>
-    mutate({ action: "update", id: rhythm.id, status: "archived" });
+    updateRhythm(rhythm.id, { status: "archived" });
 
   const handleGraduate = (id: string) =>
-    mutate({ action: "update", id, status: "favourite" });
+    updateRhythm(id, { status: "favourite" });
 
   const handleUngraduate = (id: string) =>
-    mutate({ action: "update", id, status: "active" });
+    updateRhythm(id, { status: "active" });
 
   const handleTag = (id: string, tags: string[]) =>
-    mutate({ action: "update", id, tags });
+    updateRhythm(id, { tags });
 
   const handleNote = (id: string, note: string) =>
-    mutate({ action: "update", id, note });
+    updateRhythm(id, { note });
 
   const handleRestore = (id: string) =>
-    mutate({ action: "update", id, status: "active" });
+    updateRhythm(id, { status: "active" });
 
   const toggleSelect = (id: string) =>
     setSelectedIds((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
@@ -163,9 +172,9 @@ export default function MyRthmsPage() {
     const proxyUrl = `/api/proxy-audio?id=${encodeURIComponent(rhythm.id)}`;
     handlePlayUrl(rhythm.id, proxyUrl, rhythm.title);
     if (rhythm.status === "new") {
-      mutate({ action: "update", id: rhythm.id, status: "active" });
+      updateRhythm(rhythm.id, { status: "active" });
     }
-  }, [handlePlayUrl, mutate]);
+  }, [handlePlayUrl, updateRhythm]);
 
   const handleShare = async (rhythm: SavedRhythm) => {
     try {

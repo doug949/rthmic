@@ -88,6 +88,15 @@ function MyFavouritesInner() {
     window.dispatchEvent(new CustomEvent("library-mutated"));
   }, [fetchLibrary]);
 
+  const updateRhythmLocal = useCallback((id: string, patch: Partial<SavedRhythm>) => {
+    setRhythms((prev) => prev.map((r) => r.id === id ? { ...r, ...patch } : r));
+  }, []);
+
+  const updateRhythm = useCallback((id: string, patch: Partial<SavedRhythm>) => {
+    updateRhythmLocal(id, patch);
+    mutate({ action: "update", id, ...patch });
+  }, [mutate, updateRhythmLocal]);
+
   const favourites = rhythms.filter((r) => r.status === "favourite");
 
   const allFavTags    = [...new Set(favourites.flatMap((r) => r.tags ?? []))].sort();
@@ -107,13 +116,13 @@ function MyFavouritesInner() {
   };
 
   const handleArchive = (rhythm: SavedRhythm) =>
-    mutate({ action: "update", id: rhythm.id, status: rhythm.status === "archived" ? "active" : "archived" });
+    updateRhythm(rhythm.id, { status: rhythm.status === "archived" ? "active" : "archived" });
 
   const handleUngraduate = (id: string) =>
-    mutate({ action: "update", id, status: "active" });
+    updateRhythm(id, { status: "active" });
 
   const handleTag = (id: string, tags: string[]) =>
-    mutate({ action: "update", id, tags });
+    updateRhythm(id, { tags });
 
   const togglePlay = useCallback((rhythm: SavedRhythm) => {
     if (!rhythm.audioUrl) return;
