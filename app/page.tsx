@@ -142,7 +142,7 @@ export default function Home() {
           <ModeCard
             href="/library"
             label="Rthmix Compilations"
-            description="Curated Rthm collections for focus, movement, and flow."
+            description="Extended learning, personal goals and ideas that build."
             icon={<PlayIcon />}
             amber
             comingSoon
