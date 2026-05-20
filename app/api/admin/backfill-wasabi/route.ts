@@ -1,10 +1,7 @@
-// GET /api/admin/backfill-wasabi
-// One-shot: walks every lib:* key in Redis, finds rhythms with audioUrl but no
-// audioKey, downloads each from Suno CDN and uploads to Wasabi, then patches
-// audioKey back into Redis.
-//
-// Safe to run multiple times — skips any rhythm that already has audioKey.
-// Run it once after deploying Wasabi storage support.
+// GET /api/admin/backfill-wasabi?batch=5
+// Paginated backfill — processes `batch` tracks per call (default 5).
+// Returns `done: true` when nothing is left to upload.
+// Call repeatedly until done:true.
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "redis";
@@ -26,23 +23,28 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Missing env vars" }, { status: 500 });
   }
 
+  const batchSize = Math.min(
+    parseInt(req.nextUrl.searchParams.get("batch") ?? "5", 10) || 5,
+    20 // hard cap — more than 20 uploads will always timeout
+  );
+
   const client = createClient({ url: process.env.REDIS_URL });
   await client.connect();
 
-  const results: { id: string; title: string; status: "uploaded" | "skipped" | "failed"; reason?: string }[] = [];
+  const uploaded: string[] = [];
+  const failed: { id: string; reason: string }[] = [];
+  let processed = 0;
+  let remaining = 0;
 
   try {
-    // Scan all lib:* keys
     const libKeys: string[] = [];
     for await (const key of client.scanIterator({ MATCH: "lib:*", COUNT: 100 })) {
       if (typeof key === "string") libKeys.push(key);
       else libKeys.push(...(key as string[]));
     }
 
-    console.log(`[backfill] found ${libKeys.length} library key(s)`);
-
     for (const libKey of libKeys) {
-      const userId = libKey.slice(4); // strip "lib:"
+      const userId = libKey.slice(4);
       const raw = await client.get(libKey);
       if (!raw) continue;
 
@@ -50,41 +52,40 @@ export async function GET(req: NextRequest) {
       let dirty = false;
 
       for (const rhythm of all) {
-        // Skip deleted, skip already backed up, skip if no source URL
-        if (rhythm.status === "deleted") continue;
-        if (rhythm.audioKey) {
-          results.push({ id: rhythm.id, title: rhythm.title, status: "skipped", reason: "already has audioKey" });
-          continue;
-        }
-        if (!rhythm.audioUrl) {
-          results.push({ id: rhythm.id, title: rhythm.title, status: "skipped", reason: "no audioUrl" });
-          continue;
-        }
+        if (rhythm.status === "deleted" || rhythm.audioKey || !rhythm.audioUrl) continue;
+
+        remaining++;
+
+        if (processed >= batchSize) continue; // count but don't upload yet
 
         const wasabiKey = `rhythms/${userId}/${rhythm.id}.mp3`;
         try {
           await uploadAudioToWasabi(rhythm.audioUrl, wasabiKey);
           rhythm.audioKey = wasabiKey;
           dirty = true;
-          results.push({ id: rhythm.id, title: rhythm.title, status: "uploaded" });
+          uploaded.push(rhythm.title);
+          processed++;
+          remaining--; // this one is now done
           console.log(`[backfill] uploaded ${wasabiKey}`);
         } catch (e) {
-          results.push({ id: rhythm.id, title: rhythm.title, status: "failed", reason: String(e) });
+          failed.push({ id: rhythm.id, reason: String(e) });
+          processed++;
           console.warn(`[backfill] failed ${rhythm.id}:`, e);
         }
       }
 
-      if (dirty) {
-        await client.set(libKey, JSON.stringify(all));
-      }
+      if (dirty) await client.set(libKey, JSON.stringify(all));
     }
   } finally {
     await client.disconnect();
   }
 
-  const uploaded = results.filter((r) => r.status === "uploaded").length;
-  const failed = results.filter((r) => r.status === "failed").length;
-  const skipped = results.filter((r) => r.status === "skipped").length;
-
-  return NextResponse.json({ uploaded, failed, skipped, results });
+  return NextResponse.json({
+    done: remaining === 0,
+    uploaded: uploaded.length,
+    failed: failed.length,
+    remaining,
+    uploadedTracks: uploaded,
+    failedTracks: failed,
+  });
 }
