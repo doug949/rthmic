@@ -1037,15 +1037,24 @@ const FOR_YOU_SUBCATEGORIES = [
 // Menus pillar is accessible via /structure — excluded from the speak catalog
 const FOR_YOU_PILLARS = PILLARS.filter((p) => p.slug !== "menus");
 
-const CF_STREAM_ID = "2e1d19d0dc33f42e7031bf59e9d1f586";
-const CF_CUSTOMER  = "customer-8nptfx7buiwn0mw3.cloudflarestream.com";
-const CF_THUMB     = `https://${CF_CUSTOMER}/${CF_STREAM_ID}/thumbnails/thumbnail.jpg`;
-const CF_HLS       = `https://${CF_CUSTOMER}/${CF_STREAM_ID}/manifest/video.m3u8`;
+const CF_CUSTOMER = "customer-8nptfx7buiwn0mw3.cloudflarestream.com";
+
+function cfThumb(id: string) { return `https://${CF_CUSTOMER}/${id}/thumbnails/thumbnail.jpg`; }
+function cfHls(id: string)   { return `https://${CF_CUSTOMER}/${id}/manifest/video.m3u8`; }
+
+const CF_IDS: Record<string, string> = {
+  default:  "2e1d19d0dc33f42e7031bf59e9d1f586",
+  movement: "ffa96f93e7048b669defa6cc27aba93a",
+};
 
 const ALL_PILLAR_SLUGS = [...FOR_YOU_PILLARS.map((p) => p.slug), "auto"];
 
-const PILLAR_IMAGES: Record<string, string> = Object.fromEntries(ALL_PILLAR_SLUGS.map((s) => [s, CF_THUMB]));
-const PILLAR_VIDEOS: Record<string, string> = Object.fromEntries(ALL_PILLAR_SLUGS.map((s) => [s, CF_HLS]));
+const PILLAR_IMAGES: Record<string, string> = Object.fromEntries(
+  ALL_PILLAR_SLUGS.map((s) => [s, cfThumb(CF_IDS[s] ?? CF_IDS.default)])
+);
+const PILLAR_VIDEOS: Record<string, string> = Object.fromEntries(
+  ALL_PILLAR_SLUGS.map((s) => [s, cfHls(CF_IDS[s] ?? CF_IDS.default)])
+);
 
 const PILLAR_GRID = [
   ...FOR_YOU_PILLARS.map((p) => ({
