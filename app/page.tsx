@@ -119,80 +119,25 @@ export default function Home() {
         </header>
       </RevealBlock>
 
-      <section className="flex-1 flex flex-col gap-2.5 pb-6">
+      <section className="flex-1 flex flex-col pb-6">
+        {/* ── 3×2 tile grid — top 6 ── */}
         <RevealBlock delay={60}>
-          <ModeCard
-            href="/speak"
-            label="Create a Rthm"
-            description="Tell Rthmic what you need. Get on track."
-            icon={<MicIcon />}
-            primary
-          />
+          <div className="grid grid-cols-3 gap-1.5 pb-4">
+            {HOME_TILES.map((tile, i) => (
+              <HomeTile key={tile.label} tile={tile} delay={60 + i * 30} />
+            ))}
+          </div>
         </RevealBlock>
-        <RevealBlock delay={120}>
-          <ModeCard
-            href="/library"
-            label="Your Rthmic Catalog"
-            description="Your generated Rthms and the curated collection."
-            icon={<PlayIcon />}
-            blue
-          />
-        </RevealBlock>
-        <RevealBlock delay={145}>
-          <ModeCard
-            href="/library"
-            label="Rthmix Compilations"
-            description="Extended learning, personal goals and ideas that build."
-            icon={<CassetteIcon />}
-            amber
-            comingSoon
-          />
-        </RevealBlock>
-        <RevealBlock delay={160}>
-          <ModeCard
-            href="/structure"
-            label="Structure: Rthmic Menus"
-            description="Morning, afternoon, evening — build a Rthm for the time of day."
-            icon={<MenusIcon />}
-            teal
-          />
-        </RevealBlock>
-        <RevealBlock delay={210}>
-          <ModeCard
-            href="/speak"
-            label="ADHD Toolkit"
-            description="Rejection Spike, Time Panic, Launch — and more"
-            icon={<BrainIcon />}
-            rose
-          />
-        </RevealBlock>
-        <RevealBlock delay={250}>
-          <ModeCard
-            href="/settings"
-            label="Settings"
-            description="Your profile, vocalist preference, and Rthmic Styles"
-            icon={<EQIcon />}
-            purple
-          />
-        </RevealBlock>
-        <RevealBlock delay={290}>
-          <ModeCard
-            href="/feedback"
-            label="Share Feedback"
-            description="Speak your thoughts directly to the team"
-            icon={<BubbleIcon />}
-            subtle
-          />
-        </RevealBlock>
-        <RevealBlock delay={340}>
-          <ModeCard
-            href="/understand"
-            label="About RTHMIC"
-            description="What it is and when to use it"
-            icon={<InfoIcon />}
-            subtle
-          />
-        </RevealBlock>
+
+        {/* ── Slim list rows — secondary items ── */}
+        <div className="flex flex-col gap-2">
+          <RevealBlock delay={260}>
+            <ModeCard href="/feedback" label="Share Feedback" description="Speak your thoughts directly to the team" icon={<BubbleIcon />} subtle />
+          </RevealBlock>
+          <RevealBlock delay={300}>
+            <ModeCard href="/understand" label="About RTHMIC" description="What it is and when to use it" icon={<InfoIcon />} subtle />
+          </RevealBlock>
+        </div>
       </section>
 
       {/* Bottom sheet */}
@@ -268,6 +213,61 @@ export default function Home() {
       )}
     </main>
   );
+}
+
+// ─── Home tile grid ───────────────────────────────────────────────────────────
+
+const HOME_TILES: {
+  href: string;
+  label: string;
+  shortLabel: string;
+  icon: React.ReactNode;
+  accent: string;       // rgba for gradient tint when no image
+  image?: string;
+  comingSoon?: boolean;
+}[] = [
+  { href: "/speak",     label: "Create a Rthm",        shortLabel: "Create",     icon: <MicIcon />,     accent: "rgba(201,165,90,0.55)" },
+  { href: "/library/my-rthms", label: "My Rthms",      shortLabel: "My Rthms",   icon: <PlayIcon />,    accent: "rgba(100,140,255,0.5)" },
+  { href: "/library",   label: "Rthmix",                shortLabel: "Rthmix",     icon: <CassetteIcon />, accent: "rgba(230,155,60,0.5)", comingSoon: true },
+  { href: "/structure", label: "Structure",             shortLabel: "Structure",  icon: <MenusIcon />,   accent: "rgba(100,195,165,0.5)" },
+  { href: "/speak",     label: "ADHD Toolkit",          shortLabel: "ADHD",       icon: <BrainIcon />,   accent: "rgba(220,110,140,0.5)" },
+  { href: "/settings",  label: "Settings",              shortLabel: "Settings",   icon: <EQIcon />,      accent: "rgba(160,130,220,0.5)" },
+];
+
+function HomeTile({ tile }: { tile: typeof HOME_TILES[number]; delay?: number }) {
+  const inner = (
+    <div
+      className="relative rounded-xl overflow-hidden touch-manipulation"
+      style={{ aspectRatio: "1/1", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
+    >
+      {tile.image ? (
+        <img src={tile.image} alt={tile.label} className="absolute inset-0 w-full h-full object-cover" />
+      ) : (
+        <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse at 60% 30%, ${tile.accent} 0%, transparent 70%)` }} />
+      )}
+      {/* Bottom gradient */}
+      <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.15) 55%, transparent 100%)" }} />
+
+      {/* Coming soon badge */}
+      {tile.comingSoon && (
+        <div className="absolute top-2 right-2">
+          <span className="text-[8px] uppercase tracking-widest px-1.5 py-0.5 rounded-full font-semibold"
+            style={{ background: "rgba(230,155,60,0.18)", color: "rgba(230,155,60,0.75)", border: "1px solid rgba(230,155,60,0.25)" }}>
+            Soon
+          </span>
+        </div>
+      )}
+
+      {/* Icon + label */}
+      <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-1 pb-2.5 px-1 pointer-events-none">
+        <span className="text-white/60" style={{ transform: "scale(0.72)", transformOrigin: "center" }}>{tile.icon}</span>
+        <p className="text-[10px] font-semibold text-white/90 leading-tight tracking-wide text-center">{tile.shortLabel}</p>
+      </div>
+    </div>
+  );
+
+  if (tile.comingSoon) return <div>{inner}</div>;
+  return <TransitionLink href={tile.href} className="active:opacity-70 transition-opacity block">{inner}</TransitionLink>;
 }
 
 function ModeCard({
