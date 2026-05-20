@@ -1672,7 +1672,7 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
       )}
 
     <section className="flex-1 flex flex-col justify-between pb-10">
-      <div className="flex-1 overflow-y-auto flex flex-col gap-6 py-6">
+      <div className="flex-1 overflow-y-auto flex flex-col gap-6 pt-1 pb-6">
 
         {/* Pillar badge */}
         {pillarDef && (
