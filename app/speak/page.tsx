@@ -1314,7 +1314,7 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
               <div
                 key={p.slug}
                 className="relative rounded-xl overflow-hidden"
-                style={{ aspectRatio: "3/4", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
+                style={{ aspectRatio: "1/1", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
               >
                 {/* Main tap area → create */}
                 <button
@@ -1323,7 +1323,7 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
                   aria-label={`Create ${p.label}`}
                 >
                   {p.image && (
-                    <img src={p.image} alt={p.label} className="absolute inset-0 w-full h-full object-cover" />
+                    <img src={p.image} alt={p.label} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: "50% 36%" }} />
                   )}
                   <div
                     className="absolute inset-0"
@@ -1332,10 +1332,10 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
                 </button>
 
                 {/* Icon + Label centered at bottom */}
-                <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-1 pb-3 px-1 pointer-events-none">
-                  {p.icon && <span className="text-white/70" style={{ transform: "scale(0.75)", transformOrigin: "center" }}>{p.icon}</span>}
-                  {p.slug === "auto" && <span className="text-white/25 text-xl mb-0.5">?</span>}
-                  <p className="text-[10px] font-semibold text-white/90 leading-tight tracking-wide text-center">{p.label}</p>
+                <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-1.5 pb-3 px-1 pointer-events-none">
+                  {p.icon && <span className="text-white/82" style={{ transform: "scale(0.98)", transformOrigin: "center" }}>{p.icon}</span>}
+                  {p.slug === "auto" && <span className="text-white/35 text-2xl mb-0.5">?</span>}
+                  <p className="text-[11px] font-semibold text-white/95 leading-tight tracking-wide text-center">{p.label}</p>
                 </div>
 
               </div>
@@ -2359,11 +2359,11 @@ function GenreView({
       ) : (
         <div className="flex flex-col gap-5">
 
-          {/* ── RTHMIC Styles (built-in, permanent) ── */}
+          {/* ── Style Archetypes (built-in, permanent) ── */}
           {builtInGenres.length > 0 && (
             <div className="flex flex-col gap-2">
               <RevealBlock delay={20}>
-                <p className="text-[10px] text-white/40 uppercase tracking-[0.25em]">RTHMIC Styles</p>
+                <p className="text-[10px] text-white/40 uppercase tracking-[0.25em]">Style Archetypes</p>
               </RevealBlock>
               <div className="flex flex-col gap-2">
                 {builtInGenres.map((genre, i) =>
@@ -2488,8 +2488,8 @@ function GeneratingView({ onCancel, pillar }: { onCancel: () => void; pillar?: s
           {/* ── Text block ───────────────────────────────────────────────── */}
           <div className="text-center flex flex-col items-center gap-3 max-w-xs">
             <h2
-              className="text-xl font-light tracking-wide text-white"
-              style={{ fontFamily: "var(--font-display)" }}
+              className="text-xl font-light tracking-wide"
+              style={{ fontFamily: "var(--font-display)", color: "rgb(167,139,250)" }}
             >
               {copy.heading}
             </h2>
@@ -2499,7 +2499,7 @@ function GeneratingView({ onCancel, pillar }: { onCancel: () => void; pillar?: s
               key={stageIdx}
               className="text-sm"
               style={{
-                color: "rgba(201,165,90,0.65)",
+                color: "rgba(167,139,250,0.72)",
                 minHeight: "1.25rem",
                 animation: "fade-up 0.5s cubic-bezier(0.16,1,0.3,1) forwards",
               }}

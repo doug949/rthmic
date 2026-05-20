@@ -258,7 +258,7 @@ export default function MyRthmsPage() {
         {queueJobs.length > 0 && (
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2 px-1">
-              <span className="text-[10px] uppercase tracking-widest text-white/35">Generating</span>
+              <span className="text-[10px] uppercase tracking-widest" style={{ color: "rgb(167,139,250)" }}>Generating</span>
               <span
                 className="inline-flex items-center justify-center text-[9px] font-semibold rounded-full px-1.5 py-0.5 leading-none"
                 style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)" }}
@@ -365,7 +365,7 @@ export default function MyRthmsPage() {
           {loadState === "ready" && myRthms.length === 0 && (
             <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5 py-12 flex flex-col items-center gap-3">
               <p className="text-sm text-white/50 text-center leading-relaxed">
-                Rthms you generate will appear here.
+                <span style={{ color: "rgb(167,139,250)" }}>Rthms you generate</span> will appear here.
               </p>
               <TransitionLink href="/speak" className="text-xs text-white/45 underline underline-offset-4 hover:text-white/60 transition-colors">
                 Speak your state →

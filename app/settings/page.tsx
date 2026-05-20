@@ -292,7 +292,7 @@ export default function SettingsPage() {
       className="relative z-10 min-h-screen flex flex-col px-6"
       style={{ paddingTop: "env(safe-area-inset-top, 0px)", animation: "page-enter 380ms ease forwards" }}
     >
-      <AppHeader title="Settings" onBack={() => transitionTo("/", router)} />
+      <AppHeader title="Settings and Styles" onBack={() => transitionTo("/", router)} />
 
       <div className="flex-1 flex flex-col pb-10 gap-8 overflow-y-auto">
 
@@ -438,11 +438,11 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* ── Rthmic Styles ──────────────────────────────────────────────────── */}
+        {/* ── Style Archetypes ───────────────────────────────────────────────── */}
         <section>
           <div className="flex items-center gap-2 mb-4">
             <span style={{ color: "rgba(201,165,90,0.65)" }}><StylesIcon /></span>
-            <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: "rgba(201,165,90,0.65)" }}>Rthmic Styles</p>
+            <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: "rgba(201,165,90,0.65)" }}>Style Archetypes</p>
           </div>
 
           {/* Slot tabs */}
@@ -518,7 +518,7 @@ export default function SettingsPage() {
                 {voicePhase === "transcribing" && <p className="text-base text-white/50">Transcribing…</p>}
                 {voicePhase === "interpreting" && <p className="text-base text-white/50">Interpreting your style…</p>}
                 {voicePhase === "idle" && (
-                  <><p className="text-base font-medium" style={{ color: s.transcript ? "rgba(255,255,255,0.75)" : "#c9a55a" }}>{s.transcript ? "Tap to re-record" : "Your Rthm style – tap to speak"}</p><p className="text-xs text-white/50 mt-0.5">{s.transcript ? "Your words will be replaced" : "Describe the feel, energy, what it does to you"}</p></>
+                  <><p className="text-base font-medium" style={{ color: s.transcript ? "rgba(255,255,255,0.75)" : "#c9a55a" }}>{s.transcript ? "Tap to re-record" : "Your Style Archetype - tap to speak"}</p><p className="text-xs text-white/50 mt-0.5">{s.transcript ? "Your words will be replaced" : "Describe the character, feel, energy, and artists"}</p></>
                 )}
               </div>
             </button>

@@ -102,6 +102,8 @@ export default function Home() {
     }
   };
 
+  const visibleTiles = HOME_TILES.filter((tile) => !tile.adminOnly || userCode === "doug2026");
+
   return (
     <main
       className="relative z-10 min-h-screen flex flex-col px-6 pt-safe"
@@ -149,7 +151,7 @@ export default function Home() {
       <section className="flex-1 flex flex-col pb-6 mt-1">
         {/* ── tile grid — rows glide in one after another ── */}
         <div className="grid grid-cols-2 gap-1.5 pb-4">
-          {HOME_TILES.map((tile, i) => {
+          {visibleTiles.map((tile, i) => {
             const row = Math.floor(i / 2);
             const rowDelay = row * TILE_ROW_DELAY_MS;
             return (
@@ -267,13 +269,15 @@ const HOME_TILES: {
   image?: string;
   imageScale?: number;  // scale > 1 crops in to hide white borders
   comingSoon?: boolean;
+  adminOnly?: boolean;
 }[] = [
   { href: "/speak",     label: "Create a Rthm",        shortLabel: "Create",     icon: <MicIcon />,     accent: "rgba(201,165,90,0.55)", image: "/images/tiles/create.jpg" },
+  { href: "/studio",    label: "RTHMIC Studio",        shortLabel: "Studio",     icon: <StudioIcon />,  accent: "rgba(109,40,217,0.55)", image: "/images/tiles/create.jpg", imageScale: 1.18, adminOnly: true },
   { href: "/library/my-rthms", label: "My Rthms",      shortLabel: "My Rthms",   icon: <PlayIcon />,    accent: "rgba(100,140,255,0.5)", image: "/images/tiles/my-rthms.jpg" },
   { href: "/library",   label: "Rthmix",                shortLabel: "Rthmix",     icon: <CassetteIcon />, accent: "rgba(230,155,60,0.5)", image: "/images/tiles/rthmix.jpg", comingSoon: true },
   { href: "/structure", label: "Structure",             shortLabel: "Structure",  icon: <MenusIcon />,   accent: "rgba(100,195,165,0.5)", image: "/images/tiles/structure.jpg", imageScale: 1.12 },
   { href: "/speak",     label: "ADHD Collection",       shortLabel: "ADHD Collection",       icon: <BrainIcon />,   accent: "rgba(220,110,140,0.5)", image: "/images/tiles/adhd.jpg" },
-  { href: "/settings",  label: "Settings",              shortLabel: "Settings",   icon: <EQIcon />,      accent: "rgba(160,130,220,0.5)", image: "/images/tiles/settings.jpg", imageScale: 1.12 },
+  { href: "/settings",  label: "Settings and Styles",   shortLabel: "Settings + Styles", icon: <EQIcon />, accent: "rgba(160,130,220,0.5)", image: "/images/tiles/settings.jpg", imageScale: 1.12 },
   { href: "/understand",label: "About RTHMIC",          shortLabel: "About",      icon: <InfoIcon />,    accent: "rgba(255,255,255,0.15)", image: "/images/tiles/about.jpg" },
   { href: "/feedback",  label: "Share Feedback",        shortLabel: "Feedback",   icon: <BubbleIcon />,  accent: "rgba(255,255,255,0.2)", image: "/images/tiles/feedback.jpg" },
 ];
@@ -320,6 +324,16 @@ function HomeTile({ tile }: { tile: typeof HOME_TILES[number]; delay?: number })
 
   if (tile.comingSoon) return <div>{inner}</div>;
   return <TransitionLink href={tile.href} className="active:opacity-70 transition-opacity block">{inner}</TransitionLink>;
+}
+
+function StudioIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+      <path d="M4 18V7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5V18" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M7 19h10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M8 9h3v6H8zM13 11h3v4h-3z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+    </svg>
+  );
 }
 
 function ModeCard({
