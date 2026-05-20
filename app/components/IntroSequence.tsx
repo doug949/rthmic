@@ -2,30 +2,37 @@
 
 import { useEffect, useState } from "react";
 
-const SEEN_KEY = "rthmic_intro_v3";
-const FADE_IN  = 600;  // ms
-const HOLD     = 1600; // ms per quote
-const FADE_OUT = 400;  // ms
+const SEEN_KEY  = "rthmic_intro_v3";
+const FADE      = 700;   // ms — consistent in/out, no duration-switch glitch
+const HOLD_Q    = 1800;  // ms quote hold
+const HOLD_LOGO = 1600;  // ms logo hold
 
-const ITEMS = [
-  { type: "quote", text: "Music is the greatest operating system evolution ever built." },
-  { type: "quote", text: "An entirely new category of productivity system" },
-  { type: "quote", text: "Get on Track, Stay on Track" },
-  { type: "logo" },
-] as const;
+const QUOTES = [
+  "Music is the greatest operating system evolution ever built.",
+  "An entirely new category of productivity system",
+  "Get on Track, Stay on Track",
+];
 
 function sleep(ms: number): Promise<void> {
   return new Promise(r => setTimeout(r, ms));
 }
 
 export default function IntroSequence() {
-  const [gone, setGone]       = useState(false);
-  const [idx, setIdx]         = useState(0);
-  const [visible, setVisible] = useState(false);
+  const [gone,             setGone]             = useState(false);
+  const [overlayOpacity,   setOverlayOpacity]   = useState(1);
+  const [contentOpacity,   setContentOpacity]   = useState(0);
+  const [showLogo,         setShowLogo]         = useState(false);
+
+  // Pick once on mount — stable across re-renders
+  const [quote] = useState(
+    () => QUOTES[Math.floor(Math.random() * QUOTES.length)]
+  );
 
   const skip = () => {
     sessionStorage.setItem(SEEN_KEY, "1");
-    setGone(true);
+    setContentOpacity(0);
+    setOverlayOpacity(0);
+    setTimeout(() => setGone(true), FADE + 50);
   };
 
   useEffect(() => {
@@ -37,45 +44,62 @@ export default function IntroSequence() {
     let cancelled = false;
 
     const run = async () => {
-      for (let i = 0; i < ITEMS.length; i++) {
-        if (cancelled) return;
-        setIdx(i);
-        await sleep(60); // let DOM settle before fading in
-        if (cancelled) return;
-        setVisible(true);
-        const hold = ITEMS[i].type === "logo" ? HOLD + 800 : HOLD;
-        await sleep(FADE_IN + hold);
-        if (cancelled) return;
-        setVisible(false);
-        await sleep(FADE_OUT + 80);
-        if (cancelled) return;
-      }
+      // ── Quote ──────────────────────────────────────────────────
+      await sleep(80);
+      if (cancelled) return;
+      setContentOpacity(1);
+      await sleep(FADE + HOLD_Q);
+      if (cancelled) return;
+      setContentOpacity(0);
+      await sleep(FADE + 120);
+
+      // ── Logo ───────────────────────────────────────────────────
+      if (cancelled) return;
+      setShowLogo(true);
+      await sleep(40); // let DOM swap render before fading in
+      if (cancelled) return;
+      setContentOpacity(1);
+      await sleep(FADE + HOLD_LOGO);
+      if (cancelled) return;
+      setContentOpacity(0);
+      await sleep(FADE + 80);
+
+      // ── Fade overlay out → reveal main menu ───────────────────
+      if (cancelled) return;
       sessionStorage.setItem(SEEN_KEY, "1");
+      setOverlayOpacity(0);
+      await sleep(FADE + 50);
+      if (cancelled) return;
       setGone(true);
     };
 
     run();
     return () => { cancelled = true; };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (gone) return null;
-
-  const item = ITEMS[idx];
 
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center px-10"
-      style={{ background: "#050508" }}
+      style={{
+        background: "#050508",
+        opacity: overlayOpacity,
+        transition: `opacity ${FADE}ms ease-in-out`,
+        // GPU-composite the overlay so opacity never triggers re-rasterisation
+        willChange: "opacity",
+      }}
     >
       <div
         style={{
-          opacity: visible ? 1 : 0,
-          transition: `opacity ${visible ? FADE_IN : FADE_OUT}ms ease-in-out`,
+          opacity: contentOpacity,
+          transition: `opacity ${FADE}ms ease-in-out`,
+          willChange: "opacity",
           textAlign: "center",
           maxWidth: 300,
         }}
       >
-        {item.type === "logo" ? (
+        {showLogo ? (
           <div>
             <p
               style={{
@@ -106,13 +130,13 @@ export default function IntroSequence() {
             style={{
               fontFamily: "var(--font-display)",
               fontWeight: 300,
-              color: "rgba(255,255,255,0.72)",
+              color: "rgba(255,255,255,0.75)",
               fontSize: "1.05rem",
               lineHeight: 1.75,
               letterSpacing: "0.01em",
             }}
           >
-            {item.text}
+            {quote}
           </p>
         )}
       </div>
