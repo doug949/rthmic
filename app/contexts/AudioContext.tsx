@@ -84,12 +84,31 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       audio.addEventListener("durationchange", () => setDuration(isFinite(audio.duration) ? audio.duration : 0));
       audio.addEventListener("loadedmetadata", () => setDuration(isFinite(audio.duration) ? audio.duration : 0));
       audio.addEventListener("pause", () => setIsPlaying(false));
-      audio.addEventListener("play", () => setIsPlaying(true));
+      audio.addEventListener("play",  () => setIsPlaying(true));
       audio.addEventListener("ended", () => {
         setIsPlaying(false);
         setCurrentTrackId(null);
         setCurrentTime(0);
         setDuration(0);
+      });
+
+      // Recover from mid-stream network stalls — reload src and seek back
+      let stalledRetries = 0;
+      audio.addEventListener("stalled", () => {
+        if (stalledRetries >= 2) { setIsPlaying(false); return; }
+        stalledRetries++;
+        const t = audio.currentTime;
+        audio.load();
+        audio.currentTime = t;
+        audio.play().catch(() => setIsPlaying(false));
+      });
+
+      // Catch expired / unreachable URLs — stop silently failing
+      audio.addEventListener("error", () => {
+        if (generation !== generationRef.current) return;
+        console.warn("Audio error:", audio.error?.code, audio.error?.message);
+        setIsPlaying(false);
+        setLoadingId(null);
       });
 
       const playPromise = audio.play();
