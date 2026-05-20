@@ -46,9 +46,8 @@ export function AmbientBackground() {
           width: "100%",
           height: "100%",
           objectFit: "cover",
-          opacity: isDefault ? 0.07 : 0,
+          opacity: isDefault ? 0.18 : 0,
           transition: "opacity 1.1s ease",
-          mixBlendMode: "luminosity",
         }}
       />
 
