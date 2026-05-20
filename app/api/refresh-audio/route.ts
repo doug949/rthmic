@@ -50,6 +50,12 @@ function extractClips(node: unknown, depth = 0): Record<string, unknown>[] {
   return [];
 }
 
+function inferSunoClipId(rhythmId: string, rhythms: SavedRhythm[]): string {
+  const rhythm = rhythms.find((r) => r.id === rhythmId);
+  if (rhythm?.sunoClipId) return rhythm.sunoClipId;
+  return rhythmId.replace(/-\d+$/, "");
+}
+
 export async function GET(request: NextRequest) {
   const uid = requireAuth(request);
   if (!uid) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -69,26 +75,34 @@ export async function GET(request: NextRequest) {
   const clips = extractClips(json);
   if (clips.length === 0) return NextResponse.json({ error: "No clips found" }, { status: 404 });
 
-  // Match by sunoClipId (rhythm id is `${clipId}-${idx}`)
-  const [clipId] = rhythmId.split("-");
+  let rhythms: SavedRhythm[] = [];
+  if (process.env.REDIS_URL) {
+    try {
+      const client = createClient({ url: process.env.REDIS_URL });
+      await client.connect();
+      const data = await client.get(`lib:${uid}`);
+      rhythms = data ? JSON.parse(data) : [];
+      await client.disconnect();
+    } catch (err) {
+      console.warn("[refresh-audio] Redis lookup failed:", err);
+    }
+  }
+
+  const clipId = inferSunoClipId(rhythmId, rhythms);
   const clip = clips.find((c) => String(c.id ?? "") === clipId) ?? clips[0];
   const freshUrl = getAudioUrl(clip);
   if (!freshUrl) return NextResponse.json({ error: "No audio URL in clip" }, { status: 404 });
 
   // Persist the fresh URL back to Redis so next play is instant
-  if (process.env.REDIS_URL) {
+  if (process.env.REDIS_URL && rhythms.length > 0) {
     try {
       const client = createClient({ url: process.env.REDIS_URL });
       await client.connect();
       const key = `lib:${uid}`;
-      const data = await client.get(key);
-      if (data) {
-        const rhythms: SavedRhythm[] = JSON.parse(data);
-        const updated = rhythms.map((r) =>
-          r.id === rhythmId ? { ...r, audioUrl: freshUrl } : r
-        );
-        await client.set(key, JSON.stringify(updated));
-      }
+      const updated = rhythms.map((r) =>
+        r.id === rhythmId ? { ...r, audioUrl: freshUrl } : r
+      );
+      await client.set(key, JSON.stringify(updated));
       await client.disconnect();
     } catch (err) {
       console.warn("[refresh-audio] Redis update failed:", err);

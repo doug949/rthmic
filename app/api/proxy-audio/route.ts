@@ -48,6 +48,11 @@ function extractClips(node: unknown, depth = 0): Record<string, unknown>[] {
   return [];
 }
 
+function inferSunoClipId(rhythm: SavedRhythm): string {
+  if (rhythm.sunoClipId) return rhythm.sunoClipId;
+  return rhythm.id.replace(/-\d+$/, "");
+}
+
 async function getFreshUrl(rhythm: SavedRhythm): Promise<string | null> {
   if (!rhythm.sunoTaskId || !process.env.SUNO_API_KEY) return null;
   try {
@@ -58,7 +63,7 @@ async function getFreshUrl(rhythm: SavedRhythm): Promise<string | null> {
     if (!res.ok) return null;
     const json = await res.json();
     const clips = extractClips(json);
-    const [clipId] = rhythm.id.split("-");
+    const clipId = inferSunoClipId(rhythm);
     const clip = clips.find((c) => String(c.id ?? "") === clipId) ?? clips[0];
     return clip ? (getAudioUrl(clip) ?? null) : null;
   } catch {

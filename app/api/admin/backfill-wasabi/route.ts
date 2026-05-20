@@ -29,7 +29,7 @@ async function getFreshAudioUrl(rhythm: SavedRhythm): Promise<string | null> {
       Object.values(obj).forEach(walk);
     };
     walk(json);
-    const [clipId] = rhythm.id.split("-");
+    const clipId = rhythm.sunoClipId ?? rhythm.id.replace(/-\d+$/, "");
     const clip = clips.find((c) => String(c.id ?? "") === clipId) ?? clips[0];
     if (!clip) return null;
     const url = [clip.stream_audio_url, clip.audio_url, clip.audioUrl, clip.url, clip.mp3_url, clip.streamUrl, clip.stream_url]
