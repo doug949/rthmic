@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "redis";
 import type { PillarType, TimedWord } from "@/app/types/pipeline";
 import { normalisePillar } from "@/app/types/pipeline";
+import { normalizeTags, tagsForSavedRhythm } from "@/app/lib/autoTags";
 
 export interface SavedRhythm {
   id: string;
@@ -88,11 +89,19 @@ export async function GET(request: NextRequest) {
         await client.set(libKey(uid), JSON.stringify(kept));
       }
 
-      // Normalise legacy pillar names at read-time (no data migration needed)
-      const normalised = kept.map((r) => ({
-        ...r,
-        pillar: normalisePillar(r.pillar) as PillarType,
-      }));
+      // Normalise legacy pillar names and quietly backfill missing tags.
+      const normalised = kept.map((r) => {
+        const pillar = normalisePillar(r.pillar) as PillarType;
+        return {
+          ...r,
+          pillar,
+          tags: r.tags?.length ? normalizeTags(r.tags) : tagsForSavedRhythm({ ...r, pillar }),
+        };
+      });
+
+      if (JSON.stringify(normalised) !== JSON.stringify(kept)) {
+        await client.set(libKey(uid), JSON.stringify(normalised));
+      }
 
       return normalised;
     });
@@ -137,6 +146,7 @@ export async function POST(request: NextRequest) {
       if (action === "save") {
         const rhythm: SavedRhythm = {
           ...body.rhythm,
+          tags: tagsForSavedRhythm(body.rhythm),
           savedAt: Date.now(),
           status: "active",
         };
@@ -162,7 +172,7 @@ export async function POST(request: NextRequest) {
           if (r.id !== body.id) return r;
           const next: SavedRhythm = { ...r };
           if (body.status      !== undefined) next.status      = body.status as SavedRhythm["status"];
-          if (body.tags        !== undefined) next.tags        = body.tags as string[];
+          if (body.tags        !== undefined) next.tags        = normalizeTags(body.tags as string[]);
           if (body.note        !== undefined) next.note        = body.note as string;
           if (body.timedLyrics !== undefined) next.timedLyrics = body.timedLyrics as TimedWord[];
           if (next.status !== "deleted") delete next.deletedAt;

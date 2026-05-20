@@ -15,6 +15,7 @@ import type { QueueJob } from "@/app/lib/queueLib";
 import type { SavedRhythm } from "@/app/api/library/route";
 import type { Song, TimedWord } from "@/app/types/pipeline";
 import { uploadAudioToWasabi } from "@/app/lib/wasabiUpload";
+import { tagsForSavedRhythm } from "@/app/lib/autoTags";
 
 export const maxDuration = 60;
 
@@ -136,6 +137,7 @@ async function pollJob(
       ...(audioKey ? { audioKey } : {}),
       ...(job.note ? { note: job.note } : {}),
     };
+    rhythm.tags = tagsForSavedRhythm(rhythm);
     await saveToLibrary(client, job.userId, rhythm);
     console.log(`[queue] saved ${rhythm.id} (${rhythm.title}) for user ${job.userId}`);
 

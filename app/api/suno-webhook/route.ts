@@ -10,6 +10,7 @@ import {
 } from "@/app/lib/queueLib";
 import type { SavedRhythm } from "@/app/api/library/route";
 import { uploadAudioToWasabi } from "@/app/lib/wasabiUpload";
+import { tagsForSavedRhythm } from "@/app/lib/autoTags";
 
 export const maxDuration = 60;
 
@@ -185,6 +186,7 @@ export async function POST(req: NextRequest) {
           ...(audioKey ? { audioKey } : {}),
           ...(job.note ? { note: job.note } : {}),
         };
+        rhythm.tags = tagsForSavedRhythm(rhythm);
         await saveToLibrary(client, job.userId, rhythm);
         console.log(`[webhook] saved ${rhythm.id} ("${rhythm.title}") for user ${job.userId}`);
       }
