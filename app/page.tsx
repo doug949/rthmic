@@ -72,23 +72,23 @@ export default function Home() {
       {/* Wordmark + hamburger */}
       <RevealBlock delay={0}>
         <header className="relative pt-6 pb-3">
-          <h1 className="text-3xl tracking-[0.4em] uppercase" style={{ fontFamily: "var(--font-display)", fontWeight: 300, color: "#c9a55a" }}>
+          <h1 className="text-3xl tracking-wide uppercase" style={{ fontFamily: "var(--font-display)", fontWeight: 300, color: "#c9a55a" }}>
             {"RTHMIC".split("").map((letter, i) => (
               <span
                 key={i}
                 style={{
                   display: "inline-block",
-                  animation: `letter-wipe 220ms cubic-bezier(0.4,0,0.2,1) forwards`,
-                  animationDelay: `${i * 55}ms`,
-                  clipPath: "inset(0 100% 0 0)",
+                  opacity: 0,
+                  animation: `letter-fade 320ms ease forwards`,
+                  animationDelay: `${i * 45}ms`,
                 }}
               >
                 {letter}
               </span>
             ))}
           </h1>
-          <p className="text-xs mt-1.5 tracking-widest uppercase" style={{ color: "#c9a55a", opacity: 0.6 }}>
-            music to change your mind
+          <p className="text-xs mt-1.5 tracking-widest uppercase" style={{ color: "#c9a55a", opacity: 0, animation: "letter-fade 400ms ease 280ms forwards" }}>
+            music to live by
           </p>
           {(userName || userCode) && (
             <p className="text-xs mt-2 font-light" style={{ color: "rgba(255,255,255,0.45)", letterSpacing: "0.02em" }}>
@@ -123,7 +123,8 @@ export default function Home() {
         {/* ── tile grid — rows glide in one after another ── */}
         <div className="grid grid-cols-2 gap-1.5 pb-4">
           {HOME_TILES.map((tile, i) => {
-            const rowDelay = 80 + Math.floor(i / 2) * 130;
+            // Rows start at 300ms then each row overlaps the previous by ~120ms into its 520ms animation
+            const rowDelay = 300 + Math.floor(i / 2) * 140;
             return (
               <div
                 key={tile.label}
