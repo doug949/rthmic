@@ -1674,38 +1674,36 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
     <section className="flex-1 flex flex-col justify-between pb-10">
       <div className="flex-1 overflow-y-auto flex flex-col gap-6 py-6">
 
-        {/* Pillar badge */}
+        {/* Pillar badge + compact video thumbnail */}
         {pillarDef && (
           <RevealBlock delay={0}>
-            <span
-              className="self-start text-[10px] px-2.5 py-1 rounded-full uppercase tracking-widest font-medium"
-              style={{ background: "rgba(201,165,90,0.12)", color: "#c9a55a", border: "1px solid rgba(201,165,90,0.25)" }}
-            >
-              {pillarDef.label}
-            </span>
-          </RevealBlock>
-        )}
-
-        {/* Thumbnail — tap to preview video */}
-        {videoSrc && pillar && PILLAR_IMAGES[pillar] && (
-          <RevealBlock delay={15}>
-            <button
-              onClick={openLightbox}
-              className="relative w-full rounded-2xl overflow-hidden touch-manipulation active:brightness-90 transition-all"
-              style={{ aspectRatio: "9/16", border: "1px solid rgba(255,255,255,0.08)" }}
-            >
-              <img src={PILLAR_IMAGES[pillar]} alt="Preview" className="w-full h-full object-cover" />
-              <div className="absolute inset-0 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.18)" }}>
-                <div
-                  className="w-11 h-11 rounded-full flex items-center justify-center"
-                  style={{ background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.3)" }}
+            <div className="flex items-center justify-between">
+              <span
+                className="text-[10px] px-2.5 py-1 rounded-full uppercase tracking-widest font-medium"
+                style={{ background: "rgba(201,165,90,0.12)", color: "#c9a55a", border: "1px solid rgba(201,165,90,0.25)" }}
+              >
+                {pillarDef.label}
+              </span>
+              {videoSrc && pillar && PILLAR_IMAGES[pillar] && (
+                <button
+                  onClick={openLightbox}
+                  className="relative rounded-xl overflow-hidden touch-manipulation active:brightness-75 transition-all flex-shrink-0"
+                  style={{ width: 64, height: 64, border: "1px solid rgba(255,255,255,0.1)" }}
                 >
-                  <svg width="13" height="15" viewBox="0 0 13 15" fill="none">
-                    <path d="M1.5 1.5L11.5 7.5L1.5 13.5V1.5Z" fill="white" />
-                  </svg>
-                </div>
-              </div>
-            </button>
+                  <img src={PILLAR_IMAGES[pillar]} alt="Preview" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.25)" }}>
+                    <div
+                      className="w-7 h-7 rounded-full flex items-center justify-center"
+                      style={{ background: "rgba(255,255,255,0.18)", border: "1px solid rgba(255,255,255,0.35)" }}
+                    >
+                      <svg width="9" height="10" viewBox="0 0 9 10" fill="none">
+                        <path d="M1.5 1L7.5 5L1.5 9V1Z" fill="white" />
+                      </svg>
+                    </div>
+                  </div>
+                </button>
+              )}
+            </div>
           </RevealBlock>
         )}
 
