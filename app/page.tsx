@@ -145,6 +145,7 @@ export default function Home() {
             description="Curated Rthm collections for focus, movement, and flow."
             icon={<PlayIcon />}
             amber
+            comingSoon
           />
         </RevealBlock>
         <RevealBlock delay={160}>
@@ -281,6 +282,7 @@ function ModeCard({
   purple,
   rose,
   subtle,
+  comingSoon,
 }: {
   href: string;
   label: string;
@@ -293,41 +295,58 @@ function ModeCard({
   purple?: boolean;
   rose?: boolean;
   subtle?: boolean;
+  comingSoon?: boolean;
 }) {
   const iconColor  = primary ? "#c9a55a" : blue ? "rgba(120,160,255,0.75)" : amber ? "rgba(230,155,60,0.85)" : teal ? "rgba(100,195,165,0.85)" : purple ? "rgba(160,130,220,0.85)" : rose ? "rgba(220,110,140,0.85)" : subtle ? "rgba(255,255,255,0.28)" : "rgba(255,255,255,0.45)";
   const labelColor = primary ? "#c9a55a" : blue ? "rgba(140,175,255,0.92)" : amber ? "rgba(240,170,80,0.95)" : teal ? "rgba(120,210,180,0.92)" : purple ? "rgba(180,150,240,0.92)" : rose ? "rgba(235,130,155,0.92)" : subtle ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.9)";
   const arrowColor = primary ? "rgba(201,165,90,0.4)" : blue ? "rgba(120,160,255,0.35)" : amber ? "rgba(230,155,60,0.35)" : teal ? "rgba(100,195,165,0.35)" : purple ? "rgba(160,130,220,0.35)" : rose ? "rgba(220,110,140,0.35)" : subtle ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.2)";
 
-  return (
-    <TransitionLink
-      href={href}
-      className={`
-        flex items-center gap-5 px-6 rounded-2xl border transition-all duration-150
-        active:scale-[0.98] touch-manipulation
-        ${primary || blue || amber || teal || purple || rose ? "py-4" : subtle ? "py-3" : "py-4"}
-        ${primary || blue || amber || teal || purple || rose ? "" : "bg-white/[0.03] border-white/[0.08] hover:bg-white/[0.07]"}
-      `}
-      style={
-        primary ? { background: "rgba(201,165,90,0.08)", borderColor: "rgba(201,165,90,0.35)" }
-        : blue   ? { background: "rgba(100,140,255,0.06)", borderColor: "rgba(120,160,255,0.28)" }
-        : amber  ? { background: "rgba(230,155,60,0.06)", borderColor: "rgba(230,155,60,0.28)" }
-        : teal   ? { background: "rgba(100,195,165,0.06)", borderColor: "rgba(100,195,165,0.28)" }
-        : purple ? { background: "rgba(160,130,220,0.06)", borderColor: "rgba(160,130,220,0.28)" }
-        : rose   ? { background: "rgba(220,110,140,0.06)", borderColor: "rgba(220,110,140,0.28)" }
-        : {}
-      }
-    >
+  const cardStyle =
+    primary ? { background: "rgba(201,165,90,0.08)", borderColor: "rgba(201,165,90,0.35)" }
+    : blue   ? { background: "rgba(100,140,255,0.06)", borderColor: "rgba(120,160,255,0.28)" }
+    : amber  ? { background: "rgba(230,155,60,0.06)", borderColor: "rgba(230,155,60,0.28)" }
+    : teal   ? { background: "rgba(100,195,165,0.06)", borderColor: "rgba(100,195,165,0.28)" }
+    : purple ? { background: "rgba(160,130,220,0.06)", borderColor: "rgba(160,130,220,0.28)" }
+    : rose   ? { background: "rgba(220,110,140,0.06)", borderColor: "rgba(220,110,140,0.28)" }
+    : {};
+
+  const cardClass = `
+    flex items-center gap-5 px-6 rounded-2xl border
+    ${primary || blue || amber || teal || purple || rose ? "py-4" : subtle ? "py-3" : "py-4"}
+    ${primary || blue || amber || teal || purple || rose ? "" : "bg-white/[0.03] border-white/[0.08]"}
+    ${comingSoon ? "opacity-60 cursor-default" : "transition-all duration-150 active:scale-[0.98] touch-manipulation"}
+  `;
+
+  const inner = (
+    <>
       <span className="flex-shrink-0" style={{ color: iconColor }} aria-hidden>{icon}</span>
       <div className="flex-1 min-w-0">
-        <p
-          className={`font-semibold tracking-wide ${subtle ? "text-base" : "text-lg"}`}
-          style={{ color: labelColor }}
-        >
-          {label}
-        </p>
+        <div className="flex items-center gap-2">
+          <p className={`font-semibold tracking-wide ${subtle ? "text-base" : "text-lg"}`} style={{ color: labelColor }}>
+            {label}
+          </p>
+          {comingSoon && (
+            <span
+              className="text-[9px] uppercase tracking-widest px-1.5 py-0.5 rounded-full font-medium"
+              style={{ background: "rgba(230,155,60,0.12)", color: "rgba(230,155,60,0.6)", border: "1px solid rgba(230,155,60,0.2)" }}
+            >
+              Soon
+            </span>
+          )}
+        </div>
         <p className={`mt-0.5 leading-snug ${subtle ? "text-xs text-white/35" : "text-sm text-white/55"}`}>{description}</p>
       </div>
-      <span className="flex-shrink-0 text-lg" style={{ color: arrowColor }}>›</span>
+      {!comingSoon && <span className="flex-shrink-0 text-lg" style={{ color: arrowColor }}>›</span>}
+    </>
+  );
+
+  if (comingSoon) {
+    return <div className={cardClass} style={cardStyle}>{inner}</div>;
+  }
+
+  return (
+    <TransitionLink href={href} className={cardClass} style={cardStyle}>
+      {inner}
     </TransitionLink>
   );
 }
