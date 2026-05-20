@@ -51,6 +51,24 @@ function collectUrls(node: unknown, prefix = ""): { path: string; url: string }[
   return urls;
 }
 
+function describeShape(node: unknown, depth = 0): unknown {
+  if (depth > 3 || !node || typeof node !== "object") return typeof node;
+  if (Array.isArray(node)) {
+    return {
+      type: "array",
+      length: node.length,
+      first: node.length > 0 ? describeShape(node[0], depth + 1) : null,
+    };
+  }
+  const obj = node as Record<string, unknown>;
+  return Object.fromEntries(
+    Object.entries(obj).slice(0, 20).map(([key, value]) => [
+      key,
+      value && typeof value === "object" ? describeShape(value, depth + 1) : typeof value,
+    ])
+  );
+}
+
 function inferSunoClipId(rhythm: SavedRhythm): string {
   if (rhythm.sunoClipId) return rhythm.sunoClipId;
   return rhythm.id.replace(/-\d+$/, "");
@@ -120,7 +138,21 @@ export async function GET(req: NextRequest) {
     const clips = extractClips(json);
     const clipId = inferSunoClipId(rhythm);
     const clip = clips.find((c) => String(c.id ?? "") === clipId) ?? null;
-    if (!clip) return NextResponse.json({ error: "Matching clip not found", clipId, clipsFound: clips.length }, { status: 404 });
+    const allResponseUrls = [...new Map(collectUrls(json).map((u) => [u.url, u])).values()];
+    const responseUrlProbes = await Promise.all(allResponseUrls.map(async (entry) => ({
+      path: entry.path,
+      label: safeUrlLabel(entry.url),
+      ...(await probeUrl(entry.url)),
+    })));
+    if (!clip) {
+      return NextResponse.json({
+        error: "Matching clip not found",
+        clipId,
+        clipsFound: clips.length,
+        responseShape: describeShape(json),
+        responseUrlProbes,
+      }, { status: 404 });
+    }
 
     const urls = collectUrls(clip);
     const uniqueUrls = [...new Map(urls.map((u) => [u.url, u])).values()];
