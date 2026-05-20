@@ -238,7 +238,7 @@ function HomeTile({ tile }: { tile: typeof HOME_TILES[number]; delay?: number })
           className="absolute inset-0 w-full h-full object-cover"
           style={{
             ...(tile.imageScale ? { transform: `scale(${tile.imageScale})` } : {}),
-            ...(tile.comingSoon ? { opacity: 0.3 } : {}),
+            ...(tile.comingSoon ? { filter: "brightness(0.3)" } : {}),
           }}
         />
       ) : (
