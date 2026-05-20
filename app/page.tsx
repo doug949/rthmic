@@ -143,7 +143,7 @@ export default function Home() {
             href="/library"
             label="Rthmix Compilations"
             description="Extended learning, personal goals and ideas that build."
-            icon={<CassetteIcon />}
+            icon={<RecordIcon />}
             amber
             comingSoon
           />
@@ -372,21 +372,18 @@ function PlayIcon() {
   );
 }
 
-function CassetteIcon() {
+function RecordIcon() {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      {/* Outer shell */}
-      <rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="1.6" />
-      {/* Left reel */}
-      <circle cx="8" cy="13" r="2.5" stroke="currentColor" strokeWidth="1.4" />
-      <circle cx="8" cy="13" r="0.8" fill="currentColor" />
-      {/* Right reel */}
-      <circle cx="16" cy="13" r="2.5" stroke="currentColor" strokeWidth="1.4" />
-      <circle cx="16" cy="13" r="0.8" fill="currentColor" />
-      {/* Tape window cutout bottom */}
-      <path d="M5.5 18 Q8 15.5 12 15.5 Q16 15.5 18.5 18" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-      {/* Label stripe */}
-      <rect x="4" y="6.5" width="16" height="3.5" rx="0.8" stroke="currentColor" strokeWidth="1.2" opacity="0.45" />
+      {/* Outer disc */}
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.6" />
+      {/* Groove rings */}
+      <circle cx="12" cy="12" r="7.5" stroke="currentColor" strokeWidth="0.8" opacity="0.35" />
+      <circle cx="12" cy="12" r="5.5" stroke="currentColor" strokeWidth="0.8" opacity="0.35" />
+      {/* Label */}
+      <circle cx="12" cy="12" r="3.5" stroke="currentColor" strokeWidth="1.2" opacity="0.7" />
+      {/* Centre hole */}
+      <circle cx="12" cy="12" r="1" fill="currentColor" />
     </svg>
   );
 }
