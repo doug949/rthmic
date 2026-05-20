@@ -1037,13 +1037,15 @@ const FOR_YOU_SUBCATEGORIES = [
 // Menus pillar is accessible via /structure — excluded from the speak catalog
 const FOR_YOU_PILLARS = PILLARS.filter((p) => p.slug !== "menus");
 
-const PILLAR_IMAGES: Record<string, string> = {
-  explain: "/images/pillars/explain.jpg",
-};
+const CF_STREAM_ID = "2e1d19d0dc33f42e7031bf59e9d1f586";
+const CF_CUSTOMER  = "customer-8nptfx7buiwn0mw3.cloudflarestream.com";
+const CF_THUMB     = `https://${CF_CUSTOMER}/${CF_STREAM_ID}/thumbnails/thumbnail.jpg`;
+const CF_HLS       = `https://${CF_CUSTOMER}/${CF_STREAM_ID}/manifest/video.m3u8`;
 
-const PILLAR_VIDEOS: Record<string, string> = {
-  explain: "/videos/pillars/explain.mp4",
-};
+const ALL_PILLAR_SLUGS = [...FOR_YOU_PILLARS.map((p) => p.slug), "auto"];
+
+const PILLAR_IMAGES: Record<string, string> = Object.fromEntries(ALL_PILLAR_SLUGS.map((s) => [s, CF_THUMB]));
+const PILLAR_VIDEOS: Record<string, string> = Object.fromEntries(ALL_PILLAR_SLUGS.map((s) => [s, CF_HLS]));
 
 const PILLAR_GRID = [
   ...FOR_YOU_PILLARS.map((p) => ({
@@ -1052,7 +1054,7 @@ const PILLAR_GRID = [
     image: PILLAR_IMAGES[p.slug] ?? null,
     video: PILLAR_VIDEOS[p.slug] ?? null,
   })),
-  { slug: "auto", label: "Surprise me", image: null, video: null },
+  { slug: "auto", label: "Surprise me", image: PILLAR_IMAGES["auto"] ?? null, video: PILLAR_VIDEOS["auto"] ?? null },
 ];
 
 // ─── The Vault — coming-soon reflective pillars ───────────────────────────────
@@ -1539,6 +1541,40 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
 
 // ─── Priming ──────────────────────────────────────────────────────────────────
 
+function HlsVideo({ src, className, style }: { src: string; className?: string; style?: React.CSSProperties }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !src) return;
+
+    if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      video.src = src;
+      return;
+    }
+
+    let hlsInstance: InstanceType<typeof import("hls.js").default> | null = null;
+    import("hls.js").then(({ default: Hls }) => {
+      if (!Hls.isSupported() || !videoRef.current) return;
+      hlsInstance = new Hls();
+      hlsInstance.loadSource(src);
+      hlsInstance.attachMedia(videoRef.current);
+    });
+
+    return () => { hlsInstance?.destroy(); };
+  }, [src]);
+
+  return (
+    <video
+      ref={videoRef}
+      playsInline
+      controls
+      className={className}
+      style={style}
+    />
+  );
+}
+
 function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (seed?: string, skipSpeak?: boolean) => void }) {
   const pillarDef = PILLARS.find((p) => p.slug === pillar)
     ?? (pillar === "bridge" ? BRIDGE_PILLAR : null)
@@ -1570,9 +1606,24 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
     setShuffling(false);
   }
 
+  const videoSrc = pillar ? PILLAR_VIDEOS[pillar] ?? null : null;
+
   return (
     <section className="flex-1 flex flex-col justify-between pb-10">
       <div className="flex-1 overflow-y-auto flex flex-col gap-6 py-6">
+
+        {/* Video preview */}
+        {videoSrc && (
+          <RevealBlock delay={0}>
+            <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.08)" }}>
+              <HlsVideo
+                src={videoSrc}
+                className="w-full"
+                style={{ maxHeight: "38vh", objectFit: "cover", display: "block" }}
+              />
+            </div>
+          </RevealBlock>
+        )}
 
         {/* Pillar badge */}
         {pillarDef && (
