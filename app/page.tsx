@@ -129,6 +129,9 @@ export default function Home() {
           </div>
         </RevealBlock>
 
+        <p className="text-center text-[9px] tracking-wide mt-4 pb-2" style={{ color: "rgba(255,255,255,0.18)" }}>
+          © 4Ward Vision Video Ltd
+        </p>
       </section>
 
       {/* Bottom sheet */}
@@ -232,7 +235,7 @@ function HomeTile({ tile }: { tile: typeof HOME_TILES[number]; delay?: number })
   const inner = (
     <div
       className="relative rounded-xl overflow-hidden touch-manipulation"
-      style={{ aspectRatio: "4/3", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
+      style={{ aspectRatio: "5/4", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
     >
       {tile.image ? (
         <img
