@@ -93,7 +93,7 @@ export default function Home() {
     try {
       if ("serviceWorker" in navigator) {
         const regs = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(regs.map((r) => r.unregister()));
+        await Promise.all(regs.map((r) => r.update()));
       }
       if ("caches" in window) {
         const keys = await caches.keys();
@@ -227,7 +227,7 @@ export default function Home() {
                 <span className="text-white/35 text-lg leading-none">↺</span>
                 <div>
                   <p className="text-sm text-white/70 font-medium">Refresh App Cache</p>
-                  <p className="text-xs text-white/30 mt-0.5">Clears app files, keeps offline audio</p>
+                  <p className="text-xs text-white/30 mt-0.5">Updates app files, keeps permissions and offline audio</p>
                 </div>
               </button>
               <button
