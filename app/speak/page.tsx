@@ -72,17 +72,17 @@ const PILLAR_PROMPT: Record<string, string> = {
 };
 
 const PILLAR_SUBTITLE: Record<string, string> = {
-  memory:      "Two Rthms will lock it in.",
-  menus:       "Two Rthms will carry your list.",
-  mindset:     "Two Rthms will prepare you.",
-  mode:        "Two Rthms will meet you there.",
-  movement:    "Two Rthms will get it moving.",
-  journal:     "Two Rthms will hold the day.",
-  epiphany:    "Two Rthms will hold the idea.",
-  explain:     "Two Rthms will make it click.",
-  booksummary: "Two Rthms will carry the idea.",
-  bridge:      "Two Rthms will reach them.",
-  invite:      "Two Rthms will bring them in.",
+  memory:      "Rthmic will lock it in.",
+  menus:       "Rthmic will carry your list.",
+  mindset:     "Rthmic will prepare you.",
+  mode:        "Rthmic will meet you there.",
+  movement:    "Rthmic will get it moving.",
+  journal:     "Rthmic will hold the day.",
+  epiphany:    "Rthmic will hold the idea.",
+  explain:     "Rthmic will make it click.",
+  booksummary: "Rthmic will carry the idea.",
+  bridge:      "Rthmic will reach them.",
+  invite:      "Rthmic will bring them in.",
 };
 
 interface UnderstandResult {
@@ -1808,18 +1808,26 @@ function IdleView({ onRecord, errorMsg, selectedPillar }: { onRecord: () => void
       </RevealBlock>
 
       <RevealBlock delay={60}>
-        <button
-          onClick={() => { setMicRequesting(true); onRecord(); }}
-          disabled={micRequesting}
-          className="w-28 h-28 rounded-full flex items-center justify-center active:scale-[0.96] transition-all touch-manipulation"
-          style={{
-            background: micRequesting ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.07)",
-            border: micRequesting ? "1px solid rgba(201,165,90,0.35)" : "1px solid rgba(255,255,255,0.12)",
-          }}
-          aria-label="Start recording"
-        >
-          {micRequesting ? <MicRequestingIcon /> : <MicIcon />}
-        </button>
+        <div className="relative flex items-center justify-center">
+          {!micRequesting && (
+            <>
+              <span className="absolute w-44 h-44 rounded-full animate-ping" style={{ animationDuration: "3s", border: "1px solid rgba(255,255,255,0.07)" }} />
+              <span className="absolute w-36 h-36 rounded-full animate-ping" style={{ animationDuration: "3s", animationDelay: "0.8s", border: "1px solid rgba(255,255,255,0.1)" }} />
+            </>
+          )}
+          <button
+            onClick={() => { setMicRequesting(true); onRecord(); }}
+            disabled={micRequesting}
+            className="w-28 h-28 rounded-full flex items-center justify-center active:scale-[0.96] transition-all touch-manipulation relative z-10"
+            style={{
+              background: micRequesting ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.07)",
+              border: micRequesting ? "1px solid rgba(201,165,90,0.35)" : "1px solid rgba(255,255,255,0.12)",
+            }}
+            aria-label="Start recording"
+          >
+            {micRequesting ? <MicRequestingIcon /> : <MicIcon />}
+          </button>
+        </div>
       </RevealBlock>
 
       {micRequesting && (
