@@ -1725,6 +1725,15 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
                   </svg>
                 </div>
               </div>
+              {/* Info label — top left */}
+              <div className="absolute top-3 left-3 flex items-center gap-1.5 pointer-events-none">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <circle cx="7" cy="7" r="6.25" stroke="rgba(255,255,255,0.6)" strokeWidth="1.2" />
+                  <path d="M7 6.5V10" stroke="rgba(255,255,255,0.6)" strokeWidth="1.3" strokeLinecap="round" />
+                  <circle cx="7" cy="4.5" r="0.75" fill="rgba(255,255,255,0.6)" />
+                </svg>
+                <span className="text-[10px] font-medium tracking-wide" style={{ color: "rgba(255,255,255,0.6)" }}>How to use</span>
+              </div>
             </button>
           </RevealBlock>
         )}
