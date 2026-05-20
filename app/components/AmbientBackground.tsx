@@ -35,10 +35,10 @@ export function AmbientBackground() {
       aria-hidden
       style={{ zIndex: 0 }}
     >
-      {/* Vinyl — default state only */}
+      {/* Background texture — default state only */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/vinyl.jpg"
+        src="/bg.jpg"
         alt=""
         style={{
           position: "absolute",
