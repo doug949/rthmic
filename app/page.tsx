@@ -91,7 +91,7 @@ export default function Home() {
             music to change your mind
           </p>
           {(userName || userCode) && (
-            <p className="text-sm mt-4 font-light" style={{ color: "rgba(255,255,255,0.55)", letterSpacing: "0.02em" }}>
+            <p className="text-xs mt-2 font-light" style={{ color: "rgba(255,255,255,0.45)", letterSpacing: "0.02em" }}>
               {greeting()}{userName ? `, ${userName}` : ""}
             </p>
           )}
@@ -119,7 +119,7 @@ export default function Home() {
         </header>
       </RevealBlock>
 
-      <section className="flex-1 flex flex-col pb-6">
+      <section className="flex-1 flex flex-col pb-6 -mt-2">
         {/* ── 3×2 tile grid — top 6 ── */}
         <RevealBlock delay={60}>
           <div className="grid grid-cols-2 gap-1.5 pb-4">
