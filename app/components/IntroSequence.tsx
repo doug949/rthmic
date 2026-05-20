@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 const SEEN_KEY  = "rthmic_intro_v3";
 const FADE      = 700;   // ms — consistent in/out, no duration-switch glitch
-const HOLD_Q    = 1800;  // ms quote hold
+const HOLD_Q    = 3000;  // ms quote hold
 const HOLD_LOGO = 1600;  // ms logo hold
 
 const QUOTES = [

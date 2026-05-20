@@ -4,11 +4,24 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TransitionLink } from "@/app/components/TransitionLink";
 
+const SCREEN_FADE_MS = 1800;
+const TILE_ENTER_MS = 1600;
+const TILE_ROW_DELAY_MS = 260;
+
 function greeting(): string {
   const h = new Date().getHours();
   if (h >= 5 && h < 12) return "Good Morning";
   if (h >= 12 && h < 17) return "Good Afternoon";
   return "Good Evening";
+}
+
+function preloadImage(src: string): Promise<void> {
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => resolve();
+    image.onerror = () => resolve();
+    image.src = src;
+  });
 }
 
 export default function Home() {
@@ -19,7 +32,8 @@ export default function Home() {
   const [refreshing, setRefreshing] = useState(false);
   const [clearingQueue, setClearingQueue] = useState(false);
   const [queueCleared, setQueueCleared] = useState<number | null>(null);
-  const [ready, setReady] = useState(false);
+  const [screenReady, setScreenReady] = useState(false);
+  const [tilesReady, setTilesReady] = useState(false);
 
   useEffect(() => {
     const match = document.cookie.match(/(?:^|;\s*)rthmic_code=([^;]+)/);
@@ -30,16 +44,25 @@ export default function Home() {
       .catch(() => {});
   }, []);
 
-  // Wait for all resources (images) to load, then settle 300ms before animating
+  // Keep the menu hidden until its images are decoded, then let the page fade in
+  // before the tile rows begin their wave.
   useEffect(() => {
-    let t: ReturnType<typeof setTimeout>;
-    const go = () => { t = setTimeout(() => setReady(true), 300); };
-    if (document.readyState === "complete") {
-      go();
-    } else {
-      window.addEventListener("load", go, { once: true });
-    }
-    return () => { clearTimeout(t); window.removeEventListener("load", go); };
+    let cancelled = false;
+    let tileTimer: ReturnType<typeof setTimeout>;
+    const imageUrls = HOME_TILES.flatMap((tile) => tile.image ? [tile.image] : []);
+
+    Promise.all(imageUrls.map(preloadImage)).then(() => {
+      if (cancelled) return;
+      setScreenReady(true);
+      tileTimer = setTimeout(() => {
+        if (!cancelled) setTilesReady(true);
+      }, SCREEN_FADE_MS);
+    });
+
+    return () => {
+      cancelled = true;
+      clearTimeout(tileTimer);
+    };
   }, []);
 
   const handleClearQueue = async () => {
@@ -80,7 +103,13 @@ export default function Home() {
   };
 
   return (
-    <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ opacity: ready ? undefined : 0, animation: ready ? "page-enter 1800ms cubic-bezier(0.16,1,0.3,1) both" : undefined }}>
+    <main
+      className="relative z-10 min-h-screen flex flex-col px-6 pt-safe"
+      style={{
+        opacity: screenReady ? undefined : 0,
+        animation: screenReady ? `page-enter ${SCREEN_FADE_MS}ms cubic-bezier(0.16,1,0.3,1) both` : undefined,
+      }}
+    >
       {/* Wordmark + hamburger */}
       <header className="relative pt-6 pb-3">
         <h1 className="text-3xl tracking-[0.18em] uppercase" style={{ fontFamily: "var(--font-display)", fontWeight: 300, color: "#c9a55a" }}>
@@ -122,13 +151,13 @@ export default function Home() {
         <div className="grid grid-cols-2 gap-1.5 pb-4">
           {HOME_TILES.map((tile, i) => {
             const row = Math.floor(i / 2);
-            const rowDelay = row * 260;
+            const rowDelay = row * TILE_ROW_DELAY_MS;
             return (
               <div
                 key={tile.label}
                 style={{
-                  opacity: ready ? undefined : 0,
-                  animation: ready ? `tile-enter 1600ms cubic-bezier(0.16,1,0.3,1) ${rowDelay}ms both` : undefined,
+                  opacity: tilesReady ? undefined : 0,
+                  animation: tilesReady ? `tile-enter ${TILE_ENTER_MS}ms cubic-bezier(0.16,1,0.3,1) ${rowDelay}ms both` : undefined,
                 }}
               >
                 <HomeTile tile={tile} />
