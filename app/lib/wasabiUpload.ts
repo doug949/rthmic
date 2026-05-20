@@ -36,6 +36,7 @@ export async function uploadAudioToWasabi(
 
   const contentType = res.headers.get("Content-Type") ?? "audio/mpeg";
   const body = Buffer.from(await res.arrayBuffer());
+  if (body.length === 0) throw new Error(`fetch ${sourceUrl} → empty audio body`);
 
   await s3.send(
     new PutObjectCommand({

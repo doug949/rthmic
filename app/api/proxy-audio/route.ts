@@ -66,6 +66,10 @@ async function getFreshUrl(rhythm: SavedRhythm): Promise<string | null> {
   }
 }
 
+function isEmptyAudioResponse(response: Response): boolean {
+  return response.headers.get("Content-Length") === "0";
+}
+
 export async function GET(request: NextRequest) {
   const uid = requireAuth(request);
   if (!uid) return new NextResponse("Unauthorized", { status: 401 });
@@ -114,7 +118,7 @@ export async function GET(request: NextRequest) {
   let upstream = await fetch(audioUrl, { headers: cdnHeaders });
 
   // If Wasabi fetch failed (signed URL for non-existent object), fall back to Suno
-  if (!upstream.ok && upstream.status !== 206 && rhythm.audioKey) {
+  if (((!upstream.ok && upstream.status !== 206) || isEmptyAudioResponse(upstream)) && rhythm.audioKey) {
     console.warn(`[proxy-audio] Wasabi fetch failed (${upstream.status}) for ${rhythm.audioKey} — falling back to Suno`);
     const fallbackUrl = (await getFreshUrl(rhythm)) ?? rhythm.audioUrl;
     if (fallbackUrl) {
@@ -122,7 +126,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  if (!upstream.ok && upstream.status !== 206) {
+  if ((!upstream.ok && upstream.status !== 206) || isEmptyAudioResponse(upstream)) {
     return new NextResponse("Audio fetch failed", { status: 502 });
   }
 
