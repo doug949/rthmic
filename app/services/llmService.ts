@@ -4,6 +4,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { detectPillar, loadTemplate, loadMaster } from "@/app/lib/templateEngine";
+import { fromSunoPronunciation } from "@/app/lib/sunoLyrics";
 import type { PillarType, StateSummary } from "@/app/types/pipeline";
 
 const USE_MOCK = false; // uses Claude claude-opus-4-7 via ANTHROPIC_API_KEY
@@ -837,6 +838,10 @@ export async function interpret(rawTranscript: string, overridePillar?: PillarTy
 
   // Always enforce the pillar we determined — never let the LLM override it
   parsed.pillar = pillar;
+
+  // Restore branded spellings if the LLM wrote phonetic forms (e.g. "Rith-mick" → "RTHMIC").
+  // toSunoPronunciation() handles the opposite direction when sending to Suno.
+  if (parsed.lyrics) parsed.lyrics = fromSunoPronunciation(parsed.lyrics);
 
   return parsed;
 }

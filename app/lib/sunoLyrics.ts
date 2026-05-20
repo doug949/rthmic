@@ -34,3 +34,22 @@ export function toSunoPronunciation(lyrics: string): string {
   }
   return result;
 }
+
+// Reverse: restore branded spellings in LLM output that may contain phonetic forms.
+// Applied to lyrics before they are stored or displayed.
+const RESTORE_MAP: [RegExp, string][] = [
+  [/\bRith-mix\b/g,  "RTHMIX"],
+  [/\bRith-mick\b/g, "RTHMIC"],
+  [/\bRith-um\b/g,   "RTHM"],
+  [/\brith-mix\b/g,  "rthmix"],
+  [/\brith-mick\b/g, "rthmic"],
+  [/\brith-um\b/g,   "rthm"],
+];
+
+export function fromSunoPronunciation(lyrics: string): string {
+  let result = lyrics;
+  for (const [pattern, replacement] of RESTORE_MAP) {
+    result = result.replace(pattern, replacement);
+  }
+  return result;
+}
