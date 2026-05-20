@@ -46,7 +46,7 @@ export function AmbientBackground() {
           width: "100%",
           height: "100%",
           objectFit: "cover",
-          opacity: 1,
+          opacity: 0.6,
           transition: "opacity 1.1s ease",
         }}
       />
