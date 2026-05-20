@@ -131,9 +131,13 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       audio.addEventListener("pause",   () => { if (stallInterval) { clearInterval(stallInterval); stallInterval = null; } });
       audio.addEventListener("ended",   () => { if (stallInterval) { clearInterval(stallInterval); stallInterval = null; } });
 
-      // Error handler — network errors retry with same URL; src errors try refresh
+      // Error handler — stop stall detector first, then attempt recovery
       audio.addEventListener("error", async () => {
         if (generation !== generationRef.current) return;
+
+        // Always kill the stall interval — don't keep calling play() on a broken element
+        if (stallInterval) { clearInterval(stallInterval); stallInterval = null; }
+
         const code = audio.error?.code;
         console.warn("Audio error code:", code, audio.error?.message);
 
