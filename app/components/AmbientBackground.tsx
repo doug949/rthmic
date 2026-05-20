@@ -19,7 +19,7 @@ const TINT: Record<string, string> = {
   menus:         "118,152,208",
 };
 
-const DEFAULT_TINT = "20,70,160";
+const DEFAULT_TINT = "0,0,0";
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
