@@ -1802,6 +1802,7 @@ function IdleView({ onRecord, errorMsg, selectedPillar }: { onRecord: () => void
     <section className="flex-1 flex flex-col items-center justify-center pb-24 gap-10">
       <RevealBlock delay={0}>
         <div className="text-center">
+          <p className="text-[10px] text-white/35 uppercase tracking-[0.3em] mb-2">Tap to</p>
           <h2 className="text-2xl font-light tracking-wide text-white leading-snug" style={{ fontFamily: "var(--font-display)" }}>{idleHeading}</h2>
           <p className="text-sm text-white/50 mt-2">{idleSubtitle}</p>
         </div>
