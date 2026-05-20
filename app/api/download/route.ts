@@ -45,11 +45,9 @@ export async function GET(req: NextRequest) {
     return new NextResponse("Audio source returned an error", { status: 502 });
   }
 
-  const contentType = upstream.headers.get("content-type") ?? "audio/mpeg";
-
   return new NextResponse(upstream.body, {
     headers: {
-      "Content-Type": contentType,
+      "Content-Type": "audio/mpeg",
       "Content-Disposition": `attachment; filename="${filename}"`,
       "Cache-Control": "no-store",
     },

@@ -60,6 +60,7 @@ export function RhythmRow({
   const [noteEditOpen, setNoteEditOpen] = useState(false);
   const [noteInput, setNoteInput] = useState(rhythm.note ?? "");
   const [moreOpen, setMoreOpen] = useState(false);
+  const [confirmingDownload, setConfirmingDownload] = useState(false);
 
   const tags = rhythm.tags ?? [];
 
@@ -231,7 +232,7 @@ export function RhythmRow({
       {moreOpen && (
         <MoreSheet
           title={rhythm.title}
-          onClose={() => setMoreOpen(false)}
+          onClose={() => { setMoreOpen(false); setConfirmingDownload(false); }}
           items={[
             {
               icon: "↺", label: "Recreate", sublabel: "New genre",
@@ -255,9 +256,16 @@ export function RhythmRow({
             }] : []),
             ...(canPlay ? [{
               icon: "⬇",
-              label: "Download",
-              sublabel: "Save to Files app",
+              label: confirmingDownload ? "Save as .mp3?" : "Download",
+              sublabel: confirmingDownload ? "Tap again to confirm" : "Save to Files app",
+              confirming: confirmingDownload,
+              keepOpen: true,
               onClick: () => {
+                if (!confirmingDownload) {
+                  setConfirmingDownload(true);
+                  return;
+                }
+                setConfirmingDownload(false);
                 const rawName = rhythm.title.replace(/\.mp3$/i, "");
                 const filename = encodeURIComponent(rawName);
                 const src = encodeURIComponent(rhythm.audioUrl!);
@@ -267,6 +275,7 @@ export function RhythmRow({
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
+                setMoreOpen(false);
               },
             }] : []),
             {
