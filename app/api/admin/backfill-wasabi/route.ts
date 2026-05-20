@@ -25,14 +25,14 @@ async function getFreshAudioUrl(rhythm: SavedRhythm): Promise<string | null> {
       if (!node || typeof node !== "object") return;
       if (Array.isArray(node)) { node.forEach(walk); return; }
       const obj = node as Record<string, unknown>;
-      if (obj.audio_url || obj.stream_audio_url) { clips.push(obj); return; }
+      if (obj.audio_url || obj.stream_audio_url || obj.audioUrl || obj.url || obj.mp3_url) { clips.push(obj); return; }
       Object.values(obj).forEach(walk);
     };
     walk(json);
     const [clipId] = rhythm.id.split("-");
     const clip = clips.find((c) => String(c.id ?? "") === clipId) ?? clips[0];
     if (!clip) return null;
-    const url = [clip.stream_audio_url, clip.audio_url, clip.url, clip.mp3_url]
+    const url = [clip.stream_audio_url, clip.audio_url, clip.audioUrl, clip.url, clip.mp3_url, clip.streamUrl, clip.stream_url]
       .find((u) => typeof u === "string" && (u as string).startsWith("http"));
     return (url as string) ?? null;
   } catch {
@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
   await client.connect();
 
   const uploaded: string[] = [];
-  const failed: { id: string; reason: string }[] = [];
+  const failed: { id: string; title: string; reason: string }[] = [];
   let processed = 0;
   let remaining = 0;
 
@@ -110,7 +110,7 @@ export async function GET(req: NextRequest) {
           remaining--;
           console.log(`[backfill] uploaded ${wasabiKey}`);
         } catch (e) {
-          failed.push({ id: rhythm.id, reason: String(e) });
+          failed.push({ id: rhythm.id, title: rhythm.title, reason: String(e) });
           processed++;
           console.warn(`[backfill] failed ${rhythm.id}:`, e);
         }

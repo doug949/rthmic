@@ -24,7 +24,14 @@ export async function uploadAudioToWasabi(
 ): Promise<string> {
   const s3 = makeS3();
 
-  const res = await fetch(sourceUrl, { signal: AbortSignal.timeout(30_000) });
+  const res = await fetch(sourceUrl, {
+    signal: AbortSignal.timeout(30_000),
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+      "Accept": "audio/mpeg,audio/*;q=0.9,*/*;q=0.8",
+      "Referer": "https://sunoapi.org/",
+    },
+  });
   if (!res.ok) throw new Error(`fetch ${sourceUrl} → ${res.status}`);
 
   const contentType = res.headers.get("Content-Type") ?? "audio/mpeg";
