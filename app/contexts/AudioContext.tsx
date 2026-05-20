@@ -86,6 +86,18 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       audio.addEventListener("loadedmetadata", () => setDuration(isFinite(audio.duration) ? audio.duration : 0));
       audio.addEventListener("pause", () => setIsPlaying(false));
       audio.addEventListener("play",  () => setIsPlaying(true));
+      let playCounted = false;
+      audio.addEventListener("playing", () => {
+        if (playCounted || generation !== generationRef.current) return;
+        playCounted = true;
+        fetch("/api/library", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "incrementPlay", id }),
+        })
+          .then(() => window.dispatchEvent(new CustomEvent("library-mutated")))
+          .catch(() => {});
+      });
       audio.addEventListener("ended", () => {
         setIsPlaying(false);
         setCurrentTrackId(null);

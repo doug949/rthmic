@@ -27,6 +27,8 @@ export interface SavedRhythm {
   deletedAt?: number;
   tags?: string[];
   note?: string;
+  playCount?: number;
+  lastPlayedAt?: number;
   sunoClipId?: string;      // raw Suno clip ID (audioId) for timed-lyrics API
   sunoTaskId?: string;      // Suno task ID — required alongside audioId to fetch timed lyrics
   timedLyrics?: TimedWord[]; // word-level synchronized lyric data from Suno
@@ -106,6 +108,7 @@ export async function GET(request: NextRequest) {
 //   { action: "save",    rhythm: SavedRhythm }                           — upsert
 //   { action: "remove",  id: string }                                     — soft-delete (30-day recovery)
 //   { action: "update",  id: string, status?, tags? }                     — update status and/or tags
+//   { action: "incrementPlay", id: string }                               — increment all-time play count
 export async function POST(request: NextRequest) {
   const uid = requireAuth(request);
   if (!uid) {
@@ -120,7 +123,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const { action } = body;
 
-  if (!["save", "remove", "batch-remove", "update"].includes(action)) {
+  if (!["save", "remove", "batch-remove", "update", "incrementPlay"].includes(action)) {
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   }
 
@@ -146,6 +149,12 @@ export async function POST(request: NextRequest) {
         const ids = new Set<string>(body.ids ?? []);
         updated = current.map((r) =>
           ids.has(r.id) ? { ...r, status: "deleted" as const, deletedAt: Date.now() } : r
+        );
+      } else if (action === "incrementPlay") {
+        updated = current.map((r) =>
+          r.id === body.id
+            ? { ...r, playCount: (r.playCount ?? 0) + 1, lastPlayedAt: Date.now() }
+            : r
         );
       } else {
         // update — status and/or tags; clears deletedAt when un-deleting

@@ -33,6 +33,7 @@ export function RhythmRow({
   dimmed,
   favourite,
   isNew,
+  chartRank,
 }: {
   rhythm: SavedRhythm;
   playing: boolean;
@@ -54,6 +55,7 @@ export function RhythmRow({
   dimmed?: boolean;
   favourite?: boolean;
   isNew?: boolean;
+  chartRank?: number;
 }) {
   // colour theme — priority: favourite > isNew > default
   const P = isNew && !favourite ? {
@@ -136,6 +138,14 @@ export function RhythmRow({
             {rhythm.title}
           </p>
           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+            {chartRank !== undefined && (
+              <span
+                className="text-[10px] uppercase tracking-wider tabular-nums"
+                style={{ color: favourite ? "rgba(201,165,90,0.72)" : "rgba(201,165,90,0.65)" }}
+              >
+                #{chartRank} · {rhythm.playCount ?? 0} play{(rhythm.playCount ?? 0) === 1 ? "" : "s"}
+              </span>
+            )}
             <span className="text-[10px] uppercase tracking-wider" style={{ color: favourite ? "rgba(201,165,90,0.6)" : P ? P.sub : "rgba(255,255,255,0.5)" }}>{rhythm.pillar}</span>
             {mayBeExpired && !playing && canPlay && (
               <span className="text-[10px] uppercase tracking-wider" style={{ color: favourite ? "rgba(201,165,90,0.5)" : "rgba(255,255,255,0.5)" }}>· may have expired</span>

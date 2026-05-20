@@ -12,7 +12,7 @@ import type { SavedRhythm } from "@/app/api/library/route";
 import { RhythmRow } from "../_components";
 
 type LoadState = "loading" | "ready" | "error";
-type TimePeriod = "today" | "week" | "month" | "all";
+type TimePeriod = "today" | "week" | "month" | "all" | "charts";
 
 interface QueueJob {
   jobId: string;
@@ -27,7 +27,7 @@ function inferStyle(pillar: string): "A" | "B" {
 }
 
 function periodStart(period: TimePeriod): number {
-  if (period === "all") return 0;
+  if (period === "all" || period === "charts") return 0;
   const d = new Date();
   if (period === "today") { d.setHours(0, 0, 0, 0); return d.getTime(); }
   if (period === "week")  { d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); d.setHours(0, 0, 0, 0); return d.getTime(); }
@@ -36,6 +36,7 @@ function periodStart(period: TimePeriod): number {
 }
 
 const ALL_TIME_PREVIEW = 8;
+const CHART_LIMIT = 20;
 const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
 
 export default function MyRthmsPage() {
@@ -88,7 +89,7 @@ export default function MyRthmsPage() {
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search).get("period");
-    if (p && (["today","week","month","all"] as string[]).includes(p)) setTimePeriod(p as TimePeriod);
+    if (p && (["today","week","month","all","charts"] as string[]).includes(p)) setTimePeriod(p as TimePeriod);
     fetchLibrary();
     fetchQueueJobs();
     const onMutated = () => { fetchLibrary(); fetchQueueJobs(); };
@@ -223,11 +224,21 @@ export default function MyRthmsPage() {
   const start = periodStart(timePeriod);
   const filteredRthms = myRthms
     .filter((r) => r.savedAt >= start)
+    .filter((r) => timePeriod !== "charts" || (r.playCount ?? 0) > 0)
     .filter((r) => !selectedPillar || r.pillar === selectedPillar)
     .filter((r) => selectedTags.length === 0 || selectedTags.every((t) => (r.tags ?? []).includes(t)));
-  const visibleRthms = timePeriod === "all" && !expanded
-    ? filteredRthms.slice(0, ALL_TIME_PREVIEW)
+  const orderedRthms = timePeriod === "charts"
+    ? [...filteredRthms].sort((a, b) =>
+        (b.playCount ?? 0) - (a.playCount ?? 0) ||
+        (b.lastPlayedAt ?? 0) - (a.lastPlayedAt ?? 0) ||
+        b.savedAt - a.savedAt
+      )
     : filteredRthms;
+  const visibleRthms = timePeriod === "charts"
+    ? orderedRthms.slice(0, CHART_LIMIT)
+    : timePeriod === "all" && !expanded
+    ? orderedRthms.slice(0, ALL_TIME_PREVIEW)
+    : orderedRthms;
 
   return (
     <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ animation: "page-enter 380ms ease forwards" }}>
@@ -377,6 +388,7 @@ export default function MyRthmsPage() {
                   week:  myRthms.filter((r) => r.savedAt >= periodStart("week")).length,
                   month: myRthms.filter((r) => r.savedAt >= periodStart("month")).length,
                   all:   myRthms.length,
+                  charts: myRthms.filter((r) => (r.playCount ?? 0) > 0).length,
                 }}
               />
 
@@ -395,9 +407,13 @@ export default function MyRthmsPage() {
               )}
 
               {/* Song rows */}
-              {filteredRthms.length === 0 ? (
+              {orderedRthms.length === 0 ? (
                 <p className="text-center text-sm text-white/30 py-8">
-                  {(selectedPillar || selectedTags.length > 0) ? "No Rthms match these filters" : "No Rthms in this period"}
+                  {(selectedPillar || selectedTags.length > 0)
+                    ? "No Rthms match these filters"
+                    : timePeriod === "charts"
+                    ? "Play a few Rthms and your chart will appear here"
+                    : "No Rthms in this period"}
                 </p>
               ) : (
                 <>
@@ -428,6 +444,7 @@ export default function MyRthmsPage() {
                         <div style={selectMode ? { paddingLeft: 36, opacity: isSelected ? 1 : 0.5, transition: "opacity 150ms" } : {}}>
                           <RhythmRow
                             rhythm={rhythm}
+                            chartRank={timePeriod === "charts" ? orderedRthms.findIndex((r) => r.id === rhythm.id) + 1 : undefined}
                             playing={currentTrackId === rhythm.id && isPlaying}
                             currentTime={currentTrackId === rhythm.id ? currentTime : 0}
                             duration={currentTrackId === rhythm.id ? duration : 0}
@@ -451,12 +468,18 @@ export default function MyRthmsPage() {
                     );
                   })}
 
-                  {timePeriod === "all" && filteredRthms.length > ALL_TIME_PREVIEW && (
+                  {timePeriod === "charts" && orderedRthms.length > CHART_LIMIT && (
+                    <p className="text-center text-[10px] uppercase tracking-widest text-white/25 py-2">
+                      Showing top {CHART_LIMIT} all time
+                    </p>
+                  )}
+
+                  {timePeriod === "all" && orderedRthms.length > ALL_TIME_PREVIEW && (
                     <button
                       onClick={() => setExpanded((e) => !e)}
                       className="text-[10px] text-white/50 uppercase tracking-widest py-2 touch-manipulation hover:text-white/65 transition-colors"
                     >
-                      {expanded ? "Show less ↑" : `+${filteredRthms.length - ALL_TIME_PREVIEW} more ↓`}
+                      {expanded ? "Show less ↑" : `+${orderedRthms.length - ALL_TIME_PREVIEW} more ↓`}
                     </button>
                   )}
                 </>
@@ -612,6 +635,7 @@ const PERIODS: { key: TimePeriod; label: string }[] = [
   { key: "week",  label: "This Week" },
   { key: "month", label: "This Month" },
   { key: "all",   label: "All Time" },
+  { key: "charts", label: "Charts" },
 ];
 
 function TimePeriodTabs({
