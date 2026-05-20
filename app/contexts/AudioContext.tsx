@@ -93,22 +93,45 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         setDuration(0);
       });
 
-      // Recover from mid-stream network stalls — reload src and seek back
-      let stalledRetries = 0;
-      audio.addEventListener("stalled", () => {
-        if (stalledRetries >= 2) { setIsPlaying(false); return; }
-        stalledRetries++;
-        const t = audio.currentTime;
-        audio.load();
-        audio.currentTime = t;
-        audio.play().catch(() => setIsPlaying(false));
+      // Mid-stream recovery — handles both `waiting` (buffering pause) and `stalled`
+      // without calling audio.load(), which destroys the buffer and breaks seek.
+      let recoverTimer: ReturnType<typeof setTimeout> | null = null;
+      let recoverRetries = 0;
+
+      const scheduleRecover = (delayMs: number) => {
+        if (recoverTimer) clearTimeout(recoverTimer);
+        recoverTimer = setTimeout(() => {
+          if (generation !== generationRef.current || !audio.paused) return;
+          if (recoverRetries >= 3) { setIsPlaying(false); return; }
+          recoverRetries++;
+          // Back up half a second to avoid sitting exactly at a buffer gap edge
+          audio.currentTime = Math.max(0, audio.currentTime - 0.5);
+          audio.play().catch(() => setIsPlaying(false));
+        }, delayMs);
+      };
+
+      audio.addEventListener("waiting", () => scheduleRecover(5000));
+      audio.addEventListener("stalled", () => scheduleRecover(3000));
+      audio.addEventListener("playing", () => {
+        if (recoverTimer) { clearTimeout(recoverTimer); recoverTimer = null; }
+        recoverRetries = 0;
       });
 
-      // Catch expired / unreachable URLs — auto-refresh Suno CDN URLs, otherwise stop
+      // Error handler — network errors retry with same URL; src errors try refresh
       audio.addEventListener("error", async () => {
         if (generation !== generationRef.current) return;
-        console.warn("Audio error:", audio.error?.code, audio.error?.message);
+        const code = audio.error?.code;
+        console.warn("Audio error code:", code, audio.error?.message);
 
+        // MEDIA_ERR_NETWORK (2) — transient; retry with same URL once
+        if (code === 2 && recoverRetries < 2) {
+          recoverRetries++;
+          audio.load();
+          audio.play().catch(() => setIsPlaying(false));
+          return;
+        }
+
+        // MEDIA_ERR_SRC_NOT_SUPPORTED (4) or repeated failure — URL likely expired; refresh
         if (meta?.sunoTaskId && meta?.rhythmId) {
           try {
             const res = await fetch(
