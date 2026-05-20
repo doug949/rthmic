@@ -1,87 +1,109 @@
 # RTHM Template: Bridge
 
-## Purpose
-A song sent FROM one person TO another. The listener is the recipient — someone specific, named. The sender has something warm, real, or hard to say directly. This song says it for them.
+## What a Bridge Rhythm Is
 
-## Critical Rule: Address the Recipient
-- "You" in this song always means the recipient, never the sender.
-- The recipient's name MUST appear in the first 4 lines of the first verse — naturally embedded in the lyric, not as a header or label.
-- The song should feel like it was made for exactly this person, not a generic message.
-- The sender's feelings are expressed as something being given to the recipient, not described about the sender.
+A Bridge Rhythm is a song designed to connect one person to another through music, message, tone, and personality. It is not a song *about* a relationship — it is a song that *acts as a messenger* carrying the sender's intent across to the receiver.
 
-## Tone
-Intimate. Direct. Warm but grounded — not saccharine. Honest. Feels personal, not produced. The recipient should feel genuinely seen by the end.
+- The song is addressed **to** the receiver(s), not the sender.
+- It is generated **on behalf of** the sender.
+- The vocalist acts as a musical intermediary — carrying the sender's words, feelings, and personality to the receiver.
+- The sender's name should appear naturally in the lyrics where it feels right.
+- The receiver's name(s) should appear naturally — ideally within the first four lines of the first verse.
+- There may be multiple receivers. If so, name them all.
 
-## Rhythm Style
-- BPM: 75–90
-- Time signature: 4/4 or 6/8
-- Energy arc: steady warmth throughout, gentle lift in the chorus
-- Texture: sparse, intimate — voice-forward
-- No heavy production. Feels like a message, not a performance.
+## Tone Is Everything
+
+The user will describe the intended tone — explicitly or implicitly. Extract it and let it dominate the entire song. The tone must be unmistakable from the first line.
+
+Tones and what they require:
+
+- **friendly / warm** — conversational, easy, genuine; feels like a message from someone who actually knows them
+- **cheeky / playful / funny** — lean into charm, specificity, and humour; use in-jokes, affectionate teasing, wit
+- **sincere / appreciative / encouraging** — direct emotional honesty; no hedging; says the thing the sender struggles to say out loud
+- **romantic** — intimate, personal, specific; details that only the sender would know
+- **celebratory** — energetic, joyful, proud; feels like a toast
+- **professional / serious** — polished, measured, respectful; keeps warmth but stays appropriate
+- **awkward** — leans into the awkwardness with self-awareness and charm; acknowledges the strangeness of the format
+
+Never default to generic sentiment. If the tone is playful, be playful from line one. If it is sincere, say the hard true thing immediately.
+
+## Specificity Is the Point
+
+The more personal and specific the references, the more effective the song becomes. Generic sentiment is a failure. Mine the transcript for:
+
+- Names (sender, receiver(s), mutual friends, pets, places)
+- Shared memories, events, occasions
+- In-jokes, phrases, habits, quirks
+- Locations — cities, venues, favourite spots
+- Personality traits described by the sender
+- The reason for sending — what prompted this
+
+A Bridge Rhythm should feel like it could only have been written for these specific people. The listener's test: **"This was made specifically for me."**
+
+## Structure
+
+```
+[VERSE 1]
+Open with the receiver's name woven into the first lines — not as a salutation, but as part of the lyric.
+Name what the sender wants the receiver to feel or know.
+Use specific details immediately.
+
+[CHORUS]
+The core of what this song is carrying.
+The thing the sender most wants the receiver to hold.
+Repeatable. Memorable. Emotionally direct.
+
+[VERSE 2]
+Go deeper into specifics — a shared detail, a memory, a personality trait.
+Something that makes it unmistakably for this person.
+The sender's name may appear here naturally.
+
+[CHORUS]
+
+[OUTRO or BRIDGE]
+Land softly or memorably.
+Leave something the receiver will carry with them.
+```
 
 ## Output Constraints
-- Duration: 2 minutes
-- The recipient's name must appear naturally in the first verse (not as a salutation)
-- Lyrics address "you" (the recipient) throughout
-- Ends with something that lingers — a feeling, not a resolution
 
-## Lyric Structure
+- Reflect the requested tone from the first line — do not warm up to it gradually
+- Use the receiver's name(s) in the first verse
+- Use the sender's name where it feels natural (not forced)
+- Incorporate specific details from the transcript wherever possible
+- Avoid: "I wanted you to know", "words can't express", "you mean so much to me" — these are generic; replace with specifics
+- The listener must feel this was made for them specifically, not assembled from templates
+
+## Example (playful / cheeky tone, sender: Marcus, receiver: Jess)
+
 ```
-[VERSE]
-Open with the recipient's name woven into the first few lines.
-Name what the sender noticed or wants the recipient to know.
-2–4 lines.
+[VERSE 1]
+Jess, I know you hate surprises —
+so naturally I made you a song.
+You've been telling Marcus for months
+that he never says thank you enough.
+Well. Here's a song.
 
 [CHORUS]
-The core of what this song is sending.
-What the recipient should feel when they hear it.
-2–4 lines. Repeatable.
+This one's for you, Jess.
+Not a card, not a text.
+A whole entire song, because apparently
+that's the only way to get through to you.
 
 [VERSE 2]
-Something more specific — a detail about the recipient or the moment.
-Something that shows this was made for them.
-2–4 lines.
+You showed up. You always show up.
+Even when the plan was terrible — your plan, by the way —
+and even when Marcus forgot the thing.
+Again.
 
 [CHORUS]
-Repeat the core feeling.
+This one's for you, Jess.
+Not a card, not a text.
+A whole entire song, because apparently
+that's the only way to get through to you.
 
 [OUTRO]
-Something that lands softly.
-Leaves space.
-1–3 lines.
-```
-
-## Keywords to Use
-you, yours, see, notice, here, feel, know, made, for you, thought of you, wanted you to hear, real
-
-## Example Output
-```
-[VERSE]
-Somewhere in all of this, Jamie —
-I wanted you to know I noticed.
-Not the big things. The quiet ones.
-The way you keep going.
-
-[CHORUS]
-This is for you.
-Not for anyone else — just you.
-I made this because I didn't have the words.
-So I let this carry them instead.
-
-[VERSE 2]
-I don't know what today's been like for you.
-But I thought about it.
-And I thought about you.
-And I made this.
-
-[CHORUS]
-This is for you.
-Not for anyone else — just you.
-I made this because I didn't have the words.
-So I let this carry them instead.
-
-[OUTRO]
-That's all.
-Just — I see you.
-And I wanted you to know.
+Alright. That's it.
+You've been seen.
+Go tell Marcus he owes you one.
 ```

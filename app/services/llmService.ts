@@ -773,7 +773,7 @@ function buildUserPrompt(pillar: PillarType, transcript: string): string {
   }
 
   if (pillar === "Bridge") {
-    return `${base}\n\nCRITICAL: This song is addressed TO the recipient, not about the sender. Extract the recipient's name from the transcript. "You" in the lyrics always means the recipient. The recipient's name MUST appear naturally within the first 4 lines of the first verse — embedded in the lyric, not as a salutation or header. The sender's feelings and thoughts should be expressed as something being given to the recipient. If no name is mentioned, open with an intimate "you" but make it unmistakably personal.`;
+    return `${base}\n\nCRITICAL BRIDGE RULES:\n1. TONE FIRST — identify the intended tone from the transcript (e.g. playful, sincere, celebratory, romantic, professional, cheeky, encouraging). Reflect that tone from the very first line. Do not warm up to it.\n2. ADDRESS THE RECEIVER — "you" in this song always means the receiver(s), never the sender. The receiver's name MUST appear naturally within the first 4 lines of verse 1, embedded in the lyric.\n3. SENDER AS MESSENGER — the vocalist speaks on behalf of the sender. Use the sender's name naturally in the lyrics where appropriate.\n4. MULTIPLE RECEIVERS — if multiple people are named as receivers, address them all.\n5. SPECIFICITY OVER SENTIMENT — mine the transcript for names, shared memories, in-jokes, habits, locations, events, personality traits. Weave them into every verse. Generic sentiment ("words can't express", "you mean so much") is a failure — replace with specifics.\n6. THE LISTENER'S TEST — the receiver must feel "this was made specifically for me."`;
   }
 
   if (pillar === "BookSummary") {
