@@ -67,7 +67,7 @@ export default function Home() {
   };
 
   return (
-    <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ animation: "page-enter 600ms cubic-bezier(0.16,1,0.3,1) forwards" }}>
+    <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ animation: "page-enter 1800ms cubic-bezier(0.16,1,0.3,1) forwards" }}>
       {/* Wordmark + hamburger */}
       <header className="relative pt-6 pb-3">
         <h1 className="text-3xl tracking-wide uppercase" style={{ fontFamily: "var(--font-display)", fontWeight: 300, color: "#c9a55a" }}>
@@ -109,12 +109,12 @@ export default function Home() {
         <div className="grid grid-cols-2 gap-1.5 pb-4">
           {HOME_TILES.map((tile, i) => {
             // Rows start at 300ms then each row overlaps the previous by ~120ms into its 520ms animation
-            const rowDelay = 300 + Math.floor(i / 2) * 140;
+            const rowDelay = 900 + Math.floor(i / 2) * 420;
             return (
               <div
                 key={tile.label}
                 style={{
-                  animation: `tile-enter 520ms cubic-bezier(0.16,1,0.3,1) ${rowDelay}ms both`,
+                  animation: `tile-enter 1560ms cubic-bezier(0.16,1,0.3,1) ${rowDelay}ms both`,
                 }}
               >
                 <HomeTile tile={tile} />
