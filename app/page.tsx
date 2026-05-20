@@ -311,8 +311,8 @@ function ModeCard({
     : {};
 
   const cardClass = `
-    flex items-center gap-5 px-6 rounded-2xl border
-    ${primary || blue || amber || teal || purple || rose ? "py-4" : subtle ? "py-3" : "py-4"}
+    flex items-center gap-4 px-5 rounded-2xl border
+    ${primary ? "py-3.5" : "py-3"}
     ${primary || blue || amber || teal || purple || rose ? "" : "bg-white/[0.03] border-white/[0.08]"}
     ${comingSoon ? "opacity-60 cursor-default" : "transition-all duration-150 active:scale-[0.98] touch-manipulation"}
   `;
@@ -322,7 +322,7 @@ function ModeCard({
       <span className="flex-shrink-0" style={{ color: iconColor }} aria-hidden>{icon}</span>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <p className={`font-semibold tracking-wide ${subtle ? "text-base" : "text-lg"}`} style={{ color: labelColor }}>
+          <p className="text-sm font-medium tracking-wide" style={{ color: labelColor }}>
             {label}
           </p>
           {comingSoon && (
@@ -334,7 +334,7 @@ function ModeCard({
             </span>
           )}
         </div>
-        <p className={`mt-0.5 leading-snug ${subtle ? "text-xs text-white/35" : "text-sm text-white/55"}`}>{description}</p>
+        <p className="text-xs mt-0.5 leading-snug text-white/45">{description}</p>
       </div>
       {!comingSoon && <span className="flex-shrink-0 text-lg" style={{ color: arrowColor }}>›</span>}
     </>
