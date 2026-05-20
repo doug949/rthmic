@@ -44,8 +44,14 @@ export default function TrackList() {
       setCurrentTrackId(trackId);
       setIsPlaying(false);
 
-      const res = await fetch(`/api/stream?key=${encodeURIComponent(audioKey)}`);
-      const { url } = await res.json();
+      let url: string;
+      if (audioKey) {
+        const res = await fetch(`/api/stream?key=${encodeURIComponent(audioKey)}`);
+        const data = await res.json();
+        url = data.url;
+      } else {
+        url = `/api/proxy-audio?id=${encodeURIComponent(trackId)}`;
+      }
 
       if (generation !== generationRef.current) return; // Superseded by a newer tap
 

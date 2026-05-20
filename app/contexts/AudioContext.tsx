@@ -205,8 +205,14 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       setIsPlaying(false);
       setPlayerOpen(true); // auto-open full-screen player
 
-      const res = await fetch(`/api/stream?key=${encodeURIComponent(audioKey)}`);
-      const { url } = await res.json();
+      let url: string;
+      if (audioKey) {
+        const res = await fetch(`/api/stream?key=${encodeURIComponent(audioKey)}`);
+        const data = await res.json();
+        url = data.url;
+      } else {
+        url = `/api/proxy-audio?id=${encodeURIComponent(trackId)}`;
+      }
 
       attachAndPlay(trackId, url, generation);
     },
