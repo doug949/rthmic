@@ -55,6 +55,41 @@ function fmtDuration(ms: number): string {
   return s === 0 ? `${m}m` : `${m}m ${s}s`;
 }
 
+function sentenceCase(text: string): string {
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : text;
+}
+
+function withPeriod(text: string): string {
+  return /[.!?]$/.test(text) ? text : `${text}.`;
+}
+
+function buildPurposeNote(intent?: string): string | undefined {
+  const cleaned = intent?.replace(/\s+/g, " ").trim();
+  if (!cleaned) return undefined;
+
+  const replacements: Array<[RegExp, (match: RegExpMatchArray) => string]> = [
+    [/^you want to\s+(.+)$/i, (m) => `To ${m[1]}`],
+    [/^you need to\s+(.+)$/i, (m) => `To ${m[1]}`],
+    [/^you're trying to\s+(.+)$/i, (m) => `To help you ${m[1]}`],
+    [/^you’re trying to\s+(.+)$/i, (m) => `To help you ${m[1]}`],
+    [/^you're looking to\s+(.+)$/i, (m) => `To help you ${m[1]}`],
+    [/^you’re looking to\s+(.+)$/i, (m) => `To help you ${m[1]}`],
+    [/^the goal is to\s+(.+)$/i, (m) => `To ${m[1]}`],
+  ];
+
+  let purpose = cleaned;
+  for (const [pattern, replace] of replacements) {
+    const match = cleaned.match(pattern);
+    if (match) {
+      purpose = replace(match);
+      break;
+    }
+  }
+
+  const note = `Purpose: ${withPeriod(sentenceCase(purpose))}`;
+  return note.length > 150 ? `${note.slice(0, 147).trimEnd()}…` : note;
+}
+
 // ─── Pillar-aware recording prompts ──────────────────────────────────────────
 
 const PILLAR_PROMPT: Record<string, string> = {
@@ -497,10 +532,7 @@ export default function SpeakPage() {
       ? `${menuTitleRef.current} — ${today}`
       : understandResult.title;
     const title = rawTitle.length > 80 ? rawTitle.slice(0, 77) + "…" : rawTitle;
-    const rawNote = understandResult.stateSummary.state?.trim();
-    const note = rawNote
-      ? (rawNote.length > 120 ? rawNote.slice(0, 117) + "…" : rawNote)
-      : undefined;
+    const note = buildPurposeNote(understandResult.stateSummary.intent);
 
     try {
       const res = await fetch("/api/queue-generation", {
