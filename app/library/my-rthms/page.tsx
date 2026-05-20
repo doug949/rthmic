@@ -51,6 +51,9 @@ export default function MyRthmsPage() {
   const [deletedOpen, setDeletedOpen]   = useState(false);
   const [recreateRhythm, setRecreateRhythm] = useState<SavedRhythm | null>(null);
   const [queueJobs, setQueueJobs] = useState<QueueJob[]>([]);
+  const [selectMode, setSelectMode]       = useState(false);
+  const [selectedIds, setSelectedIds]     = useState<Set<string>>(new Set());
+  const [confirmBatchDelete, setConfirmBatchDelete] = useState(false);
 
   const { currentTrackId, isPlaying, currentTime, duration, handlePlayUrl } = useAudio();
   const { startGeneration } = useGeneration();
@@ -142,6 +145,17 @@ export default function MyRthmsPage() {
   const handleRestore = (id: string) =>
     mutate({ action: "update", id, status: "active" });
 
+  const toggleSelect = (id: string) =>
+    setSelectedIds((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+
+  const exitSelectMode = () => { setSelectMode(false); setSelectedIds(new Set()); setConfirmBatchDelete(false); };
+
+  const handleBatchDelete = async () => {
+    if (!confirmBatchDelete) { setConfirmBatchDelete(true); setTimeout(() => setConfirmBatchDelete(false), 3000); return; }
+    await mutate({ action: "batch-remove", ids: [...selectedIds] });
+    exitSelectMode();
+  };
+
   const togglePlay = useCallback((rhythm: SavedRhythm) => {
     if (!rhythm.audioUrl) return;
     handlePlayUrl(rhythm.id, rhythm.audioUrl, rhythm.title);
@@ -209,7 +223,7 @@ export default function MyRthmsPage() {
         <AppHeader title="My Rthms" />
       </RevealBlock>
 
-      <section className="flex-1 flex flex-col gap-6 pb-16">
+      <section className="flex-1 flex flex-col gap-6 pb-32">
 
         {/* ── Generating (in queue) ────────────────────────────────────────────── */}
         {queueJobs.length > 0 && (
@@ -257,27 +271,52 @@ export default function MyRthmsPage() {
                 {newRthms.length}
               </span>
             </div>
-            {newRthms.map((rhythm) => (
-              <RhythmRow
-                key={rhythm.id}
-                rhythm={rhythm}
-                playing={currentTrackId === rhythm.id && isPlaying}
-                currentTime={currentTrackId === rhythm.id ? currentTime : 0}
-                duration={currentTrackId === rhythm.id ? duration : 0}
-                showLyrics={showLyricsId === rhythm.id}
-                onToggleLyrics={() => setShowLyricsId(showLyricsId === rhythm.id ? null : rhythm.id)}
-                onPlay={() => togglePlay(rhythm)}
-                onGraduate={() => handleGraduate(rhythm.id)}
-                onArchive={() => handleArchive(rhythm)}
-                onRemove={() => handleRemove(rhythm.id)}
-                onRecreate={() => setRecreateRhythm(rhythm)}
-                onShare={() => handleShare(rhythm)}
-                onTag={(tags) => handleTag(rhythm.id, tags)}
-                onNote={(note) => handleNote(rhythm.id, note)}
-                confirmingRemove={confirmRemoveId === rhythm.id}
-                shareToast={shareToastId === rhythm.id}
-              />
-            ))}
+            {newRthms.map((rhythm) => {
+              const isSelected = selectedIds.has(rhythm.id);
+              return (
+                <div key={rhythm.id} className="relative">
+                  {selectMode && (
+                    <button
+                      onClick={() => toggleSelect(rhythm.id)}
+                      className="absolute left-0 top-0 bottom-0 z-10 flex items-center pl-3 pr-2 touch-manipulation"
+                    >
+                      <div
+                        className="w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 transition-all"
+                        style={isSelected
+                          ? { background: "rgba(201,165,90,0.9)", borderColor: "rgba(201,165,90,1)" }
+                          : { background: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.2)" }}
+                      >
+                        {isSelected && (
+                          <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                            <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </div>
+                    </button>
+                  )}
+                  <div style={selectMode ? { paddingLeft: 36, opacity: isSelected ? 1 : 0.5, transition: "opacity 150ms" } : {}}>
+                    <RhythmRow
+                      rhythm={rhythm}
+                      playing={currentTrackId === rhythm.id && isPlaying}
+                      currentTime={currentTrackId === rhythm.id ? currentTime : 0}
+                      duration={currentTrackId === rhythm.id ? duration : 0}
+                      showLyrics={showLyricsId === rhythm.id}
+                      onToggleLyrics={() => setShowLyricsId(showLyricsId === rhythm.id ? null : rhythm.id)}
+                      onPlay={() => selectMode ? toggleSelect(rhythm.id) : togglePlay(rhythm)}
+                      onGraduate={() => handleGraduate(rhythm.id)}
+                      onArchive={() => handleArchive(rhythm)}
+                      onRemove={() => handleRemove(rhythm.id)}
+                      onRecreate={() => setRecreateRhythm(rhythm)}
+                      onShare={() => handleShare(rhythm)}
+                      onTag={(tags) => handleTag(rhythm.id, tags)}
+                      onNote={(note) => handleNote(rhythm.id, note)}
+                      confirmingRemove={confirmRemoveId === rhythm.id}
+                      shareToast={shareToastId === rhythm.id}
+                    />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -305,6 +344,17 @@ export default function MyRthmsPage() {
           )}
           {loadState === "ready" && myRthms.length > 0 && (
             <>
+              {/* Select mode toggle */}
+              <div className="flex justify-end -mb-1">
+                <button
+                  onClick={() => selectMode ? exitSelectMode() : setSelectMode(true)}
+                  className="text-[10px] uppercase tracking-widest touch-manipulation transition-colors px-2 py-1"
+                  style={{ color: selectMode ? "rgba(201,165,90,0.8)" : "rgba(255,255,255,0.3)" }}
+                >
+                  {selectMode ? "Cancel" : "Select"}
+                </button>
+              </div>
+
               {/* Time period tabs */}
               <TimePeriodTabs
                 active={timePeriod}
@@ -338,29 +388,55 @@ export default function MyRthmsPage() {
                 </p>
               ) : (
                 <>
-                  {visibleRthms.map((rhythm) => (
-                    <RhythmRow
-                      key={rhythm.id}
-                      rhythm={rhythm}
-                      playing={currentTrackId === rhythm.id && isPlaying}
-                      currentTime={currentTrackId === rhythm.id ? currentTime : 0}
-                      duration={currentTrackId === rhythm.id ? duration : 0}
-                      showLyrics={showLyricsId === rhythm.id}
-                      onToggleLyrics={() => setShowLyricsId(showLyricsId === rhythm.id ? null : rhythm.id)}
-                      onPlay={() => togglePlay(rhythm)}
-                      favourite={rhythm.status === "favourite"}
-                      onGraduate={rhythm.status === "active" ? () => handleGraduate(rhythm.id) : undefined}
-                      onUngraduate={rhythm.status === "favourite" ? () => handleUngraduate(rhythm.id) : undefined}
-                      onArchive={() => handleArchive(rhythm)}
-                      onRemove={() => handleRemove(rhythm.id)}
-                      onRecreate={() => setRecreateRhythm(rhythm)}
-                      onShare={() => handleShare(rhythm)}
-                      onTag={(tags) => handleTag(rhythm.id, tags)}
-                      onNote={(note) => handleNote(rhythm.id, note)}
-                      confirmingRemove={confirmRemoveId === rhythm.id}
-                      shareToast={shareToastId === rhythm.id}
-                    />
-                  ))}
+                  {visibleRthms.map((rhythm) => {
+                    const isSelected = selectedIds.has(rhythm.id);
+                    return (
+                      <div key={rhythm.id} className="relative">
+                        {selectMode && (
+                          <button
+                            onClick={() => toggleSelect(rhythm.id)}
+                            className="absolute left-0 top-0 bottom-0 z-10 flex items-center pl-3 pr-2 touch-manipulation"
+                            aria-label={isSelected ? "Deselect" : "Select"}
+                          >
+                            <div
+                              className="w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 transition-all"
+                              style={isSelected
+                                ? { background: "rgba(201,165,90,0.9)", borderColor: "rgba(201,165,90,1)" }
+                                : { background: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.2)" }}
+                            >
+                              {isSelected && (
+                                <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                                  <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              )}
+                            </div>
+                          </button>
+                        )}
+                        <div style={selectMode ? { paddingLeft: 36, opacity: isSelected ? 1 : 0.5, transition: "opacity 150ms" } : {}}>
+                          <RhythmRow
+                            rhythm={rhythm}
+                            playing={currentTrackId === rhythm.id && isPlaying}
+                            currentTime={currentTrackId === rhythm.id ? currentTime : 0}
+                            duration={currentTrackId === rhythm.id ? duration : 0}
+                            showLyrics={showLyricsId === rhythm.id}
+                            onToggleLyrics={() => setShowLyricsId(showLyricsId === rhythm.id ? null : rhythm.id)}
+                            onPlay={() => selectMode ? toggleSelect(rhythm.id) : togglePlay(rhythm)}
+                            favourite={rhythm.status === "favourite"}
+                            onGraduate={rhythm.status === "active" ? () => handleGraduate(rhythm.id) : undefined}
+                            onUngraduate={rhythm.status === "favourite" ? () => handleUngraduate(rhythm.id) : undefined}
+                            onArchive={() => handleArchive(rhythm)}
+                            onRemove={() => handleRemove(rhythm.id)}
+                            onRecreate={() => setRecreateRhythm(rhythm)}
+                            onShare={() => handleShare(rhythm)}
+                            onTag={(tags) => handleTag(rhythm.id, tags)}
+                            onNote={(note) => handleNote(rhythm.id, note)}
+                            confirmingRemove={confirmRemoveId === rhythm.id}
+                            shareToast={shareToastId === rhythm.id}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
 
                   {timePeriod === "all" && filteredRthms.length > ALL_TIME_PREVIEW && (
                     <button
@@ -404,6 +480,29 @@ export default function MyRthmsPage() {
         )}
 
       </section>
+
+      {/* Multi-select delete bar */}
+      {selectMode && (
+        <div
+          className="fixed bottom-0 inset-x-0 px-6 pb-safe pt-4 flex flex-col gap-2"
+          style={{ background: "linear-gradient(to top, #0d1628 80%, transparent)", zIndex: 40 }}
+        >
+          <button
+            onClick={handleBatchDelete}
+            disabled={selectedIds.size === 0}
+            className="w-full py-4 rounded-2xl text-sm font-semibold tracking-wide transition-all active:scale-[0.98] touch-manipulation disabled:opacity-30"
+            style={confirmBatchDelete
+              ? { background: "rgba(220,60,60,0.18)", border: "1px solid rgba(220,60,60,0.5)", color: "rgba(255,100,100,0.95)" }
+              : { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.6)" }}
+          >
+            {selectedIds.size === 0
+              ? "Select tracks to delete"
+              : confirmBatchDelete
+                ? `Confirm — delete ${selectedIds.size} track${selectedIds.size > 1 ? "s" : ""}`
+                : `Delete ${selectedIds.size} track${selectedIds.size > 1 ? "s" : ""}`}
+          </button>
+        </div>
+      )}
 
       {/* Genre picker overlay */}
       {recreateRhythm && (

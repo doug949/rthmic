@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const { action } = body;
 
-  if (!["save", "remove", "update"].includes(action)) {
+  if (!["save", "remove", "batch-remove", "update"].includes(action)) {
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   }
 
@@ -138,9 +138,13 @@ export async function POST(request: NextRequest) {
         };
         updated = [rhythm, ...current.filter((r) => r.id !== rhythm.id)];
       } else if (action === "remove") {
-        // Soft-delete — preserves the rhythm for 30 days
         updated = current.map((r) =>
           r.id === body.id ? { ...r, status: "deleted" as const, deletedAt: Date.now() } : r
+        );
+      } else if (action === "batch-remove") {
+        const ids = new Set<string>(body.ids ?? []);
+        updated = current.map((r) =>
+          ids.has(r.id) ? { ...r, status: "deleted" as const, deletedAt: Date.now() } : r
         );
       } else {
         // update — status and/or tags; clears deletedAt when un-deleting
