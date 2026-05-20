@@ -4,6 +4,7 @@
 // Prefixed with _ so Next.js doesn't treat this as a route.
 
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import type { SavedRhythm } from "@/app/api/library/route";
 import { useOfflineAudio } from "@/app/hooks/useOfflineAudio";
 
@@ -435,9 +436,11 @@ export type SheetItem = {
 };
 
 export function MoreSheet({ title, onClose, items }: { title: string; onClose: () => void; items: SheetItem[] }) {
+  const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const id = requestAnimationFrame(() => setVisible(true));
     return () => cancelAnimationFrame(id);
   }, []);
@@ -447,10 +450,10 @@ export function MoreSheet({ title, onClose, items }: { title: string; onClose: (
     setTimeout(onClose, 280);
   };
 
-  return (
+  const sheet = (
     <>
       <div
-        className="fixed inset-0 z-50"
+        className="fixed inset-0 z-[120]"
         style={{
           background: "rgba(0,0,0,0.55)",
           backdropFilter: "blur(3px)",
@@ -461,7 +464,10 @@ export function MoreSheet({ title, onClose, items }: { title: string; onClose: (
         onClick={handleClose}
       />
       <div
-        className="fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${title} options`}
+        className="fixed bottom-0 left-0 right-0 z-[121] rounded-t-2xl"
         style={{
           background: "rgba(16,16,26,0.98)",
           borderTop: "1px solid rgba(255,255,255,0.09)",
@@ -503,6 +509,9 @@ export function MoreSheet({ title, onClose, items }: { title: string; onClose: (
       </div>
     </>
   );
+
+  if (!mounted) return null;
+  return createPortal(sheet, document.body);
 }
 
 // ─── SmallBtn ─────────────────────────────────────────────────────────────────
