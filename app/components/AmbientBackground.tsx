@@ -46,7 +46,7 @@ export function AmbientBackground() {
           width: "100%",
           height: "100%",
           objectFit: "cover",
-          opacity: isDefault ? 0.45 : 0,
+          opacity: 1,
           transition: "opacity 1.1s ease",
         }}
       />
@@ -71,15 +71,17 @@ export function AmbientBackground() {
         />
       )}
 
-      {/* Per-pillar tint glow */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          background: `radial-gradient(ellipse 95% 52% at 50% 0%, rgba(${tint},0.15) 0%, transparent 100%)`,
-          transition: "background 1.2s ease",
-        }}
-      />
+      {/* Per-pillar tint glow — only shown when a pillar is active */}
+      {!isDefault && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: `radial-gradient(ellipse 95% 52% at 50% 0%, rgba(${tint},0.15) 0%, transparent 100%)`,
+            transition: "background 1.2s ease",
+          }}
+        />
+      )}
 
       {/* Grain — always on */}
       <svg
