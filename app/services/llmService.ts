@@ -772,6 +772,10 @@ function buildUserPrompt(pillar: PillarType, transcript: string): string {
     return `${base}\n\nToday's date: ${dateStr}. The song title MUST use this date (e.g. "${dateStr}" or "${dateStr.split(",")[0]} Morning, ${dateStr.split(", ")[1]}"). Do not use a poetic title instead.`;
   }
 
+  if (pillar === "Bridge") {
+    return `${base}\n\nCRITICAL: This song is addressed TO the recipient, not about the sender. Extract the recipient's name from the transcript. "You" in the lyrics always means the recipient. The recipient's name MUST appear naturally within the first 4 lines of the first verse — embedded in the lyric, not as a salutation or header. The sender's feelings and thoughts should be expressed as something being given to the recipient. If no name is mentioned, open with an intimate "you" but make it unmistakably personal.`;
+  }
+
   if (pillar === "BookSummary") {
     return `${base}\n\nThe song title MUST follow this exact format: [Poetic Song Name] — Summary of "[Book Title]" by [Author Name]. Generate a short evocative song name (3–5 words) first, then append the book attribution. Extract the book title and author from the user's transcript. Example: "Tiny Things, Big Change — Summary of \\"Atomic Habits\\" by James Clear". Do not omit the attribution.\n\nIMPORTANT: The author's name MUST appear naturally in the first verse — embedded as part of the lyric, not a label. Use a phrase like "[Author] argues that…", "[Author] shows that…", or "As [Author] puts it…". This gives the author credit and grounds the song in the source.`;
   }
@@ -785,9 +789,9 @@ export async function interpret(rawTranscript: string, overridePillar?: PillarTy
   // User-selected pillar takes priority over auto-detection
   const pillar = overridePillar ?? detectPillar(rawTranscript);
 
-  // For Invite: reconstruct any spelled-out names before the LLM sees the transcript
+  // For Invite and Bridge: reconstruct any spelled-out names before the LLM sees the transcript
   // (e.g. "K-A-T-H" → "Kath" so the lyrics never contain letter-by-letter spellings)
-  const transcript = pillar === "Invite" ? reconstructSpelledNames(rawTranscript) : rawTranscript;
+  const transcript = (pillar === "Invite" || pillar === "Bridge") ? reconstructSpelledNames(rawTranscript) : rawTranscript;
 
   if (USE_MOCK) {
     await delay(1200 + Math.random() * 600);

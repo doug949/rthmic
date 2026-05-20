@@ -12,7 +12,7 @@ const PILLAR_FILE: Record<PillarType, string> = {
   Mode:          "mode.md",
   Movement:      "movement.md",
   Understanding: "understanding.md",
-  Bridge:        "mindset.md", // Bridge uses Mindset template — emotionally warm, relational arc
+  Bridge:        "bridge.md",  // Bridge: song sent FROM one person TO a named recipient
   Invite:        "invite.md",    // Beta tester invite — personal, demonstrative, welcoming
   Journal:       "journal.md",   // Day capture — speak the day, keep it as a song
   Epiphany:      "epiphany.md",     // Idea/insight capture — crystallise the spark in song
