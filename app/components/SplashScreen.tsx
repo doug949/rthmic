@@ -2,37 +2,61 @@
 
 import { useEffect, useRef, useState } from "react";
 
-// 10 frames at 30fps ≈ 333ms
-const FADE_MS = 333;
+const FADE_MS = 333; // 10 frames @ 30fps
+// Bumped key version — invalidates any "seen" flag written by old broken builds
+const SEEN_KEY = "rthmic_intro_v2";
 
 type Phase = "fadein" | "playing" | "fadeout" | "gone";
 
 export default function SplashScreen() {
-  // Start as "fadein" so <video> is in the DOM on the very first render.
-  // That means videoRef.current is valid by the time useEffect fires.
+  // "fadein" as initial state puts <video> in the DOM on render 1,
+  // so videoRef.current is live by the time useEffect fires.
   const [phase, setPhase] = useState<Phase>("fadein");
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    if (sessionStorage.getItem("rthmic_intro_seen")) {
+    if (sessionStorage.getItem(SEEN_KEY)) {
       setPhase("gone");
       return;
     }
-    // videoRef.current is guaranteed non-null here — video mounted above
-    videoRef.current?.play().catch(() => {/* autoplay policy blocked it — stay on fadein */});
-    const t = setTimeout(() => setPhase("playing"), FADE_MS);
-    return () => clearTimeout(t);
+
+    const video = videoRef.current;
+    if (!video) return;
+
+    const startFadeIn = () => setTimeout(() => setPhase("playing"), FADE_MS);
+    let fadeTimer: ReturnType<typeof setTimeout>;
+
+    // Fade in once video has buffered enough to actually display a frame
+    const onCanPlay = () => {
+      video.play().catch(() => {});
+      fadeTimer = startFadeIn();
+    };
+
+    if (video.readyState >= 3) {
+      // Already buffered
+      onCanPlay();
+    } else {
+      video.addEventListener("canplay", onCanPlay, { once: true });
+      // Fallback: if canplay never fires (e.g. slow network), fade in anyway after 3s
+      const fallback = setTimeout(onCanPlay, 3000);
+      return () => {
+        clearTimeout(fadeTimer);
+        clearTimeout(fallback);
+        video.removeEventListener("canplay", onCanPlay);
+      };
+    }
+
+    return () => clearTimeout(fadeTimer);
   }, []);
 
   const finish = () => {
-    sessionStorage.setItem("rthmic_intro_seen", "1");
+    sessionStorage.setItem(SEEN_KEY, "1");
     setPhase("fadeout");
     setTimeout(() => setPhase("gone"), FADE_MS);
   };
 
   if (phase === "gone") return null;
 
-  // Black overlay: opaque during fadein/fadeout, transparent while playing
   const overlayOpaque = phase === "fadein" || phase === "fadeout";
 
   return (
@@ -47,7 +71,7 @@ export default function SplashScreen() {
         className="absolute inset-0 w-full h-full object-cover"
       />
 
-      {/* Fade overlay — black in, transparent during play, black out */}
+      {/* Black overlay — fades out when video is ready, fades back in on end/skip */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
