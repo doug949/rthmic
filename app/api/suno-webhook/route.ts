@@ -145,19 +145,24 @@ export async function POST(req: NextRequest) {
         const wasabiKey = `rhythms/${job.userId}/${rhythmId}.mp3`;
         uploadAudioToWasabi(clipAudioUrl, wasabiKey)
           .then(async () => {
+            // Use a fresh client — the handler's client may have disconnected by now
+            const patchClient = createClient({ url: process.env.REDIS_URL });
             try {
+              await patchClient.connect();
               const libKey = `lib:${job.userId}`;
-              const raw2 = await client.get(libKey);
+              const raw2 = await patchClient.get(libKey);
               if (!raw2) return;
               const all: SavedRhythm[] = JSON.parse(raw2);
               const idx = all.findIndex((r) => r.id === rhythmId);
               if (idx !== -1) {
                 all[idx].audioKey = wasabiKey;
-                await client.set(libKey, JSON.stringify(all));
+                await patchClient.set(libKey, JSON.stringify(all));
                 console.log(`[webhook] Wasabi upload done: ${wasabiKey}`);
               }
             } catch (e) {
               console.warn(`[webhook] Wasabi Redis patch failed for ${rhythmId}:`, e);
+            } finally {
+              await patchClient.disconnect();
             }
           })
           .catch((e) => console.warn(`[webhook] Wasabi upload failed for ${rhythmId}:`, e));

@@ -105,9 +105,20 @@ export async function GET(request: NextRequest) {
 
   // Pipe the audio through — pass through Range headers for seek support
   const range = request.headers.get("range");
-  const upstream = await fetch(audioUrl, {
+  let upstream = await fetch(audioUrl, {
     headers: range ? { Range: range } : {},
   });
+
+  // If Wasabi fetch failed (signed URL for non-existent object), fall back to Suno
+  if (!upstream.ok && upstream.status !== 206 && rhythm.audioKey) {
+    console.warn(`[proxy-audio] Wasabi fetch failed (${upstream.status}) for ${rhythm.audioKey} — falling back to Suno`);
+    const fallbackUrl = (await getFreshUrl(rhythm)) ?? rhythm.audioUrl;
+    if (fallbackUrl) {
+      upstream = await fetch(fallbackUrl, {
+        headers: range ? { Range: range } : {},
+      });
+    }
+  }
 
   if (!upstream.ok && upstream.status !== 206) {
     return new NextResponse("Audio fetch failed", { status: 502 });

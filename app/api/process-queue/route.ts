@@ -129,19 +129,24 @@ async function pollJob(
       const wasabiKey = `rhythms/${job.userId}/${song.id}.mp3`;
       uploadAudioToWasabi(song.audioUrl, wasabiKey)
         .then(async () => {
+          // Use a fresh client — the handler's client may have disconnected by now
+          const patchClient = createClient({ url: process.env.REDIS_URL });
           try {
+            await patchClient.connect();
             const libKey2 = `lib:${job.userId}`;
-            const raw2 = await client.get(libKey2);
+            const raw2 = await patchClient.get(libKey2);
             if (!raw2) return;
             const all: SavedRhythm[] = JSON.parse(raw2);
             const idx = all.findIndex((r) => r.id === song.id);
             if (idx !== -1) {
               all[idx].audioKey = wasabiKey;
-              await client.set(libKey2, JSON.stringify(all));
+              await patchClient.set(libKey2, JSON.stringify(all));
               console.log(`[queue] Wasabi upload done: ${wasabiKey}`);
             }
           } catch (e) {
             console.warn(`[queue] Wasabi Redis patch failed for ${song.id}:`, e);
+          } finally {
+            await patchClient.disconnect();
           }
         })
         .catch((e) => console.warn(`[queue] Wasabi upload failed for ${song.id}:`, e));
