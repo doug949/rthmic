@@ -149,7 +149,14 @@ export function AudioProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        // MEDIA_ERR_SRC_NOT_SUPPORTED (4) or repeated failure — URL likely expired; refresh
+        // MEDIA_ERR_SRC_NOT_SUPPORTED (4) — Wasabi object missing; fall back to proxy-audio
+        if (code === 4 && meta?.rhythmId && !audio.src.includes("/api/proxy-audio")) {
+          const freshGen = ++generationRef.current;
+          attachAndPlayRef.current?.(id, `/api/proxy-audio?id=${encodeURIComponent(meta.rhythmId)}`, freshGen, meta);
+          return;
+        }
+
+        // MEDIA_ERR_SRC_NOT_SUPPORTED (4) or repeated failure — URL likely expired; refresh via Suno
         if (meta?.sunoTaskId && meta?.rhythmId) {
           try {
             const res = await fetch(
@@ -214,7 +221,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         url = `/api/proxy-audio?id=${encodeURIComponent(trackId)}`;
       }
 
-      attachAndPlay(trackId, url, generation);
+      attachAndPlay(trackId, url, generation, { rhythmId: trackId });
     },
     [currentTrackId, isPlaying, stopCurrent, attachAndPlay]
   );
