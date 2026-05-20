@@ -1671,8 +1671,8 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
         </div>
       )}
 
-    <section className="flex-1 flex flex-col justify-between pb-10">
-      <div className="flex-1 overflow-y-auto flex flex-col gap-6 pt-1 pb-6">
+    <section className="flex-1 flex flex-col justify-between pb-6">
+      <div className="flex-1 overflow-y-auto flex flex-col gap-4 pt-1 pb-4">
 
         {/* Pillar badge */}
         {pillarDef && (
@@ -1702,17 +1702,13 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
           </RevealBlock>
         </div>
 
-        <RevealBlock delay={145}>
-          <div className="h-px bg-white/[0.06]" />
-        </RevealBlock>
-
         {/* Full-width video thumbnail replacing instructions */}
         {videoSrc && pillar && PILLAR_IMAGES[pillar] && (
           <RevealBlock delay={145}>
             <button
               onClick={openLightbox}
               className="relative w-full rounded-2xl overflow-hidden touch-manipulation active:brightness-75 transition-all"
-              style={{ aspectRatio: "1/1", border: "1px solid rgba(255,255,255,0.08)" }}
+              style={{ aspectRatio: "4/3", border: "1px solid rgba(255,255,255,0.08)" }}
             >
               <img src={PILLAR_IMAGES[pillar]} alt="Preview" className="w-full h-full object-cover" style={{ objectPosition: "center 20%" }} />
               <div className="absolute inset-0 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.3)" }}>
