@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Raleway, DM_Sans } from "next/font/google";
 import "./globals.css";
 import ServiceWorkerRegistration from "@/app/components/ServiceWorkerRegistration";
-import SplashScreen from "@/app/components/SplashScreen";
 import { AudioProvider } from "@/app/contexts/AudioContext";
 import { GenerationProvider } from "@/app/contexts/GenerationContext";
 import MiniPlayer from "@/app/components/MiniPlayer";
@@ -67,7 +66,6 @@ export default function RootLayout({
           <AmbientBackground />
           <PageTransitionLayer />
           <ServiceWorkerRegistration />
-          <SplashScreen />
           <GenerationProvider>
             <AudioProvider>
               <GenerationBanner />

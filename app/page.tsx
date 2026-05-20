@@ -68,7 +68,7 @@ export default function Home() {
   };
 
   return (
-    <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ animation: "page-enter 380ms ease forwards" }}>
+    <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ animation: "page-enter 600ms cubic-bezier(0.16,1,0.3,1) forwards" }}>
       {/* Wordmark + hamburger */}
       <RevealBlock delay={0}>
         <header className="relative pt-6 pb-3">
@@ -120,14 +120,22 @@ export default function Home() {
       </RevealBlock>
 
       <section className="flex-1 flex flex-col pb-6 mt-1">
-        {/* ── 3×2 tile grid — top 6 ── */}
-        <RevealBlock delay={60}>
-          <div className="grid grid-cols-2 gap-1.5 pb-4">
-            {HOME_TILES.map((tile, i) => (
-              <HomeTile key={tile.label} tile={tile} delay={60 + i * 30} />
-            ))}
-          </div>
-        </RevealBlock>
+        {/* ── tile grid — rows glide in one after another ── */}
+        <div className="grid grid-cols-2 gap-1.5 pb-4">
+          {HOME_TILES.map((tile, i) => {
+            const rowDelay = 80 + Math.floor(i / 2) * 130;
+            return (
+              <div
+                key={tile.label}
+                style={{
+                  animation: `tile-enter 520ms cubic-bezier(0.16,1,0.3,1) ${rowDelay}ms both`,
+                }}
+              >
+                <HomeTile tile={tile} />
+              </div>
+            );
+          })}
+        </div>
 
         <p className="text-center text-[9px] tracking-wide mt-4 pb-2" style={{ color: "rgba(255,255,255,0.18)" }}>
           © 4Ward Vision Video Ltd
