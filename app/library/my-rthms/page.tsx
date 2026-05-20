@@ -173,7 +173,7 @@ export default function MyRthmsPage() {
   };
 
   const togglePlay = useCallback((rhythm: SavedRhythm) => {
-    if (!rhythm.audioUrl) return;
+    if (!rhythm.audioUrl && !rhythm.audioKey) return;
     // Route through our proxy — fetches a fresh Suno URL server-side and pipes
     // the audio back so iOS never has to handle expired CDN links directly.
     const proxyUrl = `/api/proxy-audio?id=${encodeURIComponent(rhythm.id)}`;

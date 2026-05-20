@@ -15,13 +15,17 @@ function LoginForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    await loginWith(password);
+  }
+
+  async function loginWith(code: string) {
     setLoading(true);
     setError(false);
 
     const res = await fetch(`/api/auth`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({ password: code }),
     });
 
     if (res.ok) {
@@ -72,6 +76,19 @@ function LoginForm() {
           "
         >
           {loading ? "…" : "Enter"}
+        </button>
+        <button
+          type="button"
+          onClick={() => loginWith("testdrive")}
+          disabled={loading}
+          className="
+            w-full border border-white/10 text-white/55 font-medium text-sm tracking-wide
+            rounded-xl py-4 mt-2
+            disabled:opacity-30 transition-all duration-200
+            active:scale-[0.98] bg-white/[0.03]
+          "
+        >
+          Test drive RTHMIC
         </button>
       </form>
     </main>

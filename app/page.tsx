@@ -197,6 +197,16 @@ export default function Home() {
             </div>
             <div className="flex flex-col px-4 pt-3 gap-2">
               <button
+                onClick={() => { setOpen(false); router.push("/codex-notes"); }}
+                className="w-full flex items-center gap-4 px-4 py-4 rounded-xl touch-manipulation active:bg-white/[0.04] transition-colors text-left"
+              >
+                <span className="text-white/35 text-lg leading-none">✎</span>
+                <div>
+                  <p className="text-sm text-white/70 font-medium">Codex Notes</p>
+                  <p className="text-xs text-white/30 mt-0.5">Review quick notes captured in the app</p>
+                </div>
+              </button>
+              <button
                 onClick={handleRefresh}
                 disabled={refreshing}
                 className="w-full flex items-center gap-4 px-4 py-4 rounded-xl touch-manipulation active:bg-white/[0.04] transition-colors text-left disabled:opacity-50"
