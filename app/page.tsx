@@ -122,14 +122,13 @@ export default function Home() {
         <div className="grid grid-cols-2 gap-1.5 pb-4">
           {HOME_TILES.map((tile, i) => {
             const row = Math.floor(i / 2);
-            const col = i % 2;
-            const tileDelay = row * 220 + col * 85;
+            const rowDelay = row * 260;
             return (
               <div
                 key={tile.label}
                 style={{
                   opacity: ready ? undefined : 0,
-                  animation: ready ? `tile-enter 1500ms cubic-bezier(0.16,1,0.3,1) ${tileDelay}ms both` : undefined,
+                  animation: ready ? `tile-enter 1600ms cubic-bezier(0.16,1,0.3,1) ${rowDelay}ms both` : undefined,
                 }}
               >
                 <HomeTile tile={tile} />
