@@ -62,7 +62,7 @@ export default function RootLayout({
       <head>
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
       </head>
-      <body className="min-h-full flex flex-col bg-[#0d1628]">
+      <body className="min-h-full flex flex-col bg-[#0a0a0a]">
         <PillarThemeProvider>
           <AmbientBackground />
           <PageTransitionLayer />
