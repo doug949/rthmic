@@ -1623,47 +1623,41 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
   }
 
   const videoSrc = pillar ? PILLAR_VIDEOS[pillar] ?? null : null;
-  const [videoOverlay, setVideoOverlay] = useState(!!videoSrc);
-  const [videoExiting, setVideoExiting] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxVisible, setLightboxVisible] = useState(false);
 
-  const dismissVideo = () => {
-    setVideoExiting(true);
-    setTimeout(() => setVideoOverlay(false), 420);
-  };
+  const openLightbox  = () => { setLightboxOpen(true);  requestAnimationFrame(() => setLightboxVisible(true)); };
+  const closeLightbox = () => { setLightboxVisible(false); setTimeout(() => setLightboxOpen(false), 300); };
 
   return (
     <>
-      {/* ── Fullscreen video overlay ── */}
-      {videoOverlay && videoSrc && (
+      {/* ── Video lightbox ── */}
+      {lightboxOpen && videoSrc && (
         <div
-          className="fixed inset-0 z-40 flex flex-col bg-black"
+          className="fixed inset-0 z-50 flex items-center justify-center px-5"
           style={{
-            opacity: videoExiting ? 0 : 1,
-            transform: videoExiting ? "translateY(32px)" : "translateY(0)",
-            transition: "opacity 420ms ease, transform 420ms ease",
+            background: `rgba(0,0,0,${lightboxVisible ? 0.88 : 0})`,
+            transition: "background 300ms ease",
           }}
-          onClick={dismissVideo}
+          onClick={closeLightbox}
         >
-          <HlsVideo
-            src={videoSrc}
-            controls={false}
-            onEnded={dismissVideo}
-            className="w-full h-full"
-            style={{ objectFit: "cover", display: "block" }}
-          />
-          {/* Continue button */}
           <div
-            className="absolute bottom-0 left-0 right-0 flex flex-col items-center pb-safe"
-            style={{ background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%)", paddingBottom: "max(env(safe-area-inset-bottom), 32px)" }}
+            className="w-full max-w-sm rounded-2xl overflow-hidden"
+            style={{
+              opacity: lightboxVisible ? 1 : 0,
+              transform: lightboxVisible ? "scale(1) translateY(0)" : "scale(0.94) translateY(16px)",
+              transition: "opacity 300ms ease, transform 300ms ease",
+              border: "1px solid rgba(255,255,255,0.1)",
+            }}
             onClick={(e) => e.stopPropagation()}
           >
-            <button
-              onClick={dismissVideo}
-              className="px-8 py-3.5 rounded-full text-sm font-semibold tracking-wide touch-manipulation active:scale-95 transition-transform"
-              style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.25)", color: "rgba(255,255,255,0.9)" }}
-            >
-              Continue
-            </button>
+            <HlsVideo
+              src={videoSrc}
+              controls
+              onEnded={closeLightbox}
+              className="w-full"
+              style={{ display: "block", maxHeight: "70vh", objectFit: "cover" }}
+            />
           </div>
         </div>
       )}
@@ -1671,16 +1665,29 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
     <section className="flex-1 flex flex-col justify-between pb-10">
       <div className="flex-1 overflow-y-auto flex flex-col gap-6 py-6">
 
-
-        {/* Pillar badge */}
+        {/* Pillar badge + preview button */}
         {pillarDef && (
           <RevealBlock delay={0}>
-            <span
-              className="self-start text-[10px] px-2.5 py-1 rounded-full uppercase tracking-widest font-medium"
-              style={{ background: "rgba(201,165,90,0.12)", color: "#c9a55a", border: "1px solid rgba(201,165,90,0.25)" }}
-            >
-              {pillarDef.label}
-            </span>
+            <div className="flex items-center gap-3">
+              <span
+                className="self-start text-[10px] px-2.5 py-1 rounded-full uppercase tracking-widest font-medium"
+                style={{ background: "rgba(201,165,90,0.12)", color: "#c9a55a", border: "1px solid rgba(201,165,90,0.25)" }}
+              >
+                {pillarDef.label}
+              </span>
+              {videoSrc && (
+                <button
+                  onClick={openLightbox}
+                  className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest touch-manipulation active:opacity-60 transition-opacity"
+                  style={{ color: "rgba(255,255,255,0.3)" }}
+                >
+                  <svg width="10" height="11" viewBox="0 0 10 11" fill="none">
+                    <path d="M2 1.5L8.5 5.5L2 9.5V1.5Z" fill="currentColor" />
+                  </svg>
+                  Preview
+                </button>
+              )}
+            </div>
           </RevealBlock>
         )}
 
