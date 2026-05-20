@@ -288,9 +288,8 @@ export function RhythmRow({
                 setConfirmingDownload(false);
                 const rawName = rhythm.title.replace(/\.mp3$/i, "");
                 const filename = encodeURIComponent(rawName);
-                const src = encodeURIComponent(rhythm.audioUrl!);
                 const a = document.createElement("a");
-                a.href = `/api/download?url=${src}&filename=${filename}`;
+                a.href = `/api/download?id=${encodeURIComponent(rhythm.id)}&filename=${filename}`;
                 a.download = rawName + ".mp3";
                 document.body.appendChild(a);
                 a.click();

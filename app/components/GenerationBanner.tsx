@@ -40,10 +40,10 @@ export default function GenerationBanner() {
             <span className="flex-shrink-0 text-white/50 leading-none">✓</span>
             <p className="flex-1 text-sm text-white/65">Your Rthms are ready</p>
             <Link
-              href="/speak"
+              href="/library/my-rthms?period=today"
               className="flex-shrink-0 text-xs text-white/45 border border-white/15 rounded-lg px-3 py-1.5 hover:text-white/70 hover:border-white/25 transition-colors touch-manipulation"
             >
-              View →
+              My Rthms →
             </Link>
             <button
               onClick={clearGeneration}

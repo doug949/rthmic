@@ -2646,12 +2646,12 @@ function ResultsView({
       {/* Saved notice */}
       <RevealBlock delay={0}>
         <TransitionLink
-          href="/library"
+          href="/library/my-rthms?period=today"
           className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] transition-colors touch-manipulation"
         >
           <span className="text-xs text-white/40">✓</span>
           <div className="flex-1 min-w-0">
-            <p className="text-xs text-white/65 leading-snug">Saved to your library — tap to manage</p>
+            <p className="text-xs text-white/65 leading-snug">Saved to My Rthms — tap to view</p>
           </div>
           <span className="text-white/35 text-sm flex-shrink-0">›</span>
         </TransitionLink>

@@ -4,6 +4,7 @@
 // Shows complete lyrics, audio controls, and all library actions.
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { useAudio } from "@/app/contexts/AudioContext";
 import { useGeneration } from "@/app/contexts/GenerationContext";
 import type { SavedRhythm } from "@/app/api/library/route";
@@ -25,6 +26,7 @@ export default function FullScreenPlayer() {
     isLoop, setLoop,
   } = useAudio();
   const { startGeneration } = useGeneration();
+  const router = useRouter();
 
   const [rhythm, setRhythm]           = useState<SavedRhythm | null>(null);
   const [confirmRemove, setConfirmRemove] = useState(false);
@@ -174,6 +176,15 @@ export default function FullScreenPlayer() {
     return `${m}:${sec.toString().padStart(2, "0")}`;
   };
 
+  // Swipe-down to close
+  const touchStartY = useRef<number | null>(null);
+  const handleTouchStart = (e: React.TouchEvent) => { touchStartY.current = e.touches[0].clientY; };
+  const handleTouchEnd   = (e: React.TouchEvent) => {
+    if (touchStartY.current === null) return;
+    if (e.changedTouches[0].clientY - touchStartY.current > 80) closePlayer();
+    touchStartY.current = null;
+  };
+
   if (!playerOpen || !currentTrackId) return null;
 
   const displayTitle  = rhythm?.title ?? currentTitle ?? "Playing…";
@@ -184,9 +195,11 @@ export default function FullScreenPlayer() {
     <div
       className="fixed inset-0 z-50 flex flex-col overflow-hidden"
       style={{ background: "#0a1020" }}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
     >
       {/* ── Top bar ───────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-4 px-5 pt-safe" style={{ paddingTop: "max(env(safe-area-inset-top), 16px)", paddingBottom: "12px" }}>
+      <div className="flex items-center gap-3 px-4" style={{ paddingTop: "max(env(safe-area-inset-top), 16px)", paddingBottom: "12px" }}>
         <button
           onClick={closePlayer}
           className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full touch-manipulation active:scale-90 transition-transform"
@@ -203,7 +216,14 @@ export default function FullScreenPlayer() {
             {displayTitle}
           </p>
         </div>
-        <div className="w-10 flex-shrink-0" /> {/* balance */}
+        <button
+          onClick={() => { closePlayer(); router.push("/library/my-rthms"); }}
+          className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full touch-manipulation active:scale-90 transition-transform"
+          style={{ background: "rgba(255,255,255,0.06)" }}
+          aria-label="Go to My Rthms"
+        >
+          <LibraryIcon />
+        </button>
       </div>
 
       {/* ── Lyrics — scrollable main area ─────────────────────────────────── */}
@@ -319,11 +339,11 @@ export default function FullScreenPlayer() {
         {rhythm && (
           <div className="flex border border-white/[0.07] rounded-2xl overflow-hidden bg-white/[0.02]">
             <ActionBtn onClick={handleShare} icon="↗" label={shareToast ? "Copied!" : "Share"} active={shareToast} />
-            {rhythm.status === "active" && (
+            {(rhythm.status === "active" || rhythm.status === "new") && (
               <ActionBtn onClick={handleGraduate} icon="☆" label="Add to Favs" />
             )}
             {rhythm.status === "favourite" && (
-              <ActionBtn onClick={handleUngraduate} icon="★" label="Tap to Remove" gold />
+              <ActionBtn onClick={handleUngraduate} icon="★" label="Unfavourite" gold />
             )}
             <ActionBtn onClick={() => setMoreOpen(true)} icon="···" label="More" />
           </div>
@@ -538,25 +558,36 @@ function FullLyricsView({
 // ─── Seek bar ─────────────────────────────────────────────────────────────────
 
 function SeekBar({ currentTime, duration, onSeek }: { currentTime: number; duration: number; onSeek: (t: number) => void }) {
+  const barRef = useRef<HTMLDivElement>(null);
   const progress = duration > 0 ? currentTime / duration : 0;
 
-  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (duration <= 0) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  const seekFromClientX = (clientX: number) => {
+    if (duration <= 0 || !barRef.current) return;
+    const rect = barRef.current.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
     onSeek(ratio * duration);
+  };
+
+  const handleClick  = (e: React.MouseEvent<HTMLDivElement>) => seekFromClientX(e.clientX);
+  const handleTouch  = (e: React.TouchEvent<HTMLDivElement>) => {
+    e.stopPropagation(); // don't fire swipe-to-close
+    seekFromClientX(e.touches[0]?.clientX ?? e.changedTouches[0].clientX);
   };
 
   return (
     <div
-      className="h-1 rounded-full cursor-pointer relative overflow-hidden"
-      style={{ background: "rgba(255,255,255,0.12)" }}
+      ref={barRef}
+      className="h-5 flex items-center cursor-pointer"
       onClick={handleClick}
+      onTouchStart={handleTouch}
+      onTouchMove={handleTouch}
     >
-      <div
-        className="h-full rounded-full transition-none"
-        style={{ width: `${progress * 100}%`, background: "rgba(255,255,255,0.55)" }}
-      />
+      <div className="w-full h-1 rounded-full relative overflow-hidden" style={{ background: "rgba(255,255,255,0.12)" }}>
+        <div
+          className="h-full rounded-full transition-none"
+          style={{ width: `${progress * 100}%`, background: "rgba(255,255,255,0.55)" }}
+        />
+      </div>
     </div>
   );
 }
@@ -637,6 +668,16 @@ function RestartIcon() {
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-current">
       <path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-6.36 2.64L3 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M3 3v5h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function LibraryIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 20 20" fill="none" className="text-white/60">
+      <rect x="3" y="4" width="4" height="13" rx="1.5" fill="currentColor" opacity="0.5" />
+      <rect x="8.5" y="4" width="4" height="13" rx="1.5" fill="currentColor" opacity="0.75" />
+      <rect x="14" y="4" width="4" height="13" rx="1.5" fill="currentColor" />
     </svg>
   );
 }
