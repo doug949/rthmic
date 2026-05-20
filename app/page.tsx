@@ -119,7 +119,7 @@ export default function Home() {
         </header>
       </RevealBlock>
 
-      <section className="flex-1 flex flex-col pb-6 -mt-2">
+      <section className="flex-1 flex flex-col pb-6 mt-1">
         {/* ── 3×2 tile grid — top 6 ── */}
         <RevealBlock delay={60}>
           <div className="grid grid-cols-2 gap-1.5 pb-4">
