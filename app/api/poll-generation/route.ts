@@ -50,6 +50,7 @@ function extractClips(node: unknown, depth = 0): SunoClip[] {
 }
 
 const STILL_WAITING = new Set(["PENDING", "GENERATING", "IN_QUEUE", "QUEUED", "TEXT_SUCCESS", "RUNNING"]);
+const FAILED_STATUSES = new Set(["FAILED", "SENSITIVE_WORD_ERROR"]);
 
 function getAudioUrlCandidates(clip: Record<string, unknown>): string[] {
   const candidates = [
@@ -128,8 +129,8 @@ export async function GET(req: NextRequest) {
 
     console.log("Parsed status:", rawStatus);
 
-    if (rawStatus === "FAILED") {
-      return NextResponse.json({ status: "failed", error: "Suno generation failed" });
+    if (FAILED_STATUSES.has(rawStatus)) {
+      return NextResponse.json({ status: "failed", error: rawStatus === "SENSITIVE_WORD_ERROR" ? "Suno rejected the lyrics for sensitive wording" : "Suno generation failed", rawStatus });
     }
 
     const clips = extractClips(json);

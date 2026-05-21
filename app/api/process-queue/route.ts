@@ -40,9 +40,24 @@ async function saveToLibrary(
   await client.set(key, JSON.stringify(all));
 }
 
+async function saveToMenu(
+  client: ReturnType<typeof createClient>,
+  userId: string,
+  slug: string,
+  rhythms: SavedRhythm[]
+): Promise<void> {
+  const key = `menu:${userId}:${slug}`;
+  const raw = await client.get(key);
+  const existing: SavedRhythm[] = raw ? JSON.parse(raw) : [];
+  const existingIds = new Set(existing.map((r) => r.id));
+  const fresh = rhythms.filter((r) => !existingIds.has(r.id));
+  if (!fresh.length) return;
+  await client.set(key, JSON.stringify([...fresh, ...existing]));
+}
+
 // ─── Attach timed lyrics to an already-saved rhythm (best-effort) ────────────
 
-async function attachTimedLyrics(userId: string, songId: string, taskId: string, audioId: string) {
+async function attachTimedLyrics(userId: string, songId: string, taskId: string, audioId: string, menuSlug?: string) {
   try {
     const res = await fetch(`${APP_URL}/api/timed-lyrics?taskId=${encodeURIComponent(taskId)}&audioId=${encodeURIComponent(audioId)}`);
     if (!res.ok) return;
@@ -52,7 +67,7 @@ async function attachTimedLyrics(userId: string, songId: string, taskId: string,
     const client = createClient({ url: process.env.REDIS_URL });
     await client.connect();
     try {
-      const key = `lib:${userId}`;
+      const key = menuSlug ? `menu:${userId}:${menuSlug}` : `lib:${userId}`;
       const raw = await client.get(key);
       const all: SavedRhythm[] = raw ? JSON.parse(raw) : [];
       const idx = all.findIndex((r) => r.id === songId);
@@ -107,10 +122,11 @@ async function pollJob(
 
   if (pollData.status !== "ready" || !pollData.songs?.length) return "still-waiting";
 
-  // Save both songs to library. Because these are shown as playable immediately,
+  // Save both songs. Because these are shown as playable immediately,
   // wait for the permanent audio copy where possible instead of saving first
   // and patching audioKey in a later background task.
   const pairId = pollData.songs.length > 1 ? job.jobId : undefined;
+  const menuRhythms: SavedRhythm[] = [];
   for (let i = 0; i < pollData.songs.length; i++) {
     const song = pollData.songs[i];
     const wasabiKey = `rhythms/${job.userId}/${song.id}.mp3`;
@@ -134,7 +150,7 @@ async function pollJob(
       sunoClipId: song.sunoClipId,
       sunoTaskId: song.sunoTaskId,
       savedAt: Date.now(),
-      status: "new",
+      status: job.menuSlug ? "active" : "new",
       ...(pairId ? {
         pairId,
         side: (i === 0 ? "A" : "B") as "A" | "B",
@@ -143,14 +159,22 @@ async function pollJob(
       ...(audioKey ? { audioKey } : {}),
       ...(job.note ? { note: job.note } : {}),
     };
-    rhythm.tags = tagsForSavedRhythm(rhythm);
-    await saveToLibrary(client, job.userId, rhythm);
-    console.log(`[queue] saved ${rhythm.id} (${rhythm.title}) for user ${job.userId}`);
+    if (!job.menuSlug) rhythm.tags = tagsForSavedRhythm(rhythm);
+    if (job.menuSlug) {
+      menuRhythms.push(rhythm);
+    } else {
+      await saveToLibrary(client, job.userId, rhythm);
+      console.log(`[queue] saved ${rhythm.id} (${rhythm.title}) for user ${job.userId}`);
+    }
 
     // Best-effort timed lyrics — fire and forget
     if (song.sunoClipId && song.sunoTaskId) {
-      attachTimedLyrics(job.userId, song.id, song.sunoTaskId, song.sunoClipId).catch(() => {});
+      attachTimedLyrics(job.userId, song.id, song.sunoTaskId, song.sunoClipId, job.menuSlug).catch(() => {});
     }
+  }
+  if (job.menuSlug && menuRhythms.length) {
+    await saveToMenu(client, job.userId, job.menuSlug, menuRhythms);
+    console.log(`[queue] saved menu ${job.menuSlug} (${menuRhythms.length} songs) for user ${job.userId}`);
   }
 
   job.status = "done";

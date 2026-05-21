@@ -101,6 +101,21 @@ async function saveToLibrary(
   await client.set(key, JSON.stringify(all));
 }
 
+async function saveToMenu(
+  client: ReturnType<typeof createClient>,
+  userId: string,
+  slug: string,
+  rhythms: SavedRhythm[]
+): Promise<void> {
+  const key = `menu:${userId}:${slug}`;
+  const raw = await client.get(key);
+  const existing: SavedRhythm[] = raw ? JSON.parse(raw) : [];
+  const existingIds = new Set(existing.map((r) => r.id));
+  const fresh = rhythms.filter((r) => !existingIds.has(r.id));
+  if (!fresh.length) return;
+  await client.set(key, JSON.stringify([...fresh, ...existing]));
+}
+
 export async function POST(req: NextRequest) {
   let body: Record<string, unknown> = {};
   try {
@@ -159,6 +174,7 @@ export async function POST(req: NextRequest) {
       // Wasabi copy so first play uses permanent storage rather than a fresh CDN race.
       const toSave = playable.slice(0, 2);
       const pairId = toSave.length > 1 ? jobId : undefined;
+      const menuRhythms: SavedRhythm[] = [];
       for (let i = 0; i < toSave.length; i++) {
         const { clip, audioUrl: clipAudioUrl } = toSave[i];
         const rawClipId = String(clip.id ?? "");
@@ -183,7 +199,7 @@ export async function POST(req: NextRequest) {
           sunoClipId: rawClipId || undefined,
           sunoTaskId: taskId,
           savedAt: Date.now(),
-          status: "new",
+          status: job.menuSlug ? "active" : "new",
           ...(pairId ? {
             pairId,
             side: (i === 0 ? "A" : "B") as "A" | "B",
@@ -192,9 +208,17 @@ export async function POST(req: NextRequest) {
           ...(audioKey ? { audioKey } : {}),
           ...(job.note ? { note: job.note } : {}),
         };
-        rhythm.tags = tagsForSavedRhythm(rhythm);
-        await saveToLibrary(client, job.userId, rhythm);
-        console.log(`[webhook] saved ${rhythm.id} ("${rhythm.title}") for user ${job.userId}`);
+        if (job.menuSlug) {
+          menuRhythms.push(rhythm);
+        } else {
+          rhythm.tags = tagsForSavedRhythm(rhythm);
+          await saveToLibrary(client, job.userId, rhythm);
+          console.log(`[webhook] saved ${rhythm.id} ("${rhythm.title}") for user ${job.userId}`);
+        }
+      }
+      if (job.menuSlug && menuRhythms.length) {
+        await saveToMenu(client, job.userId, job.menuSlug, menuRhythms);
+        console.log(`[webhook] saved menu ${job.menuSlug} (${menuRhythms.length} songs) for user ${job.userId}`);
       }
 
       // Mark job done and clean up
