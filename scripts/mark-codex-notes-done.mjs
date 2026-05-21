@@ -44,33 +44,42 @@ client.on("error", (err) => {
 let touched = 0;
 let matched = 0;
 
+function scanKeys(chunk) {
+  if (typeof chunk === "string") return [chunk];
+  if (Array.isArray(chunk)) return chunk.filter((key) => typeof key === "string");
+  if (chunk && Array.isArray(chunk.keys)) return chunk.keys.filter((key) => typeof key === "string");
+  return [];
+}
+
 try {
   await client.connect();
 
-  for await (const key of client.scanIterator({ MATCH: "codex-notes:*", COUNT: 100 })) {
-    const raw = await client.get(key);
-    if (!raw) continue;
+  for await (const chunk of client.scanIterator({ MATCH: "codex-notes:*", COUNT: 100 })) {
+    for (const key of scanKeys(chunk)) {
+      const raw = await client.get(key);
+      if (!raw) continue;
 
-    let notes;
-    try {
-      notes = JSON.parse(raw);
-    } catch {
-      continue;
-    }
-    if (!Array.isArray(notes)) continue;
+      let notes;
+      try {
+        notes = JSON.parse(raw);
+      } catch {
+        continue;
+      }
+      if (!Array.isArray(notes)) continue;
 
-    let changed = false;
-    const updated = notes.map((note) => {
-      if (!note?.id || !wanted.has(note.id)) return note;
-      matched++;
-      if (note.done) return note;
-      changed = true;
-      return { ...note, done: true, doneAt: Date.now() };
-    });
+      let changed = false;
+      const updated = notes.map((note) => {
+        if (!note?.id || !wanted.has(note.id)) return note;
+        matched++;
+        if (note.done) return note;
+        changed = true;
+        return { ...note, done: true, doneAt: Date.now() };
+      });
 
-    if (changed) {
-      await client.set(key, JSON.stringify(updated));
-      touched++;
+      if (changed) {
+        await client.set(key, JSON.stringify(updated));
+        touched++;
+      }
     }
   }
   console.log(JSON.stringify({ ok: true, requested: ids.length, matched, updatedKeys: touched }, null, 2));
