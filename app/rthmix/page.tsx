@@ -1,13 +1,20 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppHeader } from "@/app/components/AppHeader";
 import { RevealBlock } from "@/app/components/RevealBlock";
 import { CassetteIcon } from "@/app/components/HomeTileIcons";
+import type { SavedRhythm } from "@/app/api/library/route";
+import { useAudio } from "@/app/contexts/AudioContext";
+import { RhythmRow } from "@/app/library/_components";
+import { groupRhythmPairs, sideLabelFor } from "@/app/lib/rhythmPairs";
 
 const RTHMIX_CODE = "doug2026";
+const CROATIAN_RTHMIX_ID = "croatian-starter-memory";
+const CROATIAN_ALBUM_TITLE = "Croatian Starter";
+const CROATIAN_ALBUM_ART_PROMPT = "Square album cover for Croatian Starter, a premium Rthmix memory album: Adriatic coastline at dusk, purple-gold moonlit water, six small glowing language tokens, subtle tamburica strings, modern minimal typography, cinematic but clean.";
 
 const progressionTracks = [
   {
@@ -36,51 +43,66 @@ const croatianMemoryRthmix = [
   {
     number: "00",
     title: "Ground Zero: Six Words, Six Hooks",
+    role: "ground-zero",
     unlock: "How to use this Memory Rthmix",
     detail: "One Croatian word per Rthm. Each track starts with the word, gives you one sticky sound hook, then ends on the word again.",
     hook: "Do not rush the set. Play a track until the hook brings the word back without effort, then move on.",
   },
   {
     number: "01",
-    title: "Hvala",
+    title: "Hvala: The First Door",
+    role: "memory-hook",
     unlock: "hvala = thank you",
     detail: "Hvala sounds like 'voila'. Someone helps, the moment appears: voila, thank you, hvala.",
     hook: "Hvala at the start, voila in the middle, hvala at the end.",
   },
   {
     number: "02",
-    title: "Molim",
+    title: "Molim: The Polite Ask",
+    role: "memory-hook",
     unlock: "molim = please / you're welcome",
     detail: "Molim sounds like 'moll him'. Imagine asking softly, not pushing: molim, please.",
     hook: "The polite little ask is molim.",
   },
   {
     number: "03",
-    title: "Da",
+    title: "Da: The Door Opens",
+    role: "memory-hook",
     unlock: "da = yes",
     detail: "Da is short like a door opening: da, yes, go through.",
     hook: "Da is the open door.",
   },
   {
     number: "04",
-    title: "Ne",
+    title: "Ne: The Clean Boundary",
+    role: "memory-hook",
     unlock: "ne = no",
     detail: "Ne sounds like 'nay'. The horse says nay, the answer says no: ne.",
     hook: "Nay means no. Ne means no.",
   },
   {
     number: "05",
-    title: "Voda",
+    title: "Voda: The River Word",
+    role: "memory-hook",
     unlock: "voda = water",
     detail: "Voda sounds like 'water' beginning with a V. Visualise a V-shaped stream pouring water.",
     hook: "V-shaped water becomes voda.",
   },
   {
     number: "06",
-    title: "Kruh",
+    title: "Kruh: Bread at the Table",
+    role: "memory-hook",
     unlock: "kruh = bread",
     detail: "Kruh sounds like 'crust'. Bread has a crust; crust pulls you back to kruh.",
     hook: "Crust on bread, kruh for bread.",
+  },
+  {
+    number: "07",
+    title: "Bonus: You Have Six",
+    role: "bonus",
+    unlock: "Reflect on the full chain",
+    detail: "The closing track runs the six-word chain and gives the achievement a moment to land.",
+    hook: "Hvala, molim, da, ne, voda, kruh.",
   },
 ];
 
@@ -88,6 +110,12 @@ export default function RthmixPage() {
   const router = useRouter();
   const [allowed, setAllowed] = useState(false);
   const [checked, setChecked] = useState(false);
+  const [rhythms, setRhythms] = useState<SavedRhythm[]>([]);
+  const [showLyricsId, setShowLyricsId] = useState<string | null>(null);
+  const [shareToastId, setShareToastId] = useState<string | null>(null);
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
+  const [selectedSideIds, setSelectedSideIds] = useState<Record<string, string>>({});
+  const { currentTrackId, isPlaying, currentTime, duration, handlePlayUrl } = useAudio();
 
   useEffect(() => {
     const match = document.cookie.match(/(?:^|;\s*)rthmic_code=([^;]+)/);
@@ -95,6 +123,89 @@ export default function RthmixPage() {
     setAllowed(code === RTHMIX_CODE);
     setChecked(true);
   }, []);
+
+  const fetchLibrary = useCallback(async () => {
+    try {
+      const res = await fetch("/api/library", { cache: "no-store" });
+      if (!res.ok) return;
+      const data = await res.json();
+      setRhythms(data.rhythms ?? []);
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => {
+    if (!allowed) return;
+    fetchLibrary();
+    const onMutated = () => fetchLibrary();
+    window.addEventListener("library-mutated", onMutated);
+    return () => window.removeEventListener("library-mutated", onMutated);
+  }, [allowed, fetchLibrary]);
+
+  const mutate = useCallback(async (body: Record<string, unknown>) => {
+    await fetch("/api/library", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    await fetchLibrary();
+    window.dispatchEvent(new CustomEvent("library-mutated"));
+  }, [fetchLibrary]);
+
+  const updateRhythm = (id: string, patch: Partial<SavedRhythm>) =>
+    mutate({ action: "update", id, ...patch });
+
+  const togglePlay = (rhythm: SavedRhythm) => {
+    if (!rhythm.audioUrl && !rhythm.audioKey) return;
+    handlePlayUrl(rhythm.id, `/api/proxy-audio?id=${encodeURIComponent(rhythm.id)}`, rhythm.title);
+    if (rhythm.status === "new") {
+      updateRhythm(rhythm.id, { status: "active" });
+      const alternate = rhythms.find((r) =>
+        r.id === rhythm.alternateId ||
+        (rhythm.pairId && r.pairId === rhythm.pairId && r.id !== rhythm.id)
+      );
+      if (alternate?.status === "new") updateRhythm(alternate.id, { status: "active" });
+    }
+  };
+
+  const handleShare = async (rhythm: SavedRhythm) => {
+    try {
+      const res = await fetch("/api/share", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rhythmId: rhythm.id }),
+      });
+      if (!res.ok) throw new Error("share failed");
+      const { url } = await res.json();
+      if (navigator.share) {
+        await navigator.share({ title: rhythm.title, text: `Listen to "${rhythm.title}" on RTHMIC`, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        setShareToastId(rhythm.id);
+        setTimeout(() => setShareToastId((id) => id === rhythm.id ? null : id), 2500);
+      }
+    } catch (err) {
+      if (err instanceof Error && err.name !== "AbortError") console.error("Share failed:", err);
+    }
+  };
+
+  const albumRhythms = rhythms.filter((r) =>
+    r.status !== "deleted" &&
+    (
+      r.rthmixId === CROATIAN_RTHMIX_ID ||
+      croatianMemoryRthmix.some((track) => r.title === track.title || r.title === `${track.title} (Variation)`)
+    )
+  );
+
+  const albumCards = croatianMemoryRthmix.map((track) => {
+    const trackRhythms = albumRhythms.filter((r) =>
+      r.rthmixTrackNumber === track.number ||
+      r.title === track.title ||
+      r.title === `${track.title} (Variation)`
+    );
+    const card = groupRhythmPairs(trackRhythms, selectedSideIds)[0];
+    return { track, card };
+  });
+  const readyTrackCount = albumCards.filter(({ card }) => !!card).length;
 
   if (!checked) {
     return (
@@ -143,19 +254,74 @@ export default function RthmixPage() {
           intro="Kept separate because these are retrieval chains: one memory hook per track, played in order until the word comes back automatically."
         >
           <div className="rounded-2xl border overflow-hidden" style={{ background: "rgba(139,92,246,0.06)", borderColor: "rgba(139,92,246,0.22)" }}>
-            <div className="px-5 py-4 border-b" style={{ borderColor: "rgba(139,92,246,0.16)" }}>
-              <p className="text-[10px] uppercase tracking-[0.28em]" style={{ color: "rgba(167,139,250,0.82)" }}>Prototype</p>
-              <h2 className="text-lg font-light text-white/88 mt-1" style={{ fontFamily: "var(--font-display)" }}>
-                Croatian Starter: 6 Words in 6 Rthms
-              </h2>
-              <p className="text-xs text-white/42 leading-relaxed mt-2">
-                Ground zero plus six Memory Rthms. Each track installs one Croatian word using an explicit association hook.
-              </p>
+            <div className="px-5 py-4 border-b flex gap-4" style={{ borderColor: "rgba(139,92,246,0.16)" }}>
+              <AlbumArt />
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] uppercase tracking-[0.28em]" style={{ color: "rgba(167,139,250,0.82)" }}>Memory Album</p>
+                <h2 className="text-lg font-light text-white/88 mt-1" style={{ fontFamily: "var(--font-display)" }}>
+                  Croatian Starter
+                </h2>
+                <p className="text-xs text-white/42 leading-relaxed mt-2">
+                  Ground zero plus six Memory Rthms and a bonus reflection. {readyTrackCount}/8 tracks available.
+                </p>
+              </div>
             </div>
             <div className="flex flex-col">
-              {croatianMemoryRthmix.map((track) => (
-                <MemoryTrack key={track.number} {...track} />
-              ))}
+              {albumCards.map(({ track, card }) => {
+                if (!card) return <MemoryTrack key={track.number} {...track} />;
+                const { key, rhythm, alternate, preferredSideId } = card;
+                return (
+                  <div key={track.number} className="px-0 py-0 border-b last:border-b-0" style={{ borderColor: "rgba(139,92,246,0.13)" }}>
+                    <div className="px-5 pt-4 pb-2 flex items-start gap-3">
+                      <TrackNumber number={track.number} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-semibold text-white/78">{track.title}</p>
+                          <span className="text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-full" style={{ background: "rgba(139,92,246,0.12)", color: "rgba(196,181,253,0.72)" }}>Memory</span>
+                        </div>
+                        <p className="text-xs mt-1" style={{ color: "rgba(196,181,253,0.74)" }}>{track.unlock}</p>
+                      </div>
+                    </div>
+                    <div className="px-3 pb-3">
+                      <RhythmRow
+                        rhythm={rhythm}
+                        playing={currentTrackId === rhythm.id && isPlaying}
+                        currentTime={currentTrackId === rhythm.id ? currentTime : 0}
+                        duration={currentTrackId === rhythm.id ? duration : 0}
+                        showLyrics={showLyricsId === rhythm.id}
+                        onToggleLyrics={() => setShowLyricsId(showLyricsId === rhythm.id ? null : rhythm.id)}
+                        onPlay={() => togglePlay(rhythm)}
+                        favourite={rhythm.status === "favourite"}
+                        isNew={rhythm.status === "new"}
+                        onGraduate={rhythm.status === "active" ? () => updateRhythm(rhythm.id, { status: "favourite" }) : undefined}
+                        onUngraduate={rhythm.status === "favourite" ? () => updateRhythm(rhythm.id, { status: "active" }) : undefined}
+                        onArchive={() => updateRhythm(rhythm.id, { status: "archived" })}
+                        onRemove={() => {
+                          if (confirmRemoveId === rhythm.id) {
+                            mutate({ action: "remove", id: rhythm.id });
+                            setConfirmRemoveId(null);
+                          } else {
+                            setConfirmRemoveId(rhythm.id);
+                            setTimeout(() => setConfirmRemoveId((id) => id === rhythm.id ? null : id), 3000);
+                          }
+                        }}
+                        onRecreate={() => {}}
+                        onBuildUpon={() => {}}
+                        onShare={() => handleShare(rhythm)}
+                        onTag={(tags) => updateRhythm(rhythm.id, { tags })}
+                        onNote={(note) => updateRhythm(rhythm.id, { note })}
+                        confirmingRemove={confirmRemoveId === rhythm.id}
+                        shareToast={shareToastId === rhythm.id}
+                        sideLabel={alternate ? sideLabelFor(rhythm) : undefined}
+                        alternateLabel={alternate?.title}
+                        onSwapSide={alternate ? () => setSelectedSideIds((prev) => ({ ...prev, [key]: alternate.id })) : undefined}
+                        sidePreference={!preferredSideId ? "none" : preferredSideId === rhythm.id ? "current" : "other"}
+                        onPreferSide={alternate ? () => mutate({ action: "preferSide", id: rhythm.id }) : undefined}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </RthmixSection>
@@ -170,6 +336,38 @@ export default function RthmixPage() {
         </RthmixSection>
       </section>
     </main>
+  );
+}
+
+function AlbumArt() {
+  return (
+    <div
+      className="w-20 h-20 rounded-xl flex-shrink-0 overflow-hidden relative"
+      title={CROATIAN_ALBUM_ART_PROMPT}
+      style={{
+        background:
+          "radial-gradient(circle at 28% 22%, rgba(250,204,21,0.9), transparent 18%), radial-gradient(circle at 74% 34%, rgba(167,139,250,0.65), transparent 26%), linear-gradient(145deg, #172554 0%, #312e81 42%, #0f172a 100%)",
+        border: "1px solid rgba(196,181,253,0.28)",
+        boxShadow: "0 18px 40px rgba(15,23,42,0.45)",
+      }}
+    >
+      <div style={{ position: "absolute", inset: "48% -20% auto -20%", height: 42, background: "repeating-linear-gradient(160deg, rgba(255,255,255,0.22) 0 2px, transparent 2px 9px)", opacity: 0.55 }} />
+      <div style={{ position: "absolute", left: 10, right: 10, bottom: 10 }}>
+        <p className="text-[8px] uppercase tracking-[0.22em] text-white/70">Croatian</p>
+        <p className="text-[13px] leading-none text-white/90" style={{ fontFamily: "var(--font-display)" }}>Starter</p>
+      </div>
+    </div>
+  );
+}
+
+function TrackNumber({ number }: { number: string }) {
+  return (
+    <div
+      className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] uppercase tracking-wider"
+      style={{ background: "rgba(139,92,246,0.15)", color: "rgba(196,181,253,0.9)", border: "1px solid rgba(139,92,246,0.25)" }}
+    >
+      {number}
+    </div>
   );
 }
 
@@ -195,12 +393,7 @@ function MemoryTrack({ number, title, unlock, detail, hook }: {
   return (
     <div className="px-5 py-4 border-b last:border-b-0" style={{ borderColor: "rgba(139,92,246,0.13)" }}>
       <div className="flex items-start gap-3">
-        <div
-          className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] uppercase tracking-wider"
-          style={{ background: "rgba(139,92,246,0.15)", color: "rgba(196,181,253,0.9)", border: "1px solid rgba(139,92,246,0.25)" }}
-        >
-          {number}
-        </div>
+        <TrackNumber number={number} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-sm font-semibold text-white/78">{title}</p>

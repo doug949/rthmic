@@ -30,6 +30,14 @@ export interface SavedRhythm {
   note?: string;
   playCount?: number;
   lastPlayedAt?: number;
+  rthmixId?: string;       // album container ID when this rhythm belongs to a Rthmix
+  rthmixTitle?: string;
+  rthmixType?: "memory" | "progression";
+  rthmixTrackNumber?: string;
+  rthmixTrackRole?: "ground-zero" | "memory-hook" | "unlock" | "bonus";
+  rthmixUnlock?: string;
+  rthmixAlbumArtPrompt?: string;
+  rthmixAlbumArtUrl?: string;
   pairId?: string;         // A/B-side pair generated from the same Suno task
   side?: "A" | "B";
   alternateId?: string;
@@ -208,6 +216,14 @@ export async function POST(request: NextRequest) {
           if (body.note        !== undefined) next.note        = body.note as string;
           if (body.timedLyrics !== undefined) next.timedLyrics = body.timedLyrics as TimedWord[];
           if (body.preferredSideId !== undefined) next.preferredSideId = body.preferredSideId as string;
+          if (body.rthmixId !== undefined) next.rthmixId = body.rthmixId as string;
+          if (body.rthmixTitle !== undefined) next.rthmixTitle = body.rthmixTitle as string;
+          if (body.rthmixType !== undefined) next.rthmixType = body.rthmixType as SavedRhythm["rthmixType"];
+          if (body.rthmixTrackNumber !== undefined) next.rthmixTrackNumber = body.rthmixTrackNumber as string;
+          if (body.rthmixTrackRole !== undefined) next.rthmixTrackRole = body.rthmixTrackRole as SavedRhythm["rthmixTrackRole"];
+          if (body.rthmixUnlock !== undefined) next.rthmixUnlock = body.rthmixUnlock as string;
+          if (body.rthmixAlbumArtPrompt !== undefined) next.rthmixAlbumArtPrompt = body.rthmixAlbumArtPrompt as string;
+          if (body.rthmixAlbumArtUrl !== undefined) next.rthmixAlbumArtUrl = body.rthmixAlbumArtUrl as string;
           if (next.status !== "deleted") delete next.deletedAt;
           return next;
         });

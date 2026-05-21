@@ -140,9 +140,10 @@ export default function MyRthmsPage() {
   }, [mutate, updateRhythmLocal]);
 
   const now = Date.now();
-  const newRthms      = rhythms.filter((r) => r.status === "new");
-  const myRthms       = rhythms.filter((r) => r.status === "active" || r.status === "favourite");
-  const recentlyDeleted = rhythms.filter(
+  const regularRhythms = rhythms.filter((r) => !r.rthmixId);
+  const newRthms      = regularRhythms.filter((r) => r.status === "new");
+  const myRthms       = regularRhythms.filter((r) => r.status === "active" || r.status === "favourite");
+  const recentlyDeleted = regularRhythms.filter(
     (r) => r.status === "deleted" && r.deletedAt !== undefined && now - r.deletedAt < THIRTY_DAYS
   );
 
