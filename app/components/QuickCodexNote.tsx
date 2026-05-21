@@ -149,7 +149,7 @@ export default function QuickCodexNote() {
           aria-label="Open instant feedback recorder"
           title="Give instant feedback"
         >
-          !
+          <MicGlyph />
         </button>
       </div>
     );
@@ -214,7 +214,7 @@ export default function QuickCodexNote() {
           aria-label="Record instant feedback for the developer"
         >
           <span className="w-7 h-7 rounded-full border flex items-center justify-center flex-shrink-0 text-[12px]" style={{ borderColor: "rgba(255,255,255,0.10)", color: "rgba(201,165,90,0.76)", background: "rgba(255,255,255,0.035)" }}>
-            {state === "saving" ? "…" : "!"}
+            {state === "saving" ? "…" : <MicGlyph />}
           </span>
           <span className="flex flex-col leading-tight">
             <span className="text-[11px] font-medium tracking-wide">{state === "saving" ? "Transcribing and sending" : "Give instant feedback"}</span>
@@ -223,5 +223,14 @@ export default function QuickCodexNote() {
         </button>
       )}
     </div>
+  );
+}
+
+function MicGlyph() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="9" y="3" width="6" height="11" rx="3" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
   );
 }

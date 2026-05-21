@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TransitionLink } from "@/app/components/TransitionLink";
 import { AUDIO_CACHE, keepAllOfflineEnabled, setKeepAllOffline } from "@/app/lib/offlineAudio";
@@ -8,6 +8,7 @@ import { AUDIO_CACHE, keepAllOfflineEnabled, setKeepAllOffline } from "@/app/lib
 const SCREEN_FADE_MS = 1800;
 const TILE_ENTER_MS = 1600;
 const TILE_ROW_DELAY_MS = 260;
+const HOME_TILE_ORDER_KEY = "rthmic_home_tile_order_v1";
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -38,11 +39,22 @@ export default function Home() {
   const [queueCleared, setQueueCleared] = useState<number | null>(null);
   const [screenReady, setScreenReady] = useState(false);
   const [tilesReady, setTilesReady] = useState(false);
+  const [tileOrder, setTileOrder] = useState<string[]>([]);
+  const [reorderMode, setReorderMode] = useState(false);
+  const [draggingTile, setDraggingTile] = useState<string | null>(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const suppressClickRef = useRef(false);
 
   useEffect(() => {
     const match = document.cookie.match(/(?:^|;\s*)rthmic_code=([^;]+)/);
     if (match) setUserCode(decodeURIComponent(match[1]));
     setKeepOffline(keepAllOfflineEnabled());
+    try {
+      const raw = localStorage.getItem(HOME_TILE_ORDER_KEY);
+      setTileOrder(raw ? JSON.parse(raw) : HOME_TILES.map((tile) => tile.id));
+    } catch {
+      setTileOrder(HOME_TILES.map((tile) => tile.id));
+    }
     fetch("/api/settings")
       .then((r) => r.json())
       .then((d) => { if (d.name) setUserName(d.name); })
@@ -128,7 +140,54 @@ export default function Home() {
     setKeepAllOffline(next);
   };
 
-  const visibleTiles = HOME_TILES.filter((tile) => !tile.adminOnly || userCode === "doug2026");
+  const persistTileOrder = (next: string[]) => {
+    setTileOrder(next);
+    try { localStorage.setItem(HOME_TILE_ORDER_KEY, JSON.stringify(next)); } catch {}
+  };
+
+  const reorderTile = (fromId: string, toId: string) => {
+    if (fromId === toId) return;
+    const base = tileOrder.length > 0 ? tileOrder : HOME_TILES.map((tile) => tile.id);
+    const ids = [...base];
+    const from = ids.indexOf(fromId);
+    const to = ids.indexOf(toId);
+    if (from === -1 || to === -1) return;
+    ids.splice(to, 0, ids.splice(from, 1)[0]);
+    persistTileOrder(ids);
+  };
+
+  const beginTilePress = (tileId: string) => {
+    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    longPressTimerRef.current = setTimeout(() => {
+      suppressClickRef.current = true;
+      setReorderMode(true);
+      setDraggingTile(tileId);
+    }, 420);
+  };
+
+  const endTilePress = () => {
+    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    longPressTimerRef.current = null;
+    setDraggingTile(null);
+    setTimeout(() => { suppressClickRef.current = false; }, 80);
+  };
+
+  const moveTilePointer = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!reorderMode || !draggingTile) return;
+    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest("[data-tile-id]") as HTMLElement | null;
+    const targetId = target?.dataset.tileId;
+    if (targetId) reorderTile(draggingTile, targetId);
+  };
+
+  const resetHomeTiles = () => {
+    persistTileOrder(HOME_TILES.map((tile) => tile.id));
+    setReorderMode(false);
+  };
+
+  const order = tileOrder.length > 0 ? tileOrder : HOME_TILES.map((tile) => tile.id);
+  const visibleTiles = HOME_TILES
+    .filter((tile) => !tile.adminOnly || userCode === "doug2026")
+    .sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
 
   return (
     <main
@@ -175,6 +234,14 @@ export default function Home() {
       </header>
 
       <section className="flex-1 flex flex-col pb-6 mt-1">
+        {reorderMode && (
+          <div className="mb-3 flex items-center gap-3 rounded-xl border px-3 py-2" style={{ background: "rgba(10,16,32,0.72)", borderColor: "rgba(201,165,90,0.22)" }}>
+            <p className="flex-1 text-[11px] text-white/45">Drag tiles to rearrange.</p>
+            <button onClick={() => setReorderMode(false)} className="text-[10px] uppercase tracking-widest text-[#c9a55a] touch-manipulation">
+              Done
+            </button>
+          </div>
+        )}
         {/* ── tile grid — rows glide in one after another ── */}
         <div className="grid grid-cols-2 gap-1.5 pb-4">
           {visibleTiles.map((tile, i) => {
@@ -183,12 +250,25 @@ export default function Home() {
             return (
               <div
                 key={tile.label}
+                data-tile-id={tile.id}
+                onPointerDown={() => beginTilePress(tile.id)}
+                onPointerMove={moveTilePointer}
+                onPointerUp={endTilePress}
+                onPointerCancel={endTilePress}
+                onClickCapture={(event) => {
+                  if (reorderMode || suppressClickRef.current) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                  }
+                }}
                 style={{
                   opacity: tilesReady ? undefined : 0,
+                  touchAction: reorderMode ? "none" : "manipulation",
                   animation: tilesReady ? `tile-enter ${TILE_ENTER_MS}ms cubic-bezier(0.16,1,0.3,1) ${rowDelay}ms both` : undefined,
+                  transform: draggingTile === tile.id ? "scale(0.97)" : undefined,
                 }}
               >
-                <HomeTile tile={tile} />
+                <HomeTile tile={tile} reorderMode={reorderMode} />
               </div>
             );
           })}
@@ -298,6 +378,16 @@ export default function Home() {
                 </div>
               </button>
               <button
+                onClick={resetHomeTiles}
+                className="w-full flex items-center gap-4 px-4 py-4 rounded-xl touch-manipulation active:bg-white/[0.04] transition-colors text-left"
+              >
+                <span className="text-white/35 text-lg leading-none">⌂</span>
+                <div>
+                  <p className="text-sm text-white/70 font-medium">Reset Home Screen</p>
+                  <p className="text-xs text-white/30 mt-0.5">Restore the default tile order</p>
+                </div>
+              </button>
+              <button
                 onClick={handleLogout}
                 className="w-full flex items-center gap-4 px-4 py-4 rounded-xl touch-manipulation active:bg-white/[0.04] transition-colors text-left"
               >
@@ -326,6 +416,7 @@ export default function Home() {
 // ─── Home tile grid ───────────────────────────────────────────────────────────
 
 const HOME_TILES: {
+  id: string;
   href: string;
   label: string;
   shortLabel: string;
@@ -336,17 +427,17 @@ const HOME_TILES: {
   comingSoon?: boolean;
   adminOnly?: boolean;
 }[] = [
-  { href: "/speak",     label: "Create a Rthm",        shortLabel: "Create",     icon: <MicIcon />,     accent: "rgba(201,165,90,0.55)", image: "/images/tiles/create.jpg" },
-  { href: "/studio",    label: "RTHMIC Studio",        shortLabel: "Studio",     icon: <StudioIcon />,  accent: "rgba(109,40,217,0.55)", image: "/images/tiles/feedback.jpg", adminOnly: true },
-  { href: "/library/my-rthms", label: "My Rthms",      shortLabel: "My Rthms",   icon: <PlayIcon />,    accent: "rgba(100,140,255,0.5)", image: "/images/tiles/my-rthms.jpg" },
-  { href: "/library",   label: "Rthmix",                shortLabel: "Rthmix",     icon: <CassetteIcon />, accent: "rgba(230,155,60,0.5)", image: "/images/tiles/rthmix.jpg", comingSoon: true },
-  { href: "/structure", label: "Structure",             shortLabel: "Structure",  icon: <MenusIcon />,   accent: "rgba(100,195,165,0.5)", image: "/images/tiles/structure.jpg", imageScale: 1.12 },
-  { href: "/speak",     label: "ADHD Collection",       shortLabel: "ADHD Collection",       icon: <BrainIcon />,   accent: "rgba(220,110,140,0.5)", image: "/images/tiles/adhd.jpg" },
-  { href: "/settings",  label: "Settings and Styles",   shortLabel: "Settings + Styles", icon: <EQIcon />, accent: "rgba(160,130,220,0.5)", image: "/images/tiles/settings.jpg", imageScale: 1.12 },
-  { href: "/understand",label: "About RTHMIC",          shortLabel: "About",      icon: <InfoIcon />,    accent: "rgba(255,255,255,0.15)", image: "/images/tiles/about.jpg" },
+  { id: "create", href: "/speak",     label: "Create a Rthm",        shortLabel: "Create",     icon: <MicIcon />,     accent: "rgba(201,165,90,0.55)", image: "/images/tiles/create.jpg" },
+  { id: "studio", href: "/studio",    label: "RTHMIC Studio",        shortLabel: "Studio",     icon: <StudioIcon />,  accent: "rgba(109,40,217,0.55)", image: "/images/tiles/feedback.jpg", adminOnly: true },
+  { id: "my-rthms", href: "/library/my-rthms", label: "My Rthms",      shortLabel: "My Rthms",   icon: <PlayIcon />,    accent: "rgba(100,140,255,0.5)", image: "/images/tiles/my-rthms.jpg" },
+  { id: "rthmix", href: "/library",   label: "Rthmix",                shortLabel: "Rthmix",     icon: <CassetteIcon />, accent: "rgba(230,155,60,0.5)", image: "/images/tiles/rthmix.jpg", comingSoon: true },
+  { id: "structure", href: "/structure", label: "Structure",             shortLabel: "Structure",  icon: <MenusIcon />,   accent: "rgba(100,195,165,0.5)", image: "/images/tiles/structure.jpg", imageScale: 1.12 },
+  { id: "adhd", href: "/speak",     label: "ADHD Collection",       shortLabel: "ADHD Collection",       icon: <BrainIcon />,   accent: "rgba(220,110,140,0.5)", image: "/images/tiles/adhd.jpg" },
+  { id: "settings", href: "/settings",  label: "Settings and Styles",   shortLabel: "Settings + Styles", icon: <EQIcon />, accent: "rgba(160,130,220,0.5)", image: "/images/tiles/settings.jpg", imageScale: 1.12 },
+  { id: "about", href: "/understand",label: "About RTHMIC",          shortLabel: "About",      icon: <InfoIcon />,    accent: "rgba(255,255,255,0.15)", image: "/images/tiles/about.jpg" },
 ];
 
-function HomeTile({ tile }: { tile: typeof HOME_TILES[number]; delay?: number }) {
+function HomeTile({ tile, reorderMode }: { tile: typeof HOME_TILES[number]; reorderMode?: boolean; delay?: number }) {
   const inner = (
     <div
       className="relative rounded-xl overflow-hidden touch-manipulation"
@@ -386,7 +477,7 @@ function HomeTile({ tile }: { tile: typeof HOME_TILES[number]; delay?: number })
     </div>
   );
 
-  if (tile.comingSoon) return <div>{inner}</div>;
+  if (tile.comingSoon || reorderMode) return <div>{inner}</div>;
   return <TransitionLink href={tile.href} className="active:opacity-70 transition-opacity block">{inner}</TransitionLink>;
 }
 
