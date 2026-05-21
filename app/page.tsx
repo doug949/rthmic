@@ -8,7 +8,7 @@ import { AUDIO_CACHE, keepAllOfflineEnabled, setKeepAllOffline } from "@/app/lib
 const SCREEN_FADE_MS = 1800;
 const TILE_ENTER_MS = 1600;
 const TILE_ROW_DELAY_MS = 260;
-const HOME_TILE_ORDER_KEY = "rthmic_home_tile_order_v1";
+const HOME_TILE_ORDER_KEY = "rthmic_home_tile_order_v2";
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -442,13 +442,13 @@ const HOME_TILES: {
   adminOnly?: boolean;
 }[] = [
   { id: "create", href: "/speak",     label: "Create a Rthm",        shortLabel: "Create",     icon: <MicIcon />,     accent: "rgba(201,165,90,0.55)", image: "/images/tiles/create.jpg" },
-  { id: "studio", href: "/studio",    label: "RTHMIC Studio",        shortLabel: "Studio",     icon: <StudioIcon />,  accent: "rgba(109,40,217,0.55)", image: "/images/tiles/feedback.jpg", adminOnly: true },
   { id: "my-rthms", href: "/library/my-rthms", label: "My Rthms",      shortLabel: "My Rthms",   icon: <PlayIcon />,    accent: "rgba(100,140,255,0.5)", image: "/images/tiles/my-rthms.jpg" },
   { id: "rthmix", href: "/library",   label: "Rthmix",                shortLabel: "Rthmix",     icon: <CassetteIcon />, accent: "rgba(230,155,60,0.5)", image: "/images/tiles/rthmix.jpg", comingSoon: true },
   { id: "structure", href: "/structure", label: "Structure",             shortLabel: "Structure",  icon: <MenusIcon />,   accent: "rgba(100,195,165,0.5)", image: "/images/tiles/structure.jpg", imageScale: 1.12 },
   { id: "adhd", href: "/speak",     label: "ADHD Collection",       shortLabel: "ADHD Collection",       icon: <BrainIcon />,   accent: "rgba(220,110,140,0.5)", image: "/images/tiles/adhd.jpg" },
   { id: "settings", href: "/settings",  label: "Settings and Styles",   shortLabel: "Settings + Styles", icon: <EQIcon />, accent: "rgba(160,130,220,0.5)", image: "/images/tiles/settings.jpg", imageScale: 1.12 },
   { id: "about", href: "/understand",label: "About RTHMIC",          shortLabel: "About",      icon: <InfoIcon />,    accent: "rgba(255,255,255,0.15)", image: "/images/tiles/about.jpg" },
+  { id: "studio", href: "/studio",    label: "Developer",            shortLabel: "Developer",  icon: <LockIcon />,    accent: "rgba(109,40,217,0.55)", image: "/images/tiles/feedback.jpg", adminOnly: true },
 ];
 
 function HomeTile({ tile, reorderMode }: { tile: typeof HOME_TILES[number]; reorderMode?: boolean; delay?: number }) {
@@ -496,12 +496,12 @@ function HomeTile({ tile, reorderMode }: { tile: typeof HOME_TILES[number]; reor
   return <TransitionLink href={tile.href} className="active:opacity-70 transition-opacity block">{inner}</TransitionLink>;
 }
 
-function StudioIcon() {
+function LockIcon() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-      <path d="M4 18V7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5V18" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <path d="M7 19h10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <path d="M8 9h3v6H8zM13 11h3v4h-3z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+      <rect x="5" y="10" width="14" height="10" rx="2.2" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M8.5 10V7.5A3.5 3.5 0 0 1 12 4v0a3.5 3.5 0 0 1 3.5 3.5V10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M12 14v2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   );
 }
