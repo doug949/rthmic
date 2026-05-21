@@ -48,9 +48,17 @@ export default function CodexNotesPage() {
       </RevealBlock>
 
       <section className="flex-1 flex flex-col gap-3 pb-28">
-        <p className="text-xs leading-relaxed text-white/40 px-1">
-          Quick thoughts captured in the app for the next Codex session.
-        </p>
+        <div className="flex items-start justify-between gap-4 px-1">
+          <p className="text-xs leading-relaxed text-white/40">
+            Quick thoughts captured in the app for the next Codex session.
+          </p>
+          {!loading && notes.length > 0 && (
+            <div className="flex-shrink-0 text-right">
+              <p className="text-[10px] uppercase tracking-widest text-white/28">{openNotes.length} open</p>
+              <p className="text-[10px] uppercase tracking-widest text-white/18">{doneNotes.length} addressed</p>
+            </div>
+          )}
+        </div>
 
         {loading && (
           <div className="flex justify-center py-16">
@@ -70,7 +78,7 @@ export default function CodexNotesPage() {
 
         {doneNotes.length > 0 && (
           <div className="flex flex-col gap-2 pt-3">
-            <p className="text-[10px] uppercase tracking-widest text-white/25 px-1">Done</p>
+          <p className="text-[10px] uppercase tracking-widest text-white/25 px-1">Addressed</p>
             {doneNotes.map((note) => (
               <NoteCard key={note.id} note={note} done onToggleDone={() => setDone(note.id, false)} />
             ))}
@@ -100,22 +108,24 @@ function NoteCard({
       }}
     >
       <div className="flex items-start gap-3">
-        <button
-          onClick={onToggleDone}
-          className="mt-0.5 w-6 h-6 rounded-full border flex items-center justify-center flex-shrink-0 touch-manipulation active:scale-95 transition-transform"
-          style={{
-            background: done ? "rgba(201,165,90,0.18)" : "rgba(255,255,255,0.035)",
-            borderColor: done ? "rgba(201,165,90,0.42)" : "rgba(255,255,255,0.18)",
-            color: done ? "rgba(201,165,90,0.9)" : "rgba(255,255,255,0.28)",
-          }}
-          aria-label={done ? "Mark note as not done" : "Mark note as done"}
-        >
-          {done ? "✓" : ""}
-        </button>
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] uppercase tracking-widest text-white/25 mb-2">
-            {fmt(note.createdAt)} · {note.source}
-          </p>
+          <div className="flex items-start justify-between gap-3 mb-2">
+            <p className="text-[10px] uppercase tracking-widest text-white/25 leading-relaxed">
+              {fmt(note.createdAt)} · {note.source}
+            </p>
+            <button
+              onClick={onToggleDone}
+              className="flex-shrink-0 rounded-full border px-3 py-1.5 text-[10px] uppercase tracking-widest touch-manipulation active:scale-[0.98] transition-transform"
+              style={{
+                background: done ? "rgba(255,255,255,0.025)" : "rgba(201,165,90,0.10)",
+                borderColor: done ? "rgba(255,255,255,0.08)" : "rgba(201,165,90,0.28)",
+                color: done ? "rgba(255,255,255,0.30)" : "rgba(201,165,90,0.82)",
+              }}
+              aria-label={done ? "Reopen Codex note" : "Mark Codex note addressed"}
+            >
+              {done ? "Reopen" : "Mark addressed"}
+            </button>
+          </div>
           <p className="text-sm leading-relaxed text-white/72 whitespace-pre-wrap">{note.text}</p>
         </div>
       </div>
