@@ -6,6 +6,59 @@ import { useAudio } from "@/app/contexts/AudioContext";
 
 type NoteState = "idle" | "recording" | "saving" | "saved" | "error";
 
+const FEEDBACK_DB_NAME = "rthmic-feedback-drafts";
+const FEEDBACK_STORE_NAME = "drafts";
+
+type FeedbackDraft = {
+  id: string;
+  createdAt: number;
+  blob: Blob;
+};
+
+function openFeedbackDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(FEEDBACK_DB_NAME, 1);
+    request.onupgradeneeded = () => {
+      request.result.createObjectStore(FEEDBACK_STORE_NAME, { keyPath: "id" });
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function withFeedbackStore<T>(mode: IDBTransactionMode, work: (store: IDBObjectStore) => IDBRequest<T>) {
+  const db = await openFeedbackDb();
+  return new Promise<T>((resolve, reject) => {
+    const tx = db.transaction(FEEDBACK_STORE_NAME, mode);
+    const request = work(tx.objectStore(FEEDBACK_STORE_NAME));
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+    tx.oncomplete = () => db.close();
+    tx.onerror = () => {
+      db.close();
+      reject(tx.error);
+    };
+  });
+}
+
+async function saveFeedbackDraft(blob: Blob) {
+  const draft: FeedbackDraft = {
+    id: `feedback-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    createdAt: Date.now(),
+    blob,
+  };
+  await withFeedbackStore("readwrite", (store) => store.put(draft));
+  return draft.id;
+}
+
+async function deleteFeedbackDraft(id: string) {
+  await withFeedbackStore("readwrite", (store) => store.delete(id));
+}
+
+async function listFeedbackDrafts() {
+  return withFeedbackStore<FeedbackDraft[]>("readonly", (store) => store.getAll());
+}
+
 export default function QuickCodexNote() {
   const pathname = usePathname();
   const { isPlaying, togglePlayPause } = useAudio();
@@ -21,6 +74,30 @@ export default function QuickCodexNote() {
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    let cancelled = false;
+    const retryDrafts = async () => {
+      try {
+        const drafts = await listFeedbackDrafts();
+        for (const draft of drafts.slice(0, 3)) {
+          if (cancelled) return;
+          await sendFeedbackBlob(draft.blob);
+          await deleteFeedbackDraft(draft.id);
+          setMessage("Recovered feedback sent");
+          setTimeout(() => setMessage(""), 3200);
+        }
+      } catch (err) {
+        console.warn("[quick-feedback] retry failed:", err);
+      }
+    };
+    retryDrafts();
+    return () => {
+      cancelled = true;
+    };
+  }, [mounted]);
+
   if (!mounted || pathname === "/login") return null;
 
   const stopMeter = () => {
@@ -94,31 +171,37 @@ export default function QuickCodexNote() {
     setState("saving");
   };
 
+  const sendFeedbackBlob = async (blob: Blob) => {
+    const form = new FormData();
+    form.append("audio", blob, "codex-note.webm");
+    const transcribeRes = await fetch("/api/transcribe", { method: "POST", body: form });
+    if (!transcribeRes.ok) throw new Error("transcription failed");
+    const { transcript } = await transcribeRes.json();
+    const text = typeof transcript === "string" ? transcript.trim() : "";
+    if (!text) throw new Error("empty transcription");
+
+    const feedbackRes = await fetch("/api/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ transcript: text }),
+    });
+    if (!feedbackRes.ok) throw new Error("feedback save failed");
+  };
+
   const save = async () => {
     try {
       setState("saving");
       const blob = new Blob(chunksRef.current, { type: chunksRef.current[0]?.type || "audio/webm" });
-      const form = new FormData();
-      form.append("audio", blob, "codex-note.webm");
-      const transcribeRes = await fetch("/api/transcribe", { method: "POST", body: form });
-      if (!transcribeRes.ok) throw new Error("transcription failed");
-      const { transcript } = await transcribeRes.json();
-      const text = typeof transcript === "string" ? transcript.trim() : "";
-      if (!text) throw new Error("empty transcription");
-
-      const feedbackRes = await fetch("/api/feedback", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transcript: text }),
-      });
-      if (!feedbackRes.ok) throw new Error("feedback save failed");
+      const draftId = await saveFeedbackDraft(blob);
+      await sendFeedbackBlob(blob);
+      await deleteFeedbackDraft(draftId);
 
       setMessage("Thanks - feedback sent");
       setState("saved");
       setTimeout(() => { setState("idle"); setMessage(""); setExpanded(false); }, 3200);
     } catch (err) {
       console.error("[quick-feedback] save failed:", err);
-      setMessage("Could not send feedback");
+      setMessage("Saved locally - will retry");
       setState("error");
     }
   };
