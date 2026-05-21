@@ -16,6 +16,30 @@ const LEGACY_AUTO_TAGS = new Set([
   "recall", "insight", "clarity", "creative", "money", "travel",
 ]);
 
+const CATEGORY_TAGS = new Set([
+  "memory",
+  "menus",
+  "mindset",
+  "mode",
+  "mode shift",
+  "movement",
+  "understanding",
+  "bridge",
+  "rthmic bridge",
+  "invite",
+  "rthmic invite",
+  "journal",
+  "epiphany",
+  "explain",
+  "booksummary",
+  "book summary",
+  "time capsule",
+  "what mattered",
+  "rejection spike",
+  "time panic",
+  "launch",
+]);
+
 const KEYWORD_TAGS: Array<[RegExp, string]> = [
   [/\binbound marketing\b/i, "inbound marketing"],
   [/\b(content marketing|content strategy|content plan|content calendar)\b/i, "content marketing"],
@@ -56,7 +80,7 @@ export function normalizeTags(tags: string[] | undefined, max = MAX_TAGS): strin
   const out: string[] = [];
   for (const raw of tags ?? []) {
     const tag = cleanTag(raw);
-    if (!tag || seen.has(tag)) continue;
+    if (!tag || CATEGORY_TAGS.has(tag) || seen.has(tag)) continue;
     seen.add(tag);
     out.push(tag);
     if (out.length >= max) break;
