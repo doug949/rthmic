@@ -1,51 +1,44 @@
-import type { PillarType } from "@/app/types/pipeline";
-
 const MAX_TAGS = 8;
 
 type TaggableRhythm = {
   title?: string;
-  pillar?: PillarType;
+  pillar?: unknown;
   lyrics?: string;
   note?: string;
   tags?: string[];
 };
 
-const PILLAR_TAGS: Partial<Record<PillarType, string>> = {
-  Memory: "memory",
-  Menus: "menus",
-  Mindset: "mindset",
-  Mode: "mode shift",
-  Movement: "movement",
-  Understanding: "understanding",
-  Bridge: "bridge",
-  Invite: "invite",
-  Journal: "journal",
-  Epiphany: "idea",
-  Explain: "explain",
-  BookSummary: "books",
-};
+const LEGACY_AUTO_TAGS = new Set([
+  "memory", "menus", "mindset", "mode shift", "movement", "understanding",
+  "bridge", "invite", "journal", "idea", "explain", "books", "calm",
+  "confidence", "focus", "starting", "routine", "fitness", "language",
+  "work", "relationships", "gratitude", "rest", "planning", "study",
+  "recall", "insight", "clarity", "creative", "money", "travel",
+]);
 
 const KEYWORD_TAGS: Array<[RegExp, string]> = [
-  [/\b(anxious|anxiety|panic|overwhelm|overwhelmed|spiral|stress|stressed)\b/i, "calm"],
-  [/\b(confident|confidence|ready|presentation|pitch|interview|stage)\b/i, "confidence"],
-  [/\b(focus|deep work|concentrate|attention|distracted|distraction)\b/i, "focus"],
-  [/\b(start|starting|begin|procrastinat|stuck|resistance|friction)\b/i, "starting"],
-  [/\b(habit|routine|ritual|daily|morning|evening)\b/i, "routine"],
-  [/\b(workout|exercise|push[ -]?ups?|gym|run|running|walk|walking|fitness)\b/i, "fitness"],
+  [/\binbound marketing\b/i, "inbound marketing"],
+  [/\b(content marketing|content strategy|content plan|content calendar)\b/i, "content marketing"],
+  [/\b(marketing|brand|branding|campaign|advertising|audience|positioning)\b/i, "marketing"],
+  [/\b(business|company|startup|founder|entrepreneur|commercial|client|customer)\b/i, "business"],
+  [/\b(sales|pipeline|lead|leads|prospect|conversion|crm)\b/i, "sales"],
+  [/\b(video|youtube|reel|shorts|tiktok|camera|film|editing|production)\b/i, "video"],
+  [/\b(social media|linkedin|instagram|facebook|x.com|twitter|post|posting)\b/i, "social media"],
+  [/\b(seo|search engine|keyword|keywords|google ranking|rankings)\b/i, "seo"],
+  [/\b(email|newsletter|mailing list|subscriber|subscribers)\b/i, "email marketing"],
+  [/\b(website|landing page|homepage|web page|webpage|site)\b/i, "website"],
+  [/\b(strategy|strategic|roadmap|plan|planning|priorit|goal|goals)\b/i, "strategy"],
+  [/\b(product|saas|app|platform|feature|features|launch)\b/i, "product"],
+  [/\b(ai|artificial intelligence|chatgpt|automation|automate|prompt|prompts)\b/i, "ai"],
+  [/\b(finance|financial|money|budget|invoice|tax|pricing|revenue|profit)\b/i, "finance"],
+  [/\b(legal|contract|compliance|gdpr|policy|terms)\b/i, "legal"],
+  [/\b(health|fitness|workout|exercise|push[ -]?ups?|gym|running|nutrition)\b/i, "health"],
   [/\b(language|phrase|phrases|croatian|spanish|french|irish|italian|german)\b/i, "language"],
   [/\b(book|summary|author|chapter|atomic habits|sapiens|deep work)\b/i, "books"],
-  [/\b(meeting|client|sales|workshop|call|conversation)\b/i, "work"],
-  [/\b(apology|relationship|family|friend|partner|bridge|repair)\b/i, "relationships"],
-  [/\b(grateful|gratitude|thankful|appreciat)\b/i, "gratitude"],
-  [/\b(sleep|rest|tired|bed|wind down|winding down)\b/i, "rest"],
-  [/\b(plan|planning|priorit|schedule|deadline|time)\b/i, "planning"],
-  [/\b(study|exam|learn|revision|remember|memorise|memorize|recall)\b/i, "study"],
-  [/\b(speech|script|lines|names|sequence|list)\b/i, "recall"],
-  [/\b(idea|insight|realisation|realization|epiphany|breakthrough)\b/i, "insight"],
-  [/\b(decide|decision|choice|choose|clarity)\b/i, "clarity"],
-  [/\b(write|writing|draft|creative|create|maker)\b/i, "creative"],
-  [/\b(money|finance|budget|price|invoice|tax)\b/i, "money"],
-  [/\b(travel|trip|flight|airport|hotel)\b/i, "travel"],
+  [/\b(study|exam|lesson|course|learn|learning|revision|memorise|memorize)\b/i, "education"],
+  [/\b(meeting|workshop|presentation|pitch|interview|call)\b/i, "communication"],
+  [/\b(relationship|family|friend|partner|apology|repair)\b/i, "relationships"],
+  [/\b(travel|trip|flight|airport|hotel|city|country)\b/i, "travel"],
 ];
 
 function cleanTag(tag: string): string {
@@ -73,8 +66,6 @@ export function normalizeTags(tags: string[] | undefined, max = MAX_TAGS): strin
 
 export function autoTagsForRhythm(rhythm: TaggableRhythm, max = MAX_TAGS): string[] {
   const tags: string[] = [];
-  if (rhythm.pillar && PILLAR_TAGS[rhythm.pillar]) tags.push(PILLAR_TAGS[rhythm.pillar]!);
-
   const text = [rhythm.title, rhythm.note, rhythm.lyrics].filter(Boolean).join("\n");
   for (const [pattern, tag] of KEYWORD_TAGS) {
     if (pattern.test(text)) tags.push(tag);
@@ -86,7 +77,9 @@ export function autoTagsForRhythm(rhythm: TaggableRhythm, max = MAX_TAGS): strin
 
 export function tagsForSavedRhythm(rhythm: TaggableRhythm, max = MAX_TAGS): string[] {
   const existing = normalizeTags(rhythm.tags, max);
-  if (existing.length >= max) return existing;
   const generated = autoTagsForRhythm(rhythm, max);
+  const onlyLegacyAutoTags = existing.length > 0 && existing.every((tag) => LEGACY_AUTO_TAGS.has(tag));
+  if (onlyLegacyAutoTags && generated.length > 0) return generated;
+  if (existing.length >= max) return existing;
   return normalizeTags([...existing, ...generated], max);
 }
