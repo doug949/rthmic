@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
         prompt: lyrics,
         style: buildMusicStyle(style, genre),
         title: songTitle,
-        callBackUrl: "https://rthmic.vercel.app/api/suno-webhook",
+        callBackUrl: "https://rthmic.app/api/suno-webhook",
       }),
     });
 

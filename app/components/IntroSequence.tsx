@@ -5,8 +5,8 @@ import { useEffect, useState } from "react";
 const SEEN_KEY  = "rthmic_intro_v4";
 const FADE      = 700;   // ms — consistent in/out, no duration-switch glitch
 const QUOTE_CONTAINER_FADE = 1800;
-const HOLD_Q    = 6000;  // ms quote hold
-const HOLD_Q_STAGE = 1700;
+const HOLD_Q    = 3000;  // ms quote hold
+const HOLD_Q_STAGE = 850;
 const HOLD_LOGO = 1600;  // ms logo hold
 const QUOTE_WORD_FADE = 2100;
 const QUOTE_WORD_STAGGER = 320;
@@ -51,7 +51,10 @@ export default function IntroSequence() {
     sessionStorage.setItem(SEEN_KEY, "1");
     setContentOpacity(0);
     setOverlayOpacity(0);
-    setTimeout(() => setGone(true), FADE + 50);
+    setTimeout(() => {
+      window.dispatchEvent(new Event("rthmic:intro-complete"));
+      setGone(true);
+    }, FADE + 50);
   };
 
   useEffect(() => {
@@ -98,6 +101,7 @@ export default function IntroSequence() {
       setOverlayOpacity(0);
       await sleep(FADE + 50);
       if (cancelled) return;
+      window.dispatchEvent(new Event("rthmic:intro-complete"));
       setGone(true);
     };
 

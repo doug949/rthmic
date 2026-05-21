@@ -9,6 +9,7 @@ const SCREEN_FADE_MS = 1800;
 const TILE_ENTER_MS = 1600;
 const TILE_ROW_DELAY_MS = 260;
 const HOME_TILE_ORDER_KEY = "rthmic_home_tile_order_v2";
+const INTRO_SEEN_KEY = "rthmic_intro_v4";
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -39,6 +40,7 @@ export default function Home() {
   const [queueCleared, setQueueCleared] = useState<number | null>(null);
   const [screenReady, setScreenReady] = useState(false);
   const [tilesReady, setTilesReady] = useState(false);
+  const [introComplete, setIntroComplete] = useState(false);
   const [tileIntroDone, setTileIntroDone] = useState(false);
   const [tileOrder, setTileOrder] = useState<string[]>([]);
   const [reorderMode, setReorderMode] = useState(false);
@@ -62,9 +64,20 @@ export default function Home() {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    if (sessionStorage.getItem(INTRO_SEEN_KEY)) {
+      setIntroComplete(true);
+      return;
+    }
+    const onIntroComplete = () => setIntroComplete(true);
+    window.addEventListener("rthmic:intro-complete", onIntroComplete);
+    return () => window.removeEventListener("rthmic:intro-complete", onIntroComplete);
+  }, []);
+
   // Keep the menu hidden until its images are decoded, then let the page fade in
   // before the tile rows begin their wave.
   useEffect(() => {
+    if (!introComplete) return;
     let cancelled = false;
     let tileTimer: ReturnType<typeof setTimeout>;
     const imageUrls = HOME_TILES.flatMap((tile) => tile.image ? [tile.image] : []);
@@ -81,7 +94,7 @@ export default function Home() {
       cancelled = true;
       clearTimeout(tileTimer);
     };
-  }, []);
+  }, [introComplete]);
 
   useEffect(() => {
     if (!tilesReady) return;

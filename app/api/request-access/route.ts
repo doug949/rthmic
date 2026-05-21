@@ -107,7 +107,7 @@ function buildEmailHtml(code: string): string {
           <!-- CTA -->
           <tr>
             <td style="padding-bottom:40px;">
-              <a href="https://rthmic.vercel.app/login"
+              <a href="https://rthmic.app/login"
                 style="display:block;text-align:center;padding:16px 24px;border-radius:12px;background:rgba(201,165,90,0.1);border:1px solid rgba(201,165,90,0.4);color:#c9a55a;font-size:14px;font-weight:600;letter-spacing:0.05em;text-decoration:none;">
                 Open RTHMIC →
               </a>
@@ -131,7 +131,7 @@ function buildEmailHtml(code: string): string {
             <td style="padding-top:40px;">
               <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.2);line-height:1.6;">
                 You received this because someone shared a Rthm with you and you requested beta access.<br />
-                RTHMIC · rthmic.vercel.app
+                RTHMIC · rthmic.app
               </p>
             </td>
           </tr>
@@ -154,7 +154,7 @@ Your code: ${code}
 Open RTHMIC and enter this code when prompted. It works on any device.
 This code is yours to keep.
 
-Open RTHMIC: https://rthmic.vercel.app/login
+Open RTHMIC: https://rthmic.app/login
 
 ---
 What is RTHMIC?
@@ -164,7 +164,7 @@ breaks inertia, or helps you move through the moment.
 
 ---
 You received this because someone shared a Rthm with you and you requested beta access.
-RTHMIC · rthmic.vercel.app
+RTHMIC · rthmic.app
   `.trim();
 }
 

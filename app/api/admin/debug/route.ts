@@ -10,7 +10,7 @@ import type { SavedRhythm } from "@/app/api/library/route";
 export const maxDuration = 20;
 
 const SUNO_BASE = "https://api.sunoapi.org/api/v1";
-const APP_URL = "https://rthmic.vercel.app";
+const APP_URL = "https://rthmic.app";
 
 function requireAuth(req: NextRequest): string | null {
   const session = req.cookies.get("rthmic_session");

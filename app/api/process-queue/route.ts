@@ -21,7 +21,7 @@ export const maxDuration = 60;
 
 const MAX_CONCURRENT = 5;
 const MAX_AGE_MS = 20 * 60 * 1000; // mark failed after 20 min stuck generating
-const APP_URL = "https://rthmic.vercel.app";
+const APP_URL = "https://rthmic.app";
 const SUNO_BASE = "https://api.sunoapi.org/api/v1";
 
 // ─── Library save (direct Redis, mirrors /api/library POST save) ──────────────

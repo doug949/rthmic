@@ -104,7 +104,7 @@ export async function generateSongs(lyrics: string, pillar: PillarType): Promise
       prompt: toSunoPronunciation(lyrics),   // phonetic substitution for branded spellings
       style: PILLAR_STYLES[pillar],         // genre/mood tags
       title: `RTHM — ${pillar}`,
-      callBackUrl: "https://rthmic.vercel.app/api/suno-webhook", // required by sunoapi.org; we use polling
+      callBackUrl: "https://rthmic.app/api/suno-webhook", // required by sunoapi.org; we use polling
     }),
   });
 

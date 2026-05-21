@@ -18,7 +18,7 @@ const SUNO_CHAR_LIMIT = 5000;
 const SUNO_STYLE_LIMIT = 200;
 const FADE_SUFFIX = ", fade out ending, resolving outro";
 const SUNO_BASE = "https://api.sunoapi.org/api/v1";
-const APP_URL = "https://rthmic.vercel.app";
+const APP_URL = "https://rthmic.app";
 
 function buildMusicStyle(genre: string): string {
   const cleaned = genre.replace(/\.\s*/g, ", ").replace(/,\s*,+/g, ",").trim().replace(/,\s*$/, "");
