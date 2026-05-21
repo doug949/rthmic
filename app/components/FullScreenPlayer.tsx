@@ -229,7 +229,7 @@ export default function FullScreenPlayer() {
   const isFavourite   = rhythm?.status === "favourite";
   const theme = isFavourite
     ? {
-        bg: "#140f08",
+        bg: "#0a1020",
         topButtonBg: "rgba(201,165,90,0.10)",
         topButtonBorder: "1px solid rgba(201,165,90,0.16)",
         title: "rgba(201,165,90,0.95)",
