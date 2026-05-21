@@ -2636,6 +2636,7 @@ function ResultsView({
   const [showPlayer, setShowPlayer] = useState(false);
   const [shareState, setShareState] = useState<ShareState>("idle");
   const [sharingSongId, setSharingSongId] = useState<string | null>(null);
+  const [selectedResultId, setSelectedResultId] = useState<string | null>(null);
 
   const handleShare = async (song: Song) => {
     setSharingSongId(song.id);
@@ -2679,6 +2680,9 @@ function ResultsView({
 
   // Find by ID so player opens the moment a song is tapped, before play() resolves
   const playingSong = songs.find((s) => s.id === playingId && !!s.audioUrl) ?? null;
+  const selectedSong = songs.find((s) => s.id === selectedResultId) ?? songs[0] ?? null;
+  const alternateSong = songs.find((s) => s.id !== selectedSong?.id) ?? null;
+  const selectedIndex = selectedSong ? songs.findIndex((s) => s.id === selectedSong.id) : 0;
 
   return (
     <section className="flex-1 flex flex-col gap-5 pb-32">
@@ -2715,17 +2719,17 @@ function ResultsView({
       </RevealBlock>
 
       {/* Bridge: prominent share CTA */}
-      {isDedication && songs.length > 0 && !!songs[0].audioUrl && (
+      {isDedication && selectedSong && !!selectedSong.audioUrl && (
         <RevealBlock delay={60}>
           <button
-            onClick={() => handleShare(songs[0])}
+            onClick={() => handleShare(selectedSong)}
             disabled={shareState === "loading"}
             className="w-full py-5 rounded-2xl text-sm font-semibold tracking-wide text-center active:scale-[0.98] transition-all touch-manipulation disabled:opacity-60"
             style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.45)", color: "#c9a55a" }}
           >
-            {shareState === "loading" && sharingSongId === songs[0].id ? "Creating link…"
-              : shareState === "copied" && sharingSongId === songs[0].id ? "✓ Link copied — ready to send"
-              : shareState === "done" && sharingSongId === songs[0].id ? "✓ Sent"
+            {shareState === "loading" && sharingSongId === selectedSong.id ? "Creating link…"
+              : shareState === "copied" && sharingSongId === selectedSong.id ? "✓ Link copied — ready to send"
+              : shareState === "done" && sharingSongId === selectedSong.id ? "✓ Sent"
               : "Send this Rthm →"}
           </button>
         </RevealBlock>
@@ -2733,13 +2737,15 @@ function ResultsView({
 
       {debugMsg && <p className="text-[10px] text-red-400/60 break-all">{debugMsg}</p>}
 
-      {songs.length === 0 ? (
+      {songs.length === 0 || !selectedSong ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-5 py-16">
           <p className="text-sm text-white/40 text-center">All Rthms removed.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {songs.map((song, songIndex) => {
+          {(() => {
+            const song = selectedSong;
+            const songIndex = selectedIndex;
             const status = songStatus[song.id] ?? null;
             const playing = isSongPlaying(song);
             const loading = isSongLoading(song);
@@ -2792,6 +2798,21 @@ function ResultsView({
                   )}
                 </button>
 
+                {alternateSong && (
+                  <div className="px-5 pb-3 -mt-1 flex items-center justify-between gap-3">
+                    <span className="text-[10px] uppercase tracking-widest text-white/35">
+                      {selectedIndex === 0 ? "A" : "B"}-side
+                    </span>
+                    <button
+                      onClick={() => setSelectedResultId(alternateSong.id)}
+                      className="text-[10px] uppercase tracking-widest rounded-full px-3 py-1.5 touch-manipulation active:scale-[0.98] transition-transform"
+                      style={{ background: "rgba(255,255,255,0.055)", border: "1px solid rgba(255,255,255,0.09)", color: "rgba(255,255,255,0.55)" }}
+                    >
+                      Swap to {selectedIndex === 0 ? "B" : "A"}-side
+                    </button>
+                  </div>
+                )}
+
                 {/* Thin progress strip on playing card */}
                 {song.audioUrl && playingId === song.id && (
                   <div className="h-[2px] bg-white/[0.06] mx-5 rounded-full mb-3">
@@ -2828,7 +2849,7 @@ function ResultsView({
               </div>
               </RevealBlock>
             );
-          })}
+          })()}
         </div>
       )}
 

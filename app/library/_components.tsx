@@ -35,6 +35,9 @@ export function RhythmRow({
   favourite,
   isNew,
   chartRank,
+  sideLabel,
+  alternateLabel,
+  onSwapSide,
 }: {
   rhythm: SavedRhythm;
   playing: boolean;
@@ -58,6 +61,9 @@ export function RhythmRow({
   favourite?: boolean;
   isNew?: boolean;
   chartRank?: number;
+  sideLabel?: "A" | "B";
+  alternateLabel?: string;
+  onSwapSide?: () => void;
 }) {
   // colour theme — priority: favourite > isNew > default
   const P = isNew && !favourite ? {
@@ -166,6 +172,25 @@ export function RhythmRow({
           )}
         </div>
       </button>
+
+      {sideLabel && alternateLabel && onSwapSide && (
+        <div className="px-5 pb-3 -mt-1 flex items-center justify-between gap-3">
+          <span className="text-[10px] uppercase tracking-widest" style={{ color: favourite ? "rgba(201,165,90,0.52)" : P ? P.sub : "rgba(255,255,255,0.36)" }}>
+            {sideLabel}-side
+          </span>
+          <button
+            onClick={onSwapSide}
+            className="text-[10px] uppercase tracking-widest rounded-full px-3 py-1.5 touch-manipulation active:scale-[0.98] transition-transform"
+            style={{
+              background: favourite ? "rgba(201,165,90,0.10)" : "rgba(255,255,255,0.055)",
+              border: favourite ? "1px solid rgba(201,165,90,0.22)" : "1px solid rgba(255,255,255,0.09)",
+              color: favourite ? "rgba(201,165,90,0.76)" : "rgba(255,255,255,0.52)",
+            }}
+          >
+            Swap to {sideLabel === "A" ? "B" : "A"}-side
+          </button>
+        </div>
+      )}
 
       {/* Progress bar */}
       {playing && duration > 0 && (

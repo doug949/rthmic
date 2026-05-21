@@ -11,6 +11,7 @@ import CustomStyleInput from "@/app/components/CustomStyleInput";
 import type { SavedRhythm } from "@/app/api/library/route";
 import { RhythmRow } from "../_components";
 import { BUILD_UPON_GENRE, buildUponLyrics, buildUponTitle } from "@/app/lib/buildUpon";
+import { groupRhythmPairs, sideLabelFor } from "@/app/lib/rhythmPairs";
 
 type LoadState = "loading" | "ready" | "error";
 type TimePeriod = "today" | "week" | "month" | "all";
@@ -56,6 +57,7 @@ export default function MyRthmsPage() {
   const [queueJobs, setQueueJobs] = useState<QueueJob[]>([]);
   const [selectMode, setSelectMode]       = useState(false);
   const [selectedIds, setSelectedIds]     = useState<Set<string>>(new Set());
+  const [selectedSideIds, setSelectedSideIds] = useState<Record<string, string>>({});
   const [confirmBatchDelete, setConfirmBatchDelete] = useState(false);
 
   const { currentTrackId, isPlaying, currentTime, duration, handlePlayUrl } = useAudio();
@@ -181,8 +183,13 @@ export default function MyRthmsPage() {
     handlePlayUrl(rhythm.id, proxyUrl, rhythm.title);
     if (rhythm.status === "new") {
       updateRhythm(rhythm.id, { status: "active" });
+      const alternate = rhythms.find((r) =>
+        r.id === rhythm.alternateId ||
+        (rhythm.pairId && r.pairId === rhythm.pairId && r.id !== rhythm.id)
+      );
+      if (alternate?.status === "new") updateRhythm(alternate.id, { status: "active" });
     }
-  }, [handlePlayUrl, updateRhythm]);
+  }, [handlePlayUrl, rhythms, updateRhythm]);
 
   const handleShare = async (rhythm: SavedRhythm) => {
     try {
@@ -257,6 +264,8 @@ export default function MyRthmsPage() {
     : timePeriod === "all" && !expanded
     ? orderedRthms.slice(0, ALL_TIME_PREVIEW)
     : orderedRthms;
+  const newCards = groupRhythmPairs(newRthms, selectedSideIds);
+  const visibleCards = groupRhythmPairs(visibleRthms, selectedSideIds);
 
   return (
     <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ animation: "page-enter 380ms ease forwards" }}>
@@ -301,7 +310,7 @@ export default function MyRthmsPage() {
         )}
 
       {/* ── New (unplayed) Rthms ─────────────────────────────────────────────── */}
-        {newRthms.length > 0 && (
+        {newCards.length > 0 && (
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2 px-1">
               <span className="text-[10px] uppercase tracking-widest" style={{ color: "rgb(139,92,246)" }}>New</span>
@@ -309,13 +318,13 @@ export default function MyRthmsPage() {
                 className="inline-flex items-center justify-center text-[9px] font-semibold rounded-full px-1.5 py-0.5 leading-none"
                 style={{ background: "rgba(109,40,217,0.2)", color: "rgb(167,139,250)" }}
               >
-                {newRthms.length}
+                {newCards.length}
               </span>
             </div>
-            {newRthms.map((rhythm) => {
+            {newCards.map(({ key, rhythm, alternate }) => {
               const isSelected = selectedIds.has(rhythm.id);
               return (
-                <div key={rhythm.id} className="relative">
+                <div key={key} className="relative">
                   {selectMode && (
                     <button
                       onClick={() => toggleSelect(rhythm.id)}
@@ -355,6 +364,9 @@ export default function MyRthmsPage() {
                       onNote={(note) => handleNote(rhythm.id, note)}
                       confirmingRemove={confirmRemoveId === rhythm.id}
                       shareToast={shareToastId === rhythm.id}
+                      sideLabel={alternate ? sideLabelFor(rhythm) : undefined}
+                      alternateLabel={alternate?.title}
+                      onSwapSide={alternate ? () => setSelectedSideIds((prev) => ({ ...prev, [key]: alternate.id })) : undefined}
                     />
                   </div>
                 </div>
@@ -447,10 +459,10 @@ export default function MyRthmsPage() {
                 </p>
               ) : (
                 <>
-                  {visibleRthms.map((rhythm) => {
+                  {visibleCards.map(({ key, rhythm, alternate }) => {
                     const isSelected = selectedIds.has(rhythm.id);
                     return (
-                      <div key={rhythm.id} className="relative">
+                      <div key={key} className="relative">
                         {selectMode && (
                           <button
                             onClick={() => toggleSelect(rhythm.id)}
@@ -493,6 +505,9 @@ export default function MyRthmsPage() {
                             onNote={(note) => handleNote(rhythm.id, note)}
                             confirmingRemove={confirmRemoveId === rhythm.id}
                             shareToast={shareToastId === rhythm.id}
+                            sideLabel={alternate ? sideLabelFor(rhythm) : undefined}
+                            alternateLabel={alternate?.title}
+                            onSwapSide={alternate ? () => setSelectedSideIds((prev) => ({ ...prev, [key]: alternate.id })) : undefined}
                           />
                         </div>
                       </div>

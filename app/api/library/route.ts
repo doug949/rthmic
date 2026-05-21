@@ -30,6 +30,9 @@ export interface SavedRhythm {
   note?: string;
   playCount?: number;
   lastPlayedAt?: number;
+  pairId?: string;         // A/B-side pair generated from the same Suno task
+  side?: "A" | "B";
+  alternateId?: string;
   sunoClipId?: string;      // raw Suno clip ID (audioId) for timed-lyrics API
   sunoTaskId?: string;      // Suno task ID — required alongside audioId to fetch timed lyrics
   timedLyrics?: TimedWord[]; // word-level synchronized lyric data from Suno

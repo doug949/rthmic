@@ -109,6 +109,7 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
           // Persist the core records before flipping to ready, so menus/library
           // refresh against data that actually exists. Timed lyrics stay async.
           const saveCore = async () => {
+            const pairId = songs.length > 1 ? crypto.randomUUID() : undefined;
             if (params.menuSlug) {
               const menuSongs = songs.map((song) => ({
                 id: song.id,
@@ -118,6 +119,11 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
                 lyrics: params.lyrics,
                 sunoClipId: song.sunoClipId,
                 sunoTaskId: song.sunoTaskId,
+                ...(pairId ? {
+                  pairId,
+                  side: (songs.indexOf(song) === 0 ? "A" : "B") as "A" | "B",
+                  alternateId: songs[songs.indexOf(song) === 0 ? 1 : 0]?.id,
+                } : {}),
                 savedAt: Date.now(),
                 status: "active" as const,
               }));
@@ -127,7 +133,8 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
                 body: JSON.stringify({ slug: params.menuSlug, songs: menuSongs }),
               });
             } else {
-              for (const song of songs) {
+              for (let i = 0; i < songs.length; i++) {
+                const song = songs[i];
                 await fetch("/api/library", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
@@ -141,6 +148,11 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
                       lyrics: params.lyrics,
                       sunoClipId: song.sunoClipId,
                       sunoTaskId: song.sunoTaskId,
+                      ...(pairId ? {
+                        pairId,
+                        side: (i === 0 ? "A" : "B") as "A" | "B",
+                        alternateId: songs[i === 0 ? 1 : 0]?.id,
+                      } : {}),
                       ...(params.note ? { note: params.note } : {}),
                     },
                   }),

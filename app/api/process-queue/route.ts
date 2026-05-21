@@ -110,6 +110,7 @@ async function pollJob(
   // Save both songs to library. Because these are shown as playable immediately,
   // wait for the permanent audio copy where possible instead of saving first
   // and patching audioKey in a later background task.
+  const pairId = pollData.songs.length > 1 ? job.jobId : undefined;
   for (let i = 0; i < pollData.songs.length; i++) {
     const song = pollData.songs[i];
     const wasabiKey = `rhythms/${job.userId}/${song.id}.mp3`;
@@ -134,6 +135,11 @@ async function pollJob(
       sunoTaskId: song.sunoTaskId,
       savedAt: Date.now(),
       status: "new",
+      ...(pairId ? {
+        pairId,
+        side: (i === 0 ? "A" : "B") as "A" | "B",
+        alternateId: pollData.songs[i === 0 ? 1 : 0]?.id,
+      } : {}),
       ...(audioKey ? { audioKey } : {}),
       ...(job.note ? { note: job.note } : {}),
     };

@@ -158,6 +158,7 @@ export async function POST(req: NextRequest) {
       // Save up to 2 clips only after audio is readable. Prefer a completed
       // Wasabi copy so first play uses permanent storage rather than a fresh CDN race.
       const toSave = playable.slice(0, 2);
+      const pairId = toSave.length > 1 ? jobId : undefined;
       for (let i = 0; i < toSave.length; i++) {
         const { clip, audioUrl: clipAudioUrl } = toSave[i];
         const rawClipId = String(clip.id ?? "");
@@ -183,6 +184,11 @@ export async function POST(req: NextRequest) {
           sunoTaskId: taskId,
           savedAt: Date.now(),
           status: "new",
+          ...(pairId ? {
+            pairId,
+            side: (i === 0 ? "A" : "B") as "A" | "B",
+            alternateId: `${String(toSave[i === 0 ? 1 : 0]?.clip.id ?? "") || "suno"}-${i === 0 ? 1 : 0}`,
+          } : {}),
           ...(audioKey ? { audioKey } : {}),
           ...(job.note ? { note: job.note } : {}),
         };
