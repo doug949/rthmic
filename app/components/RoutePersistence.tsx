@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 const LAST_ROUTE_KEY = "rthmic:last-route";
 const RELOAD_REASON_KEY = "rthmic:last-reload-reason";
 const RELOAD_REPORTED_KEY = "rthmic:last-reload-reported";
+const NAV_INTENT_KEY = "rthmic:navigation-intent";
 
 function currentRoute() {
   return `${window.location.pathname}${window.location.search}${window.location.hash}`;
@@ -21,8 +22,11 @@ export default function RoutePersistence() {
     const route = currentRoute();
     const previousRoute = sessionStorage.getItem(LAST_ROUTE_KEY);
     const reason = sessionStorage.getItem(RELOAD_REASON_KEY);
+    const navigationIntent = sessionStorage.getItem(NAV_INTENT_KEY);
+    const intendedHome = navigationIntent === "/";
     const shouldRestore = !!(
       wasReload &&
+      !intendedHome &&
       previousRoute &&
       previousRoute !== route &&
       previousRoute.startsWith("/") &&
@@ -59,6 +63,9 @@ export default function RoutePersistence() {
     }
 
     sessionStorage.setItem(LAST_ROUTE_KEY, route);
+    if (route === navigationIntent || navigationIntent === "__back__") {
+      sessionStorage.removeItem(NAV_INTENT_KEY);
+    }
   }, [pathname, router]);
 
   useEffect(() => {
