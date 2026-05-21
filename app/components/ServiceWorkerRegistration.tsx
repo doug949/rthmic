@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 export default function ServiceWorkerRegistration() {
   const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
+  const [updating, setUpdating] = useState(false);
   const updatingRef = useRef(false);
 
   useEffect(() => {
@@ -33,7 +34,34 @@ export default function ServiceWorkerRegistration() {
     });
   }, []);
 
-  if (!waitingWorker) return null;
+  if (!waitingWorker && !updating) return null;
+
+  if (updating) {
+    return (
+      <div
+        className="fixed inset-0 z-[100] flex items-center justify-center px-6 text-center"
+        style={{
+          background: "rgba(6,10,20,0.96)",
+          backdropFilter: "blur(18px)",
+        }}
+        role="status"
+        aria-live="assertive"
+      >
+        <div className="flex flex-col items-center gap-4">
+          <div
+            className="w-9 h-9 rounded-full border-2 animate-spin"
+            style={{ borderColor: "rgba(201,165,90,0.18)", borderTopColor: "rgba(201,165,90,0.9)" }}
+          />
+          <div>
+            <p className="text-base font-medium" style={{ color: "rgba(201,165,90,0.92)" }}>Updating RTHMIC</p>
+            <p className="text-sm text-white/58 mt-2 leading-relaxed max-w-xs">
+              Hold on a moment. The app is updating now, so recording and generation are paused until the refresh completes.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -53,8 +81,13 @@ export default function ServiceWorkerRegistration() {
       <button
         onClick={() => {
           updatingRef.current = true;
-          waitingWorker.postMessage({ type: "SKIP_WAITING" });
+          setUpdating(true);
+          waitingWorker?.postMessage({ type: "SKIP_WAITING" });
+          window.setTimeout(() => {
+            if (updatingRef.current) window.location.reload();
+          }, 5000);
         }}
+        disabled={updating}
         className="flex-shrink-0 rounded-full px-4 py-2 text-[11px] uppercase tracking-widest touch-manipulation active:scale-[0.98] transition-transform"
         style={{
           background: "rgba(201,165,90,0.14)",
