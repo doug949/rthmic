@@ -118,7 +118,7 @@ const [clearingQueue, setClearingQueue]     = useState(false);
               </button>
             </div>
             <p className="px-1 text-xs text-white/32 leading-relaxed">
-              You can leave RTHMIC open or come back later. Finished Rthms will appear automatically when they are ready.
+              These are generating on RTHMIC's servers. You can close the app completely and come back later.
             </p>
             {queueJobs.map((job) => (
               <div
