@@ -325,6 +325,9 @@ export default function MyRthmsPage() {
                 {queueJobs.length}
               </span>
             </div>
+            <p className="px-1 text-xs text-white/32 leading-relaxed">
+              You can leave RTHMIC open or come back later. Finished Rthms will appear automatically when they are ready.
+            </p>
             {queueJobs.map((job) => (
               <div
                 key={job.jobId}

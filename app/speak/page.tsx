@@ -837,7 +837,9 @@ export default function SpeakPage() {
         <div className="flex-1 flex flex-col items-center justify-center gap-3 pb-32">
           <span style={{ fontSize: 28, color: "rgba(201,165,90,0.8)" }}>✓</span>
           <p className="text-base font-medium" style={{ color: "rgba(201,165,90,0.9)" }}>Added to queue</p>
-          <p className="text-sm text-white/40 text-center">Your Rthm is generating in the background</p>
+          <p className="text-sm text-white/40 text-center max-w-xs leading-relaxed">
+            Your Rthm is generating in the background. You can leave this screen — it will appear here when it is ready.
+          </p>
           <QueuePill />
         </div>
       )}
