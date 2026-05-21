@@ -24,6 +24,23 @@ export default function CodexNotesPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const openNotes = notes.filter((note) => !note.done);
+  const doneNotes = notes.filter((note) => note.done);
+
+  const setDone = async (id: string, done: boolean) => {
+    setNotes((prev) => prev.map((note) => note.id === id ? { ...note, done, doneAt: done ? Date.now() : undefined } : note));
+    try {
+      const res = await fetch("/api/codex-notes", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, done }),
+      });
+      if (!res.ok) throw new Error("update failed");
+    } catch {
+      setNotes((prev) => prev.map((note) => note.id === id ? { ...note, done: !done, doneAt: !done ? Date.now() : undefined } : note));
+    }
+  };
+
   return (
     <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ animation: "page-enter 380ms ease forwards" }}>
       <RevealBlock delay={0}>
@@ -47,19 +64,61 @@ export default function CodexNotesPage() {
           </div>
         )}
 
-        {notes.map((note) => (
-          <article
-            key={note.id}
-            className="rounded-2xl border px-5 py-4"
-            style={{ background: "rgba(255,255,255,0.045)", borderColor: "rgba(255,255,255,0.10)" }}
-          >
-            <p className="text-[10px] uppercase tracking-widest text-white/25 mb-2">
-              {fmt(note.createdAt)} · {note.source}
-            </p>
-            <p className="text-sm leading-relaxed text-white/72 whitespace-pre-wrap">{note.text}</p>
-          </article>
+        {openNotes.map((note) => (
+          <NoteCard key={note.id} note={note} onToggleDone={() => setDone(note.id, true)} />
         ))}
+
+        {doneNotes.length > 0 && (
+          <div className="flex flex-col gap-2 pt-3">
+            <p className="text-[10px] uppercase tracking-widest text-white/25 px-1">Done</p>
+            {doneNotes.map((note) => (
+              <NoteCard key={note.id} note={note} done onToggleDone={() => setDone(note.id, false)} />
+            ))}
+          </div>
+        )}
       </section>
     </main>
+  );
+}
+
+function NoteCard({
+  note,
+  done,
+  onToggleDone,
+}: {
+  note: CodexNote;
+  done?: boolean;
+  onToggleDone: () => void;
+}) {
+  return (
+    <article
+      className="rounded-2xl border px-5 py-4 transition-opacity"
+      style={{
+        background: done ? "rgba(255,255,255,0.025)" : "rgba(255,255,255,0.045)",
+        borderColor: done ? "rgba(255,255,255,0.055)" : "rgba(255,255,255,0.10)",
+        opacity: done ? 0.56 : 1,
+      }}
+    >
+      <div className="flex items-start gap-3">
+        <button
+          onClick={onToggleDone}
+          className="mt-0.5 w-6 h-6 rounded-full border flex items-center justify-center flex-shrink-0 touch-manipulation active:scale-95 transition-transform"
+          style={{
+            background: done ? "rgba(201,165,90,0.18)" : "rgba(255,255,255,0.035)",
+            borderColor: done ? "rgba(201,165,90,0.42)" : "rgba(255,255,255,0.18)",
+            color: done ? "rgba(201,165,90,0.9)" : "rgba(255,255,255,0.28)",
+          }}
+          aria-label={done ? "Mark note as not done" : "Mark note as done"}
+        >
+          {done ? "✓" : ""}
+        </button>
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] uppercase tracking-widest text-white/25 mb-2">
+            {fmt(note.createdAt)} · {note.source}
+          </p>
+          <p className="text-sm leading-relaxed text-white/72 whitespace-pre-wrap">{note.text}</p>
+        </div>
+      </div>
+    </article>
   );
 }

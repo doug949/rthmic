@@ -6,6 +6,8 @@ export interface CodexNote {
   text: string;
   createdAt: number;
   source: "voice" | "text";
+  done?: boolean;
+  doneAt?: number;
 }
 
 function requireAuth(request: NextRequest): string | null {
@@ -74,6 +76,43 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, note });
   } catch (err) {
     console.error("[codex-notes] write error:", err);
+    return NextResponse.json({ error: "Storage error" }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  const uid = requireAuth(request);
+  if (!uid) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!process.env.REDIS_URL) return NextResponse.json({ ok: true });
+
+  const body = await request.json();
+  const id = typeof body.id === "string" ? body.id : "";
+  const done = typeof body.done === "boolean" ? body.done : undefined;
+  if (!id || done === undefined) return NextResponse.json({ error: "id and done required" }, { status: 400 });
+
+  try {
+    const note = await withRedis(async (client) => {
+      const key = notesKey(uid);
+      const raw = await client.get(key);
+      const current: CodexNote[] = raw ? JSON.parse(raw) : [];
+      let updatedNote: CodexNote | null = null;
+      const updated = current.map((n) => {
+        if (n.id !== id) return n;
+        updatedNote = {
+          ...n,
+          done,
+          ...(done ? { doneAt: Date.now() } : { doneAt: undefined }),
+        };
+        if (!done) delete updatedNote.doneAt;
+        return updatedNote;
+      });
+      await client.set(key, JSON.stringify(updated));
+      return updatedNote;
+    });
+    if (!note) return NextResponse.json({ error: "not found" }, { status: 404 });
+    return NextResponse.json({ ok: true, note });
+  } catch (err) {
+    console.error("[codex-notes] patch error:", err);
     return NextResponse.json({ error: "Storage error" }, { status: 500 });
   }
 }
