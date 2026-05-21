@@ -171,6 +171,9 @@ export default function MyRthmsPage() {
   const handleNote = (id: string, note: string) =>
     updateRhythm(id, { note });
 
+  const handlePreferSide = (id: string) =>
+    mutate({ action: "preferSide", id });
+
   const handleRestore = (id: string) =>
     updateRhythm(id, { status: "active" });
 
@@ -355,7 +358,7 @@ export default function MyRthmsPage() {
                 {newCards.length}
               </span>
             </div>
-            {newCards.map(({ key, rhythm, alternate }) => {
+            {newCards.map(({ key, rhythm, alternate, preferredSideId }) => {
               const isSelected = selectedIds.has(rhythm.id);
               return (
                 <div key={key} className="relative">
@@ -401,6 +404,8 @@ export default function MyRthmsPage() {
                       sideLabel={alternate ? sideLabelFor(rhythm) : undefined}
                       alternateLabel={alternate?.title}
                       onSwapSide={alternate ? () => setSelectedSideIds((prev) => ({ ...prev, [key]: alternate.id })) : undefined}
+                      preferredSide={preferredSideId === rhythm.id}
+                      onPreferSide={alternate ? () => handlePreferSide(rhythm.id) : undefined}
                     />
                   </div>
                 </div>
@@ -501,7 +506,7 @@ export default function MyRthmsPage() {
                 </p>
               ) : (
                 <>
-                  {visibleCards.map(({ key, rhythm, alternate }) => {
+                  {visibleCards.map(({ key, rhythm, alternate, preferredSideId }) => {
                     const isSelected = selectedIds.has(rhythm.id);
                     return (
                       <div key={key} className="relative">
@@ -550,6 +555,8 @@ export default function MyRthmsPage() {
                             sideLabel={alternate ? sideLabelFor(rhythm) : undefined}
                             alternateLabel={alternate?.title}
                             onSwapSide={alternate ? () => setSelectedSideIds((prev) => ({ ...prev, [key]: alternate.id })) : undefined}
+                            preferredSide={preferredSideId === rhythm.id}
+                            onPreferSide={alternate ? () => handlePreferSide(rhythm.id) : undefined}
                           />
                         </div>
                       </div>

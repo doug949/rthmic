@@ -33,6 +33,7 @@ export interface SavedRhythm {
   pairId?: string;         // A/B-side pair generated from the same Suno task
   side?: "A" | "B";
   alternateId?: string;
+  preferredSideId?: string; // chosen default side for an A/B pair
   sunoClipId?: string;      // raw Suno clip ID (audioId) for timed-lyrics API
   sunoTaskId?: string;      // Suno task ID — required alongside audioId to fetch timed lyrics
   timedLyrics?: TimedWord[]; // word-level synchronized lyric data from Suno
@@ -50,6 +51,19 @@ function requireAuth(request: NextRequest): string | null {
   const session = request.cookies.get("rthmic_session");
   if (session?.value !== process.env.RTHMIC_SESSION_TOKEN) return null;
   return request.cookies.get("rthmic_uid")?.value ?? null;
+}
+
+function legacyPairKey(rhythm: SavedRhythm): string {
+  const baseTitle = rhythm.title.replace(/\s+\(Variation\)$/i, "").trim().toLowerCase();
+  const lyricKey = (rhythm.lyrics ?? "").slice(0, 80);
+  return `${baseTitle}:${rhythm.pillar}:${lyricKey}`;
+}
+
+function samePair(a: SavedRhythm, b: SavedRhythm): boolean {
+  if (a.id === b.id) return true;
+  if (a.alternateId === b.id || b.alternateId === a.id) return true;
+  if (a.pairId && b.pairId && a.pairId === b.pairId) return true;
+  return legacyPairKey(a) === legacyPairKey(b);
 }
 
 async function withRedis<T>(
@@ -121,6 +135,7 @@ export async function GET(request: NextRequest) {
 //   { action: "remove",  id: string }                                     — soft-delete (30-day recovery)
 //   { action: "update",  id: string, status?, tags? }                     — update status and/or tags
 //   { action: "incrementPlay", id: string }                               — increment all-time play count
+//   { action: "preferSide", id: string }                                  — set preferred A/B-side for the pair
 //   { action: "retag" }                                                    — re-run auto-tagging across saved rhythms
 export async function POST(request: NextRequest) {
   const uid = requireAuth(request);
@@ -136,7 +151,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const { action } = body;
 
-  if (!["save", "remove", "batch-remove", "update", "incrementPlay", "retag"].includes(action)) {
+  if (!["save", "remove", "batch-remove", "update", "incrementPlay", "preferSide", "retag"].includes(action)) {
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   }
 
@@ -171,6 +186,11 @@ export async function POST(request: NextRequest) {
             ? { ...r, playCount: (r.playCount ?? 0) + 1, lastPlayedAt: Date.now() }
             : r
         );
+      } else if (action === "preferSide") {
+        const preferred = current.find((r) => r.id === body.id);
+        updated = preferred
+          ? current.map((r) => samePair(r, preferred) ? { ...r, preferredSideId: preferred.id } : r)
+          : current;
       } else if (action === "retag") {
         updated = current.map((r) => {
           if (r.status === "deleted") return r;
@@ -187,6 +207,7 @@ export async function POST(request: NextRequest) {
           if (body.tags        !== undefined) next.tags        = normalizeTags(body.tags as string[]);
           if (body.note        !== undefined) next.note        = body.note as string;
           if (body.timedLyrics !== undefined) next.timedLyrics = body.timedLyrics as TimedWord[];
+          if (body.preferredSideId !== undefined) next.preferredSideId = body.preferredSideId as string;
           if (next.status !== "deleted") delete next.deletedAt;
           return next;
         });

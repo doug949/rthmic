@@ -145,6 +145,8 @@ export default function FullScreenPlayer() {
     }) ?? null;
   }, [libraryRhythms, rhythm]);
   const sideLabel = rhythm && alternate ? sideLabelFor(rhythm) : null;
+  const preferredSideId = rhythm?.preferredSideId ?? alternate?.preferredSideId;
+  const isPreferredSide = !!rhythm && preferredSideId === rhythm.id;
 
   const handleSwapSide = useCallback(() => {
     if (!alternate) return;
@@ -155,6 +157,11 @@ export default function FullScreenPlayer() {
       { rhythmId: alternate.id, sunoTaskId: alternate.sunoTaskId }
     );
   }, [alternate, handlePlayUrl]);
+
+  const handlePreferSide = useCallback(() => {
+    if (!rhythm) return;
+    mutate({ action: "preferSide", id: rhythm.id });
+  }, [mutate, rhythm]);
 
   const handleGraduate   = () => rhythm && mutate({ action: "update", id: rhythm.id, status: "favourite" });
   const handleUngraduate = () => rhythm && mutate({ action: "update", id: rhythm.id, status: "active" });
@@ -289,7 +296,7 @@ export default function FullScreenPlayer() {
       </div>
 
       {sideLabel && alternate && (
-        <div className="px-5 pb-3 flex items-center justify-center gap-3">
+        <div className="px-5 pb-3 flex items-center justify-center gap-2 flex-wrap">
           <span
             className="text-[10px] uppercase tracking-widest rounded-full px-3 py-1.5"
             style={{
@@ -298,8 +305,24 @@ export default function FullScreenPlayer() {
               color: isFavourite ? "rgba(201,165,90,0.62)" : "rgba(255,255,255,0.42)",
             }}
           >
-            {sideLabel}-side
+            {sideLabel}-side{isPreferredSide ? " · Preferred" : ""}
           </span>
+          <button
+            onClick={handlePreferSide}
+            disabled={isPreferredSide}
+            className="text-[10px] uppercase tracking-widest rounded-full px-3 py-1.5 touch-manipulation active:scale-[0.98] transition-transform disabled:opacity-55"
+            style={{
+              background: isPreferredSide
+                ? isFavourite ? "rgba(201,165,90,0.16)" : "rgba(139,92,246,0.13)"
+                : isFavourite ? "rgba(201,165,90,0.08)" : "rgba(255,255,255,0.04)",
+              border: isPreferredSide
+                ? isFavourite ? "1px solid rgba(201,165,90,0.32)" : "1px solid rgba(139,92,246,0.28)"
+                : isFavourite ? "1px solid rgba(201,165,90,0.18)" : "1px solid rgba(255,255,255,0.08)",
+              color: isFavourite ? "rgba(201,165,90,0.76)" : isPreferredSide ? "rgba(167,139,250,0.75)" : "rgba(255,255,255,0.48)",
+            }}
+          >
+            {isPreferredSide ? "Preferred" : "Prefer this side"}
+          </button>
           <button
             onClick={handleSwapSide}
             className="text-[10px] uppercase tracking-widest rounded-full px-3 py-1.5 touch-manipulation active:scale-[0.98] transition-transform"

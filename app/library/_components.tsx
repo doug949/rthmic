@@ -38,6 +38,8 @@ export function RhythmRow({
   sideLabel,
   alternateLabel,
   onSwapSide,
+  preferredSide,
+  onPreferSide,
 }: {
   rhythm: SavedRhythm;
   playing: boolean;
@@ -64,6 +66,8 @@ export function RhythmRow({
   sideLabel?: "A" | "B";
   alternateLabel?: string;
   onSwapSide?: () => void;
+  preferredSide?: boolean;
+  onPreferSide?: () => void;
 }) {
   // colour theme — priority: favourite > isNew > default
   const P = isNew && !favourite ? {
@@ -175,19 +179,39 @@ export function RhythmRow({
       {sideLabel && alternateLabel && onSwapSide && (
         <div className="px-5 pb-3 -mt-1 flex items-center justify-between gap-3">
           <span className="text-[10px] uppercase tracking-widest" style={{ color: favourite ? "rgba(201,165,90,0.52)" : P ? P.sub : "rgba(255,255,255,0.36)" }}>
-            {sideLabel}-side
+            {sideLabel}-side{preferredSide ? " · Preferred" : ""}
           </span>
-          <button
-            onClick={onSwapSide}
-            className="text-[10px] uppercase tracking-widest rounded-full px-3 py-1.5 touch-manipulation active:scale-[0.98] transition-transform"
-            style={{
-              background: favourite ? "rgba(201,165,90,0.10)" : "rgba(255,255,255,0.055)",
-              border: favourite ? "1px solid rgba(201,165,90,0.22)" : "1px solid rgba(255,255,255,0.09)",
-              color: favourite ? "rgba(201,165,90,0.76)" : "rgba(255,255,255,0.52)",
-            }}
-          >
-            Swap to {sideLabel === "A" ? "B" : "A"}-side
-          </button>
+          <div className="flex items-center justify-end gap-2 flex-wrap">
+            {onPreferSide && (
+              <button
+                onClick={onPreferSide}
+                disabled={preferredSide}
+                className="text-[10px] uppercase tracking-widest rounded-full px-3 py-1.5 touch-manipulation active:scale-[0.98] transition-transform disabled:opacity-55"
+                style={{
+                  background: preferredSide
+                    ? favourite ? "rgba(201,165,90,0.14)" : "rgba(139,92,246,0.12)"
+                    : favourite ? "rgba(201,165,90,0.08)" : "rgba(255,255,255,0.035)",
+                  border: preferredSide
+                    ? favourite ? "1px solid rgba(201,165,90,0.28)" : "1px solid rgba(139,92,246,0.24)"
+                    : favourite ? "1px solid rgba(201,165,90,0.18)" : "1px solid rgba(255,255,255,0.07)",
+                  color: favourite ? "rgba(201,165,90,0.76)" : preferredSide ? "rgba(167,139,250,0.72)" : "rgba(255,255,255,0.46)",
+                }}
+              >
+                {preferredSide ? "Preferred" : "Prefer this side"}
+              </button>
+            )}
+            <button
+              onClick={onSwapSide}
+              className="text-[10px] uppercase tracking-widest rounded-full px-3 py-1.5 touch-manipulation active:scale-[0.98] transition-transform"
+              style={{
+                background: favourite ? "rgba(201,165,90,0.10)" : "rgba(255,255,255,0.055)",
+                border: favourite ? "1px solid rgba(201,165,90,0.22)" : "1px solid rgba(255,255,255,0.09)",
+                color: favourite ? "rgba(201,165,90,0.76)" : "rgba(255,255,255,0.52)",
+              }}
+            >
+              Swap to {sideLabel === "A" ? "B" : "A"}-side
+            </button>
+          </div>
         </div>
       )}
 

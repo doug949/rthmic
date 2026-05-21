@@ -4,6 +4,7 @@ export interface RhythmPairCard {
   key: string;
   rhythm: SavedRhythm;
   alternate?: SavedRhythm;
+  preferredSideId?: string;
 }
 
 function legacyBaseKey(rhythm: SavedRhythm): string {
@@ -42,9 +43,15 @@ export function groupRhythmPairs(
   return [...groups.entries()].map(([key, group]) => {
     const sorted = [...group].sort((a, b) => sideOrder(a) - sideOrder(b) || b.savedAt - a.savedAt);
     const selectedId = selectedSideIds[key];
-    const selected = sorted.find((r) => r.id === selectedId) ?? sorted[0];
+    const preferredSideId = sorted.find((r) =>
+      r.preferredSideId && sorted.some((candidate) => candidate.id === r.preferredSideId)
+    )?.preferredSideId;
+    const selected =
+      sorted.find((r) => r.id === selectedId) ??
+      sorted.find((r) => r.id === preferredSideId) ??
+      sorted[0];
     const alternate = sorted.find((r) => r.id !== selected.id);
-    return { key, rhythm: selected, alternate };
+    return { key, rhythm: selected, alternate, preferredSideId };
   });
 }
 
