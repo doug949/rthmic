@@ -17,19 +17,33 @@ export function PageTransitionLayer() {
   const [covering, setCovering] = useState(false);
   const pathname = usePathname();
   const pendingReveal = useRef(false);
+  const failsafeRef = useRef<number | null>(null);
 
   useEffect(() => {
     const unsub = subscribeToTransitions(() => {
+      if (failsafeRef.current !== null) window.clearTimeout(failsafeRef.current);
       setCovering(true);
       pendingReveal.current = true;
+      failsafeRef.current = window.setTimeout(() => {
+        pendingReveal.current = false;
+        setCovering(false);
+        failsafeRef.current = null;
+      }, 1800);
     });
-    return unsub;
+    return () => {
+      if (failsafeRef.current !== null) window.clearTimeout(failsafeRef.current);
+      unsub();
+    };
   }, []);
 
   // When the pathname changes the new page has mounted — reveal it
   useEffect(() => {
     if (pendingReveal.current) {
       pendingReveal.current = false;
+      if (failsafeRef.current !== null) {
+        window.clearTimeout(failsafeRef.current);
+        failsafeRef.current = null;
+      }
       // One extra frame so the new page paints before we start lifting the curtain
       requestAnimationFrame(() => setCovering(false));
     }
