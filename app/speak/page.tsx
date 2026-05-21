@@ -15,6 +15,7 @@ import CustomStyleInput, { WaveDots } from "@/app/components/CustomStyleInput";
 import { RevealBlock } from "@/app/components/RevealBlock";
 import { QueuePill } from "@/app/components/QueuePill";
 import { useQueueStatus } from "@/app/hooks/useQueueStatus";
+import { MicIcon as HeaderMicIcon } from "@/app/components/HomeTileIcons";
 
 type Phase = "module" | "priming" | "idle" | "recording" | "understanding" | "confirming" | "genre" | "queued";
 
@@ -774,6 +775,7 @@ export default function SpeakPage() {
 
       <AppHeader
         title="Create"
+        titleIcon={<HeaderMicIcon />}
         onBack={
           phase === "understanding" || genPhase === "generating"
             ? null       // disabled during async operations

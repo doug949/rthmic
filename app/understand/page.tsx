@@ -6,6 +6,7 @@ import { useSwipeNavigation } from "@/app/hooks/useSwipeBack";
 import { TransitionLink } from "@/app/components/TransitionLink";
 import { transitionTo } from "@/app/lib/pageTransition";
 import { AppHeader } from "@/app/components/AppHeader";
+import { InfoIcon } from "@/app/components/HomeTileIcons";
 
 const panels = [
   {
@@ -77,7 +78,7 @@ export default function UnderstandPage() {
       )}
 
       {/* Nav */}
-      <AppHeader title="About RTHMIC" onBack={goBack} />
+      <AppHeader title="About RTHMIC" titleIcon={<InfoIcon />} onBack={goBack} />
 
       {/* Panel content — key forces remount so panel-enter animation always fires */}
       <section className="flex-1 flex flex-col justify-center pb-8">

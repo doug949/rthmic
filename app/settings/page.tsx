@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { transitionTo } from "@/app/lib/pageTransition";
 import { AppHeader } from "@/app/components/AppHeader";
+import { EQIcon } from "@/app/components/HomeTileIcons";
 
 // ─── Purple palette ────────────────────────────────────────────────────────────
 const PURPLE = {
@@ -292,7 +293,7 @@ export default function SettingsPage() {
       className="relative z-10 min-h-screen flex flex-col px-6"
       style={{ paddingTop: "env(safe-area-inset-top, 0px)", animation: "page-enter 380ms ease forwards" }}
     >
-      <AppHeader title="Settings and Styles" onBack={() => transitionTo("/", router)} />
+      <AppHeader title="Settings and Styles" titleIcon={<EQIcon />} onBack={() => transitionTo("/", router)} />
 
       <div className="flex-1 flex flex-col pb-10 gap-8 overflow-y-auto">
 

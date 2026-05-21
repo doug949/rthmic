@@ -7,6 +7,7 @@ import { RevealBlock } from "@/app/components/RevealBlock";
 import { useGeneration } from "@/app/contexts/GenerationContext";
 import { usePillarTheme } from "@/app/contexts/PillarThemeContext";
 import type { SavedRhythm } from "@/app/api/library/route";
+import { MenusIcon } from "@/app/components/HomeTileIcons";
 
 const TEAL = {
   text:   "rgba(120,210,180,0.92)",
@@ -70,7 +71,7 @@ export default function StructurePage() {
       className="relative z-10 min-h-screen flex flex-col px-6"
       style={{ paddingTop: "env(safe-area-inset-top, 0px)", animation: "page-enter 380ms ease forwards" }}
     >
-      <AppHeader title="Rthmic Menus" />
+      <AppHeader title="Structure" titleIcon={<MenusIcon />} />
 
       <section className="flex-1 flex flex-col pb-10">
         <RevealBlock delay={0}>

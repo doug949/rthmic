@@ -15,7 +15,7 @@
  *    pass onBack={null} so Back is greyed out and unresponsive.
  */
 
-import { useCallback } from "react";
+import { useCallback, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { transitionTo } from "@/app/lib/pageTransition";
 
@@ -34,9 +34,10 @@ interface AppHeaderProps {
    * Typically the page name (e.g. "Speak", "Library").
    */
   title?: string;
+  titleIcon?: ReactNode;
 }
 
-export function AppHeader({ backLabel = "← Back", onBack, title }: AppHeaderProps) {
+export function AppHeader({ backLabel = "← Back", onBack, title, titleIcon }: AppHeaderProps) {
   const router = useRouter();
 
   const handleBack = useCallback(() => {
@@ -64,7 +65,12 @@ export function AppHeader({ backLabel = "← Back", onBack, title }: AppHeaderPr
 
       {/* Page title — absolutely centred regardless of surrounding button widths */}
       {title && (
-        <span className="absolute left-1/2 -translate-x-1/2 text-white/45 text-sm uppercase tracking-widest pointer-events-none">
+        <span className="absolute left-1/2 -translate-x-1/2 text-white/45 text-sm uppercase tracking-widest pointer-events-none flex items-center gap-1.5 whitespace-nowrap">
+          {titleIcon && (
+            <span className="inline-flex items-center justify-center" style={{ width: 15, height: 15, transform: "scale(0.62)" }}>
+              {titleIcon}
+            </span>
+          )}
           {title}
         </span>
       )}

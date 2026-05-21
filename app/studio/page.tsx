@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppHeader } from "@/app/components/AppHeader";
 import { RevealBlock } from "@/app/components/RevealBlock";
+import { LockIcon } from "@/app/components/HomeTileIcons";
 
 const STUDIO_CODE = "doug2026";
 
@@ -31,7 +32,7 @@ export default function StudioPage() {
     return (
       <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ animation: "page-enter 380ms ease forwards" }}>
         <RevealBlock delay={0}>
-          <AppHeader title="RTHMIC Studio" />
+          <AppHeader title="Developer" titleIcon={<LockIcon />} />
         </RevealBlock>
         <section className="flex-1 flex flex-col items-center justify-center text-center pb-28">
           <p className="text-sm text-white/45">Studio is private for now.</p>
@@ -44,7 +45,7 @@ export default function StudioPage() {
   return (
     <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ animation: "page-enter 380ms ease forwards" }}>
       <RevealBlock delay={0}>
-        <AppHeader title="RTHMIC Studio" />
+        <AppHeader title="Developer" titleIcon={<LockIcon />} />
       </RevealBlock>
 
       <section className="flex-1 flex flex-col gap-4 pb-28">

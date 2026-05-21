@@ -12,6 +12,7 @@ import type { SavedRhythm } from "@/app/api/library/route";
 import { RhythmRow } from "../_components";
 import { BUILD_UPON_GENRE, buildUponLyrics, buildUponTitle } from "@/app/lib/buildUpon";
 import { groupRhythmPairs, sideLabelFor } from "@/app/lib/rhythmPairs";
+import { PlayIcon } from "@/app/components/HomeTileIcons";
 
 type LoadState = "loading" | "ready" | "error";
 type TimePeriod = "today" | "week" | "month" | "all";
@@ -303,7 +304,7 @@ export default function MyRthmsPage() {
   return (
     <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ animation: "page-enter 380ms ease forwards" }}>
       <RevealBlock delay={0}>
-        <AppHeader title="My Rthms" />
+        <AppHeader title="My Rthms" titleIcon={<PlayIcon />} />
       </RevealBlock>
 
       <section className="flex-1 flex flex-col gap-6 pb-32">
