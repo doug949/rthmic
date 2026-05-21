@@ -324,16 +324,18 @@ export default function SharePage() {
             <>
               <a
                 href="/speak"
-                className="w-full py-5 rounded-2xl text-sm font-semibold tracking-wide text-center active:scale-[0.98] transition-all touch-manipulation"
+                className="w-full py-5 rounded-2xl text-sm font-semibold tracking-wide active:scale-[0.98] transition-all touch-manipulation flex items-center justify-center gap-2"
                 style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.4)", color: "#c9a55a" }}
               >
-                Make a Rthm of Your Own →
+                <SparkIcon />
+                Make a Rthm of Your Own
               </a>
               <a
                 href={`/speak?bridge=1&replyTo=${encodeURIComponent(token)}`}
-                className="w-full py-4 rounded-2xl text-sm font-medium tracking-wide text-center active:scale-[0.98] transition-all touch-manipulation"
+                className="w-full py-4 rounded-2xl text-sm font-medium tracking-wide active:scale-[0.98] transition-all touch-manipulation flex items-center justify-center gap-2"
                 style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)" }}
               >
+                <ReplyIcon />
                 Respond With a Rthm
               </a>
             </>
@@ -343,10 +345,11 @@ export default function SharePage() {
               {/* Make your own — always visible */}
               <a
                 href="/login"
-                className="w-full py-5 rounded-2xl text-sm font-semibold tracking-wide text-center active:scale-[0.98] transition-all touch-manipulation"
+                className="w-full py-5 rounded-2xl text-sm font-semibold tracking-wide active:scale-[0.98] transition-all touch-manipulation flex items-center justify-center gap-2"
                 style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.4)", color: "#c9a55a" }}
               >
-                Make a Rthm of Your Own →
+                <SparkIcon />
+                Make a Rthm of Your Own
               </a>
 
               {/* Beta access — idle → form → sent */}
@@ -411,9 +414,10 @@ export default function SharePage() {
               ) : (
                 <button
                   onClick={() => setAccessState("form")}
-                  className="w-full py-4 rounded-2xl text-sm font-medium tracking-wide text-center active:scale-[0.98] transition-all touch-manipulation"
+                  className="w-full py-4 rounded-2xl text-sm font-medium tracking-wide active:scale-[0.98] transition-all touch-manipulation flex items-center justify-center gap-2"
                   style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)" }}
                 >
+                  <KeyIcon />
                   Request RTHMIC Beta Access
                 </button>
               )}
@@ -426,7 +430,7 @@ export default function SharePage() {
               className="w-full py-4 rounded-2xl text-sm font-medium tracking-wide text-center active:scale-[0.98] transition-all touch-manipulation"
               style={{ background: "rgba(255,255,255,0.035)", border: "1px solid rgba(255,255,255,0.09)", color: "rgba(255,255,255,0.58)" }}
             >
-              Download .mp3
+              Download
             </a>
           )}
         </div>
@@ -478,10 +482,11 @@ export default function SharePage() {
               {!isSignedIn && (
                 <button
                   onClick={() => { setAboutOpen(false); setAccessState("form"); setTimeout(() => window.scrollTo({ top: 9999, behavior: "smooth" }), 100); }}
-                  className="mt-1 w-full py-4 rounded-xl text-sm font-semibold tracking-wide text-center active:scale-[0.98] transition-all touch-manipulation"
+                  className="mt-1 w-full py-4 rounded-xl text-sm font-semibold tracking-wide active:scale-[0.98] transition-all touch-manipulation flex items-center justify-center gap-2"
                   style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.35)", color: "#c9a55a" }}
                 >
-                  Request Beta Access →
+                  <KeyIcon />
+                  Request Beta Access
                 </button>
               )}
             </div>
@@ -490,6 +495,33 @@ export default function SharePage() {
       </RevealBlock>
 
     </main>
+  );
+}
+
+function SparkIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <path d="M8 1.5L9.6 6.4L14.5 8L9.6 9.6L8 14.5L6.4 9.6L1.5 8L6.4 6.4L8 1.5Z" stroke="currentColor" strokeWidth="1.25" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ReplyIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <path d="M6.5 4L2.5 8L6.5 12" stroke="currentColor" strokeWidth="1.35" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3 8H9.25C11.6 8 13.2 9.35 13.7 11.5" stroke="currentColor" strokeWidth="1.35" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function KeyIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <circle cx="5.4" cy="8" r="2.6" stroke="currentColor" strokeWidth="1.35" />
+      <path d="M8 8H14" stroke="currentColor" strokeWidth="1.35" strokeLinecap="round" />
+      <path d="M11 8V10.2M13 8V9.4" stroke="currentColor" strokeWidth="1.35" strokeLinecap="round" />
+    </svg>
   );
 }
 
