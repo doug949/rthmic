@@ -250,7 +250,7 @@ export default function RthmixPage() {
           <AppHeader title="Rthmix" titleIcon={<CassetteIcon />} />
         </RevealBlock>
         <section className="flex-1 flex flex-col items-center justify-center text-center pb-28">
-          <p className="text-sm text-white/45">Rthmix is coming soon.</p>
+          <p className="text-sm text-white/45">Rthmix is in private preview.</p>
           <button onClick={() => router.push("/")} className="mt-5 text-xs uppercase tracking-widest text-white/35">Return Home</button>
         </section>
       </main>

@@ -19,6 +19,12 @@ import { MicIcon as HeaderMicIcon } from "@/app/components/HomeTileIcons";
 
 type Phase = "module" | "priming" | "idle" | "recording" | "understanding" | "confirming" | "genre" | "queued";
 
+const SKIP_CONFIRMATION_PILLARS = new Set(["booksummary", "explain", "menus"]);
+
+function shouldSkipConfirmation(pillar?: string | null) {
+  return SKIP_CONFIRMATION_PILLARS.has((pillar ?? "").toLowerCase());
+}
+
 interface PillarPriming {
   headline: string;
   subheadline: string;
@@ -476,10 +482,8 @@ export default function SpeakPage() {
       }
       allTranscriptsRef.current.push(data.transcript);
       setUnderstandResult(data);
-      // booksummary + explain skip the confirmation screen — go straight to genre
-      const skipConfirm = ["booksummary", "explain"].includes(
-        (pillarAtRecordTime ?? "").toLowerCase()
-      );
+      // Certain flows go straight from understanding to style.
+      const skipConfirm = shouldSkipConfirmation(pillarAtRecordTime);
       setPhase(skipConfirm ? "genre" : "confirming");
     } catch (e) {
       const raw = e instanceof Error ? e.message : String(e);
@@ -511,7 +515,7 @@ export default function SpeakPage() {
       const data: UnderstandResult = await res.json();
       if (pillar) data.pillar = normalisePillar(pillar);
       setUnderstandResult(data);
-      const skipConfirmText = ["booksummary", "explain"].includes((pillar ?? "").toLowerCase());
+      const skipConfirmText = shouldSkipConfirmation(pillar);
       setPhase(skipConfirmText ? "genre" : "confirming");
     } catch (e) {
       setErrorMsg(e instanceof Error ? e.message : "Something went wrong");
@@ -933,14 +937,14 @@ const PILLARS: PillarDefinition[] = [
     detail: "Use this when you have a list of tasks and need to move through them without pressure. Rthmic turns your to-do list into a gentle, ambient field of options — no obligation, no fixed order. You hear the possibilities and choose what calls to you. Works for morning routines, afternoon catch-ups, and winding down at night.",
     guidance: "Tell Rthmic your list of tasks or actions — as many as you like. Describe what you need to get through today, this morning, or tonight.",
     priming: {
-      headline: "List everything.",
-      subheadline: "Don't filter. Just say what's on your plate.",
+      headline: "Take your time.",
+      subheadline: "Two or three minutes is fine. This is a menu, not a test.",
       instructions: [
-        "Go through your tasks, errands, ideas, or obligations — whatever is in front of you right now. Morning, afternoon, or night.",
-        "No order needed. No priority ranking. Just say them as they come to mind. Rthmic will weave them into something you can move through easily.",
-        "The more you give, the richer the menu. Long lists work well.",
+        "Say the options you want in circulation — tasks, errands, reset cues, small helpful actions, or things you tend to forget.",
+        "No order needed. No priority ranking. It should feel like a wash of possibilities, not a to-do list.",
+        "Include the ordinary things too: water, keys, toothbrush, bag, charger, lunch, the small practical cues that keep a day moving.",
       ],
-      footnote: "Most people speak for 1–2 minutes. More is fine — Rthmic handles long lists well and nothing gets lost.",
+      footnote: "Speak until the menu feels represented. Rthmic will turn it into options you can loop while you move.",
     },
   },
   {
@@ -1748,12 +1752,12 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
           </RevealBlock>
           <RevealBlock delay={60}>
             <h2 className="text-2xl font-light text-white leading-snug" style={{ fontFamily: "var(--font-display)" }}>
-              {p?.headline ?? "Be completely open."}
+              {p?.headline ?? "Take your time."}
             </h2>
           </RevealBlock>
           <RevealBlock delay={100}>
             <p className="text-base text-white/60 leading-relaxed">
-              {p?.subheadline ?? "The more honest you are, the better the result."}
+              {p?.subheadline ?? "Say what matters in ordinary words. Rthmic will shape it from there."}
             </p>
           </RevealBlock>
         </div>

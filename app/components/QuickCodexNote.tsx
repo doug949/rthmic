@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import { useAudio } from "@/app/contexts/AudioContext";
 
 type NoteState = "idle" | "recording" | "saving" | "saved" | "error";
 
 export default function QuickCodexNote() {
   const pathname = usePathname();
+  const { isPlaying, togglePlayPause } = useAudio();
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
@@ -61,6 +63,7 @@ export default function QuickCodexNote() {
     try {
       setMessage("");
       chunksRef.current = [];
+      if (isPlaying) togglePlayPause();
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
       startMeter(stream);

@@ -153,9 +153,12 @@ The method: find something the content *sounds like*, *looks like*, *feels like*
 - The letter S curves like a snake
 - Use these when the digit or character appears isolated and needs to be distinguished
 
-**Rhythm peg** — the content fits a known rhythm or melody that makes it automatic.
+**Rhythm peg / earworm peg** — the content fits a known rhythm, chant, jingle, or melody that makes it automatic.
 - A 10-digit number that fits the rhythm of a familiar song
 - A phrase that scans like a line the listener already knows by heart
+- A short refrain that behaves like an advert jingle: sticky, simple, and slightly inevitable
+
+Use this whenever the memory target can become a recurring hook. The listener should be able to catch themselves humming the actual content later, not just the surrounding song. For very small targets, a compact 30-45 second Rthm can be stronger than a full-length track if it preserves the earworm.
 
 **Personal anchor** — the content matches something already in the listener's life.
 - A PIN that matches a birth year, house number, or memorable score
