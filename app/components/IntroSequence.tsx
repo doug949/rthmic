@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 
-const SEEN_KEY  = "rthmic_intro_v3";
+const SEEN_KEY  = "rthmic_intro_v4";
 const FADE      = 700;   // ms — consistent in/out, no duration-switch glitch
-const HOLD_Q    = 3000;  // ms quote hold
+const HOLD_Q    = 6000;  // ms quote hold
 const HOLD_LOGO = 1600;  // ms logo hold
+const QUOTE_WORD_FADE = 900;
+const QUOTE_WORD_STAGGER = 150;
 
 const QUOTES = [
   "Music is the greatest operating system evolution ever built.",
@@ -42,13 +44,15 @@ export default function IntroSequence() {
     let cancelled = false;
 
     const run = async () => {
-      setQuote(QUOTES[Math.floor(Math.random() * QUOTES.length)]);
+      const pickedQuote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+      const quoteWordCount = pickedQuote.split(/\s+/).length;
+      setQuote(pickedQuote);
 
       // ── Quote ──────────────────────────────────────────────────
       await sleep(80);
       if (cancelled) return;
       setContentOpacity(1);
-      await sleep(FADE + HOLD_Q);
+      await sleep(QUOTE_WORD_FADE + quoteWordCount * QUOTE_WORD_STAGGER + HOLD_Q);
       if (cancelled) return;
       setContentOpacity(0);
       await sleep(FADE + 120);
@@ -78,6 +82,8 @@ export default function IntroSequence() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (gone) return null;
+
+  const quoteWords = quote.split(" ");
 
   return (
     <div
@@ -136,7 +142,18 @@ export default function IntroSequence() {
               letterSpacing: "0.01em",
             }}
           >
-            {quote}
+            {quoteWords.map((word, index) => (
+              <span
+                key={`${quote}-${index}`}
+                style={{
+                  display: "inline-block",
+                  opacity: 0,
+                  animation: `quote-word-in ${QUOTE_WORD_FADE}ms cubic-bezier(0.16,1,0.3,1) ${index * QUOTE_WORD_STAGGER}ms forwards`,
+                }}
+              >
+                {word}{index < quoteWords.length - 1 ? "\u00A0" : ""}
+              </span>
+            ))}
           </p>
         )}
       </div>

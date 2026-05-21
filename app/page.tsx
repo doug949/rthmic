@@ -251,10 +251,15 @@ export default function Home() {
               <div
                 key={tile.label}
                 data-tile-id={tile.id}
-                onPointerDown={() => beginTilePress(tile.id)}
+                onPointerDown={(event) => {
+                  if (reorderMode) event.preventDefault();
+                  beginTilePress(tile.id);
+                }}
                 onPointerMove={moveTilePointer}
                 onPointerUp={endTilePress}
                 onPointerCancel={endTilePress}
+                onDragStart={(event) => event.preventDefault()}
+                className="select-none"
                 onClickCapture={(event) => {
                   if (reorderMode || suppressClickRef.current) {
                     event.preventDefault();
@@ -264,6 +269,7 @@ export default function Home() {
                 style={{
                   opacity: tilesReady ? undefined : 0,
                   touchAction: reorderMode ? "none" : "manipulation",
+                  userSelect: "none",
                   animation: tilesReady ? `tile-enter ${TILE_ENTER_MS}ms cubic-bezier(0.16,1,0.3,1) ${rowDelay}ms both` : undefined,
                   transform: draggingTile === tile.id ? "scale(0.97)" : undefined,
                 }}
@@ -440,13 +446,14 @@ const HOME_TILES: {
 function HomeTile({ tile, reorderMode }: { tile: typeof HOME_TILES[number]; reorderMode?: boolean; delay?: number }) {
   const inner = (
     <div
-      className="relative rounded-xl overflow-hidden touch-manipulation"
+      className="relative rounded-xl overflow-hidden touch-manipulation select-none"
       style={{ aspectRatio: "5/4", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
     >
       {tile.image ? (
         <img
           src={tile.image}
           alt={tile.label}
+          draggable={false}
           className="absolute inset-0 w-full h-full object-cover"
           style={{
             ...(tile.imageScale ? { transform: `scale(${tile.imageScale})` } : {}),
