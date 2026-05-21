@@ -41,6 +41,13 @@ const ALL_TIME_PREVIEW = 8;
 const CHART_LIMIT = 20;
 const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
 
+function periodLabel(period: TimePeriod): string {
+  if (period === "today") return "Today";
+  if (period === "week") return "This Week";
+  if (period === "month") return "This Month";
+  return "All Time";
+}
+
 export default function MyRthmsPage() {
   const [rhythms, setRhythms]       = useState<SavedRhythm[]>([]);
   const [loadState, setLoadState]   = useState<LoadState>("loading");
@@ -446,10 +453,10 @@ export default function MyRthmsPage() {
 
               <ChartsFeature
                 active={chartsMode}
-                count={myRthms.filter((r) => (r.playCount ?? 0) > 0).length}
+                periodLabel={periodLabel(timePeriod)}
+                count={myRthms.filter((r) => r.savedAt >= periodStart(timePeriod) && (r.playCount ?? 0) > 0).length}
                 onClick={() => {
                   setChartsMode((active) => !active);
-                  setTimePeriod("all");
                   setExpanded(false);
                   setSelectedPillar(null);
                   setSelectedTags([]);
@@ -459,7 +466,7 @@ export default function MyRthmsPage() {
               {/* Release date tabs */}
               <TimePeriodTabs
                 active={timePeriod}
-                onChange={(p) => { setTimePeriod(p); setChartsMode(false); setExpanded(false); setSelectedPillar(null); setSelectedTags([]); }}
+                onChange={(p) => { setTimePeriod(p); setExpanded(false); setSelectedPillar(null); setSelectedTags([]); }}
                 counts={{
                   today: myRthms.filter((r) => r.savedAt >= periodStart("today")).length,
                   week:  myRthms.filter((r) => r.savedAt >= periodStart("week")).length,
@@ -550,11 +557,11 @@ export default function MyRthmsPage() {
 
                   {chartsMode && orderedRthms.length > CHART_LIMIT && (
                     <p className="text-center text-[10px] uppercase tracking-widest text-white/25 py-2">
-                      Showing top {CHART_LIMIT} all time
+                      Showing top {CHART_LIMIT} · {periodLabel(timePeriod)}
                     </p>
                   )}
 
-                  {timePeriod === "all" && orderedRthms.length > ALL_TIME_PREVIEW && (
+                  {!chartsMode && timePeriod === "all" && orderedRthms.length > ALL_TIME_PREVIEW && (
                     <button
                       onClick={() => setExpanded((e) => !e)}
                       className="text-[10px] text-white/50 uppercase tracking-widest py-2 touch-manipulation hover:text-white/65 transition-colors"
@@ -712,10 +719,12 @@ function TagFilterRows({
 
 function ChartsFeature({
   active,
+  periodLabel,
   count,
   onClick,
 }: {
   active: boolean;
+  periodLabel: string;
   count: number;
   onClick: () => void;
 }) {
@@ -738,10 +747,10 @@ function ChartsFeature({
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold" style={{ color: active ? "rgba(201,165,90,0.95)" : "rgba(255,255,255,0.72)" }}>
-            Top of the Charts
+            Top of the Charts · {periodLabel}
           </p>
           <p className="text-[10px] uppercase tracking-wider mt-0.5" style={{ color: active ? "rgba(201,165,90,0.55)" : "rgba(255,255,255,0.32)" }}>
-            Top 20 · All-time plays{count > 0 ? ` · ${count} ranked` : ""}
+            Top 20 · Plays{count > 0 ? ` · ${count} ranked` : ""}
           </p>
         </div>
         <span className="text-[10px] uppercase tracking-widest" style={{ color: active ? "rgba(201,165,90,0.72)" : "rgba(255,255,255,0.28)" }}>
