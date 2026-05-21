@@ -6,6 +6,8 @@ Format: ground zero plus one Memory Rthm per word.
 
 Memory method: association hooks. Each track starts with the real Croatian word, states one clear hook, and ends on the Croatian word again. The hook is not decoration; it is the retrieval mechanism.
 
+Next-pass album rule: each learning track should now behave like a chapter in a sequence. It should briefly nod to the previous word, introduce the current word, spell the Croatian word, call out any pronunciation traps, and end by reminding the listener to loop the track until comfortable before moving on. The final learning track and bonus track should put the whole six-word chain into a practical celebratory scene.
+
 Words:
 - hvala = thank you
 - molim = please / you're welcome

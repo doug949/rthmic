@@ -225,14 +225,14 @@ export default function RthmixPage() {
       return;
     }
     markActive(rhythm);
-    playQueue(albumQueue, rhythm.id);
+    playQueue(albumQueue, rhythm.id, { loopEach: true });
   };
 
   const playAlbum = () => {
     if (!albumQueue.length) return;
     const first = albumCards.find(({ card }) => card)?.card?.rhythm;
     if (first) markActive(first);
-    playQueue(albumQueue);
+    playQueue(albumQueue, undefined, { loopEach: true });
   };
 
   if (!checked) {
@@ -279,7 +279,7 @@ export default function RthmixPage() {
 
         <RthmixSection
           label="Memory Rthmixes"
-          intro="Kept separate because these are retrieval chains: one memory hook per track, played in order until the word comes back automatically."
+          intro="Kept separate because these are retrieval chains: one memory hook per track. Each track loops until it feels ready, then you skip forward."
         >
           <div className="rounded-2xl border overflow-hidden" style={{ background: "rgba(139,92,246,0.06)", borderColor: "rgba(139,92,246,0.22)" }}>
             <div className="px-5 py-4 border-b flex gap-4" style={{ borderColor: "rgba(139,92,246,0.16)" }}>
@@ -299,7 +299,7 @@ export default function RthmixPage() {
                     style={{ background: "rgba(139,92,246,0.16)", borderColor: "rgba(196,181,253,0.28)", color: "rgba(233,213,255,0.9)" }}
                   >
                     <PlayTinyIcon />
-                    Play album
+                    Start album
                   </button>
                 )}
               </div>
