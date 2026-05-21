@@ -1,6 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  env: {
+    NEXT_PUBLIC_RTHMIC_BUILD:
+      process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ??
+      process.env.NEXT_PUBLIC_RTHMIC_BUILD ??
+      "dev",
+  },
   // Allow audio from Wasabi S3
   async headers() {
     return [

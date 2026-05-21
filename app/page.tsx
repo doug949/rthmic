@@ -38,6 +38,7 @@ export default function Home() {
   const [keepOffline, setKeepOffline] = useState(false);
   const [clearingQueue, setClearingQueue] = useState(false);
   const [queueCleared, setQueueCleared] = useState<number | null>(null);
+  const [buildCopied, setBuildCopied] = useState(false);
   const [screenReady, setScreenReady] = useState(false);
   const [tilesReady, setTilesReady] = useState(false);
   const [introComplete, setIntroComplete] = useState(false);
@@ -203,6 +204,19 @@ export default function Home() {
   const resetHomeTiles = () => {
     persistTileOrder(HOME_TILES.map((tile) => tile.id));
     setReorderMode(false);
+  };
+
+  const buildId = process.env.NEXT_PUBLIC_RTHMIC_BUILD ?? "dev";
+  const buildLabel = `RTHMIC beta · ${buildId}`;
+
+  const copyBuildLabel = async () => {
+    try {
+      await navigator.clipboard.writeText(buildLabel);
+      setBuildCopied(true);
+      setTimeout(() => setBuildCopied(false), 1800);
+    } catch {
+      setBuildCopied(false);
+    }
   };
 
   const order = tileOrder.length > 0 ? tileOrder : HOME_TILES.map((tile) => tile.id);
@@ -432,6 +446,13 @@ export default function Home() {
               </button>
             </div>
             <div className="px-4 pt-2">
+              <button
+                onClick={copyBuildLabel}
+                className="w-full py-2 rounded-xl text-[10px] uppercase tracking-widest touch-manipulation active:bg-white/[0.03] transition-colors"
+                style={{ color: buildCopied ? "rgba(201,165,90,0.78)" : "rgba(255,255,255,0.22)" }}
+              >
+                {buildCopied ? "Build copied" : buildLabel}
+              </button>
               <button
                 onClick={() => setOpen(false)}
                 className="w-full py-4 rounded-xl text-sm text-white/30 tracking-wide touch-manipulation active:bg-white/[0.03] transition-colors"
