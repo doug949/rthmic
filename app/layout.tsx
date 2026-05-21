@@ -14,6 +14,7 @@ import OfflineAudioKeeper from "@/app/components/OfflineAudioKeeper";
 import { AmbientBackground } from "@/app/components/AmbientBackground";
 import { PageTransitionLayer } from "@/app/components/PageTransitionLayer";
 import { PillarThemeProvider } from "@/app/contexts/PillarThemeContext";
+import RoutePersistence from "@/app/components/RoutePersistence";
 
 // Display font — wordmark, headings. Geometric, elegant, premium sans.
 const raleway = Raleway({
@@ -68,6 +69,7 @@ export default function RootLayout({
         <PillarThemeProvider>
           <AmbientBackground />
           <PageTransitionLayer />
+          <RoutePersistence />
           <ServiceWorkerRegistration />
           <IntroSequence />
           <GenerationProvider>

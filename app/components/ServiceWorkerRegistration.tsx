@@ -27,6 +27,8 @@ export default function ServiceWorkerRegistration() {
 
       navigator.serviceWorker.addEventListener("controllerchange", () => {
         if (!updatingRef.current) return;
+        sessionStorage.setItem("rthmic:last-reload-reason", "user-clicked-update");
+        sessionStorage.setItem("rthmic:last-route", `${window.location.pathname}${window.location.search}${window.location.hash}`);
         window.location.reload();
       });
     }).catch(() => {
@@ -83,9 +85,6 @@ export default function ServiceWorkerRegistration() {
           updatingRef.current = true;
           setUpdating(true);
           waitingWorker?.postMessage({ type: "SKIP_WAITING" });
-          window.setTimeout(() => {
-            if (updatingRef.current) window.location.reload();
-          }, 5000);
         }}
         disabled={updating}
         className="flex-shrink-0 rounded-full px-4 py-2 text-[11px] uppercase tracking-widest touch-manipulation active:scale-[0.98] transition-transform"
