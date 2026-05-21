@@ -10,6 +10,10 @@ const REDIS_KEY = "feedback:entries";
 const MAX_ENTRIES = 500;
 const FEEDBACK_TO = "doug@rthmic.app";
 
+function codexNotesKey(uid: string) {
+  return `codex-notes:${uid}`;
+}
+
 async function getClient() {
   const client = createClient({ url: process.env.REDIS_URL });
   await client.connect();
@@ -49,6 +53,18 @@ export async function POST(req: NextRequest) {
     try {
       await client.lPush(REDIS_KEY, JSON.stringify(entry));
       await client.lTrim(REDIS_KEY, 0, MAX_ENTRIES - 1);
+      if (uid !== "anonymous") {
+        const rawNotes = await client.get(codexNotesKey(uid));
+        const currentNotes = rawNotes ? JSON.parse(rawNotes) as unknown[] : [];
+        const note = {
+          id: `feedback-${entry.id}`,
+          text: entry.transcript,
+          source: "voice",
+          createdAt: entry.submittedAt,
+          feedbackId: entry.id,
+        };
+        await client.set(codexNotesKey(uid), JSON.stringify([note, ...currentNotes].slice(0, 200)));
+      }
     } finally {
       await client.disconnect();
     }
