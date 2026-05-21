@@ -13,6 +13,7 @@ import CustomStyleInput from "@/app/components/CustomStyleInput";
 import { useOfflineAudio } from "@/app/hooks/useOfflineAudio";
 import { MoreSheet } from "@/app/library/_components";
 import { BUILD_UPON_GENRE, buildUponLyrics, buildUponTitle } from "@/app/lib/buildUpon";
+import { sideLabelFor } from "@/app/lib/rhythmPairs";
 
 const LYRIC_SYNC_LEAD_SECONDS = 0.35;
 
@@ -25,13 +26,14 @@ export default function FullScreenPlayer() {
     currentTrackId, currentTitle, isPlaying,
     currentTime, duration,
     playerOpen, closePlayer, stop,
-    togglePlayPause, restart, seek, skip,
+    togglePlayPause, restart, seek, skip, handlePlayUrl,
     isLoop, setLoop,
   } = useAudio();
   const { startGeneration } = useGeneration();
   const router = useRouter();
 
   const [rhythm, setRhythm]           = useState<SavedRhythm | null>(null);
+  const [libraryRhythms, setLibraryRhythms] = useState<SavedRhythm[]>([]);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [shareToast, setShareToast]   = useState(false);
   const [tagEditOpen, setTagEditOpen] = useState(false);
@@ -49,9 +51,11 @@ export default function FullScreenPlayer() {
       .then((r) => r.json())
       .then((data) => {
         if (cancelled) return;
-        const found = (data.rhythms ?? []).find(
+        const rhythms = (data.rhythms ?? []) as SavedRhythm[];
+        const found = rhythms.find(
           (r: SavedRhythm) => r.id === currentTrackId
         );
+        setLibraryRhythms(rhythms);
         setRhythm(found ?? null);
       })
       .catch(() => {});
@@ -123,6 +127,34 @@ export default function FullScreenPlayer() {
   );
 
   const tags = rhythm?.tags ?? [];
+  const alternate = useMemo(() => {
+    if (!rhythm) return null;
+    const baseTitle = rhythm.title.replace(/\s+\(Variation\)$/i, "").trim().toLowerCase();
+    return libraryRhythms.find((candidate) => {
+      if (candidate.id === rhythm.id || candidate.status === "deleted") return false;
+      if (rhythm.alternateId && candidate.id === rhythm.alternateId) return true;
+      if (candidate.alternateId === rhythm.id) return true;
+      if (rhythm.pairId && candidate.pairId === rhythm.pairId) return true;
+      const candidateBaseTitle = candidate.title.replace(/\s+\(Variation\)$/i, "").trim().toLowerCase();
+      return (
+        baseTitle.length > 0 &&
+        candidateBaseTitle === baseTitle &&
+        candidate.pillar === rhythm.pillar &&
+        (candidate.lyrics ?? "").slice(0, 80) === (rhythm.lyrics ?? "").slice(0, 80)
+      );
+    }) ?? null;
+  }, [libraryRhythms, rhythm]);
+  const sideLabel = rhythm && alternate ? sideLabelFor(rhythm) : null;
+
+  const handleSwapSide = useCallback(() => {
+    if (!alternate) return;
+    handlePlayUrl(
+      alternate.id,
+      `/api/proxy-audio?id=${encodeURIComponent(alternate.id)}`,
+      alternate.title,
+      { rhythmId: alternate.id, sunoTaskId: alternate.sunoTaskId }
+    );
+  }, [alternate, handlePlayUrl]);
 
   const handleGraduate   = () => rhythm && mutate({ action: "update", id: rhythm.id, status: "favourite" });
   const handleUngraduate = () => rhythm && mutate({ action: "update", id: rhythm.id, status: "active" });
@@ -255,6 +287,32 @@ export default function FullScreenPlayer() {
           <LibraryIcon color={isFavourite ? "rgba(201,165,90,0.75)" : undefined} />
         </button>
       </div>
+
+      {sideLabel && alternate && (
+        <div className="px-5 pb-3 flex items-center justify-center gap-3">
+          <span
+            className="text-[10px] uppercase tracking-widest rounded-full px-3 py-1.5"
+            style={{
+              background: isFavourite ? "rgba(201,165,90,0.10)" : "rgba(255,255,255,0.045)",
+              border: isFavourite ? "1px solid rgba(201,165,90,0.18)" : "1px solid rgba(255,255,255,0.08)",
+              color: isFavourite ? "rgba(201,165,90,0.62)" : "rgba(255,255,255,0.42)",
+            }}
+          >
+            {sideLabel}-side
+          </span>
+          <button
+            onClick={handleSwapSide}
+            className="text-[10px] uppercase tracking-widest rounded-full px-3 py-1.5 touch-manipulation active:scale-[0.98] transition-transform"
+            style={{
+              background: isFavourite ? "rgba(201,165,90,0.14)" : "rgba(255,255,255,0.07)",
+              border: isFavourite ? "1px solid rgba(201,165,90,0.28)" : "1px solid rgba(255,255,255,0.12)",
+              color: isFavourite ? "rgba(201,165,90,0.82)" : "rgba(255,255,255,0.62)",
+            }}
+          >
+            Swap to {sideLabel === "A" ? "B" : "A"}-side
+          </button>
+        </div>
+      )}
 
       {/* ── Lyrics — scrollable main area ─────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto">
