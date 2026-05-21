@@ -6,14 +6,31 @@ const SEEN_KEY  = "rthmic_intro_v4";
 const FADE      = 700;   // ms — consistent in/out, no duration-switch glitch
 const QUOTE_CONTAINER_FADE = 1800;
 const HOLD_Q    = 6000;  // ms quote hold
+const HOLD_Q_STAGE = 1700;
 const HOLD_LOGO = 1600;  // ms logo hold
 const QUOTE_WORD_FADE = 2100;
 const QUOTE_WORD_STAGGER = 320;
 
-const QUOTES = [
-  "Music is the greatest operating system evolution ever built.",
-  "An entirely new category of productivity system",
-  "Get on Track, Stay on Track",
+type IntroQuote = {
+  stages: string[][];
+};
+
+const QUOTES: IntroQuote[] = [
+  {
+    stages: [
+      ["Music"],
+      ["The greatest operating system", "that evolution ever built."],
+    ],
+  },
+  {
+    stages: [
+      ["Get on Track,"],
+      ["Stay on Track"],
+    ],
+  },
+  {
+    stages: [["An entirely new category of productivity system"]],
+  },
 ];
 
 function sleep(ms: number): Promise<void> {
@@ -28,6 +45,7 @@ export default function IntroSequence() {
 
   // Deterministic for SSR/hydration; randomized after mount before it fades in.
   const [quote, setQuote] = useState(QUOTES[0]);
+  const [quoteStage, setQuoteStage] = useState(0);
 
   const skip = () => {
     sessionStorage.setItem(SEEN_KEY, "1");
@@ -46,17 +64,22 @@ export default function IntroSequence() {
 
     const run = async () => {
       const pickedQuote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
-      const quoteWordCount = pickedQuote.split(/\s+/).length;
       setQuote(pickedQuote);
+      setQuoteStage(0);
 
       // ── Quote ──────────────────────────────────────────────────
       await sleep(80);
-      if (cancelled) return;
-      setContentOpacity(1);
-      await sleep(QUOTE_WORD_FADE + quoteWordCount * QUOTE_WORD_STAGGER + HOLD_Q);
-      if (cancelled) return;
-      setContentOpacity(0);
-      await sleep(FADE + 120);
+      for (let stageIndex = 0; stageIndex < pickedQuote.stages.length; stageIndex++) {
+        const stage = pickedQuote.stages[stageIndex];
+        const quoteWordCount = stage.join(" ").split(/\s+/).filter(Boolean).length;
+        if (cancelled) return;
+        setQuoteStage(stageIndex);
+        setContentOpacity(1);
+        await sleep(QUOTE_WORD_FADE + quoteWordCount * QUOTE_WORD_STAGGER + (stageIndex < pickedQuote.stages.length - 1 ? HOLD_Q_STAGE : HOLD_Q));
+        if (cancelled) return;
+        setContentOpacity(0);
+        await sleep(FADE + 120);
+      }
 
       // ── Logo ───────────────────────────────────────────────────
       if (cancelled) return;
@@ -84,7 +107,7 @@ export default function IntroSequence() {
 
   if (gone) return null;
 
-  const quoteWords = quote.split(" ");
+  const quoteLines = quote.stages[quoteStage] ?? quote.stages[0];
 
   return (
     <div
@@ -143,18 +166,31 @@ export default function IntroSequence() {
               letterSpacing: "0.01em",
             }}
           >
-            {quoteWords.map((word, index) => (
-              <span
-                key={`${quote}-${index}`}
-                style={{
-                  display: "inline-block",
-                  opacity: 0,
-                  animation: `quote-word-in ${QUOTE_WORD_FADE}ms cubic-bezier(0.22,1,0.36,1) ${index * QUOTE_WORD_STAGGER}ms forwards`,
-                }}
-              >
-                {word}{index < quoteWords.length - 1 ? "\u00A0" : ""}
-              </span>
-            ))}
+            {quoteLines.map((line, lineIndex) => {
+              const priorWordCount = quoteLines
+                .slice(0, lineIndex)
+                .reduce((total, previousLine) => total + previousLine.split(/\s+/).filter(Boolean).length, 0);
+              const words = line.split(" ");
+              return (
+                <span key={`${quoteStage}-${lineIndex}`} style={{ display: "block" }}>
+                  {words.map((word, wordIndex) => {
+                    const globalIndex = priorWordCount + wordIndex;
+                    return (
+                      <span
+                        key={`${quoteStage}-${lineIndex}-${wordIndex}`}
+                        style={{
+                          display: "inline-block",
+                          opacity: 0,
+                          animation: `quote-word-in ${QUOTE_WORD_FADE}ms cubic-bezier(0.22,1,0.36,1) ${globalIndex * QUOTE_WORD_STAGGER}ms forwards`,
+                        }}
+                      >
+                        {word}{wordIndex < words.length - 1 ? "\u00A0" : ""}
+                      </span>
+                    );
+                  })}
+                </span>
+              );
+            })}
           </p>
         )}
       </div>

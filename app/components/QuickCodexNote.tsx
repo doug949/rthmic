@@ -235,6 +235,7 @@ export default function QuickCodexNote() {
   };
 
   const canDismiss = state !== "recording" && state !== "saving";
+  const isSaving = state === "saving";
 
   if (!expanded && state === "idle") {
     return (
@@ -276,8 +277,14 @@ export default function QuickCodexNote() {
     >
       {message && (
         <div
-          className="rounded-full border px-3 py-2 text-[11px] tracking-wide touch-manipulation"
-          style={{ background: "rgba(10,16,32,0.92)", borderColor: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.62)", backdropFilter: "blur(14px)" }}
+          className="rounded-full border px-4 py-2.5 text-[12px] font-medium tracking-wide touch-manipulation"
+          style={{
+            background: "rgba(6,10,20,0.96)",
+            borderColor: isSaving ? "rgba(201,165,90,0.38)" : "rgba(255,255,255,0.16)",
+            color: isSaving ? "rgba(255,238,198,0.95)" : "rgba(255,255,255,0.76)",
+            boxShadow: "0 10px 30px rgba(0,0,0,0.32)",
+            backdropFilter: "blur(16px)",
+          }}
         >
           {message}
         </div>
@@ -334,20 +341,28 @@ export default function QuickCodexNote() {
           disabled={state === "saving"}
           className="min-h-12 rounded-full border flex items-center gap-3 px-4 py-2 touch-manipulation active:scale-[0.98] transition-transform disabled:opacity-45 text-left"
           style={{
-            background: "rgba(10,16,32,0.70)",
-            borderColor: "rgba(255,255,255,0.10)",
-            color: "rgba(255,255,255,0.62)",
-            boxShadow: "inset 0 1px 8px rgba(0,0,0,0.42), 0 6px 18px rgba(0,0,0,0.22)",
+            background: isSaving ? "rgba(18,14,28,0.94)" : "rgba(10,16,32,0.70)",
+            borderColor: isSaving ? "rgba(201,165,90,0.36)" : "rgba(255,255,255,0.10)",
+            color: isSaving ? "rgba(255,238,198,0.95)" : "rgba(255,255,255,0.62)",
+            boxShadow: isSaving
+              ? "inset 0 1px 10px rgba(201,165,90,0.08), 0 10px 32px rgba(0,0,0,0.38)"
+              : "inset 0 1px 8px rgba(0,0,0,0.42), 0 6px 18px rgba(0,0,0,0.22)",
             backdropFilter: "blur(14px)",
           }}
           aria-label="Record instant feedback for the developer"
         >
-          <span className="w-7 h-7 rounded-full border flex items-center justify-center flex-shrink-0 text-[12px]" style={{ borderColor: "rgba(255,255,255,0.10)", color: "rgba(201,165,90,0.76)", background: "rgba(255,255,255,0.035)" }}>
+          <span className="w-7 h-7 rounded-full border flex items-center justify-center flex-shrink-0 text-[12px]" style={{
+            borderColor: isSaving ? "rgba(201,165,90,0.35)" : "rgba(255,255,255,0.10)",
+            color: "rgba(201,165,90,0.86)",
+            background: isSaving ? "rgba(201,165,90,0.10)" : "rgba(255,255,255,0.035)",
+          }}>
             {state === "saving" ? "…" : <MicGlyph />}
           </span>
           <span className="flex flex-col leading-tight">
             <span className="text-[11px] font-medium tracking-wide">{state === "saving" ? "Transcribing and sending" : "Give instant feedback"}</span>
-            <span className="text-[9px] uppercase tracking-widest text-white/28">Record instant feedback for the developer</span>
+            <span className="text-[9px] uppercase tracking-widest" style={{ color: isSaving ? "rgba(255,238,198,0.52)" : "rgba(255,255,255,0.28)" }}>
+              Record instant feedback for the developer
+            </span>
           </span>
         </button>
       )}
