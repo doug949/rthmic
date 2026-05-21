@@ -674,7 +674,7 @@ function TagFilterRows({
   );
 }
 
-// ─── Rthmic Charts feature toggle ─────────────────────────────────────────────
+// ─── Top of the Charts feature toggle ─────────────────────────────────────────
 
 function ChartsFeature({
   active,
@@ -700,11 +700,11 @@ function ChartsFeature({
           className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
           style={{ background: active ? "rgba(201,165,90,0.18)" : "rgba(255,255,255,0.06)", color: active ? "rgba(201,165,90,0.95)" : "rgba(255,255,255,0.45)" }}
         >
-          #
+          🚀
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold" style={{ color: active ? "rgba(201,165,90,0.95)" : "rgba(255,255,255,0.72)" }}>
-            Rthmic Charts
+            Top of the Charts
           </p>
           <p className="text-[10px] uppercase tracking-wider mt-0.5" style={{ color: active ? "rgba(201,165,90,0.55)" : "rgba(255,255,255,0.32)" }}>
             Top 20 · All-time plays{count > 0 ? ` · ${count} ranked` : ""}
