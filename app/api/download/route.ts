@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "redis";
 import type { SavedRhythm } from "@/app/api/library/route";
+import type { ShareEntry } from "@/app/api/share/route";
 import { getWasabiSignedUrl } from "@/app/lib/wasabiUpload";
 
 export const maxDuration = 30;
@@ -31,26 +32,34 @@ async function resolveAudioUrl(rhythm: SavedRhythm): Promise<string | null> {
 }
 
 export async function GET(req: NextRequest) {
-  const uid = requireAuth(req);
-  if (!uid) return new NextResponse("Unauthorized", { status: 401 });
-
+  const token = req.nextUrl.searchParams.get("token");
   const rhythmId = req.nextUrl.searchParams.get("id");
   const rawName  = req.nextUrl.searchParams.get("filename") ?? "rthm";
 
-  if (!rhythmId) return new NextResponse("id required", { status: 400 });
+  if (!token && !rhythmId) return new NextResponse("id or token required", { status: 400 });
   if (!process.env.REDIS_URL) return new NextResponse("Not configured", { status: 500 });
 
-  // Look up rhythm in Redis
   let rhythm: SavedRhythm | null = null;
   try {
     const client = createClient({ url: process.env.REDIS_URL });
     await client.connect();
-    const raw = await client.get(`lib:${uid}`);
-    await client.disconnect();
-    if (raw) {
-      const all: SavedRhythm[] = JSON.parse(raw);
-      rhythm = all.find((r) => r.id === rhythmId) ?? null;
+    if (token) {
+      const raw = await client.get(`shr:${token}`);
+      const entry = raw ? JSON.parse(raw) as ShareEntry : null;
+      rhythm = entry?.rhythm ?? null;
+    } else {
+      const uid = requireAuth(req);
+      if (!uid) {
+        await client.disconnect();
+        return new NextResponse("Unauthorized", { status: 401 });
+      }
+      const raw = await client.get(`lib:${uid}`);
+      if (raw) {
+        const all: SavedRhythm[] = JSON.parse(raw);
+        rhythm = all.find((r) => r.id === rhythmId) ?? null;
+      }
     }
+    await client.disconnect();
   } catch { /* fall through */ }
 
   if (!rhythm) return new NextResponse("Not found", { status: 404 });

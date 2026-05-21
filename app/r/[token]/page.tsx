@@ -311,6 +311,7 @@ export default function SharePage() {
               )}
             </div>
           )}
+
         </div>
       </RevealBlock>
 
@@ -417,6 +418,16 @@ export default function SharePage() {
                 </button>
               )}
             </>
+          )}
+
+          {rhythm && (
+            <a
+              href={`/api/download?token=${encodeURIComponent(token)}&filename=${encodeURIComponent(rhythm.title.replace(/\.mp3$/i, ""))}`}
+              className="w-full py-4 rounded-2xl text-sm font-medium tracking-wide text-center active:scale-[0.98] transition-all touch-manipulation"
+              style={{ background: "rgba(255,255,255,0.035)", border: "1px solid rgba(255,255,255,0.09)", color: "rgba(255,255,255,0.58)" }}
+            >
+              Download .mp3
+            </a>
           )}
         </div>
       </RevealBlock>

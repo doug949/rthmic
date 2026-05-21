@@ -88,7 +88,6 @@ export function RhythmRow({
   const [noteEditOpen, setNoteEditOpen] = useState(false);
   const [noteInput, setNoteInput] = useState(rhythm.note ?? "");
   const [moreOpen, setMoreOpen] = useState(false);
-  const [confirmingDownload, setConfirmingDownload] = useState(false);
 
   const tags = rhythm.tags ?? [];
 
@@ -291,7 +290,7 @@ export function RhythmRow({
       {moreOpen && (
         <MoreSheet
           title={rhythm.title}
-          onClose={() => { setMoreOpen(false); setConfirmingDownload(false); }}
+          onClose={() => setMoreOpen(false)}
           items={[
             {
               icon: "↺", label: "Recreate", sublabel: "New genre",
@@ -318,29 +317,6 @@ export function RhythmRow({
               label: isCached ? "Available Offline" : caching ? "Saving…" : "Save Offline",
               active: isCached,
               onClick: () => { if (!isCached && !caching) cacheTrack(); },
-            }] : []),
-            ...(canPlay ? [{
-              icon: "⬇",
-              label: confirmingDownload ? "Save as .mp3?" : "Download",
-              sublabel: confirmingDownload ? "Tap again to confirm" : "Save to Files app",
-              confirming: confirmingDownload,
-              keepOpen: true,
-              onClick: () => {
-                if (!confirmingDownload) {
-                  setConfirmingDownload(true);
-                  return;
-                }
-                setConfirmingDownload(false);
-                const rawName = rhythm.title.replace(/\.mp3$/i, "");
-                const filename = encodeURIComponent(rawName);
-                const a = document.createElement("a");
-                a.href = `/api/download?id=${encodeURIComponent(rhythm.id)}&filename=${filename}`;
-                a.download = rawName + ".mp3";
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                setMoreOpen(false);
-              },
             }] : []),
             {
               icon: "⊙",
