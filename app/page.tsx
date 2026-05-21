@@ -39,6 +39,7 @@ export default function Home() {
   const [queueCleared, setQueueCleared] = useState<number | null>(null);
   const [screenReady, setScreenReady] = useState(false);
   const [tilesReady, setTilesReady] = useState(false);
+  const [tileIntroDone, setTileIntroDone] = useState(false);
   const [tileOrder, setTileOrder] = useState<string[]>([]);
   const [reorderMode, setReorderMode] = useState(false);
   const [draggingTile, setDraggingTile] = useState<string | null>(null);
@@ -81,6 +82,13 @@ export default function Home() {
       clearTimeout(tileTimer);
     };
   }, []);
+
+  useEffect(() => {
+    if (!tilesReady) return;
+    const rows = Math.ceil(HOME_TILES.length / 2);
+    const timer = setTimeout(() => setTileIntroDone(true), TILE_ENTER_MS + rows * TILE_ROW_DELAY_MS + 120);
+    return () => clearTimeout(timer);
+  }, [tilesReady]);
 
   const handleClearQueue = async () => {
     setClearingQueue(true);
@@ -270,7 +278,7 @@ export default function Home() {
                   opacity: tilesReady ? undefined : 0,
                   touchAction: reorderMode ? "none" : "manipulation",
                   userSelect: "none",
-                  animation: tilesReady ? `tile-enter ${TILE_ENTER_MS}ms cubic-bezier(0.16,1,0.3,1) ${rowDelay}ms both` : undefined,
+                  animation: tilesReady && !tileIntroDone && !reorderMode ? `tile-enter ${TILE_ENTER_MS}ms cubic-bezier(0.16,1,0.3,1) ${rowDelay}ms both` : undefined,
                   transform: draggingTile === tile.id ? "scale(0.97)" : undefined,
                 }}
               >
