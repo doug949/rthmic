@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "redis";
 import type { SavedRhythm } from "@/app/api/library/route";
+import { fromSunoPronunciation } from "@/app/lib/sunoLyrics";
 
 const REDIS_AVAILABLE = !!process.env.REDIS_URL;
 
@@ -20,6 +21,12 @@ function samePair(a: SavedRhythm, b: SavedRhythm): boolean {
     a.pillar === b.pillar &&
     (a.lyrics ?? "").slice(0, 80) === (b.lyrics ?? "").slice(0, 80)
   );
+}
+
+function restoreDisplayLyrics(song: SavedRhythm): SavedRhythm {
+  return song.lyrics
+    ? { ...song, lyrics: fromSunoPronunciation(song.lyrics) }
+    : song;
 }
 
 function requireAuth(request: NextRequest): string | null {
@@ -52,7 +59,12 @@ export async function GET(request: NextRequest) {
   try {
     const songs = await withRedis(async (client) => {
       const data = await client.get(menuKey(uid, slug));
-      return data ? (JSON.parse(data) as SavedRhythm[]) : [];
+      const parsed = data ? (JSON.parse(data) as SavedRhythm[]) : [];
+      const normalised = parsed.map(restoreDisplayLyrics);
+      if (JSON.stringify(normalised) !== JSON.stringify(parsed)) {
+        await client.set(menuKey(uid, slug), JSON.stringify(normalised));
+      }
+      return normalised;
     });
     return NextResponse.json({ songs });
   } catch {
@@ -88,8 +100,8 @@ export async function POST(request: NextRequest) {
         await client.set(menuKey(uid, slug), JSON.stringify(updated));
       } else {
         // Prepend new songs to existing (newest first)
-        const newSongs = body.songs as SavedRhythm[];
-        if (!Array.isArray(newSongs)) return;
+        if (!Array.isArray(body.songs)) return;
+        const newSongs = (body.songs as SavedRhythm[]).map(restoreDisplayLyrics);
         const data = await client.get(menuKey(uid, slug));
         const existing: SavedRhythm[] = data ? JSON.parse(data) : [];
         await client.set(menuKey(uid, slug), JSON.stringify([...newSongs, ...existing]));

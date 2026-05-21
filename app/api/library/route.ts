@@ -16,6 +16,7 @@ import { createClient } from "redis";
 import type { PillarType, TimedWord } from "@/app/types/pipeline";
 import { normalisePillar } from "@/app/types/pipeline";
 import { normalizeTags, tagsForSavedRhythm } from "@/app/lib/autoTags";
+import { fromSunoPronunciation } from "@/app/lib/sunoLyrics";
 
 export interface SavedRhythm {
   id: string;
@@ -74,6 +75,12 @@ function samePair(a: SavedRhythm, b: SavedRhythm): boolean {
   return legacyPairKey(a) === legacyPairKey(b);
 }
 
+function restoreDisplayLyrics(rhythm: SavedRhythm): SavedRhythm {
+  return rhythm.lyrics
+    ? { ...rhythm, lyrics: fromSunoPronunciation(rhythm.lyrics) }
+    : rhythm;
+}
+
 async function withRedis<T>(
   fn: (client: ReturnType<typeof createClient>) => Promise<T>
 ): Promise<T> {
@@ -118,7 +125,7 @@ export async function GET(request: NextRequest) {
       const normalised = kept.map((r) => {
         const pillar = normalisePillar(r.pillar) as PillarType;
         return {
-          ...r,
+          ...restoreDisplayLyrics(r),
           pillar,
           tags: r.tags?.length ? normalizeTags(r.tags) : tagsForSavedRhythm({ ...r, pillar }),
         };
@@ -172,9 +179,10 @@ export async function POST(request: NextRequest) {
       let updated: SavedRhythm[];
 
       if (action === "save") {
+        const restored = restoreDisplayLyrics(body.rhythm);
         const rhythm: SavedRhythm = {
-          ...body.rhythm,
-          tags: tagsForSavedRhythm(body.rhythm),
+          ...restored,
+          tags: tagsForSavedRhythm(restored),
           savedAt: Date.now(),
           status: "active",
         };
