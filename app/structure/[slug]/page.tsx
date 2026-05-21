@@ -128,8 +128,9 @@ export default function MenuDetailPage({ params }: { params: Promise<{ slug: str
   const togglePlay = (song: SavedRhythm) => {
     if (currentTrackId === song.id && isPlaying) {
       stopAudio();
-    } else if (song.audioUrl) {
-      handlePlayUrl(song.id, song.audioUrl, song.title);
+    } else if (song.audioUrl || song.audioKey) {
+      const url = song.audioKey ? `/api/proxy-audio?id=${encodeURIComponent(song.id)}` : song.audioUrl!;
+      handlePlayUrl(song.id, url, song.title, { rhythmId: song.id, sunoTaskId: song.sunoTaskId });
     }
   };
 

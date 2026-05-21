@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "redis";
 import type { SavedRhythm } from "@/app/api/library/route";
 import { getWasabiSignedUrl } from "@/app/lib/wasabiUpload";
+import { MENU_CONFIGS } from "@/app/lib/menuConfigs";
 
 const BASE_URL = "https://api.sunoapi.org/api/v1";
 
@@ -101,6 +102,15 @@ export async function GET(request: NextRequest) {
       if (data) {
         const rhythms: SavedRhythm[] = JSON.parse(data);
         rhythm = rhythms.find((r) => r.id === rhythmId) ?? null;
+      }
+      if (!rhythm) {
+        for (const menu of MENU_CONFIGS) {
+          const menuData = await client.get(`menu:${uid}:${menu.slug}`);
+          if (!menuData) continue;
+          const menuRhythms: SavedRhythm[] = JSON.parse(menuData);
+          rhythm = menuRhythms.find((r) => r.id === rhythmId) ?? null;
+          if (rhythm) break;
+        }
       }
       await client.disconnect();
     } catch { /* fall through */ }
