@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AppHeader } from "@/app/components/AppHeader";
 import { RevealBlock } from "@/app/components/RevealBlock";
 import type { CodexNote } from "@/app/api/codex-notes/route";
@@ -16,13 +16,31 @@ export default function CodexNotesPage() {
   const [notes, setNotes] = useState<CodexNote[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const loadNotes = useCallback((showSpinner = false) => {
+    if (showSpinner) setLoading(true);
     fetch("/api/codex-notes", { cache: "no-store" })
       .then((r) => r.json())
       .then((data) => setNotes(data.notes ?? []))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    loadNotes(true);
+  }, [loadNotes]);
+
+  useEffect(() => {
+    const refresh = () => loadNotes(false);
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, [loadNotes]);
 
   const openNotes = notes.filter((note) => !note.done);
   const doneNotes = notes.filter((note) => note.done);
@@ -53,10 +71,14 @@ export default function CodexNotesPage() {
             Quick thoughts captured in the app for the next Codex session.
           </p>
           {!loading && notes.length > 0 && (
-            <div className="flex-shrink-0 text-right">
+            <button
+              onClick={() => loadNotes(false)}
+              className="flex-shrink-0 text-right rounded-xl px-2 py-1 active:bg-white/[0.04] touch-manipulation"
+              aria-label="Refresh Codex notes"
+            >
               <p className="text-[10px] uppercase tracking-widest text-white/28">{openNotes.length} open</p>
               <p className="text-[10px] uppercase tracking-widest text-white/18">{doneNotes.length} addressed</p>
-            </div>
+            </button>
           )}
         </div>
 
