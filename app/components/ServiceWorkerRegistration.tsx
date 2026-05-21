@@ -4,8 +4,41 @@ import { useEffect, useRef, useState } from "react";
 
 export default function ServiceWorkerRegistration() {
   const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
+  const [serverBuild, setServerBuild] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
   const updatingRef = useRef(false);
+  const currentBuild = process.env.NEXT_PUBLIC_RTHMIC_BUILD ?? "dev";
+
+  const appUpdateAvailable = !!serverBuild && serverBuild !== currentBuild;
+
+  useEffect(() => {
+    const checkAppVersion = async () => {
+      try {
+        const res = await fetch(`/api/version?t=${Date.now()}`, { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json() as { build?: string };
+        if (data.build && data.build !== currentBuild) setServerBuild(data.build);
+      } catch {
+        // Version checks are best-effort.
+      }
+    };
+
+    checkAppVersion();
+    const timer = window.setTimeout(checkAppVersion, 3500);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") checkAppVersion();
+    };
+    window.addEventListener("focus", checkAppVersion);
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("online", checkAppVersion);
+
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("focus", checkAppVersion);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("online", checkAppVersion);
+    };
+  }, [currentBuild]);
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
@@ -16,6 +49,7 @@ export default function ServiceWorkerRegistration() {
       };
 
       showUpdate(registration.waiting);
+      registration.update().catch(() => {});
 
       registration.addEventListener("updatefound", () => {
         const worker = registration.installing;
@@ -36,7 +70,7 @@ export default function ServiceWorkerRegistration() {
     });
   }, []);
 
-  if (!waitingWorker && !updating) return null;
+  if (!waitingWorker && !appUpdateAvailable && !updating) return null;
 
   if (updating) {
     return (
@@ -84,7 +118,13 @@ export default function ServiceWorkerRegistration() {
         onClick={() => {
           updatingRef.current = true;
           setUpdating(true);
-          waitingWorker?.postMessage({ type: "SKIP_WAITING" });
+          if (waitingWorker) {
+            waitingWorker.postMessage({ type: "SKIP_WAITING" });
+          } else {
+            sessionStorage.setItem("rthmic:last-reload-reason", "user-clicked-update");
+            sessionStorage.setItem("rthmic:last-route", `${window.location.pathname}${window.location.search}${window.location.hash}`);
+            window.location.reload();
+          }
         }}
         disabled={updating}
         className="flex-shrink-0 rounded-full px-4 py-2 text-[11px] uppercase tracking-widest touch-manipulation active:scale-[0.98] transition-transform"
