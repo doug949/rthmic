@@ -7,7 +7,7 @@ import { AppHeader } from "@/app/components/AppHeader";
 import { RevealBlock } from "@/app/components/RevealBlock";
 import { CassetteIcon } from "@/app/components/HomeTileIcons";
 import type { SavedRhythm } from "@/app/api/library/route";
-import { useAudio } from "@/app/contexts/AudioContext";
+import { useAudio, type AudioQueueTrack } from "@/app/contexts/AudioContext";
 import { RhythmRow } from "@/app/library/_components";
 import { groupRhythmPairs, sideLabelFor } from "@/app/lib/rhythmPairs";
 
@@ -115,7 +115,7 @@ export default function RthmixPage() {
   const [shareToastId, setShareToastId] = useState<string | null>(null);
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const [selectedSideIds, setSelectedSideIds] = useState<Record<string, string>>({});
-  const { currentTrackId, isPlaying, currentTime, duration, handlePlayUrl } = useAudio();
+  const { currentTrackId, isPlaying, currentTime, duration, handlePlayUrl, playQueue } = useAudio();
 
   useEffect(() => {
     const match = document.cookie.match(/(?:^|;\s*)rthmic_code=([^;]+)/);
@@ -154,17 +154,24 @@ export default function RthmixPage() {
   const updateRhythm = (id: string, patch: Partial<SavedRhythm>) =>
     mutate({ action: "update", id, ...patch });
 
-  const togglePlay = (rhythm: SavedRhythm) => {
-    if (!rhythm.audioUrl && !rhythm.audioKey) return;
-    handlePlayUrl(rhythm.id, `/api/proxy-audio?id=${encodeURIComponent(rhythm.id)}`, rhythm.title);
-    if (rhythm.status === "new") {
-      updateRhythm(rhythm.id, { status: "active" });
-      const alternate = rhythms.find((r) =>
-        r.id === rhythm.alternateId ||
-        (rhythm.pairId && r.pairId === rhythm.pairId && r.id !== rhythm.id)
-      );
-      if (alternate?.status === "new") updateRhythm(alternate.id, { status: "active" });
-    }
+  const markActive = (rhythm: SavedRhythm) => {
+    if (rhythm.status !== "new") return;
+    updateRhythm(rhythm.id, { status: "active" });
+    const alternate = rhythms.find((r) =>
+      r.id === rhythm.alternateId ||
+      (rhythm.pairId && r.pairId === rhythm.pairId && r.id !== rhythm.id)
+    );
+    if (alternate?.status === "new") updateRhythm(alternate.id, { status: "active" });
+  };
+
+  const queueTrackFor = (rhythm: SavedRhythm): AudioQueueTrack | null => {
+    if (!rhythm.audioUrl && !rhythm.audioKey) return null;
+    return {
+      id: rhythm.id,
+      url: `/api/proxy-audio?id=${encodeURIComponent(rhythm.id)}`,
+      title: rhythm.title,
+      meta: { rhythmId: rhythm.id },
+    };
   };
 
   const handleShare = async (rhythm: SavedRhythm) => {
@@ -205,7 +212,28 @@ export default function RthmixPage() {
     const card = groupRhythmPairs(trackRhythms, selectedSideIds)[0];
     return { track, card };
   });
+  const albumQueue = albumCards
+    .map(({ card }) => card ? queueTrackFor(card.rhythm) : null)
+    .filter((track): track is AudioQueueTrack => !!track);
   const readyTrackCount = albumCards.filter(({ card }) => !!card).length;
+
+  const playAlbumFrom = (rhythm: SavedRhythm) => {
+    const track = queueTrackFor(rhythm);
+    if (!track) return;
+    if (currentTrackId === rhythm.id) {
+      handlePlayUrl(rhythm.id, track.url, rhythm.title, track.meta);
+      return;
+    }
+    markActive(rhythm);
+    playQueue(albumQueue, rhythm.id);
+  };
+
+  const playAlbum = () => {
+    if (!albumQueue.length) return;
+    const first = albumCards.find(({ card }) => card)?.card?.rhythm;
+    if (first) markActive(first);
+    playQueue(albumQueue);
+  };
 
   if (!checked) {
     return (
@@ -264,6 +292,16 @@ export default function RthmixPage() {
                 <p className="text-xs text-white/42 leading-relaxed mt-2">
                   Ground zero plus six Memory Rthms and a bonus reflection. {readyTrackCount}/8 tracks available.
                 </p>
+                {albumQueue.length > 0 && (
+                  <button
+                    onClick={playAlbum}
+                    className="mt-3 inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-[11px] uppercase tracking-widest touch-manipulation active:scale-[0.98] transition-transform"
+                    style={{ background: "rgba(139,92,246,0.16)", borderColor: "rgba(196,181,253,0.28)", color: "rgba(233,213,255,0.9)" }}
+                  >
+                    <PlayTinyIcon />
+                    Play album
+                  </button>
+                )}
               </div>
             </div>
             <div className="flex flex-col">
@@ -290,7 +328,7 @@ export default function RthmixPage() {
                         duration={currentTrackId === rhythm.id ? duration : 0}
                         showLyrics={showLyricsId === rhythm.id}
                         onToggleLyrics={() => setShowLyricsId(showLyricsId === rhythm.id ? null : rhythm.id)}
-                        onPlay={() => togglePlay(rhythm)}
+                        onPlay={() => playAlbumFrom(rhythm)}
                         favourite={rhythm.status === "favourite"}
                         isNew={rhythm.status === "new"}
                         onGraduate={rhythm.status === "active" ? () => updateRhythm(rhythm.id, { status: "favourite" }) : undefined}
@@ -357,6 +395,14 @@ function AlbumArt() {
         <p className="text-[13px] leading-none text-white/90" style={{ fontFamily: "var(--font-display)" }}>Starter</p>
       </div>
     </div>
+  );
+}
+
+function PlayTinyIcon() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+      <path d="M3 1.8L10 6L3 10.2V1.8Z" fill="currentColor" />
+    </svg>
   );
 }
 

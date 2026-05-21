@@ -25,6 +25,8 @@ interface AudioContextValue {
   handlePlay: (trackId: string, audioKey: string) => Promise<void>;
   /** Play any song via a direct audio URL (Suno-generated, share page, etc.) */
   handlePlayUrl: (id: string, url: string, title?: string, meta?: { sunoTaskId?: string; rhythmId?: string }) => Promise<void>;
+  /** Play an ordered sequence, advancing automatically when each track ends */
+  playQueue: (tracks: AudioQueueTrack[], startId?: string) => Promise<void>;
   /** Toggle play/pause for the currently loaded track (no URL needed) */
   togglePlayPause: () => void;
   /** Stop playback and clear state */
@@ -35,6 +37,13 @@ interface AudioContextValue {
   isLoop: boolean;
   setLoop: (enabled: boolean) => void;
 }
+
+export type AudioQueueTrack = {
+  id: string;
+  url: string;
+  title?: string;
+  meta?: { sunoTaskId?: string; rhythmId?: string };
+};
 
 const AudioCtx = createContext<AudioContextValue | null>(null);
 
@@ -50,6 +59,8 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   const audioRef         = useRef<HTMLAudioElement | null>(null);
   const generationRef    = useRef(0);
   const rafRef           = useRef<number | null>(null);
+  const queueRef         = useRef<AudioQueueTrack[]>([]);
+  const queueIndexRef    = useRef(-1);
   const attachAndPlayRef = useRef<((id: string, url: string, generation: number, meta?: { sunoTaskId?: string; rhythmId?: string }) => void) | null>(null);
 
   const openPlayer  = useCallback(() => setPlayerOpen(true),  []);
@@ -72,6 +83,8 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     setCurrentTitle(null);
     setIsPlaying(false);
     setLoadingId(null);
+    queueRef.current = [];
+    queueIndexRef.current = -1;
   }, [stopCurrent]);
 
   const attachAndPlay = useCallback(
@@ -99,10 +112,27 @@ export function AudioProvider({ children }: { children: ReactNode }) {
           .catch(() => {});
       });
       audio.addEventListener("ended", () => {
+        if (audio.loop) return;
+        const nextTrack = queueRef.current[queueIndexRef.current + 1];
+        if (nextTrack) {
+          const nextGeneration = ++generationRef.current;
+          queueIndexRef.current += 1;
+          stopCurrent();
+          setLoadingId(nextTrack.id);
+          setCurrentTrackId(nextTrack.id);
+          setCurrentTitle(nextTrack.title ?? null);
+          setIsPlaying(false);
+          setPlayerOpen(true);
+          attachAndPlayRef.current?.(nextTrack.id, nextTrack.url, nextGeneration, nextTrack.meta);
+          return;
+        }
         setIsPlaying(false);
         setCurrentTrackId(null);
+        setCurrentTitle(null);
         setCurrentTime(0);
         setDuration(0);
+        queueRef.current = [];
+        queueIndexRef.current = -1;
       });
 
       // Stall detection via currentTime polling — the only reliable approach on iOS Safari.
@@ -196,7 +226,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         setIsPlaying(false);
       });
     },
-    []
+    [stopCurrent]
   );
 
   // Keep the ref current so the error handler can call attachAndPlay without a stale closure
@@ -220,6 +250,8 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       }
 
       stopCurrent();
+      queueRef.current = [];
+      queueIndexRef.current = -1;
       const generation = ++generationRef.current;
       setLoadingId(trackId);
       setCurrentTrackId(trackId);
@@ -260,6 +292,8 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       }
 
       stopCurrent();
+      queueRef.current = [];
+      queueIndexRef.current = -1;
       const generation = ++generationRef.current;
       setLoadingId(id);
       setCurrentTrackId(id);
@@ -270,6 +304,28 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       attachAndPlay(id, url, generation, meta);
     },
     [currentTrackId, isPlaying, stopCurrent, attachAndPlay]
+  );
+
+  const playQueue = useCallback(
+    async (tracks: AudioQueueTrack[], startId?: string) => {
+      const playable = tracks.filter((track) => track.id && track.url);
+      if (!playable.length) return;
+      const startIndex = Math.max(0, startId ? playable.findIndex((track) => track.id === startId) : 0);
+      const track = playable[startIndex] ?? playable[0];
+
+      stopCurrent();
+      const generation = ++generationRef.current;
+      queueRef.current = playable;
+      queueIndexRef.current = playable.findIndex((candidate) => candidate.id === track.id);
+      setLoadingId(track.id);
+      setCurrentTrackId(track.id);
+      setCurrentTitle(track.title ?? null);
+      setIsPlaying(false);
+      setPlayerOpen(true);
+
+      attachAndPlay(track.id, track.url, generation, track.meta);
+    },
+    [stopCurrent, attachAndPlay]
   );
 
   const togglePlayPause = useCallback(() => {
@@ -348,12 +404,26 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     navigator.mediaSession.setActionHandler("stop", () => {
       audioRef.current?.pause();
     });
+    navigator.mediaSession.setActionHandler("nexttrack", () => {
+      const nextTrack = queueRef.current[queueIndexRef.current + 1];
+      if (!nextTrack) return;
+      const nextGeneration = ++generationRef.current;
+      queueIndexRef.current += 1;
+      stopCurrent();
+      setLoadingId(nextTrack.id);
+      setCurrentTrackId(nextTrack.id);
+      setCurrentTitle(nextTrack.title ?? null);
+      setIsPlaying(false);
+      setPlayerOpen(true);
+      attachAndPlayRef.current?.(nextTrack.id, nextTrack.url, nextGeneration, nextTrack.meta);
+    });
     return () => {
       navigator.mediaSession.setActionHandler("play", null);
       navigator.mediaSession.setActionHandler("pause", null);
       navigator.mediaSession.setActionHandler("stop", null);
+      navigator.mediaSession.setActionHandler("nexttrack", null);
     };
-  }, [currentTrackId, currentTitle]);
+  }, [currentTrackId, currentTitle, stopCurrent]);
 
   // Keep the OS playback state in sync so the lock screen shows the right icon
   useEffect(() => {
@@ -401,6 +471,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         togglePlayPause,
         handlePlay,
         handlePlayUrl,
+        playQueue,
         stop,
         restart,
         seek,
