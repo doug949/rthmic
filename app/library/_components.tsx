@@ -10,6 +10,8 @@ import { useOfflineAudio } from "@/app/hooks/useOfflineAudio";
 
 export type { SavedRhythm };
 
+type SidePreferenceState = "none" | "current" | "other";
+
 // ─── RhythmRow ────────────────────────────────────────────────────────────────
 
 export function RhythmRow({
@@ -38,7 +40,7 @@ export function RhythmRow({
   sideLabel,
   alternateLabel,
   onSwapSide,
-  preferredSide,
+  sidePreference = "none",
   onPreferSide,
 }: {
   rhythm: SavedRhythm;
@@ -66,7 +68,7 @@ export function RhythmRow({
   sideLabel?: "A" | "B";
   alternateLabel?: string;
   onSwapSide?: () => void;
-  preferredSide?: boolean;
+  sidePreference?: SidePreferenceState;
   onPreferSide?: () => void;
 }) {
   // colour theme — priority: favourite > isNew > default
@@ -94,6 +96,13 @@ export function RhythmRow({
   const [moreOpen, setMoreOpen] = useState(false);
 
   const tags = rhythm.tags ?? [];
+  const preferredSide = sidePreference === "current";
+  const preferenceButtonLabel =
+    sidePreference === "current"
+      ? "✓ Preferred side"
+      : sidePreference === "other"
+      ? "Prefer this side instead"
+      : "Tap if preferred";
 
   const addTag = () => {
     const t = tagInput.trim();
@@ -179,7 +188,7 @@ export function RhythmRow({
       {sideLabel && alternateLabel && onSwapSide && (
         <div className="px-5 pb-3 -mt-1 flex items-center justify-between gap-3">
           <span className="text-[10px] uppercase tracking-widest" style={{ color: favourite ? "rgba(201,165,90,0.52)" : P ? P.sub : "rgba(255,255,255,0.36)" }}>
-            {sideLabel}-side{preferredSide ? " · Preferred" : ""}
+            {sideLabel}-side{preferredSide ? " · Preferred side" : ""}
           </span>
           <div className="flex items-center justify-end gap-2 flex-wrap">
             {onPreferSide && (
@@ -197,7 +206,7 @@ export function RhythmRow({
                   color: favourite ? "rgba(201,165,90,0.76)" : preferredSide ? "rgba(167,139,250,0.72)" : "rgba(255,255,255,0.46)",
                 }}
               >
-                {preferredSide ? "Preferred" : "Prefer this side"}
+                {preferenceButtonLabel}
               </button>
             )}
             <button

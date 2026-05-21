@@ -404,7 +404,7 @@ export default function MyRthmsPage() {
                       sideLabel={alternate ? sideLabelFor(rhythm) : undefined}
                       alternateLabel={alternate?.title}
                       onSwapSide={alternate ? () => setSelectedSideIds((prev) => ({ ...prev, [key]: alternate.id })) : undefined}
-                      preferredSide={preferredSideId === rhythm.id}
+                      sidePreference={!preferredSideId ? "none" : preferredSideId === rhythm.id ? "current" : "other"}
                       onPreferSide={alternate ? () => handlePreferSide(rhythm.id) : undefined}
                     />
                   </div>
@@ -555,7 +555,7 @@ export default function MyRthmsPage() {
                             sideLabel={alternate ? sideLabelFor(rhythm) : undefined}
                             alternateLabel={alternate?.title}
                             onSwapSide={alternate ? () => setSelectedSideIds((prev) => ({ ...prev, [key]: alternate.id })) : undefined}
-                            preferredSide={preferredSideId === rhythm.id}
+                            sidePreference={!preferredSideId ? "none" : preferredSideId === rhythm.id ? "current" : "other"}
                             onPreferSide={alternate ? () => handlePreferSide(rhythm.id) : undefined}
                           />
                         </div>

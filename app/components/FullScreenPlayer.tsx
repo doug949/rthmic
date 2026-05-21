@@ -147,6 +147,13 @@ export default function FullScreenPlayer() {
   const sideLabel = rhythm && alternate ? sideLabelFor(rhythm) : null;
   const preferredSideId = rhythm?.preferredSideId ?? alternate?.preferredSideId;
   const isPreferredSide = !!rhythm && preferredSideId === rhythm.id;
+  const sidePreference = !preferredSideId ? "none" : isPreferredSide ? "current" : "other";
+  const preferenceButtonLabel =
+    sidePreference === "current"
+      ? "✓ Preferred side"
+      : sidePreference === "other"
+      ? "Prefer this side instead"
+      : "Tap if preferred";
 
   const handleSwapSide = useCallback(() => {
     if (!alternate) return;
@@ -305,7 +312,7 @@ export default function FullScreenPlayer() {
               color: isFavourite ? "rgba(201,165,90,0.62)" : "rgba(255,255,255,0.42)",
             }}
           >
-            {sideLabel}-side{isPreferredSide ? " · Preferred" : ""}
+            {sideLabel}-side{isPreferredSide ? " · Preferred side" : ""}
           </span>
           <button
             onClick={handlePreferSide}
@@ -321,7 +328,7 @@ export default function FullScreenPlayer() {
               color: isFavourite ? "rgba(201,165,90,0.76)" : isPreferredSide ? "rgba(167,139,250,0.75)" : "rgba(255,255,255,0.48)",
             }}
           >
-            {isPreferredSide ? "Preferred" : "Prefer this side"}
+            {preferenceButtonLabel}
           </button>
           <button
             onClick={handleSwapSide}
