@@ -195,7 +195,13 @@ export default function Home() {
   const order = tileOrder.length > 0 ? tileOrder : HOME_TILES.map((tile) => tile.id);
   const visibleTiles = HOME_TILES
     .filter((tile) => !tile.adminOnly || userCode === "doug2026")
-    .sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+    .sort((a, b) => {
+      const fallbackA = HOME_TILES.findIndex((tile) => tile.id === a.id);
+      const fallbackB = HOME_TILES.findIndex((tile) => tile.id === b.id);
+      const orderA = order.includes(a.id) ? order.indexOf(a.id) : fallbackA;
+      const orderB = order.includes(b.id) ? order.indexOf(b.id) : fallbackB;
+      return orderA - orderB;
+    });
 
   return (
     <main
@@ -444,6 +450,8 @@ const HOME_TILES: {
 }[] = [
   { id: "create", href: "/speak",     label: "Create a Rthm",        shortLabel: "Create",     icon: <MicIcon />,     accent: "rgba(201,165,90,0.55)", image: "/images/tiles/create.jpg" },
   { id: "my-rthms", href: "/library/my-rthms", label: "My Rthms",      shortLabel: "My Rthms",   icon: <PlayIcon />,    accent: "rgba(100,140,255,0.5)", image: "/images/tiles/my-rthms.jpg" },
+  { id: "bridge", href: "/library/my-rthms?collection=bridge", label: "Rthmic Bridge", shortLabel: "Bridge", icon: <BridgeTileIcon />, accent: "rgba(180,160,140,0.55)" },
+  { id: "invite", href: "/library/my-rthms?collection=invite", label: "Rthmic Invite", shortLabel: "Invite", icon: <InviteTileIcon />, accent: "rgba(218,185,120,0.55)", adminOnly: true },
   { id: "rthmix", href: "/rthmix",    label: "Rthmix",                shortLabel: "Rthmix",     icon: <CassetteIcon />, accent: "rgba(230,155,60,0.5)", image: "/images/tiles/rthmix.jpg", adminOnly: true, adminPreview: true },
   { id: "structure", href: "/structure", label: "Menus",                 shortLabel: "Menus",      icon: <MenusIcon />,   accent: "rgba(100,195,165,0.5)", image: "/images/tiles/structure.jpg", imageScale: 1.12 },
   { id: "adhd", href: "/speak",     label: "ADHD Collection",       shortLabel: "ADHD Collection",       icon: <BrainIcon />,   accent: "rgba(220,110,140,0.5)", image: "/images/tiles/adhd.jpg" },
@@ -503,6 +511,27 @@ function LockIcon() {
       <rect x="5" y="10" width="14" height="10" rx="2.2" stroke="currentColor" strokeWidth="1.7" />
       <path d="M8.5 10V7.5A3.5 3.5 0 0 1 12 4v0a3.5 3.5 0 0 1 3.5 3.5V10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
       <path d="M12 14v2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function BridgeTileIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <path d="M4 15c2.2-4 4.9-6 8-6s5.8 2 8 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M7 15v-3M12 15V9M17 15v-3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M4 16h16" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M7 7.8c1.4-1.6 3-2.4 5-2.4s3.6.8 5 2.4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" opacity="0.65" />
+    </svg>
+  );
+}
+
+function InviteTileIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <path d="M5 8.5h14v9H5v-9Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="M5.5 9l6.5 5 6.5-5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 4.5v2.2M8.6 5.6 7.4 4M15.4 5.6 16.6 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" opacity="0.7" />
     </svg>
   );
 }

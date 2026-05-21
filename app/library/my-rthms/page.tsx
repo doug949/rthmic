@@ -16,6 +16,7 @@ import { PlayIcon } from "@/app/components/HomeTileIcons";
 
 type LoadState = "loading" | "ready" | "error";
 type TimePeriod = "today" | "week" | "month" | "all";
+type LibraryCollection = "main" | "bridge" | "invite";
 
 interface QueueJob {
   jobId: string;
@@ -49,6 +50,30 @@ function periodLabel(period: TimePeriod): string {
   return "All Time";
 }
 
+function collectionFromQuery(value: string | null): LibraryCollection {
+  if (value === "bridge" || value === "invite") return value;
+  return "main";
+}
+
+function collectionTitle(collection: LibraryCollection): string {
+  if (collection === "bridge") return "Rthmic Bridge";
+  if (collection === "invite") return "Rthmic Invite";
+  return "My Rthms";
+}
+
+function collectionEmptyCopy(collection: LibraryCollection): string {
+  if (collection === "bridge") return "Bridge songs you create will appear here, separate from your main library.";
+  if (collection === "invite") return "Invite songs you create will appear here, separate from your main library.";
+  return "Rthms you generate will appear here.";
+}
+
+function belongsToCollection(rhythm: SavedRhythm, collection: LibraryCollection): boolean {
+  if (rhythm.rthmixId) return false;
+  if (collection === "bridge") return rhythm.pillar === "Bridge";
+  if (collection === "invite") return rhythm.pillar === "Invite";
+  return rhythm.pillar !== "Bridge" && rhythm.pillar !== "Invite";
+}
+
 export default function MyRthmsPage() {
   const [rhythms, setRhythms]       = useState<SavedRhythm[]>([]);
   const [loadState, setLoadState]   = useState<LoadState>("loading");
@@ -57,6 +82,7 @@ export default function MyRthmsPage() {
   const [shareToastId, setShareToastId]       = useState<string | null>(null);
   const [timePeriod, setTimePeriod]     = useState<TimePeriod>("all");
   const [chartsMode, setChartsMode]     = useState(false);
+  const [collection, setCollection] = useState<LibraryCollection>("main");
   const [expanded, setExpanded]        = useState(false);
   const [selectedPillar, setSelectedPillar] = useState<string | null>(null);
   const [selectedTags, setSelectedTags]     = useState<string[]>([]);
@@ -103,6 +129,9 @@ export default function MyRthmsPage() {
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search).get("period");
+    const c = collectionFromQuery(new URLSearchParams(window.location.search).get("collection"));
+    setCollection(c);
+    if (c === "bridge" || c === "invite") setTimePeriod("all");
     if (p === "charts") {
       setTimePeriod("all");
       setChartsMode(true);
@@ -140,7 +169,7 @@ export default function MyRthmsPage() {
   }, [mutate, updateRhythmLocal]);
 
   const now = Date.now();
-  const regularRhythms = rhythms.filter((r) => !r.rthmixId);
+  const regularRhythms = rhythms.filter((r) => belongsToCollection(r, collection));
   const newRthms      = regularRhythms.filter((r) => r.status === "new");
   const myRthms       = regularRhythms.filter((r) => r.status === "active" || r.status === "favourite");
   const recentlyDeleted = regularRhythms.filter(
@@ -308,13 +337,17 @@ export default function MyRthmsPage() {
   return (
     <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ animation: "page-enter 380ms ease forwards" }}>
       <RevealBlock delay={0}>
-        <AppHeader title="My Rthms" titleIcon={<PlayIcon />} />
+        <AppHeader title={collectionTitle(collection)} titleIcon={<PlayIcon />} />
       </RevealBlock>
 
       <section className="flex-1 flex flex-col gap-6 pb-32">
 
         {/* ── Generating (in queue) ────────────────────────────────────────────── */}
-        {queueJobs.length > 0 && (
+        {queueJobs.filter((job) =>
+          collection === "bridge" ? job.pillar === "Bridge" :
+          collection === "invite" ? job.pillar === "Invite" :
+          job.pillar !== "Bridge" && job.pillar !== "Invite"
+        ).length > 0 && (
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2 px-1">
               <span className="text-[10px] uppercase tracking-widest" style={{ color: "rgb(167,139,250)" }}>Generating</span>
@@ -322,13 +355,21 @@ export default function MyRthmsPage() {
                 className="inline-flex items-center justify-center text-[9px] font-semibold rounded-full px-1.5 py-0.5 leading-none"
                 style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)" }}
               >
-                {queueJobs.length}
+                {queueJobs.filter((job) =>
+                  collection === "bridge" ? job.pillar === "Bridge" :
+                  collection === "invite" ? job.pillar === "Invite" :
+                  job.pillar !== "Bridge" && job.pillar !== "Invite"
+                ).length}
               </span>
             </div>
             <p className="px-1 text-xs text-white/32 leading-relaxed">
               These are generating on RTHMIC's servers. You can close the app completely and come back later.
             </p>
-            {queueJobs.map((job) => (
+            {queueJobs.filter((job) =>
+              collection === "bridge" ? job.pillar === "Bridge" :
+              collection === "invite" ? job.pillar === "Invite" :
+              job.pillar !== "Bridge" && job.pillar !== "Invite"
+            ).map((job) => (
               <div
                 key={job.jobId}
                 className="rounded-2xl border px-5 py-4 flex items-center gap-4"
@@ -433,7 +474,7 @@ export default function MyRthmsPage() {
           {loadState === "ready" && myRthms.length === 0 && (
             <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5 py-12 flex flex-col items-center gap-3">
               <p className="text-sm text-white/50 text-center leading-relaxed">
-                <span style={{ color: "rgb(167,139,250)" }}>Rthms you generate</span> will appear here.
+                <span style={{ color: "rgb(167,139,250)" }}>{collectionEmptyCopy(collection)}</span>
               </p>
               <TransitionLink href="/speak" className="text-xs text-white/45 underline underline-offset-4 hover:text-white/60 transition-colors">
                 Speak your state →
