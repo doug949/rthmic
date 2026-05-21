@@ -72,6 +72,7 @@ export default function QuickCodexNote() {
   const [message, setMessage] = useState("");
   const [level, setLevel] = useState(0);
   const [expanded, setExpanded] = useState(false);
+  const [pendingDrafts, setPendingDrafts] = useState(0);
 
   useEffect(() => setMounted(true), []);
 
@@ -81,10 +82,12 @@ export default function QuickCodexNote() {
     const retryDrafts = async () => {
       try {
         const drafts = await listFeedbackDrafts();
+        setPendingDrafts(drafts.length);
         for (const draft of drafts.slice(0, 3)) {
           if (cancelled) return;
           await sendFeedbackBlob(draft.blob);
           await deleteFeedbackDraft(draft.id);
+          setPendingDrafts((count) => Math.max(0, count - 1));
           setMessage("Recovered feedback sent");
           setTimeout(() => setMessage(""), 3200);
         }
@@ -171,6 +174,29 @@ export default function QuickCodexNote() {
     setState("saving");
   };
 
+  const retrySavedDrafts = async () => {
+    try {
+      setState("saving");
+      setMessage("Retrying saved feedback");
+      const drafts = await listFeedbackDrafts();
+      setPendingDrafts(drafts.length);
+      let sent = 0;
+      for (const draft of drafts) {
+        await sendFeedbackBlob(draft.blob);
+        await deleteFeedbackDraft(draft.id);
+        sent++;
+        setPendingDrafts((count) => Math.max(0, count - 1));
+      }
+      setMessage(sent > 0 ? "Recovered feedback sent" : "No saved feedback");
+      setState("saved");
+      setTimeout(() => { setState("idle"); setMessage(""); setExpanded(false); }, 3200);
+    } catch (err) {
+      console.error("[quick-feedback] retry failed:", err);
+      setMessage("Still saved locally - retry later");
+      setState("error");
+    }
+  };
+
   const sendFeedbackBlob = async (blob: Blob) => {
     const form = new FormData();
     form.append("audio", blob, "codex-note.webm");
@@ -193,15 +219,17 @@ export default function QuickCodexNote() {
       setState("saving");
       const blob = new Blob(chunksRef.current, { type: chunksRef.current[0]?.type || "audio/webm" });
       const draftId = await saveFeedbackDraft(blob);
+      setPendingDrafts((count) => count + 1);
       await sendFeedbackBlob(blob);
       await deleteFeedbackDraft(draftId);
+      setPendingDrafts((count) => Math.max(0, count - 1));
 
       setMessage("Thanks - feedback sent");
       setState("saved");
       setTimeout(() => { setState("idle"); setMessage(""); setExpanded(false); }, 3200);
     } catch (err) {
       console.error("[quick-feedback] save failed:", err);
-      setMessage("Saved locally - will retry");
+      setMessage("Saved locally - tap retry");
       setState("error");
     }
   };
@@ -267,6 +295,21 @@ export default function QuickCodexNote() {
           aria-label="Dismiss instant feedback recorder"
         >
           ×
+        </button>
+      )}
+      {pendingDrafts > 0 && state !== "recording" && (
+        <button
+          onClick={retrySavedDrafts}
+          disabled={state === "saving"}
+          className="rounded-full border px-4 py-2 text-[10px] uppercase tracking-widest touch-manipulation active:scale-[0.98] transition-transform disabled:opacity-45"
+          style={{
+            background: "rgba(201,165,90,0.10)",
+            borderColor: "rgba(201,165,90,0.28)",
+            color: "rgba(201,165,90,0.82)",
+            backdropFilter: "blur(14px)",
+          }}
+        >
+          Retry saved feedback ({pendingDrafts})
         </button>
       )}
       {state === "recording" ? (

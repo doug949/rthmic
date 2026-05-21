@@ -113,6 +113,18 @@ html, body {
   display: none;
 }
 
+/* Outdoor readability pass: keep secondary text knocked back, but not so dim
+   that it disappears in bright sunlight on iPhone screens. */
+.text-white\/15 { color: rgb(255 255 255 / 0.24) !important; }
+.text-white\/20 { color: rgb(255 255 255 / 0.30) !important; }
+.text-white\/25 { color: rgb(255 255 255 / 0.34) !important; }
+.text-white\/28 { color: rgb(255 255 255 / 0.38) !important; }
+.text-white\/30 { color: rgb(255 255 255 / 0.40) !important; }
+.text-white\/32 { color: rgb(255 255 255 / 0.42) !important; }
+.text-white\/35 { color: rgb(255 255 255 / 0.46) !important; }
+.text-white\/40 { color: rgb(255 255 255 / 0.52) !important; }
+.text-white\/45 { color: rgb(255 255 255 / 0.56) !important; }
+
 /* ─── Letter wipe (wordmark) ─────────────────────────────────────────────── */
 @keyframes letter-wipe {
   from { clip-path: inset(0 100% 0 0); }

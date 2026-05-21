@@ -41,9 +41,15 @@ const RESTORE_MAP: [RegExp, string][] = [
   [/\bRith-mix\b/g,  "RTHMIX"],
   [/\bRith-mick\b/g, "RTHMIC"],
   [/\bRith-um\b/g,   "RTHM"],
+  [/\bRTHMIQ\b/g,    "RTHMIC"],
+  [/\bRthmiq\b/g,    "RTHMIC"],
+  [/\bRhythmiq\b/g,  "RTHMIC"],
+  [/\bRhythmic\b/g,  "RTHMIC"],
   [/\brith-mix\b/g,  "rthmix"],
   [/\brith-mick\b/g, "rthmic"],
   [/\brith-um\b/g,   "rthm"],
+  [/\brthmiq\b/g,    "rthmic"],
+  [/\brhythmiq\b/g,  "rthmic"],
 ];
 
 export function fromSunoPronunciation(lyrics: string): string {

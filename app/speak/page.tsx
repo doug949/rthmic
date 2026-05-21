@@ -2354,9 +2354,37 @@ function GenreView({
             ? "Finding the best match for your state…"
             : recommendedIndex !== null
               ? "We've suggested one based on your state. You can override it."
-              : "Select the style for your Rthm."}
+            : "Select the style for your Rthm."}
         </p>
       </RevealBlock>
+
+      {!loading && (
+        <RevealBlock delay={20} className="flex-shrink-0 sticky top-0 z-10">
+          <div
+            className="-mx-1 px-1 pt-1 pb-2"
+            style={{
+              background: "linear-gradient(to bottom, rgba(13,22,40,0.96) 0%, rgba(13,22,40,0.86) 72%, rgba(13,22,40,0) 100%)",
+              backdropFilter: "blur(14px)",
+            }}
+          >
+            <button
+              onClick={() => {
+                if (!canProceed) return;
+                if (customSelected && customStyle) persistCustomStyle(customStyle);
+                onGenerate(selectedGenre);
+              }}
+              disabled={!canProceed}
+              className="w-full py-4 rounded-2xl text-sm font-semibold tracking-wide active:scale-[0.98] transition-all touch-manipulation disabled:opacity-45"
+              style={{ background: "rgba(201,165,90,0.12)", border: "1px solid rgba(201,165,90,0.46)", color: "#c9a55a" }}
+            >
+              {canProceed ? buildLabel : "Select a style below"}
+            </button>
+            <p className="text-[11px] text-white/45 leading-relaxed mt-2 px-1">
+              Rthmic recommends a starting style. Use it, select another, or describe a new style below.
+            </p>
+          </div>
+        </RevealBlock>
+      )}
 
       {loading ? (
         <RevealBlock delay={40}>
