@@ -59,6 +59,8 @@ export default function MyRthmsPage() {
   const [selectedIds, setSelectedIds]     = useState<Set<string>>(new Set());
   const [selectedSideIds, setSelectedSideIds] = useState<Record<string, string>>({});
   const [confirmBatchDelete, setConfirmBatchDelete] = useState(false);
+  const [autoTagging, setAutoTagging] = useState(false);
+  const [autoTagMessage, setAutoTagMessage] = useState<string | null>(null);
 
   const { currentTrackId, isPlaying, currentTime, duration, handlePlayUrl } = useAudio();
   const { startGeneration } = useGeneration();
@@ -173,6 +175,30 @@ export default function MyRthmsPage() {
     if (!confirmBatchDelete) { setConfirmBatchDelete(true); setTimeout(() => setConfirmBatchDelete(false), 3000); return; }
     await mutate({ action: "batch-remove", ids: [...selectedIds] });
     exitSelectMode();
+  };
+
+  const handleAutoTagOlder = async () => {
+    setAutoTagging(true);
+    setAutoTagMessage(null);
+    try {
+      const res = await fetch("/api/library", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "retag" }),
+      });
+      if (!res.ok) throw new Error("retag failed");
+      const data = await res.json();
+      await fetchLibrary();
+      window.dispatchEvent(new CustomEvent("library-mutated"));
+      const count = data.retagged ?? 0;
+      setAutoTagMessage(count > 0 ? `Updated ${count}` : "Tags already clean");
+      setTimeout(() => setAutoTagMessage(null), 3000);
+    } catch {
+      setAutoTagMessage("Couldn't auto-tag");
+      setTimeout(() => setAutoTagMessage(null), 3000);
+    } finally {
+      setAutoTagging(false);
+    }
   };
 
   const togglePlay = useCallback((rhythm: SavedRhythm) => {
@@ -400,7 +426,15 @@ export default function MyRthmsPage() {
           {loadState === "ready" && myRthms.length > 0 && (
             <>
               {/* Select mode toggle */}
-              <div className="flex justify-end -mb-1">
+              <div className="flex items-center justify-between gap-3 -mb-1">
+                <button
+                  onClick={handleAutoTagOlder}
+                  disabled={autoTagging}
+                  className="text-[10px] uppercase tracking-widest touch-manipulation transition-colors px-2 py-1 disabled:opacity-40"
+                  style={{ color: autoTagMessage ? "rgba(201,165,90,0.8)" : "rgba(255,255,255,0.3)" }}
+                >
+                  {autoTagging ? "Tagging…" : autoTagMessage ?? "Auto-tag older Rthms"}
+                </button>
                 <button
                   onClick={() => selectMode ? exitSelectMode() : setSelectMode(true)}
                   className="text-[10px] uppercase tracking-widest touch-manipulation transition-colors px-2 py-1"

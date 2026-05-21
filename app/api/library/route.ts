@@ -121,6 +121,7 @@ export async function GET(request: NextRequest) {
 //   { action: "remove",  id: string }                                     — soft-delete (30-day recovery)
 //   { action: "update",  id: string, status?, tags? }                     — update status and/or tags
 //   { action: "incrementPlay", id: string }                               — increment all-time play count
+//   { action: "retag" }                                                    — re-run auto-tagging across saved rhythms
 export async function POST(request: NextRequest) {
   const uid = requireAuth(request);
   if (!uid) {
@@ -135,11 +136,12 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const { action } = body;
 
-  if (!["save", "remove", "batch-remove", "update", "incrementPlay"].includes(action)) {
+  if (!["save", "remove", "batch-remove", "update", "incrementPlay", "retag"].includes(action)) {
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   }
 
   try {
+    let retagged = 0;
     await withRedis(async (client) => {
       const data = await client.get(libKey(uid));
       const current: SavedRhythm[] = data ? JSON.parse(data) : [];
@@ -169,6 +171,13 @@ export async function POST(request: NextRequest) {
             ? { ...r, playCount: (r.playCount ?? 0) + 1, lastPlayedAt: Date.now() }
             : r
         );
+      } else if (action === "retag") {
+        updated = current.map((r) => {
+          if (r.status === "deleted") return r;
+          const next = { ...r, tags: tagsForSavedRhythm(r) };
+          if (JSON.stringify(next.tags ?? []) !== JSON.stringify(r.tags ?? [])) retagged++;
+          return next;
+        });
       } else {
         // update — status and/or tags; clears deletedAt when un-deleting
         updated = current.map((r) => {
@@ -186,7 +195,7 @@ export async function POST(request: NextRequest) {
       await client.set(libKey(uid), JSON.stringify(updated));
     });
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, retagged });
   } catch (err) {
     console.error("Redis write error:", err);
     return NextResponse.json({ error: "Storage error" }, { status: 500 });
