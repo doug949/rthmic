@@ -9,6 +9,7 @@ import { useAudio } from "@/app/contexts/AudioContext";
 import { usePillarTheme } from "@/app/contexts/PillarThemeContext";
 import type { SavedRhythm } from "@/app/api/library/route";
 import { getMenuConfig } from "@/app/lib/menuConfigs";
+import { sideLabelFor } from "@/app/lib/rhythmPairs";
 
 const TEAL = {
   text:   "rgba(120,210,180,0.92)",
@@ -29,12 +30,25 @@ function groupIntoBatches(songs: SavedRhythm[]): SavedRhythm[][] {
     if (Math.abs(songs[i].savedAt - songs[i - 1].savedAt) < 30000) {
       currentBatch.push(songs[i]);
     } else {
-      batches.push(currentBatch);
+      batches.push(orderMenuBatch(currentBatch));
       currentBatch = [songs[i]];
     }
   }
-  batches.push(currentBatch);
+  batches.push(orderMenuBatch(currentBatch));
   return batches;
+}
+
+function orderMenuBatch(batch: SavedRhythm[]): SavedRhythm[] {
+  const preferredSideId = batch.find((song) => song.preferredSideId)?.preferredSideId;
+  return [...batch].sort((a, b) => {
+    if (preferredSideId) {
+      if (a.id === preferredSideId) return -1;
+      if (b.id === preferredSideId) return 1;
+    }
+    const sideA = sideLabelFor(a) === "A" ? 0 : 1;
+    const sideB = sideLabelFor(b) === "A" ? 0 : 1;
+    return sideA - sideB || b.savedAt - a.savedAt;
+  });
 }
 
 function relDate(ts: number): string {
@@ -60,6 +74,7 @@ export default function MenuDetailPage({ params }: { params: Promise<{ slug: str
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<"idle" | "change-music" | "lyrics-open">("idle");
   const [genreInput, setGenreInput] = useState("");
+  const [menuNotes, setMenuNotes] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
   const prevGenPhase = useRef<string>("idle");
 
@@ -74,6 +89,20 @@ export default function MenuDetailPage({ params }: { params: Promise<{ slug: str
   };
 
   useEffect(() => { fetchSongs(); }, [slug]);
+
+  useEffect(() => {
+    try {
+      setMenuNotes(localStorage.getItem(`rthmic-menu-notes:${slug}`) ?? "");
+    } catch {
+      setMenuNotes("");
+    }
+  }, [slug]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(`rthmic-menu-notes:${slug}`, menuNotes);
+    } catch { /* local notes are best-effort */ }
+  }, [slug, menuNotes]);
 
   useEffect(() => {
     setActivePillar("menus");
@@ -103,9 +132,16 @@ export default function MenuDetailPage({ params }: { params: Promise<{ slug: str
   // Pass the existing lyrics as context so the LLM can handle additions and removals naturally.
   const goUpdate = () => {
     const currentLyrics = songs[0]?.lyrics;
-    const seedContext = currentLyrics
-      ? `Current menu options: ${currentLyrics.slice(0, 400)}. Keep this as a menu of options, not a to-do list.`
-      : undefined;
+    const notes = menuNotes.trim();
+    const seedParts = [
+      currentLyrics
+        ? `Current menu options: ${currentLyrics.slice(0, 400)}. Keep this as a menu of options, not a to-do list.`
+        : "",
+      notes
+        ? `User notes for the next version: ${notes.slice(0, 700)}. Treat these as takeaways, additions, removals, or emphasis changes for the updated menu.`
+        : "",
+    ].filter(Boolean);
+    const seedContext = seedParts.length ? seedParts.join(" ") : undefined;
     goSpeak({ seed: seedContext });
   };
 
@@ -243,7 +279,7 @@ export default function MenuDetailPage({ params }: { params: Promise<{ slug: str
             <p className="text-xs text-white/35 leading-relaxed pb-1">
               Play this on loop. Let options surface as you move, then stop when enough feels done.
             </p>
-            {currentBatch.map((song, idx) => {
+            {currentBatch.map((song) => {
               const playing = currentTrackId === song.id && isPlaying;
               return (
                 <div
@@ -265,7 +301,9 @@ export default function MenuDetailPage({ params }: { params: Promise<{ slug: str
                       <p className="text-sm font-medium leading-snug" style={{ color: TEAL.text }}>
                         {tm?.menuTitle ?? song.title}
                         {currentBatch.length > 1 && (
-                          <span className="ml-2 text-[10px] text-white/30">v{idx + 1}</span>
+                          <span className="ml-2 text-[10px] text-white/30">
+                            {sideLabelFor(song)}-side{song.preferredSideId === song.id ? " · current preferred" : ""}
+                          </span>
                         )}
                       </p>
                       <p className="text-[11px] text-white/35 mt-0.5">{relDate(song.savedAt)}</p>
@@ -397,6 +435,39 @@ export default function MenuDetailPage({ params }: { params: Promise<{ slug: str
               </button>
             </div>
           )}
+        </RevealBlock>
+
+        {/* ── Notes for next update ── */}
+        <RevealBlock delay={100}>
+          <div
+            className="rounded-2xl border px-5 py-4 flex flex-col gap-3"
+            style={{ background: "rgba(255,255,255,0.025)", borderColor: "rgba(255,255,255,0.08)" }}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: TEAL.dim }}>Notes for next update</p>
+                <p className="text-xs text-white/35 leading-relaxed mt-1">
+                  Add takeaways, missing options, or things to remove next time.
+                </p>
+              </div>
+              {menuNotes.trim() && (
+                <button
+                  onClick={() => setMenuNotes("")}
+                  className="text-[10px] uppercase tracking-widest text-white/25 touch-manipulation active:opacity-70"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+            <textarea
+              value={menuNotes}
+              onChange={(e) => setMenuNotes(e.target.value)}
+              rows={4}
+              placeholder="e.g. Add passport check. Remove laundry. Mention water earlier."
+              className="w-full resize-none rounded-xl border bg-transparent px-3 py-3 text-sm text-white/70 placeholder-white/20 outline-none"
+              style={{ borderColor: "rgba(255,255,255,0.08)", background: "rgba(0,0,0,0.14)" }}
+            />
+          </div>
         </RevealBlock>
 
         {/* ── History ── */}

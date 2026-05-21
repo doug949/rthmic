@@ -14,6 +14,7 @@ import { useOfflineAudio } from "@/app/hooks/useOfflineAudio";
 import { MoreSheet } from "@/app/library/_components";
 import { BUILD_UPON_GENRE, buildUponLyrics, buildUponTitle } from "@/app/lib/buildUpon";
 import { sideLabelFor } from "@/app/lib/rhythmPairs";
+import { MENU_CONFIGS } from "@/app/lib/menuConfigs";
 
 const LYRIC_SYNC_LEAD_SECONDS = 0.35;
 
@@ -34,6 +35,7 @@ export default function FullScreenPlayer() {
 
   const [rhythm, setRhythm]           = useState<SavedRhythm | null>(null);
   const [libraryRhythms, setLibraryRhythms] = useState<SavedRhythm[]>([]);
+  const [sourceMenuSlug, setSourceMenuSlug] = useState<string | null>(null);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [shareToast, setShareToast]   = useState(false);
   const [tagEditOpen, setTagEditOpen] = useState(false);
@@ -47,18 +49,44 @@ export default function FullScreenPlayer() {
   useEffect(() => {
     if (!currentTrackId) { setRhythm(null); return; }
     let cancelled = false;
-    fetch("/api/library")
-      .then((r) => r.json())
-      .then((data) => {
+    (async () => {
+      try {
+        const data = await fetch("/api/library").then((r) => r.json());
         if (cancelled) return;
         const rhythms = (data.rhythms ?? []) as SavedRhythm[];
         const found = rhythms.find(
           (r: SavedRhythm) => r.id === currentTrackId
         );
+        if (found) {
+          setLibraryRhythms(rhythms);
+          setSourceMenuSlug(null);
+          setRhythm(found);
+          return;
+        }
+
+        for (const menu of MENU_CONFIGS) {
+          const menuData = await fetch(`/api/menu?slug=${encodeURIComponent(menu.slug)}`).then((r) => r.json());
+          if (cancelled) return;
+          const menuRhythms = (menuData.songs ?? []) as SavedRhythm[];
+          const menuFound = menuRhythms.find((r) => r.id === currentTrackId);
+          if (menuFound) {
+            setLibraryRhythms(menuRhythms);
+            setSourceMenuSlug(menu.slug);
+            setRhythm(menuFound);
+            return;
+          }
+        }
+
         setLibraryRhythms(rhythms);
-        setRhythm(found ?? null);
-      })
-      .catch(() => {});
+        setSourceMenuSlug(null);
+        setRhythm(null);
+      } catch {
+        if (!cancelled) {
+          setSourceMenuSlug(null);
+          setRhythm(null);
+        }
+      }
+    })();
     return () => { cancelled = true; };
   }, [currentTrackId]); // intentionally NOT including playerOpen
 
@@ -94,22 +122,39 @@ export default function FullScreenPlayer() {
         // Update local state immediately so sync starts without a reload
         setRhythm((r) => (r && r.id === id ? { ...r, timedLyrics: data.timedWords } : r));
 
-        // Persist to library in the background
-        fetch("/api/library", {
+        const endpoint = sourceMenuSlug ? "/api/menu" : "/api/library";
+        const body = sourceMenuSlug
+          ? { slug: sourceMenuSlug, action: "updateSong", id, timedLyrics: data.timedWords }
+          : { action: "update", id, timedLyrics: data.timedWords };
+
+        // Persist in the background
+        fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "update", id, timedLyrics: data.timedWords }),
+          body: JSON.stringify(body),
         }).catch(console.error);
       } catch { /* non-critical */ }
     })();
 
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rhythm?.id, rhythm?.sunoTaskId, rhythm?.sunoClipId]);
+  }, [rhythm?.id, rhythm?.sunoTaskId, rhythm?.sunoClipId, sourceMenuSlug]);
 
   // ── Library mutations ─────────────────────────────────────────────────────
   const mutate = useCallback(
     async (body: Record<string, unknown>) => {
+      if (sourceMenuSlug && body.action === "preferSide") {
+        await fetch("/api/menu", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ slug: sourceMenuSlug, ...body }),
+        });
+        const data = await fetch(`/api/menu?slug=${encodeURIComponent(sourceMenuSlug)}`).then((r) => r.json());
+        const menuRhythms = (data.songs ?? []) as SavedRhythm[];
+        setLibraryRhythms(menuRhythms);
+        setRhythm(menuRhythms.find((r) => r.id === currentTrackId) ?? null);
+        return;
+      }
       await fetch("/api/library", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -123,7 +168,7 @@ export default function FullScreenPlayer() {
       // Notify list pages so they re-fetch and show fresh data (e.g. new tags)
       window.dispatchEvent(new CustomEvent("library-mutated"));
     },
-    [currentTrackId]
+    [currentTrackId, sourceMenuSlug]
   );
 
   const tags = rhythm?.tags ?? [];
@@ -150,10 +195,10 @@ export default function FullScreenPlayer() {
   const sidePreference = !preferredSideId ? "none" : isPreferredSide ? "current" : "other";
   const preferenceButtonLabel =
     sidePreference === "current"
-      ? "✓ Preferred side"
+      ? sourceMenuSlug ? "✓ Current preferred" : "✓ Preferred side"
       : sidePreference === "other"
-      ? "Prefer this side instead"
-      : "Tap if preferred";
+      ? sourceMenuSlug ? "Make current preferred" : "Prefer this side instead"
+      : sourceMenuSlug ? "Make current preferred" : "Tap if preferred";
 
   const handleSwapSide = useCallback(() => {
     if (!alternate) return;
@@ -293,10 +338,10 @@ export default function FullScreenPlayer() {
           </p>
         </div>
         <button
-          onClick={() => { closePlayer(); router.push("/library/my-rthms"); }}
+          onClick={() => { closePlayer(); router.push(sourceMenuSlug ? "/structure" : "/library/my-rthms"); }}
           className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full touch-manipulation active:scale-90 transition-transform"
           style={{ background: theme.topButtonBg, border: theme.topButtonBorder }}
-          aria-label="Go to My Rthms"
+          aria-label={sourceMenuSlug ? "Go to Menus" : "Go to My Rthms"}
         >
           <LibraryIcon color={isFavourite ? "rgba(201,165,90,0.75)" : undefined} />
         </button>
@@ -312,7 +357,7 @@ export default function FullScreenPlayer() {
               color: isFavourite ? "rgba(201,165,90,0.62)" : "rgba(255,255,255,0.42)",
             }}
           >
-            {sideLabel}-side{isPreferredSide ? " · Preferred side" : ""}
+            {sideLabel}-side{isPreferredSide ? sourceMenuSlug ? " · Current preferred" : " · Preferred side" : ""}
           </span>
           <button
             onClick={handlePreferSide}

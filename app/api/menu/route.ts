@@ -8,6 +8,20 @@ function menuKey(uid: string, slug: string) {
   return `menu:${uid}:${slug}`;
 }
 
+function samePair(a: SavedRhythm, b: SavedRhythm): boolean {
+  if (a.id === b.id) return true;
+  if (a.pairId && b.pairId && a.pairId === b.pairId) return true;
+  if (a.alternateId === b.id || b.alternateId === a.id) return true;
+  const aTitle = a.title.replace(/\s+\(Variation\)$/i, "").trim().toLowerCase();
+  const bTitle = b.title.replace(/\s+\(Variation\)$/i, "").trim().toLowerCase();
+  return (
+    aTitle.length > 0 &&
+    aTitle === bTitle &&
+    a.pillar === b.pillar &&
+    (a.lyrics ?? "").slice(0, 80) === (b.lyrics ?? "").slice(0, 80)
+  );
+}
+
 function requireAuth(request: NextRequest): string | null {
   const session = request.cookies.get("rthmic_session");
   if (session?.value !== process.env.RTHMIC_SESSION_TOKEN) return null;
@@ -63,6 +77,14 @@ export async function POST(request: NextRequest) {
         const updated = existing.map((s) =>
           s.id === body.id ? { ...s, timedLyrics: body.timedLyrics } : s
         );
+        await client.set(menuKey(uid, slug), JSON.stringify(updated));
+      } else if (action === "preferSide") {
+        const data = await client.get(menuKey(uid, slug));
+        const existing: SavedRhythm[] = data ? JSON.parse(data) : [];
+        const preferred = existing.find((s) => s.id === body.id);
+        const updated = preferred
+          ? existing.map((s) => samePair(s, preferred) ? { ...s, preferredSideId: preferred.id } : s)
+          : existing;
         await client.set(menuKey(uid, slug), JSON.stringify(updated));
       } else {
         // Prepend new songs to existing (newest first)
