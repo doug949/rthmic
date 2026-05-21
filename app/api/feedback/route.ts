@@ -19,12 +19,14 @@ async function getClient() {
 export interface FeedbackEntry {
   id: string;
   uid: string;
+  userCode: string;
   transcript: string;
   submittedAt: number; // unix ms
 }
 
 export async function POST(req: NextRequest) {
   const uid = req.cookies.get("rthmic_uid")?.value ?? "anonymous";
+  const userCode = req.cookies.get("rthmic_code")?.value ?? "unknown";
   const { transcript } = await req.json();
 
   if (!transcript || typeof transcript !== "string" || !transcript.trim()) {
@@ -34,6 +36,7 @@ export async function POST(req: NextRequest) {
   const entry: FeedbackEntry = {
     id: crypto.randomUUID(),
     uid,
+    userCode,
     transcript: transcript.trim().slice(0, 4000),
     submittedAt: Date.now(),
   };
@@ -65,13 +68,14 @@ export async function POST(req: NextRequest) {
         to: FEEDBACK_TO,
         subject: `RTHMIC Feedback — ${date}`,
         text: [
+          `User code: ${entry.userCode}`,
           `User: ${uid}`,
           `Submitted: ${date} UTC`,
           ``,
           entry.transcript,
         ].join("\n"),
         html: `
-          <p style="color:#888;font-size:12px;margin:0 0 16px">User: ${uid} &nbsp;·&nbsp; ${date} UTC</p>
+          <p style="color:#888;font-size:12px;margin:0 0 16px">User code: ${entry.userCode} &nbsp;·&nbsp; User: ${uid} &nbsp;·&nbsp; ${date} UTC</p>
           <p style="font-size:16px;line-height:1.6;white-space:pre-wrap">${entry.transcript.replace(/</g, "&lt;")}</p>
         `,
       });

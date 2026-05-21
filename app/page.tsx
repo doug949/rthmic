@@ -196,6 +196,8 @@ export default function Home() {
             className="fixed left-0 right-0 z-50 rounded-t-2xl flex flex-col"
             style={{
               bottom: 0,
+              height: "75vh",
+              maxHeight: "75vh",
               background: "#0f1a2e",
               borderTop: "1px solid rgba(255,255,255,0.08)",
               paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 20px)",
@@ -208,7 +210,7 @@ export default function Home() {
               <p className="text-[10px] text-white/25 uppercase tracking-widest mb-0.5">Signed in as</p>
               <p className="text-sm text-white/60 font-medium tracking-wide">{userCode}</p>
             </div>
-            <div className="flex flex-col px-4 pt-3 gap-2">
+            <div className="flex-1 overflow-y-auto flex flex-col px-4 pt-3 gap-2">
               <button
                 onClick={() => { setOpen(false); router.push("/codex-notes"); }}
                 className="w-full flex items-center gap-4 px-4 py-4 rounded-xl touch-manipulation active:bg-white/[0.04] transition-colors text-left"
@@ -294,14 +296,13 @@ const HOME_TILES: {
   adminOnly?: boolean;
 }[] = [
   { href: "/speak",     label: "Create a Rthm",        shortLabel: "Create",     icon: <MicIcon />,     accent: "rgba(201,165,90,0.55)", image: "/images/tiles/create.jpg" },
-  { href: "/studio",    label: "RTHMIC Studio",        shortLabel: "Studio",     icon: <StudioIcon />,  accent: "rgba(109,40,217,0.55)", image: "/images/tiles/create.jpg", imageScale: 1.18, adminOnly: true },
+  { href: "/studio",    label: "RTHMIC Studio",        shortLabel: "Studio",     icon: <StudioIcon />,  accent: "rgba(109,40,217,0.55)", image: "/images/tiles/feedback.jpg", adminOnly: true },
   { href: "/library/my-rthms", label: "My Rthms",      shortLabel: "My Rthms",   icon: <PlayIcon />,    accent: "rgba(100,140,255,0.5)", image: "/images/tiles/my-rthms.jpg" },
   { href: "/library",   label: "Rthmix",                shortLabel: "Rthmix",     icon: <CassetteIcon />, accent: "rgba(230,155,60,0.5)", image: "/images/tiles/rthmix.jpg", comingSoon: true },
   { href: "/structure", label: "Structure",             shortLabel: "Structure",  icon: <MenusIcon />,   accent: "rgba(100,195,165,0.5)", image: "/images/tiles/structure.jpg", imageScale: 1.12 },
   { href: "/speak",     label: "ADHD Collection",       shortLabel: "ADHD Collection",       icon: <BrainIcon />,   accent: "rgba(220,110,140,0.5)", image: "/images/tiles/adhd.jpg" },
   { href: "/settings",  label: "Settings and Styles",   shortLabel: "Settings + Styles", icon: <EQIcon />, accent: "rgba(160,130,220,0.5)", image: "/images/tiles/settings.jpg", imageScale: 1.12 },
   { href: "/understand",label: "About RTHMIC",          shortLabel: "About",      icon: <InfoIcon />,    accent: "rgba(255,255,255,0.15)", image: "/images/tiles/about.jpg" },
-  { href: "/feedback",  label: "Share Feedback",        shortLabel: "Feedback",   icon: <BubbleIcon />,  accent: "rgba(255,255,255,0.2)", image: "/images/tiles/feedback.jpg" },
 ];
 
 function HomeTile({ tile }: { tile: typeof HOME_TILES[number]; delay?: number }) {
