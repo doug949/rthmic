@@ -8,6 +8,7 @@ import { useGeneration } from "@/app/contexts/GenerationContext";
 import { useAudio } from "@/app/contexts/AudioContext";
 import { usePillarTheme } from "@/app/contexts/PillarThemeContext";
 import type { SavedRhythm } from "@/app/api/library/route";
+import { getMenuConfig } from "@/app/lib/menuConfigs";
 
 const TEAL = {
   text:   "rgba(120,210,180,0.92)",
@@ -17,81 +18,6 @@ const TEAL = {
   hover:  "rgba(100,195,165,0.12)",
   glow:   "rgba(100,195,165,0.08)",
 };
-
-// ─── Per-menu config ──────────────────────────────────────────────────────────
-
-const TIME_MENUS = [
-  {
-    slug: "morning",
-    label: "Morning Menu",
-    menuTitle: "The Morning Menu",
-    seed: "My morning routine — the things I want to do as I start the day",
-    emptyHeadline: "What does a great morning look like?",
-    emptyIntro: "The version of you who had a great morning always did a few specific things. Let's build that list.",
-    emptyPrompts: [
-      "What do you always wish you'd done when mornings go well?",
-      "What small thing, done before 9am, sets the whole day up?",
-      "What does a well-prepared you always do first?",
-    ],
-    emptyCta: "Speak your morning list",
-  },
-  {
-    slug: "start-the-day",
-    label: "Start the Day",
-    menuTitle: "Start the Day",
-    seed: "Everything I need to get through today — tasks, priorities, intentions",
-    emptyHeadline: "What would make today a success?",
-    emptyIntro: "Three to five things. If these get done, the day was worth it.",
-    emptyPrompts: [
-      "What's the one task you can't leave undone today?",
-      "What's been sitting on the list long enough that it needs a date?",
-      "What would end-of-day you feel genuinely relieved to have finished?",
-    ],
-    emptyCta: "Speak today's priorities",
-  },
-  {
-    slug: "afternoon",
-    label: "Afternoon",
-    menuTitle: "Afternoon",
-    seed: "My afternoon — what I still need to do and how I want to finish the day",
-    emptyHeadline: "What still needs to happen?",
-    emptyIntro: "The afternoon is when the day either closes cleanly or drags. Let's plan the close.",
-    emptyPrompts: [
-      "What did you leave this morning that you haven't touched yet?",
-      "What's the one thing that, if done before 5pm, means you won the day?",
-      "What can wait until tomorrow — and what genuinely can't?",
-    ],
-    emptyCta: "Speak your afternoon list",
-  },
-  {
-    slug: "end-of-day",
-    label: "End of Day",
-    menuTitle: "End of Day",
-    seed: "Wrapping up the day — what happened, what's done, what carries over",
-    emptyHeadline: "How do you close a day well?",
-    emptyIntro: "A day that ends deliberately feels different to one that just... stops. Build the ritual.",
-    emptyPrompts: [
-      "What needs to be consciously set down before tomorrow begins?",
-      "What do you always skip at end-of-day that you later regret?",
-      "What would make tomorrow's you feel like today's you had their back?",
-    ],
-    emptyCta: "Speak your end-of-day ritual",
-  },
-  {
-    slug: "before-bed",
-    label: "Before Bed",
-    menuTitle: "Before Bed",
-    seed: "My evening wind-down — what I want to let go of and how I want to rest",
-    emptyHeadline: "What would morning you thank you for?",
-    emptyIntro: "The best mornings are built the night before. Small things. Big difference.",
-    emptyPrompts: [
-      "What would end-of-day you thank you for doing in the morning?",
-      "Charge your phone. Lay out your clothes. Set the coffee. What else?",
-      "What do you always wish you'd done before you fell asleep?",
-    ],
-    emptyCta: "Speak your before-bed list",
-  },
-];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -125,7 +51,7 @@ function relDate(ts: number): string {
 export default function MenuDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
   const router = useRouter();
-  const tm = TIME_MENUS.find((m) => m.slug === slug);
+  const tm = getMenuConfig(slug);
   const { genPhase, startGeneration } = useGeneration();
   const { handlePlayUrl, stop: stopAudio, currentTrackId, isPlaying } = useAudio();
   const { setActivePillar } = usePillarTheme();
@@ -174,12 +100,11 @@ export default function MenuDetailPage({ params }: { params: Promise<{ slug: str
     router.push(`/speak?${p.toString()}`);
   };
 
-  // "Update your list" — passes the existing lyrics as seed context so the LLM
-  // understands the current items and can handle additions / removals naturally.
+  // Pass the existing lyrics as context so the LLM can handle additions and removals naturally.
   const goUpdate = () => {
     const currentLyrics = songs[0]?.lyrics;
     const seedContext = currentLyrics
-      ? `Current list: ${currentLyrics.slice(0, 400)}`
+      ? `Current menu options: ${currentLyrics.slice(0, 400)}. Keep this as a menu of options, not a to-do list.`
       : undefined;
     goSpeak({ seed: seedContext });
   };
@@ -236,7 +161,7 @@ export default function MenuDetailPage({ params }: { params: Promise<{ slug: str
             {/* Headline */}
             <div className="flex flex-col gap-1 pb-2">
               <p className="text-xl font-light text-white/75 leading-snug" style={{ fontFamily: "var(--font-display)" }}>
-                {tm?.emptyHeadline ?? "Build your list"}
+                {tm?.emptyHeadline ?? "Build your menu"}
               </p>
               <p className="text-sm text-white/40 leading-relaxed">
                 {tm?.emptyIntro}
@@ -278,8 +203,8 @@ export default function MenuDetailPage({ params }: { params: Promise<{ slug: str
           {/* Soft hint */}
           <RevealBlock delay={160}>
             <p className="text-center text-[11px] text-white/25 leading-relaxed px-4">
-              Speak naturally — list your items as if telling a friend.
-              Rthmic will build the song from your words.
+              Speak naturally. Say the options you want kept in circulation.
+              Rthmic will build a loop, not a checklist.
             </p>
           </RevealBlock>
         </section>
@@ -294,7 +219,7 @@ export default function MenuDetailPage({ params }: { params: Promise<{ slug: str
         <AppHeader title={tm?.label ?? "Menu"} onBack={null} />
         <div className="flex-1 flex flex-col items-center justify-center gap-4 pb-20">
           <div className="w-8 h-8 rounded-full border-2 animate-spin" style={{ borderColor: `${TEAL.border}`, borderTopColor: TEAL.text }} />
-          <p className="text-sm tracking-wider" style={{ color: TEAL.dim }}>Building your new Rthm…</p>
+          <p className="text-sm tracking-wider" style={{ color: TEAL.dim }}>Building your new menu loop…</p>
         </div>
       </main>
     );
@@ -310,10 +235,13 @@ export default function MenuDetailPage({ params }: { params: Promise<{ slug: str
 
       <section className="flex-1 flex flex-col pb-10 gap-5">
 
-        {/* ── Current Rthm player ── */}
+        {/* ── Current menu player ── */}
         <RevealBlock delay={0}>
           <div className="flex flex-col gap-2">
-            <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: TEAL.dim }}>Current Rthm</p>
+            <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: TEAL.dim }}>Current Menu Loop</p>
+            <p className="text-xs text-white/35 leading-relaxed pb-1">
+              Play this on loop. Let options surface as you move, then stop when enough feels done.
+            </p>
             {currentBatch.map((song, idx) => {
               const playing = currentTrackId === song.id && isPlaying;
               return (
@@ -366,7 +294,7 @@ export default function MenuDetailPage({ params }: { params: Promise<{ slug: str
           </div>
         </RevealBlock>
 
-        {/* ── Current list preview ── */}
+        {/* ── Current menu preview ── */}
         {songs[0]?.lyrics && (
           <RevealBlock delay={40}>
             <button
@@ -374,7 +302,7 @@ export default function MenuDetailPage({ params }: { params: Promise<{ slug: str
               className="w-full flex items-center justify-between py-1 touch-manipulation active:opacity-70"
             >
               <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: "rgba(255,255,255,0.25)" }}>
-                Current list items
+                Options in this loop
               </p>
               <svg
                 width="10" height="10" viewBox="0 0 12 12" fill="none"
@@ -411,9 +339,9 @@ export default function MenuDetailPage({ params }: { params: Promise<{ slug: str
               style={{ background: TEAL.glow, borderColor: TEAL.border }}
             >
               <div>
-                <p className="text-sm font-medium mb-1" style={{ color: TEAL.text }}>Change the music</p>
+                <p className="text-sm font-medium mb-1" style={{ color: TEAL.text }}>Regenerate the music</p>
                 <p className="text-xs text-white/40 leading-relaxed">
-                  Keep your list exactly as it is — just rebuild it in a different style.
+                  Keep the menu options exactly as they are — just rebuild the loop in a different style.
                   Leave blank for a surprise.
                 </p>
               </div>
@@ -435,7 +363,7 @@ export default function MenuDetailPage({ params }: { params: Promise<{ slug: str
                   className="flex-1 py-3 rounded-xl text-sm font-semibold touch-manipulation active:scale-[0.98] transition-transform"
                   style={{ background: TEAL.hover, color: TEAL.text, border: `1px solid ${TEAL.border}` }}
                 >
-                  Generate new version
+                  Generate new music
                 </button>
                 <button
                   onClick={() => { setMode("idle"); setGenreInput(""); }}
@@ -448,14 +376,14 @@ export default function MenuDetailPage({ params }: { params: Promise<{ slug: str
           ) : (
             /* Default action buttons */
             <div className="flex flex-col gap-3">
-              {/* Update list — primary action */}
+              {/* Update menu — primary action */}
               <button
                 onClick={goUpdate}
                 className="w-full py-4 rounded-2xl text-sm font-semibold tracking-wide touch-manipulation active:scale-[0.98] transition-transform border flex items-center justify-center gap-3"
                 style={{ background: TEAL.bg, borderColor: TEAL.border, color: TEAL.text }}
               >
                 <MicIcon color={TEAL.text} />
-                Update your list
+                Update this menu
               </button>
 
               {/* Change music — secondary */}
@@ -464,7 +392,7 @@ export default function MenuDetailPage({ params }: { params: Promise<{ slug: str
                 className="w-full py-3.5 rounded-2xl text-sm font-medium touch-manipulation active:scale-[0.98] transition-transform border"
                 style={{ background: "rgba(255,255,255,0.025)", borderColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.45)" }}
               >
-                Change the music
+                Regenerate the music
               </button>
             </div>
           )}
@@ -479,7 +407,7 @@ export default function MenuDetailPage({ params }: { params: Promise<{ slug: str
                 className="flex items-center justify-between py-1 touch-manipulation active:opacity-70"
               >
                 <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: "rgba(255,255,255,0.2)" }}>
-                  Previous versions ({historyBatches.reduce((n, b) => n + b.length, 0)})
+                  Previous menu versions ({historyBatches.reduce((n, b) => n + b.length, 0)})
                 </p>
                 <svg
                   width="10" height="10" viewBox="0 0 12 12" fill="none"

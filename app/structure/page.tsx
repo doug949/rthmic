@@ -8,6 +8,7 @@ import { useGeneration } from "@/app/contexts/GenerationContext";
 import { usePillarTheme } from "@/app/contexts/PillarThemeContext";
 import type { SavedRhythm } from "@/app/api/library/route";
 import { MenusIcon } from "@/app/components/HomeTileIcons";
+import { MENU_CONFIGS, MENU_GROUPS } from "@/app/lib/menuConfigs";
 
 const TEAL = {
   text:   "rgba(120,210,180,0.92)",
@@ -16,14 +17,6 @@ const TEAL = {
   border: "rgba(100,195,165,0.22)",
   hover:  "rgba(100,195,165,0.12)",
 };
-
-const TIME_MENUS = [
-  { slug: "morning",       label: "Morning Menu",  menuTitle: "The Morning Menu",  description: "What does a great morning look like?",             seed: "My morning routine — the things I want to do as I start the day" },
-  { slug: "start-the-day", label: "Start the Day", menuTitle: "Start the Day",     description: "What would make today a success?",                  seed: "Everything I need to get through today — tasks, priorities, intentions" },
-  { slug: "afternoon",     label: "Afternoon",      menuTitle: "Afternoon",         description: "What still needs to happen?",                       seed: "My afternoon — what I still need to do and how I want to finish the day" },
-  { slug: "end-of-day",    label: "End of Day",     menuTitle: "End of Day",        description: "How do you close a day well?",                      seed: "Wrapping up the day — what happened, what's done, what carries over" },
-  { slug: "before-bed",    label: "Before Bed",     menuTitle: "Before Bed",        description: "What would morning you thank you for?",             seed: "My evening wind-down — what I want to let go of and how I want to rest" },
-];
 
 type MenuSlots = Record<string, SavedRhythm[]>;
 
@@ -37,7 +30,7 @@ export default function StructurePage() {
 
   const fetchMenus = async () => {
     const entries = await Promise.all(
-      TIME_MENUS.map(async (tm) => {
+      MENU_CONFIGS.map(async (tm) => {
         try {
           const res = await fetch(`/api/menu?slug=${tm.slug}`);
           if (!res.ok) return [tm.slug, []] as [string, SavedRhythm[]];
@@ -71,7 +64,7 @@ export default function StructurePage() {
       className="relative z-10 min-h-screen flex flex-col px-6"
       style={{ paddingTop: "env(safe-area-inset-top, 0px)", animation: "page-enter 380ms ease forwards" }}
     >
-      <AppHeader title="Structure" titleIcon={<MenusIcon />} />
+      <AppHeader title="Menus" titleIcon={<MenusIcon />} />
 
       <section className="flex-1 flex flex-col pb-10">
         <RevealBlock delay={0}>
@@ -79,43 +72,64 @@ export default function StructurePage() {
             <div className="flex items-center gap-2.5 mb-1">
               <span style={{ color: TEAL.dim }}><StructureIcon /></span>
               <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: TEAL.dim }}>
-                Structure: Rthmic Menus
+                Rthmic Menus
               </p>
             </div>
             <p className="text-xl font-light text-white/70 leading-snug" style={{ fontFamily: "var(--font-display)" }}>
-              Imagine future you. Build your list.
+              Loops of options, not lists to finish.
+            </p>
+            <p className="text-sm text-white/38 leading-relaxed max-w-xl mt-2">
+              Pick the context you are in, play the menu on loop, and let useful things bubble up while you move.
+              Stop when enough feels done.
             </p>
           </div>
         </RevealBlock>
 
-        <div className="flex flex-col gap-3">
-          {TIME_MENUS.map((tm, i) => {
-            const songs = menus[tm.slug] ?? [];
-            const hasSongs = songs.length > 0;
-            const firstSong = songs[0];
+        <div className="flex flex-col gap-7">
+          {MENU_GROUPS.map((group, groupIndex) => {
+            const groupMenus = MENU_CONFIGS.filter((menu) => menu.group === group.id);
 
             return (
-              <RevealBlock key={tm.slug} delay={i * 50}>
-                <div
-                  className="w-full rounded-2xl border"
-                  style={{ background: TEAL.bg, borderColor: TEAL.border }}
-                >
-                  {/* Both filled and empty tap through to the detail page */}
-                  <button
-                    onClick={() => router.push(`/structure/${tm.slug}`)}
-                    className="w-full flex items-center gap-4 px-6 py-5 text-left touch-manipulation active:scale-[0.98] transition-all"
-                  >
-                    <span className="flex-shrink-0" style={{ color: TEAL.dim }}><StructureIcon /></span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-base font-semibold tracking-wide" style={{ color: TEAL.text }}>{tm.label}</p>
-                      <p className="text-xs text-white/45 mt-0.5 leading-snug">
-                        {hasSongs ? firstSong.title : tm.description}
-                      </p>
-                    </div>
-                    <span className="text-lg flex-shrink-0" style={{ color: TEAL.border }}>
-                      {hasSongs ? "›" : "+"}
-                    </span>
-                  </button>
+              <RevealBlock key={group.id} delay={groupIndex * 80}>
+                <div className="flex flex-col gap-3">
+                  <div className="px-1">
+                    <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: TEAL.dim }}>
+                      {group.label}
+                    </p>
+                    <p className="text-xs text-white/35 mt-1 leading-relaxed">{group.intro}</p>
+                  </div>
+
+                  <div className="flex flex-col gap-3">
+                    {groupMenus.map((tm) => {
+                      const songs = menus[tm.slug] ?? [];
+                      const hasSongs = songs.length > 0;
+                      const firstSong = songs[0];
+
+                      return (
+                        <div
+                          key={tm.slug}
+                          className="w-full rounded-2xl border"
+                          style={{ background: TEAL.bg, borderColor: TEAL.border }}
+                        >
+                          <button
+                            onClick={() => router.push(`/structure/${tm.slug}`)}
+                            className="w-full flex items-center gap-4 px-6 py-5 text-left touch-manipulation active:scale-[0.98] transition-all"
+                          >
+                            <span className="flex-shrink-0" style={{ color: TEAL.dim }}><StructureIcon /></span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-base font-semibold tracking-wide" style={{ color: TEAL.text }}>{tm.label}</p>
+                              <p className="text-xs text-white/45 mt-0.5 leading-snug">
+                                {hasSongs ? `${songs.length} version${songs.length === 1 ? "" : "s"} · ${firstSong.title}` : tm.description}
+                              </p>
+                            </div>
+                            <span className="text-lg flex-shrink-0" style={{ color: TEAL.border }}>
+                              {hasSongs ? "›" : "+"}
+                            </span>
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </RevealBlock>
             );
