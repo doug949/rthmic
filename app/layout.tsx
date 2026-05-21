@@ -10,6 +10,7 @@ import FullScreenPlayer from "@/app/components/FullScreenPlayer";
 import GenerationBanner from "@/app/components/GenerationBanner";
 import PageFooter from "@/app/components/PageFooter";
 import QuickCodexNote from "@/app/components/QuickCodexNote";
+import OfflineAudioKeeper from "@/app/components/OfflineAudioKeeper";
 import { AmbientBackground } from "@/app/components/AmbientBackground";
 import { PageTransitionLayer } from "@/app/components/PageTransitionLayer";
 import { PillarThemeProvider } from "@/app/contexts/PillarThemeContext";
@@ -75,6 +76,7 @@ export default function RootLayout({
               {children}
               <MiniPlayer />
               <FullScreenPlayer />
+              <OfflineAudioKeeper />
               <QuickCodexNote />
               <PageFooter />
             </AudioProvider>

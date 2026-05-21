@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-
-export const AUDIO_CACHE = "rthmic-audio-v1";
+import { AUDIO_CACHE } from "@/app/lib/offlineAudio";
 
 export function useOfflineAudio(audioUrl: string | undefined) {
   const [isCached, setIsCached] = useState(false);

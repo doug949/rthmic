@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TransitionLink } from "@/app/components/TransitionLink";
-import { AUDIO_CACHE } from "@/app/hooks/useOfflineAudio";
+import { AUDIO_CACHE, keepAllOfflineEnabled, setKeepAllOffline } from "@/app/lib/offlineAudio";
 
 const SCREEN_FADE_MS = 1800;
 const TILE_ENTER_MS = 1600;
@@ -32,6 +32,8 @@ export default function Home() {
   const [open, setOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [clearingAudio, setClearingAudio] = useState(false);
+  const [confirmClearAudio, setConfirmClearAudio] = useState(false);
+  const [keepOffline, setKeepOffline] = useState(false);
   const [clearingQueue, setClearingQueue] = useState(false);
   const [queueCleared, setQueueCleared] = useState<number | null>(null);
   const [screenReady, setScreenReady] = useState(false);
@@ -40,6 +42,7 @@ export default function Home() {
   useEffect(() => {
     const match = document.cookie.match(/(?:^|;\s*)rthmic_code=([^;]+)/);
     if (match) setUserCode(decodeURIComponent(match[1]));
+    setKeepOffline(keepAllOfflineEnabled());
     fetch("/api/settings")
       .then((r) => r.json())
       .then((d) => { if (d.name) setUserName(d.name); })
@@ -105,12 +108,24 @@ export default function Home() {
   };
 
   const handleClearOfflineAudio = async () => {
+    if (!confirmClearAudio) {
+      setConfirmClearAudio(true);
+      setTimeout(() => setConfirmClearAudio(false), 3500);
+      return;
+    }
     setClearingAudio(true);
     try {
       if ("caches" in window) await caches.delete(AUDIO_CACHE);
+      setConfirmClearAudio(false);
     } finally {
       setClearingAudio(false);
     }
+  };
+
+  const handleToggleKeepOffline = () => {
+    const next = !keepOffline;
+    setKeepOffline(next);
+    setKeepAllOffline(next);
   };
 
   const visibleTiles = HOME_TILES.filter((tile) => !tile.adminOnly || userCode === "doug2026");
@@ -233,14 +248,40 @@ export default function Home() {
                 </div>
               </button>
               <button
+                onClick={handleToggleKeepOffline}
+                className="w-full flex items-center gap-4 px-4 py-4 rounded-xl touch-manipulation active:bg-white/[0.04] transition-colors text-left"
+              >
+                <span
+                  className="relative w-10 h-6 rounded-full flex-shrink-0 transition-colors"
+                  style={{ background: keepOffline ? "rgba(201,165,90,0.35)" : "rgba(255,255,255,0.10)" }}
+                >
+                  <span
+                    className="absolute top-1 w-4 h-4 rounded-full transition-transform"
+                    style={{
+                      left: 4,
+                      transform: keepOffline ? "translateX(16px)" : "translateX(0)",
+                      background: keepOffline ? "rgba(201,165,90,0.95)" : "rgba(255,255,255,0.48)",
+                    }}
+                  />
+                </span>
+                <div>
+                  <p className="text-sm text-white/70 font-medium">Keep All Rthms Offline</p>
+                  <p className="text-xs text-white/30 mt-0.5">Automatically saves new playable Rthms on this device</p>
+                </div>
+              </button>
+              <button
                 onClick={handleClearOfflineAudio}
                 disabled={clearingAudio}
                 className="w-full flex items-center gap-4 px-4 py-4 rounded-xl touch-manipulation active:bg-white/[0.04] transition-colors text-left disabled:opacity-50"
               >
                 <span className="text-white/35 text-lg leading-none">↓</span>
                 <div>
-                  <p className="text-sm text-white/70 font-medium">{clearingAudio ? "Clearing…" : "Clear Offline Audio"}</p>
-                  <p className="text-xs text-white/30 mt-0.5">Removes saved tracks from this device only</p>
+                  <p className="text-sm text-white/70 font-medium">
+                    {clearingAudio ? "Clearing…" : confirmClearAudio ? "Tap again to clear offline audio" : "Clear Offline Audio"}
+                  </p>
+                  <p className="text-xs text-white/30 mt-0.5">
+                    {confirmClearAudio ? "This removes saved tracks from this device" : "Requires confirmation before removing device audio"}
+                  </p>
                 </div>
               </button>
               <button
