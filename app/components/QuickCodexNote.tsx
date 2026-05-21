@@ -16,6 +16,7 @@ export default function QuickCodexNote() {
   const [state, setState] = useState<NoteState>("idle");
   const [message, setMessage] = useState("");
   const [level, setLevel] = useState(0);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => setMounted(true), []);
   if (!mounted || pathname === "/login") return null;
@@ -111,13 +112,48 @@ export default function QuickCodexNote() {
 
       setMessage("Thanks - feedback sent");
       setState("saved");
-      setTimeout(() => { setState("idle"); setMessage(""); }, 3200);
+      setTimeout(() => { setState("idle"); setMessage(""); setExpanded(false); }, 3200);
     } catch (err) {
       console.error("[quick-feedback] save failed:", err);
       setMessage("Could not send feedback");
       setState("error");
     }
   };
+
+  const canDismiss = state !== "recording" && state !== "saving";
+
+  if (!expanded && state === "idle") {
+    return (
+      <div
+        className="fixed right-3 z-[45]"
+        style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)" }}
+      >
+        {message && (
+          <div
+            className="absolute right-0 bottom-11 rounded-full border px-3 py-2 text-[11px] tracking-wide whitespace-nowrap"
+            style={{ background: "rgba(10,16,32,0.92)", borderColor: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.62)", backdropFilter: "blur(14px)" }}
+          >
+            {message}
+          </div>
+        )}
+        <button
+          onClick={() => setExpanded(true)}
+          className="w-9 h-9 rounded-full border flex items-center justify-center touch-manipulation active:scale-95 transition-transform"
+          style={{
+            background: "rgba(10,16,32,0.68)",
+            borderColor: "rgba(255,255,255,0.10)",
+            color: "rgba(201,165,90,0.78)",
+            boxShadow: "inset 0 1px 8px rgba(0,0,0,0.45), 0 6px 18px rgba(0,0,0,0.22)",
+            backdropFilter: "blur(14px)",
+          }}
+          aria-label="Open instant feedback recorder"
+          title="Give instant feedback"
+        >
+          !
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -131,6 +167,21 @@ export default function QuickCodexNote() {
         >
           {message}
         </div>
+      )}
+      {canDismiss && (
+        <button
+          onClick={() => setExpanded(false)}
+          className="w-8 h-8 rounded-full border flex items-center justify-center touch-manipulation active:scale-95 transition-transform"
+          style={{
+            background: "rgba(10,16,32,0.72)",
+            borderColor: "rgba(255,255,255,0.10)",
+            color: "rgba(255,255,255,0.34)",
+            backdropFilter: "blur(14px)",
+          }}
+          aria-label="Dismiss instant feedback recorder"
+        >
+          ×
+        </button>
       )}
       {state === "recording" ? (
         <button
