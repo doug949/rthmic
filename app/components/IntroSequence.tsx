@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 
 const SEEN_KEY  = "rthmic_intro_v4";
 const FADE      = 700;   // ms — consistent in/out, no duration-switch glitch
+const QUOTE_CONTAINER_FADE = 1800;
 const HOLD_Q    = 6000;  // ms quote hold
 const HOLD_LOGO = 1600;  // ms logo hold
-const QUOTE_WORD_FADE = 900;
-const QUOTE_WORD_STAGGER = 150;
+const QUOTE_WORD_FADE = 2100;
+const QUOTE_WORD_STAGGER = 320;
 
 const QUOTES = [
   "Music is the greatest operating system evolution ever built.",
@@ -99,7 +100,7 @@ export default function IntroSequence() {
       <div
         style={{
           opacity: contentOpacity,
-          transition: `opacity ${FADE}ms ease-in-out`,
+          transition: `opacity ${showLogo ? FADE : QUOTE_CONTAINER_FADE}ms ease-in-out`,
           willChange: "opacity",
           textAlign: "center",
           maxWidth: 300,
@@ -148,7 +149,7 @@ export default function IntroSequence() {
                 style={{
                   display: "inline-block",
                   opacity: 0,
-                  animation: `quote-word-in ${QUOTE_WORD_FADE}ms cubic-bezier(0.16,1,0.3,1) ${index * QUOTE_WORD_STAGGER}ms forwards`,
+                  animation: `quote-word-in ${QUOTE_WORD_FADE}ms cubic-bezier(0.22,1,0.36,1) ${index * QUOTE_WORD_STAGGER}ms forwards`,
                 }}
               >
                 {word}{index < quoteWords.length - 1 ? "\u00A0" : ""}
