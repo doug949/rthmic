@@ -15,25 +15,26 @@ export function QueuePill() {
       onClick={() => transitionTo("/library", router)}
       className="flex items-center gap-2 px-3 py-1.5 rounded-full touch-manipulation transition-opacity active:opacity-70"
       style={{
-        background: "rgba(201,165,90,0.1)",
-        border: "1px solid rgba(201,165,90,0.25)",
+        background: "rgba(170,225,255,0.08)",
+        border: "1px solid rgba(170,225,255,0.24)",
+        boxShadow: "0 0 24px rgba(170,225,255,0.08), inset 0 0 14px rgba(170,225,255,0.035)",
       }}
     >
       {/* Pulsing dot */}
       <span className="relative flex h-2 w-2 flex-shrink-0">
         <span
           className="absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping"
-          style={{ background: "rgba(201,165,90,0.6)" }}
+          style={{ background: "rgba(170,225,255,0.65)" }}
         />
         <span
           className="relative inline-flex h-2 w-2 rounded-full"
-          style={{ background: "rgba(201,165,90,0.9)" }}
+          style={{ background: "rgba(210,242,255,0.95)", boxShadow: "0 0 12px rgba(170,225,255,0.78)" }}
         />
       </span>
-      <span className="text-[11px] uppercase tracking-wider" style={{ color: "rgba(201,165,90,0.85)" }}>
+      <span className="text-[11px] uppercase tracking-wider" style={{ color: "rgba(170,225,255,0.86)" }}>
         {active === 1 ? "1 Rthm generating" : `${active} Rthms generating`}
       </span>
-      <span className="text-[11px]" style={{ color: "rgba(201,165,90,0.5)" }}>›</span>
+      <span className="text-[11px]" style={{ color: "rgba(170,225,255,0.52)" }}>›</span>
     </button>
   );
 }

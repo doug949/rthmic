@@ -849,8 +849,8 @@ export default function SpeakPage() {
       {/* Queued confirmation — brief, then auto-resets to idle */}
       {genPhase === "idle" && phase === "queued" && (
         <div className="flex-1 flex flex-col items-center justify-center gap-3 pb-32">
-          <span style={{ fontSize: 28, color: "rgba(201,165,90,0.8)" }}>✓</span>
-          <p className="text-base font-medium" style={{ color: "rgba(201,165,90,0.9)" }}>Added to queue</p>
+          <span style={{ fontSize: 28, color: "rgba(170,225,255,0.86)" }}>✓</span>
+          <p className="text-base font-medium" style={{ color: "rgba(170,225,255,0.9)" }}>Added to queue</p>
           <p className="text-sm text-white/40 text-center max-w-xs leading-relaxed">
             Your Rthm is generating on RTHMIC's servers. You can close the app completely — it will be waiting when you come back.
           </p>
@@ -2496,7 +2496,7 @@ const GENERATING_COPY: Record<string, { heading: string; stages: string[] }> = {
 
 function GeneratingView({ onCancel, pillar }: { onCancel: () => void; pillar?: string | null }) {
   const key = (pillar ?? "").toLowerCase();
-  const pillarColor = PILLAR_COLOR[key] ?? DEFAULT_COLOR;
+  const generatingColor = "170,225,255";
   const copy = GENERATING_COPY[key] ?? {
     heading: "Building your Rthms",
     stages: ["Composing your Rthm…", "Setting it to music…", "Laying down the track…", "Finishing up…"],
@@ -2517,13 +2517,14 @@ function GeneratingView({ onCancel, pillar }: { onCancel: () => void; pillar?: s
         <div className="flex flex-col items-center gap-8 w-full">
 
           {/* ── Spectrum visualiser ───────────────────────────────────────── */}
-          <SpectrumVisualiser color={pillarColor} />
+          <GeneratingOrb />
+          <SpectrumVisualiser color={generatingColor} />
 
           {/* ── Text block ───────────────────────────────────────────────── */}
           <div className="text-center flex flex-col items-center gap-3 max-w-xs">
             <h2
               className="text-xl font-light tracking-wide"
-              style={{ fontFamily: "var(--font-display)", color: "rgb(167,139,250)" }}
+              style={{ fontFamily: "var(--font-display)", color: "rgb(170,225,255)" }}
             >
               {copy.heading}
             </h2>
@@ -2533,7 +2534,7 @@ function GeneratingView({ onCancel, pillar }: { onCancel: () => void; pillar?: s
               key={stageIdx}
               className="text-sm"
               style={{
-                color: "rgba(167,139,250,0.72)",
+                color: "rgba(170,225,255,0.72)",
                 minHeight: "1.25rem",
                 animation: "fade-up 0.5s cubic-bezier(0.16,1,0.3,1) forwards",
               }}
@@ -2556,6 +2557,59 @@ function GeneratingView({ onCancel, pillar }: { onCancel: () => void; pillar?: s
         </button>
       </RevealBlock>
     </section>
+  );
+}
+
+function GeneratingOrb() {
+  return (
+    <div className="relative flex items-center justify-center" style={{ width: 112, height: 112, marginBottom: -18 }}>
+      <style>{`
+        @keyframes generate-blue-pulse {
+          0%, 100% { transform: scale(0.92); opacity: 0.34; }
+          50% { transform: scale(1.18); opacity: 0.72; }
+        }
+        @keyframes generate-rim-trace {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+      <span
+        className="absolute rounded-full"
+        style={{
+          inset: 9,
+          background: "radial-gradient(circle, rgba(170,225,255,0.18) 0%, rgba(170,225,255,0.06) 52%, transparent 70%)",
+          filter: "blur(6px)",
+          animation: "generate-blue-pulse 2.8s ease-in-out infinite",
+        }}
+      />
+      <span
+        className="absolute rounded-full"
+        style={{
+          inset: 18,
+          border: "1px solid rgba(170,225,255,0.18)",
+          boxShadow: "0 0 34px rgba(170,225,255,0.18), inset 0 0 28px rgba(170,225,255,0.08)",
+        }}
+      />
+      <span
+        className="absolute rounded-full"
+        style={{
+          inset: 17,
+          background: "conic-gradient(from 0deg, transparent 0%, transparent 68%, rgba(210,242,255,0.1) 75%, rgba(210,242,255,0.78) 82%, rgba(210,242,255,0.18) 89%, transparent 96%, transparent 100%)",
+          WebkitMaskImage: "radial-gradient(circle, transparent 40px, black 41px)",
+          maskImage: "radial-gradient(circle, transparent 40px, black 41px)",
+          animation: "generate-rim-trace 3.6s linear infinite",
+        }}
+      />
+      <span
+        className="relative rounded-full"
+        style={{
+          width: 16,
+          height: 16,
+          background: "rgba(210,242,255,0.88)",
+          boxShadow: "0 0 22px rgba(170,225,255,0.82)",
+        }}
+      />
+    </div>
   );
 }
 

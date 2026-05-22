@@ -350,7 +350,7 @@ export default function MyRthmsPage() {
         ).length > 0 && (
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2 px-1">
-              <span className="text-[10px] uppercase tracking-widest" style={{ color: "rgb(167,139,250)" }}>Generating</span>
+              <span className="text-[10px] uppercase tracking-widest" style={{ color: "rgb(170,225,255)" }}>Generating</span>
               <span
                 className="inline-flex items-center justify-center text-[9px] font-semibold rounded-full px-1.5 py-0.5 leading-none"
                 style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)" }}
@@ -373,16 +373,20 @@ export default function MyRthmsPage() {
               <div
                 key={job.jobId}
                 className="rounded-2xl border px-5 py-4 flex items-center gap-4"
-                style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.07)" }}
+                style={{
+                  background: job.status === "generating" ? "rgba(170,225,255,0.045)" : "rgba(255,255,255,0.02)",
+                  borderColor: job.status === "generating" ? "rgba(170,225,255,0.22)" : "rgba(255,255,255,0.07)",
+                  boxShadow: job.status === "generating" ? "0 0 28px rgba(170,225,255,0.08), inset 0 0 18px rgba(170,225,255,0.035)" : undefined,
+                }}
               >
                 {/* Pulsing dot */}
                 <div className="flex-shrink-0 relative flex h-2.5 w-2.5">
-                  <span className="absolute inline-flex h-full w-full rounded-full animate-ping opacity-60" style={{ background: job.status === "generating" ? "rgba(109,40,217,0.8)" : "rgba(255,255,255,0.3)" }} />
-                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full" style={{ background: job.status === "generating" ? "rgb(109,40,217)" : "rgba(255,255,255,0.25)" }} />
+                  <span className="absolute inline-flex h-full w-full rounded-full animate-ping opacity-70" style={{ background: job.status === "generating" ? "rgba(170,225,255,0.78)" : "rgba(255,255,255,0.3)" }} />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full" style={{ background: job.status === "generating" ? "rgb(170,225,255)" : "rgba(255,255,255,0.25)", boxShadow: job.status === "generating" ? "0 0 14px rgba(170,225,255,0.72)" : undefined }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm truncate" style={{ color: job.status === "generating" ? "rgb(167,139,250)" : "rgba(255,255,255,0.6)" }}>{job.title}</p>
-                  <p className="text-[10px] uppercase tracking-wider mt-0.5" style={{ color: job.status === "generating" ? "rgb(139,92,246)" : "rgba(255,255,255,0.25)" }}>
+                  <p className="text-sm truncate" style={{ color: job.status === "generating" ? "rgb(210,242,255)" : "rgba(255,255,255,0.6)" }}>{job.title}</p>
+                  <p className="text-[10px] uppercase tracking-wider mt-0.5" style={{ color: job.status === "generating" ? "rgba(170,225,255,0.62)" : "rgba(255,255,255,0.25)" }}>
                     {job.status === "generating" ? "Generating…" : "Queued"} · {job.pillar}
                   </p>
                 </div>

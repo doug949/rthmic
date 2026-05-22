@@ -25,13 +25,14 @@ export default function GenerationBanner() {
             ? "bg-[#0d1628]/90 border-white/25"
             : genPhase === "failed"
             ? "bg-[#0d1628]/90 border-red-400/20"
-            : "bg-[#0d1628]/90 border-white/12"}
+            : "bg-[#0d1628]/90 border-[rgba(170,225,255,0.24)]"}
         `}
+        style={genPhase === "generating" ? { boxShadow: "0 0 32px rgba(170,225,255,0.12), inset 0 0 16px rgba(170,225,255,0.04)" } : undefined}
       >
         {genPhase === "generating" && (
           <>
             <WaveDots size="sm" />
-            <p className="flex-1 text-sm text-white/50">Building your Rthms…</p>
+            <p className="flex-1 text-sm" style={{ color: "rgba(170,225,255,0.72)" }}>Building your Rthms…</p>
           </>
         )}
 
