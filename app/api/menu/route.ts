@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "redis";
 import type { SavedRhythm } from "@/app/types/library";
+import { REDIS_AVAILABLE, withRedis } from "@/app/lib/redis";
 import { menuKey, readSavedRhythms, writeSavedRhythms } from "@/app/lib/rhythmStorage";
 import { fromSunoPronunciation } from "@/app/lib/sunoLyrics";
-
-const REDIS_AVAILABLE = !!process.env.REDIS_URL;
 
 function samePair(a: SavedRhythm, b: SavedRhythm): boolean {
   if (a.id === b.id) return true;
@@ -30,18 +28,6 @@ function requireAuth(request: NextRequest): string | null {
   const session = request.cookies.get("rthmic_session");
   if (session?.value !== process.env.RTHMIC_SESSION_TOKEN) return null;
   return request.cookies.get("rthmic_uid")?.value ?? null;
-}
-
-async function withRedis<T>(
-  fn: (client: ReturnType<typeof createClient>) => Promise<T>
-): Promise<T> {
-  const client = createClient({ url: process.env.REDIS_URL });
-  await client.connect();
-  try {
-    return await fn(client);
-  } finally {
-    await client.disconnect();
-  }
 }
 
 export async function GET(request: NextRequest) {

@@ -1,7 +1,5 @@
-import { createClient } from "redis";
 import type { SavedRhythm } from "@/app/types/library";
-
-export type RedisClient = ReturnType<typeof createClient>;
+import type { RedisClient } from "@/app/lib/redis";
 
 export function libraryKey(uid: string): string {
   return `lib:${uid}`;

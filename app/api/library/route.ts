@@ -12,18 +12,17 @@
 // POST returns ok:true — the app works, saves just don't persist.
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "redis";
 import type { PillarType, TimedWord } from "@/app/types/pipeline";
 import { normalisePillar } from "@/app/types/pipeline";
 import type { SavedRhythm } from "@/app/types/library";
 import { normalizeTags, tagsForSavedRhythm } from "@/app/lib/autoTags";
+import { REDIS_AVAILABLE, withRedis } from "@/app/lib/redis";
 import { libraryKey, readSavedRhythms, writeSavedRhythms } from "@/app/lib/rhythmStorage";
 import { fromSunoPronunciation } from "@/app/lib/sunoLyrics";
 
 export type { SavedRhythm };
 
 const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
-const REDIS_AVAILABLE = !!process.env.REDIS_URL;
 
 function requireAuth(request: NextRequest): string | null {
   const session = request.cookies.get("rthmic_session");
@@ -48,18 +47,6 @@ function restoreDisplayLyrics(rhythm: SavedRhythm): SavedRhythm {
   return rhythm.lyrics
     ? { ...rhythm, lyrics: fromSunoPronunciation(rhythm.lyrics) }
     : rhythm;
-}
-
-async function withRedis<T>(
-  fn: (client: ReturnType<typeof createClient>) => Promise<T>
-): Promise<T> {
-  const client = createClient({ url: process.env.REDIS_URL });
-  await client.connect();
-  try {
-    return await fn(client);
-  } finally {
-    await client.disconnect();
-  }
 }
 
 // GET /api/library — fetch all rhythms (active, archived, recently deleted)

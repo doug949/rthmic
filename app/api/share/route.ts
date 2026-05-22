@@ -12,11 +12,11 @@
 // Tokens are 10-character URL-safe random strings.
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "redis";
 import type { SavedRhythm } from "@/app/types/library";
+import { REDIS_AVAILABLE, withRedis } from "@/app/lib/redis";
+import { libraryKey, readSavedRhythms } from "@/app/lib/rhythmStorage";
 
 const NINETY_DAYS_SEC = 90 * 24 * 60 * 60;
-const REDIS_AVAILABLE = !!process.env.REDIS_URL;
 
 export interface ShareEntry {
   rhythm: SavedRhythm;
@@ -26,10 +26,6 @@ export interface ShareEntry {
 
 function shrKey(token: string) {
   return `shr:${token}`;
-}
-
-function libKey(uid: string) {
-  return `lib:${uid}`;
 }
 
 /** Generate a URL-safe random token (10 chars). */
@@ -46,18 +42,6 @@ function requireAuth(request: NextRequest): string | null {
   const session = request.cookies.get("rthmic_session");
   if (session?.value !== process.env.RTHMIC_SESSION_TOKEN) return null;
   return request.cookies.get("rthmic_uid")?.value ?? null;
-}
-
-async function withRedis<T>(
-  fn: (client: ReturnType<typeof createClient>) => Promise<T>
-): Promise<T> {
-  const client = createClient({ url: process.env.REDIS_URL });
-  await client.connect();
-  try {
-    return await fn(client);
-  } finally {
-    await client.disconnect();
-  }
 }
 
 // POST /api/share — create a share token
@@ -80,8 +64,7 @@ export async function POST(request: NextRequest) {
   try {
     const result = await withRedis(async (client) => {
       // Fetch the rhythm from the caller's library
-      const libData = await client.get(libKey(uid));
-      const rhythms: SavedRhythm[] = libData ? JSON.parse(libData) : [];
+      const rhythms = await readSavedRhythms(client, libraryKey(uid));
       const rhythm = rhythms.find((r) => r.id === rhythmId && r.status !== "deleted");
 
       if (!rhythm) return null;

@@ -3,7 +3,7 @@
 // Falls back gracefully if Redis is unavailable.
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "redis";
+import { REDIS_AVAILABLE, withRedis } from "@/app/lib/redis";
 
 export const DEFAULT_ADVANCED_PILLARS = ["memory", "booksummary", "explain", "mindset"];
 
@@ -23,8 +23,6 @@ const DEFAULT_SETTINGS: UserSettings = {
   advancedPillars: DEFAULT_ADVANCED_PILLARS,
 };
 
-const REDIS_AVAILABLE = !!process.env.REDIS_URL;
-
 function settingsKey(uid: string) {
   return `settings:${uid}`;
 }
@@ -33,16 +31,6 @@ function requireUid(request: NextRequest): string | null {
   const session = request.cookies.get("rthmic_session");
   if (session?.value !== process.env.RTHMIC_SESSION_TOKEN) return null;
   return request.cookies.get("rthmic_uid")?.value ?? null;
-}
-
-async function withRedis<T>(fn: (client: ReturnType<typeof createClient>) => Promise<T>): Promise<T> {
-  const client = createClient({ url: process.env.REDIS_URL });
-  await client.connect();
-  try {
-    return await fn(client);
-  } finally {
-    await client.disconnect();
-  }
 }
 
 export async function GET(request: NextRequest) {

@@ -2,12 +2,12 @@ import { createClient } from "redis";
 import type { SavedRhythm } from "@/app/types/library";
 import type { PillarType, Song, TimedWord } from "@/app/types/pipeline";
 import { tagsForSavedRhythm } from "@/app/lib/autoTags";
+import type { RedisClient } from "@/app/lib/redis";
 import {
   libraryKey,
   menuKey,
   prependUniqueSavedRhythms,
   readSavedRhythms,
-  type RedisClient,
   writeSavedRhythms,
 } from "@/app/lib/rhythmStorage";
 import { uploadAudioToWasabi } from "@/app/lib/wasabiUpload";
