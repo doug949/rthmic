@@ -2,16 +2,12 @@
 // Also updates the stored audioUrl in Redis so the next play is instant.
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "redis";
 import type { SavedRhythm } from "@/app/types/library";
+import { requireUserId } from "@/app/lib/auth";
+import { REDIS_AVAILABLE, withRedis } from "@/app/lib/redis";
+import { libraryKey, readSavedRhythms, writeSavedRhythms } from "@/app/lib/rhythmStorage";
 
 const BASE_URL = "https://api.sunoapi.org/api/v1";
-
-function requireAuth(request: NextRequest): string | null {
-  const session = request.cookies.get("rthmic_session");
-  if (session?.value !== process.env.RTHMIC_SESSION_TOKEN) return null;
-  return request.cookies.get("rthmic_uid")?.value ?? null;
-}
 
 function getAudioUrl(clip: Record<string, unknown>): string | undefined {
   const candidates = [
@@ -68,7 +64,7 @@ function clipMatches(clip: Record<string, unknown>, clipId: string): boolean {
 }
 
 export async function GET(request: NextRequest) {
-  const uid = requireAuth(request);
+  const uid = requireUserId(request);
   if (!uid) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const taskId = request.nextUrl.searchParams.get("taskId");
@@ -87,13 +83,9 @@ export async function GET(request: NextRequest) {
   if (clips.length === 0) return NextResponse.json({ error: "No clips found" }, { status: 404 });
 
   let rhythms: SavedRhythm[] = [];
-  if (process.env.REDIS_URL) {
+  if (REDIS_AVAILABLE) {
     try {
-      const client = createClient({ url: process.env.REDIS_URL });
-      await client.connect();
-      const data = await client.get(`lib:${uid}`);
-      rhythms = data ? JSON.parse(data) : [];
-      await client.disconnect();
+      rhythms = await withRedis((client) => readSavedRhythms(client, libraryKey(uid)));
     } catch (err) {
       console.warn("[refresh-audio] Redis lookup failed:", err);
     }
@@ -105,16 +97,14 @@ export async function GET(request: NextRequest) {
   if (!freshUrl) return NextResponse.json({ error: "No audio URL in clip" }, { status: 404 });
 
   // Persist the fresh URL back to Redis so next play is instant
-  if (process.env.REDIS_URL && rhythms.length > 0) {
+  if (REDIS_AVAILABLE && rhythms.length > 0) {
     try {
-      const client = createClient({ url: process.env.REDIS_URL });
-      await client.connect();
-      const key = `lib:${uid}`;
-      const updated = rhythms.map((r) =>
-        r.id === rhythmId ? { ...r, audioUrl: freshUrl } : r
-      );
-      await client.set(key, JSON.stringify(updated));
-      await client.disconnect();
+      await withRedis(async (client) => {
+        const updated = rhythms.map((r) =>
+          r.id === rhythmId ? { ...r, audioUrl: freshUrl } : r
+        );
+        await writeSavedRhythms(client, libraryKey(uid), updated);
+      });
     } catch (err) {
       console.warn("[refresh-audio] Redis update failed:", err);
     }

@@ -3,6 +3,7 @@
 // Falls back gracefully if Redis is unavailable.
 
 import { NextRequest, NextResponse } from "next/server";
+import { requireUserId } from "@/app/lib/auth";
 import { REDIS_AVAILABLE, withRedis } from "@/app/lib/redis";
 
 export const DEFAULT_ADVANCED_PILLARS = ["memory", "booksummary", "explain", "mindset"];
@@ -27,14 +28,8 @@ function settingsKey(uid: string) {
   return `settings:${uid}`;
 }
 
-function requireUid(request: NextRequest): string | null {
-  const session = request.cookies.get("rthmic_session");
-  if (session?.value !== process.env.RTHMIC_SESSION_TOKEN) return null;
-  return request.cookies.get("rthmic_uid")?.value ?? null;
-}
-
 export async function GET(request: NextRequest) {
-  const uid = requireUid(request);
+  const uid = requireUserId(request);
   if (!uid) return NextResponse.json(DEFAULT_SETTINGS);
 
   if (!REDIS_AVAILABLE) return NextResponse.json(DEFAULT_SETTINGS);
@@ -52,7 +47,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const uid = requireUid(request);
+  const uid = requireUserId(request);
   if (!uid) return NextResponse.json({ ok: true }); // silent no-op if not authed
 
   const body = await request.json();

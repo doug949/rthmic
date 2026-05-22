@@ -5,18 +5,14 @@ export const maxDuration = 30;
 // Falls back to the stored audioUrl if the Suno refresh fails.
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "redis";
 import type { SavedRhythm } from "@/app/types/library";
+import { requireUserId } from "@/app/lib/auth";
+import { REDIS_AVAILABLE, withRedis } from "@/app/lib/redis";
+import { libraryKey, menuKey, readSavedRhythms } from "@/app/lib/rhythmStorage";
 import { getWasabiSignedUrl } from "@/app/lib/wasabiUpload";
 import { MENU_CONFIGS } from "@/app/lib/menuConfigs";
 
 const BASE_URL = "https://api.sunoapi.org/api/v1";
-
-function requireAuth(request: NextRequest): string | null {
-  const session = request.cookies.get("rthmic_session");
-  if (session?.value !== process.env.RTHMIC_SESSION_TOKEN) return null;
-  return request.cookies.get("rthmic_uid")?.value ?? null;
-}
 
 function getAudioUrl(clip: Record<string, unknown>): string | undefined {
   const candidates = [
@@ -86,7 +82,7 @@ function isEmptyAudioResponse(response: Response): boolean {
 }
 
 export async function GET(request: NextRequest) {
-  const uid = requireAuth(request);
+  const uid = requireUserId(request);
   if (!uid) return new NextResponse("Unauthorized", { status: 401 });
 
   const rhythmId = request.nextUrl.searchParams.get("id");
@@ -94,25 +90,20 @@ export async function GET(request: NextRequest) {
 
   // Look up the rhythm in Redis
   let rhythm: SavedRhythm | null = null;
-  if (process.env.REDIS_URL) {
+  if (REDIS_AVAILABLE) {
     try {
-      const client = createClient({ url: process.env.REDIS_URL });
-      await client.connect();
-      const data = await client.get(`lib:${uid}`);
-      if (data) {
-        const rhythms: SavedRhythm[] = JSON.parse(data);
-        rhythm = rhythms.find((r) => r.id === rhythmId) ?? null;
-      }
-      if (!rhythm) {
+      rhythm = await withRedis(async (client) => {
+        const rhythms = await readSavedRhythms(client, libraryKey(uid));
+        let found = rhythms.find((r) => r.id === rhythmId) ?? null;
+        if (found) return found;
+
         for (const menu of MENU_CONFIGS) {
-          const menuData = await client.get(`menu:${uid}:${menu.slug}`);
-          if (!menuData) continue;
-          const menuRhythms: SavedRhythm[] = JSON.parse(menuData);
-          rhythm = menuRhythms.find((r) => r.id === rhythmId) ?? null;
-          if (rhythm) break;
+          const menuRhythms = await readSavedRhythms(client, menuKey(uid, menu.slug));
+          found = menuRhythms.find((r) => r.id === rhythmId) ?? null;
+          if (found) return found;
         }
-      }
-      await client.disconnect();
+        return null;
+      });
     } catch { /* fall through */ }
   }
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { SavedRhythm } from "@/app/types/library";
+import { requireUserId } from "@/app/lib/auth";
 import { REDIS_AVAILABLE, withRedis } from "@/app/lib/redis";
 import { menuKey, readSavedRhythms, writeSavedRhythms } from "@/app/lib/rhythmStorage";
 import { fromSunoPronunciation } from "@/app/lib/sunoLyrics";
@@ -24,14 +25,8 @@ function restoreDisplayLyrics(song: SavedRhythm): SavedRhythm {
     : song;
 }
 
-function requireAuth(request: NextRequest): string | null {
-  const session = request.cookies.get("rthmic_session");
-  if (session?.value !== process.env.RTHMIC_SESSION_TOKEN) return null;
-  return request.cookies.get("rthmic_uid")?.value ?? null;
-}
-
 export async function GET(request: NextRequest) {
-  const uid = requireAuth(request);
+  const uid = requireUserId(request);
   if (!uid) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const slug = new URL(request.url).searchParams.get("slug");
@@ -56,7 +51,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const uid = requireAuth(request);
+  const uid = requireUserId(request);
   if (!uid) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!REDIS_AVAILABLE) return NextResponse.json({ ok: true });
 

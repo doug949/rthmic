@@ -13,6 +13,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import type { SavedRhythm } from "@/app/types/library";
+import { requireUserId } from "@/app/lib/auth";
 import { REDIS_AVAILABLE, withRedis } from "@/app/lib/redis";
 import { libraryKey, readSavedRhythms } from "@/app/lib/rhythmStorage";
 
@@ -38,15 +39,9 @@ function makeToken(): string {
   return token;
 }
 
-function requireAuth(request: NextRequest): string | null {
-  const session = request.cookies.get("rthmic_session");
-  if (session?.value !== process.env.RTHMIC_SESSION_TOKEN) return null;
-  return request.cookies.get("rthmic_uid")?.value ?? null;
-}
-
 // POST /api/share — create a share token
 export async function POST(request: NextRequest) {
-  const uid = requireAuth(request);
+  const uid = requireUserId(request);
   if (!uid) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

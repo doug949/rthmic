@@ -16,6 +16,7 @@ import type { PillarType, TimedWord } from "@/app/types/pipeline";
 import { normalisePillar } from "@/app/types/pipeline";
 import type { SavedRhythm } from "@/app/types/library";
 import { normalizeTags, tagsForSavedRhythm } from "@/app/lib/autoTags";
+import { requireUserId } from "@/app/lib/auth";
 import { REDIS_AVAILABLE, withRedis } from "@/app/lib/redis";
 import { libraryKey, readSavedRhythms, writeSavedRhythms } from "@/app/lib/rhythmStorage";
 import { fromSunoPronunciation } from "@/app/lib/sunoLyrics";
@@ -23,12 +24,6 @@ import { fromSunoPronunciation } from "@/app/lib/sunoLyrics";
 export type { SavedRhythm };
 
 const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
-
-function requireAuth(request: NextRequest): string | null {
-  const session = request.cookies.get("rthmic_session");
-  if (session?.value !== process.env.RTHMIC_SESSION_TOKEN) return null;
-  return request.cookies.get("rthmic_uid")?.value ?? null;
-}
 
 function legacyPairKey(rhythm: SavedRhythm): string {
   const baseTitle = rhythm.title.replace(/\s+\(Variation\)$/i, "").trim().toLowerCase();
@@ -51,7 +46,7 @@ function restoreDisplayLyrics(rhythm: SavedRhythm): SavedRhythm {
 
 // GET /api/library — fetch all rhythms (active, archived, recently deleted)
 export async function GET(request: NextRequest) {
-  const uid = requireAuth(request);
+  const uid = requireUserId(request);
   if (!uid) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -109,7 +104,7 @@ export async function GET(request: NextRequest) {
 //   { action: "preferSide", id: string }                                  — set preferred A/B-side for the pair
 //   { action: "retag" }                                                    — re-run auto-tagging across saved rhythms
 export async function POST(request: NextRequest) {
-  const uid = requireAuth(request);
+  const uid = requireUserId(request);
   if (!uid) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
