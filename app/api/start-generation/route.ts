@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { StyleChoice } from "@/app/services/llmService";
 import { toSunoPronunciation } from "@/app/lib/sunoLyrics";
+import { extractSunoTaskId } from "@/app/lib/sunoResponse";
 
 const BASE_URL = "https://api.sunoapi.org/api/v1";
 
@@ -103,10 +104,7 @@ export async function POST(req: NextRequest) {
     const json = await res.json();
     console.log("Suno start response:", JSON.stringify(json));
 
-    const taskId: string =
-      json.data?.taskId ??
-      (typeof json.data === "string" ? json.data : undefined) ??
-      json.taskId;
+    const taskId = extractSunoTaskId(json);
 
     if (!taskId) {
       throw new Error(
