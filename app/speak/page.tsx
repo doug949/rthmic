@@ -1664,7 +1664,7 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
     "Take your time. You don't need to know what you're going to say to begin.",
   ];
 
-  const hasSuggestions = pillar === "explain" || pillar === "booksummary";
+  const hasSuggestions = !!pillar;
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(hasSuggestions);
   const [shuffling, setShuffling] = useState(false);
@@ -1794,7 +1794,9 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
             <div className="flex flex-col gap-3 border-t border-white/[0.06] pt-4">
               <div className="flex items-center justify-between">
                 <p className="text-[10px] text-white/35 uppercase tracking-[0.25em]">
-                  {pillar === "booksummary" ? "Or try a book" : "Or try a concept"}
+                  {pillar === "booksummary" ? "Or try a book"
+                    : pillar === "explain" ? "Or try a concept"
+                    : "Suggested starting points"}
                 </p>
                 <button
                   onClick={handleShuffle}
