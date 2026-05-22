@@ -13,7 +13,10 @@ export function proxy(request: NextRequest) {
     pathname.startsWith("/api/request-access") || // beta access request — public
     pathname.startsWith("/api/suno-webhook") || // Suno calls this — no session cookie
     pathname.startsWith("/api/process-queue") || // Vercel cron — auth via CRON_SECRET header
-    pathname.startsWith("/api/poll-generation")  // polled by cron self-call and frontend
+    pathname.startsWith("/api/poll-generation") || // polled by cron self-call and frontend
+    pathname.startsWith("/images/") ||
+    pathname === "/bg.jpg" ||
+    pathname === "/apple-touch-icon.png"
   ) {
     return NextResponse.next();
   }
@@ -41,5 +44,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|icons|manifest.json|sw.js|favicon.ico|splash\\.mp4).*)"],
+  matcher: ["/((?!_next/static|_next/image|icons|images|manifest.json|sw.js|favicon.ico|apple-touch-icon\\.png|bg\\.jpg|splash\\.mp4).*)"],
 };
