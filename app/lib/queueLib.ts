@@ -1,8 +1,8 @@
 // Shared Redis queue helpers used by /api/queue-generation, /api/process-queue, /api/queue-status
 
-import { createClient } from "redis";
 import type { StyleChoice } from "@/app/services/llmService";
 import type { PillarType } from "@/app/types/pipeline";
+import { withRedis, type RedisClient } from "@/app/lib/redis";
 
 export interface QueueJob {
   jobId: string;
@@ -27,15 +27,9 @@ export function userQueueKey(userId: string) { return `queue:user:${userId}`; }
 export const USERS_KEY = "queue:users";
 
 export async function withRedisQueue<T>(
-  fn: (client: ReturnType<typeof createClient>) => Promise<T>
+  fn: (client: RedisClient) => Promise<T>
 ): Promise<T> {
-  const client = createClient({ url: process.env.REDIS_URL });
-  await client.connect();
-  try {
-    return await fn(client);
-  } finally {
-    await client.disconnect();
-  }
+  return withRedis(fn);
 }
 
 export function taskIdKey(sunoTaskId: string) { return `queue:taskid:${sunoTaskId}`; }
@@ -52,7 +46,7 @@ export async function pushJob(job: QueueJob): Promise<void> {
 }
 
 export async function indexTaskId(
-  client: ReturnType<typeof createClient>,
+  client: RedisClient,
   sunoTaskId: string,
   jobId: string
 ): Promise<void> {
@@ -60,14 +54,14 @@ export async function indexTaskId(
 }
 
 export async function jobIdForTaskId(
-  client: ReturnType<typeof createClient>,
+  client: RedisClient,
   sunoTaskId: string
 ): Promise<string | null> {
   return client.get(taskIdKey(sunoTaskId));
 }
 
 export async function getJob(
-  client: ReturnType<typeof createClient>,
+  client: RedisClient,
   jobId: string
 ): Promise<QueueJob | null> {
   const raw = await client.get(jobKey(jobId));
@@ -75,7 +69,7 @@ export async function getJob(
 }
 
 export async function updateJob(
-  client: ReturnType<typeof createClient>,
+  client: RedisClient,
   job: QueueJob
 ): Promise<void> {
   job.updatedAt = Date.now();
@@ -83,14 +77,14 @@ export async function updateJob(
 }
 
 export async function getUserJobIds(
-  client: ReturnType<typeof createClient>,
+  client: RedisClient,
   userId: string
 ): Promise<string[]> {
   return client.lRange(userQueueKey(userId), 0, -1);
 }
 
 export async function removeJobFromUserList(
-  client: ReturnType<typeof createClient>,
+  client: RedisClient,
   userId: string,
   jobId: string
 ): Promise<void> {
@@ -98,7 +92,7 @@ export async function removeJobFromUserList(
 }
 
 export async function getQueueStats(
-  client: ReturnType<typeof createClient>,
+  client: RedisClient,
   userId: string
 ): Promise<{ pending: number; generating: number }> {
   const jobIds = await getUserJobIds(client, userId);
