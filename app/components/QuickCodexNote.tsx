@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useAudio } from "@/app/contexts/AudioContext";
 
-type NoteState = "idle" | "recording" | "saving" | "saved" | "error";
+type NoteState = "idle" | "countdown" | "recording" | "saving" | "saved" | "error";
 
 const FEEDBACK_DB_NAME = "rthmic-feedback-drafts";
 const FEEDBACK_STORE_NAME = "drafts";
@@ -73,6 +73,7 @@ export default function QuickCodexNote() {
   const [level, setLevel] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const [pendingDrafts, setPendingDrafts] = useState(0);
+  const [countdown, setCountdown] = useState(3);
 
   useEffect(() => setMounted(true), []);
 
@@ -138,6 +139,23 @@ export default function QuickCodexNote() {
       // Feedback still records if visual metering is unavailable.
     }
   };
+
+  const beginCountdown = () => {
+    setExpanded(true);
+    setMessage("");
+    setCountdown(3);
+    setState("countdown");
+  };
+
+  useEffect(() => {
+    if (state !== "countdown") return;
+    if (countdown <= 0) {
+      start();
+      return;
+    }
+    const id = window.setTimeout(() => setCountdown((n) => n - 1), 650);
+    return () => window.clearTimeout(id);
+  }, [state, countdown]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const start = async () => {
     try {
@@ -252,7 +270,7 @@ export default function QuickCodexNote() {
           </div>
         )}
         <button
-          onClick={() => setExpanded(true)}
+          onClick={beginCountdown}
           className="w-9 h-9 rounded-full border flex items-center justify-center touch-manipulation active:scale-95 transition-transform"
           style={{
             background: "rgba(10,16,32,0.68)",
@@ -319,7 +337,25 @@ export default function QuickCodexNote() {
           Retry saved feedback ({pendingDrafts})
         </button>
       )}
-      {state === "recording" ? (
+      {state === "countdown" ? (
+        <button
+          onClick={() => { setState("idle"); setExpanded(false); }}
+          className="h-14 rounded-full border flex items-center gap-3 px-5 touch-manipulation active:scale-[0.98] transition-transform overflow-hidden"
+          style={{
+            background: "rgba(10,16,32,0.84)",
+            borderColor: "rgba(201,165,90,0.32)",
+            color: "rgba(255,238,198,0.95)",
+            boxShadow: "inset 0 1px 10px rgba(201,165,90,0.08), 0 10px 32px rgba(0,0,0,0.34)",
+            backdropFilter: "blur(14px)",
+          }}
+          aria-label="Cancel instant feedback countdown"
+        >
+          <span className="w-8 h-8 rounded-full border flex items-center justify-center text-sm font-semibold" style={{ borderColor: "rgba(201,165,90,0.35)", color: "rgba(201,165,90,0.92)" }}>
+            {countdown || <MicGlyph />}
+          </span>
+          <span className="text-[11px] uppercase tracking-widest whitespace-nowrap">Recording starts now</span>
+        </button>
+      ) : state === "recording" ? (
         <button
           onClick={stop}
           className="h-12 rounded-full border flex items-center gap-3 px-4 touch-manipulation active:scale-[0.98] transition-transform overflow-hidden"
@@ -337,7 +373,7 @@ export default function QuickCodexNote() {
         </button>
       ) : (
         <button
-          onClick={state === "saving" ? undefined : start}
+          onClick={state === "saving" ? undefined : beginCountdown}
           disabled={state === "saving"}
           className="min-h-12 rounded-full border flex items-center gap-3 px-4 py-2 touch-manipulation active:scale-[0.98] transition-transform disabled:opacity-45 text-left"
           style={{
