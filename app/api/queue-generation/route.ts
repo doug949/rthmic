@@ -4,9 +4,10 @@
 // The cron at /api/process-queue handles polling for completion.
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "redis";
 import { withRedisQueue, getUserJobIds, getJob, pushJob, updateJob, indexTaskId } from "@/app/lib/queueLib";
 import type { QueueJob } from "@/app/lib/queueLib";
+import { requireUserId } from "@/app/lib/auth";
+import { REDIS_AVAILABLE, withRedis, type RedisClient } from "@/app/lib/redis";
 import { toSunoPronunciation } from "@/app/lib/sunoLyrics";
 import { extractSunoTaskId } from "@/app/lib/sunoResponse";
 import { buildSunoStyle } from "@/app/lib/sunoStyle";
@@ -20,27 +21,19 @@ const SUNO_CHAR_LIMIT = 5000;
 const SUNO_BASE = "https://api.sunoapi.org/api/v1";
 const APP_URL = "https://rthmic.app";
 
-function requireAuth(req: NextRequest): string | null {
-  const session = req.cookies.get("rthmic_session");
-  if (session?.value !== process.env.RTHMIC_SESSION_TOKEN) return null;
-  return req.cookies.get("rthmic_uid")?.value ?? null;
-}
-
 async function getVocalistPref(uid: string): Promise<"male" | "female" | "none"> {
   try {
-    if (!process.env.REDIS_URL) return "none";
-    const client = createClient({ url: process.env.REDIS_URL });
-    await client.connect();
-    try {
+    if (!REDIS_AVAILABLE) return "none";
+    return await withRedis(async (client) => {
       const raw = await client.get(`settings:${uid}`);
       if (!raw) return "none";
       const s = JSON.parse(raw);
       return s.vocalist === "male" || s.vocalist === "female" ? s.vocalist : "none";
-    } finally { await client.disconnect(); }
+    });
   } catch { return "none"; }
 }
 
-async function countGenerating(client: ReturnType<typeof createClient>, userId: string): Promise<number> {
+async function countGenerating(client: RedisClient, userId: string): Promise<number> {
   const ids = await getUserJobIds(client, userId);
   let count = 0;
   for (const id of ids) {
@@ -86,9 +79,9 @@ async function startSunoJob(job: QueueJob): Promise<string | null> {
 }
 
 export async function POST(req: NextRequest) {
-  const uid = requireAuth(req);
+  const uid = requireUserId(req);
   if (!uid) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!process.env.REDIS_URL) return NextResponse.json({ error: "Queue not configured" }, { status: 500 });
+  if (!REDIS_AVAILABLE) return NextResponse.json({ error: "Queue not configured" }, { status: 500 });
   if (!process.env.SUNO_API_KEY) return NextResponse.json({ error: "SUNO_API_KEY not set" }, { status: 500 });
 
   const body = await req.json();
