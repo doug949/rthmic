@@ -47,7 +47,6 @@ export type AudioQueueTrack = {
 
 export type AudioQueueOptions = {
   loopEach?: boolean;
-  loopAll?: boolean;
 };
 
 const AudioCtx = createContext<AudioContextValue | null>(null);
@@ -68,7 +67,6 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   const queueRef         = useRef<AudioQueueTrack[]>([]);
   const queueIndexRef    = useRef(-1);
   const queueLoopEachRef = useRef(false);
-  const queueLoopAllRef  = useRef(false);
   const attachAndPlayRef = useRef<((id: string, url: string, generation: number, meta?: { sunoTaskId?: string; rhythmId?: string }) => void) | null>(null);
 
   const openPlayer  = useCallback(() => setPlayerOpen(true),  []);
@@ -94,7 +92,6 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     queueRef.current = [];
     queueIndexRef.current = -1;
     queueLoopEachRef.current = false;
-    queueLoopAllRef.current = false;
   }, [stopCurrent]);
 
   const playQueuedTrack = useCallback((track: AudioQueueTrack, index: number) => {
@@ -136,12 +133,9 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       });
       audio.addEventListener("ended", () => {
         if (audio.loop) return;
-        const nextTrack =
-          queueRef.current[queueIndexRef.current + 1] ??
-          (queueLoopAllRef.current ? queueRef.current[0] : undefined);
+        const nextTrack = queueRef.current[queueIndexRef.current + 1];
         if (nextTrack) {
-          const nextIndex = queueRef.current.findIndex((candidate) => candidate.id === nextTrack.id);
-          playQueuedTrack(nextTrack, nextIndex >= 0 ? nextIndex : 0);
+          playQueuedTrack(nextTrack, queueIndexRef.current + 1);
           return;
         }
         setIsPlaying(false);
@@ -152,7 +146,6 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         queueRef.current = [];
         queueIndexRef.current = -1;
         queueLoopEachRef.current = false;
-        queueLoopAllRef.current = false;
       });
 
       // Stall detection via currentTime polling — the only reliable approach on iOS Safari.
@@ -162,6 +155,44 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       let lastAdvanceAt = Date.now();
       let recoverRetries = 0;
       let stallInterval: ReturnType<typeof setInterval> | null = null;
+      let hardRecovering = false;
+
+      const hardRecover = async () => {
+        if (hardRecovering || generation !== generationRef.current) return;
+        hardRecovering = true;
+        if (stallInterval) { clearInterval(stallInterval); stallInterval = null; }
+
+        const resumeAt = Number.isFinite(audio.currentTime) ? audio.currentTime : 0;
+        let recoveryUrl = url;
+        if (meta?.rhythmId) {
+          recoveryUrl = `/api/proxy-audio?id=${encodeURIComponent(meta.rhythmId)}`;
+        }
+
+        if (meta?.sunoTaskId && meta?.rhythmId) {
+          try {
+            const res = await fetch(
+              `/api/refresh-audio?taskId=${encodeURIComponent(meta.sunoTaskId)}&id=${encodeURIComponent(meta.rhythmId)}`
+            );
+            if (res.ok) {
+              const { url: freshUrl } = await res.json();
+              if (typeof freshUrl === "string" && freshUrl) recoveryUrl = freshUrl;
+            }
+          } catch {
+            console.warn("Audio refresh failed during stall recovery");
+          }
+        }
+
+        const freshGen = ++generationRef.current;
+        attachAndPlayRef.current?.(id, recoveryUrl, freshGen, meta);
+        setTimeout(() => {
+          if (generationRef.current !== freshGen || !audioRef.current || resumeAt <= 0) return;
+          try {
+            audioRef.current.currentTime = resumeAt;
+          } catch {
+            // Some iOS streams reject seeking before enough metadata is loaded.
+          }
+        }, 250);
+      };
 
       const startStallCheck = () => {
         if (stallInterval) return;
@@ -178,8 +209,8 @@ export function AudioProvider({ children }: { children: ReactNode }) {
           } else if (Date.now() - lastAdvanceAt > 2500) {
             // currentTime hasn't moved in 5s while supposedly playing — genuinely stalled
             if (recoverRetries >= 3) {
-              clearInterval(stallInterval!); stallInterval = null;
-              setIsPlaying(false); return;
+              hardRecover().catch(() => setIsPlaying(false));
+              return;
             }
             recoverRetries++;
             lastAdvanceAt = Date.now();
@@ -273,7 +304,6 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       queueRef.current = [];
       queueIndexRef.current = -1;
       queueLoopEachRef.current = false;
-      queueLoopAllRef.current = false;
       const generation = ++generationRef.current;
       setLoadingId(trackId);
       setCurrentTrackId(trackId);
@@ -317,7 +347,6 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       queueRef.current = [];
       queueIndexRef.current = -1;
       queueLoopEachRef.current = false;
-      queueLoopAllRef.current = false;
       const generation = ++generationRef.current;
       setLoadingId(id);
       setCurrentTrackId(id);
@@ -341,7 +370,6 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       const generation = ++generationRef.current;
       queueRef.current = playable;
       queueLoopEachRef.current = !!options.loopEach;
-      queueLoopAllRef.current = !!options.loopAll;
       queueIndexRef.current = playable.findIndex((candidate) => candidate.id === track.id);
       setLoadingId(track.id);
       setCurrentTrackId(track.id);
