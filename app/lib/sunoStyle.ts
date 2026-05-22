@@ -2,6 +2,9 @@ const SUNO_STYLE_LIMIT = 200;
 const FADE_SUFFIX = ", fade out ending, resolving outro";
 
 const ARTIST_REFERENCE_PATTERNS = [
+  // Suno currently appears most sensitive to explicit "make it like artist X"
+  // phrasing. Keep successful hand-tested exceptions below, but strip these
+  // patterns by default so user/custom styles fail less often.
   /\bin the style of\s+[^,.]+/gi,
   /\bin the zone of\s+[^,.]+/gi,
   /\binspired by\s+[^,.]+/gi,
@@ -32,6 +35,8 @@ const KNOWN_SENSITIVE_STYLE_TERMS = [
 ];
 
 const ALLOWED_ARTIST_REFERENCE_STYLES = [
+  // Hand-tested in production: this exact preset is accepted and has a strong
+  // creative result, so preserve it even though the default rule strips names.
   "Hamilton-style Broadway hip-hop in the zone of Lin-Manuel Miranda and clipping",
 ];
 
