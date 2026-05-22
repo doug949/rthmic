@@ -5,8 +5,10 @@
 //   Returns: { ok: true } | { error: string }
 //
 // Redis schema:
-//   `beta-code:{code}`  → { email, createdAt } — TTL 30 days (the actual access code)
-//   `beta-req:{email}`  → { sentAt }           — TTL 10 min (rate-limit / dedup)
+//   `beta-code:{code}`       → { email, createdAt } — TTL 30 days (the actual access code)
+//   `beta-req:{email}`       → { sentAt }           — TTL 10 min (rate-limit / dedup)
+//   `access-request:{email}` → { email, requestedAt, source } — persistent waitlist fallback
+//   `access-requests`        → newest-first list of requested emails
 //
 // Required env vars:
 //   REDIS_URL           — Redis connection string
@@ -187,13 +189,32 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid email address" }, { status: 400 });
   }
 
-  // Dev mode — no Redis or Resend configured
-  if (!REDIS_AVAILABLE || !RESEND_AVAILABLE) {
-    console.log(`[request-access] DEV MODE — would send code to ${normalised}`);
-    // Still generate and log a code so the developer can test the auth flow
-    const devCode = makeBetaCode();
-    console.log(`[request-access] DEV code: ${devCode}`);
-    return NextResponse.json({ ok: true, devCode });
+  if (!REDIS_AVAILABLE) {
+    console.log(`[request-access] Redis unavailable — request from ${normalised}`);
+    return NextResponse.json({ ok: true });
+  }
+
+  // If email delivery is not configured, keep a waitlist request instead of
+  // pretending a code was sent. The UI intentionally shows a neutral message.
+  if (!RESEND_AVAILABLE) {
+    try {
+      await withRedis(async (client) => {
+        const reqKey = `beta-req:${normalised}`;
+        if (await client.get(reqKey)) return;
+        const entry = JSON.stringify({ email: normalised, requestedAt: Date.now(), source: "login" });
+        await client
+          .multi()
+          .set(`access-request:${normalised}`, entry)
+          .lPush("access-requests", normalised)
+          .lTrim("access-requests", 0, 499)
+          .set(reqKey, "1", { EX: TEN_MIN_SEC })
+          .exec();
+      });
+    } catch (err) {
+      console.error("[request-access] Waitlist error:", err);
+      return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
+    }
+    return NextResponse.json({ ok: true });
   }
 
   try {

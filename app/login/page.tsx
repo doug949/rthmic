@@ -6,8 +6,12 @@ import { Suspense } from "react";
 
 function LoginForm() {
   const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("");
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [requestingAccess, setRequestingAccess] = useState(false);
+  const [accessRequested, setAccessRequested] = useState(false);
+  const [accessError, setAccessError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -37,6 +41,32 @@ function LoginForm() {
       setLoading(false);
       inputRef.current?.focus();
     }
+  }
+
+  async function requestAccess(e: React.FormEvent) {
+    e.preventDefault();
+    setRequestingAccess(true);
+    setAccessError("");
+    setAccessRequested(false);
+
+    const res = await fetch("/api/request-access", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+
+    if (res.ok) {
+      setAccessRequested(true);
+      setEmail("");
+    } else {
+      let message = "Could not request access";
+      try {
+        const data = await res.json();
+        if (data.error) message = data.error;
+      } catch { /* ignore */ }
+      setAccessError(message);
+    }
+    setRequestingAccess(false);
   }
 
   return (
@@ -77,18 +107,42 @@ function LoginForm() {
         >
           {loading ? "…" : "Enter"}
         </button>
+      </form>
+
+      <form onSubmit={requestAccess} className="w-full max-w-xs flex flex-col gap-3 mt-8">
+        <p className="text-xs text-white/35 text-center leading-relaxed">
+          Need access? Enter your email and we&apos;ll be in touch.
+        </p>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => { setEmail(e.target.value); setAccessRequested(false); setAccessError(""); }}
+          placeholder="Email address"
+          autoComplete="email"
+          className="
+            w-full bg-white/[0.035] border border-white/10 rounded-xl px-5 py-4
+            text-white placeholder-white/20 text-sm tracking-wide
+            outline-none focus:bg-white/[0.06] focus:border-white/25
+            transition-all duration-200
+          "
+        />
+        {accessRequested && (
+          <p className="text-xs text-white/55 text-center">Request received. We&apos;ll email you about access.</p>
+        )}
+        {accessError && (
+          <p className="text-xs text-red-400/75 text-center">{accessError}</p>
+        )}
         <button
-          type="button"
-          onClick={() => loginWith("testdrive")}
-          disabled={loading}
+          type="submit"
+          disabled={requestingAccess || !email}
           className="
             w-full border border-white/10 text-white/55 font-medium text-sm tracking-wide
-            rounded-xl py-4 mt-2
+            rounded-xl py-4
             disabled:opacity-30 transition-all duration-200
             active:scale-[0.98] bg-white/[0.03]
           "
         >
-          Test drive RTHMIC
+          {requestingAccess ? "…" : "Request access"}
         </button>
       </form>
     </main>

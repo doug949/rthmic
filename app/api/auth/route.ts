@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHash } from "crypto";
 import { createClient } from "redis";
-import { TEST_DRIVE_CODE, testDriveLibrary } from "@/app/lib/testDriveLibrary";
-import type { SavedRhythm } from "@/app/api/library/route";
 
 // Derive a stable, cross-device UID from the invite code.
 // All devices logging in with the same code share one library namespace.
@@ -28,25 +26,6 @@ async function isBetaCode(code: string): Promise<boolean> {
   }
 }
 
-async function seedTestDriveLibrary(uid: string): Promise<void> {
-  if (!process.env.REDIS_URL) return;
-  const client = createClient({ url: process.env.REDIS_URL });
-  try {
-    await client.connect();
-    const key = `lib:${uid}`;
-    const samples = testDriveLibrary();
-    const sampleIds = new Set(samples.map((r) => r.id));
-    const existing = await client.get(key);
-    const current: SavedRhythm[] = existing ? JSON.parse(existing) : [];
-    const userCreated = current.filter((r) => !sampleIds.has(r.id));
-    await client.set(key, JSON.stringify([...samples, ...userCreated]));
-  } catch (err) {
-    console.warn("[auth] Failed to seed test drive library:", err);
-  } finally {
-    await client.disconnect().catch(() => {});
-  }
-}
-
 export async function POST(request: NextRequest) {
   const { password } = await request.json();
 
@@ -59,15 +38,13 @@ export async function POST(request: NextRequest) {
 
   // Accept env-var codes OR Redis-stored beta codes
   const isEnvCode   = validCodes.includes(password);
-  const isTestDrive = password.trim().toLowerCase() === TEST_DRIVE_CODE;
-  const isBeta      = isEnvCode || isTestDrive ? false : await isBetaCode(password);
+  const isBeta      = isEnvCode ? false : await isBetaCode(password);
 
-  if (!isEnvCode && !isBeta && !isTestDrive) {
+  if (!isEnvCode && !isBeta) {
     return NextResponse.json({ error: "Wrong password" }, { status: 401 });
   }
 
-  const uid = codeToUid(isTestDrive ? TEST_DRIVE_CODE : password);
-  if (isTestDrive) await seedTestDriveLibrary(uid);
+  const uid = codeToUid(password);
 
   const response = NextResponse.json({ ok: true });
 
@@ -93,7 +70,7 @@ export async function POST(request: NextRequest) {
 
   // Display cookie — readable by the client to show who is logged in.
   // Not httpOnly so JS can access it. Not sensitive — user already knows their code.
-  response.cookies.set("rthmic_code", isTestDrive ? TEST_DRIVE_CODE : password, {
+  response.cookies.set("rthmic_code", password, {
     httpOnly: false,
     secure: true,
     sameSite: "lax",
