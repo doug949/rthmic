@@ -745,7 +745,7 @@ export default function SpeakPage() {
     if (pillarParam) {
       seedRef.current = seedParam ?? null;
       setSelectedPillar(pillarParam);
-      setIsDedication(false);
+      setIsDedication(pillarParam === "bridge" || pillarParam === "invite");
       setPhase("priming");
     } else {
       setSelectedPillar(null);
