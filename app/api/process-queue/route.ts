@@ -15,6 +15,7 @@ import type { QueueJob } from "@/app/lib/queueLib";
 import type { Song } from "@/app/types/pipeline";
 import { saveCompletedSongs } from "@/app/lib/generationCompletion";
 import { extractSunoTaskId } from "@/app/lib/sunoResponse";
+import { buildSunoStyle } from "@/app/lib/sunoStyle";
 
 export const maxDuration = 60;
 
@@ -100,7 +101,7 @@ async function startJob(
       instrumental: false,
       model: "V5",
       prompt: job.lyrics,
-      style: job.genre,
+      style: buildSunoStyle(job.genre),
       title: job.title,
       callBackUrl: `${APP_URL}/api/suno-webhook`,
     }),

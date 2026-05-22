@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { StyleChoice } from "@/app/services/llmService";
 import { toSunoPronunciation } from "@/app/lib/sunoLyrics";
 import { extractSunoTaskId } from "@/app/lib/sunoResponse";
+import { buildSunoStyle } from "@/app/lib/sunoStyle";
 
 const BASE_URL = "https://api.sunoapi.org/api/v1";
 
@@ -29,30 +30,8 @@ async function getVocalistPref(req: NextRequest): Promise<"male" | "female" | "n
 }
 const SUNO_CHAR_LIMIT = 5000;
 
-// Suno's style field rejects full sentences — convert periods to commas.
-// Also enforces a 200-char hard cap as a safety net, truncating at the
-// last comma so we don't cut mid-tag.
-const SUNO_STYLE_LIMIT = 200;
-const FADE_SUFFIX = ", fade out ending, resolving outro";
-
 function buildMusicStyle(_style: StyleChoice, genre: string): string {
-  // Convert sentence endings to comma-separated tags
-  const cleaned = genre
-    .replace(/\.\s*/g, ", ")
-    .replace(/,\s*,+/g, ",")
-    .trim()
-    .replace(/,\s*$/, "");
-
-  const full = `${cleaned}${FADE_SUFFIX}`;
-  if (full.length <= SUNO_STYLE_LIMIT) return full;
-
-  // Truncate: fit as many comma-separated tags as possible within the limit
-  const budget = SUNO_STYLE_LIMIT - FADE_SUFFIX.length;
-  const truncated = cleaned.slice(0, budget);
-  const lastComma = truncated.lastIndexOf(",");
-  const base = lastComma > 0 ? truncated.slice(0, lastComma) : truncated;
-  console.warn(`Style truncated from ${full.length} to ${(base + FADE_SUFFIX).length} chars`);
-  return `${base}${FADE_SUFFIX}`;
+  return buildSunoStyle(genre);
 }
 
 export const maxDuration = 30;

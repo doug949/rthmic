@@ -9,6 +9,7 @@ import { withRedisQueue, getUserJobIds, getJob, pushJob, updateJob, indexTaskId 
 import type { QueueJob } from "@/app/lib/queueLib";
 import { toSunoPronunciation } from "@/app/lib/sunoLyrics";
 import { extractSunoTaskId } from "@/app/lib/sunoResponse";
+import { buildSunoStyle } from "@/app/lib/sunoStyle";
 import type { StyleChoice } from "@/app/services/llmService";
 import type { PillarType } from "@/app/types/pipeline";
 
@@ -16,21 +17,8 @@ export const maxDuration = 30;
 
 const MAX_CONCURRENT = 5;
 const SUNO_CHAR_LIMIT = 5000;
-const SUNO_STYLE_LIMIT = 200;
-const FADE_SUFFIX = ", fade out ending, resolving outro";
 const SUNO_BASE = "https://api.sunoapi.org/api/v1";
 const APP_URL = "https://rthmic.app";
-
-function buildMusicStyle(genre: string): string {
-  const cleaned = genre.replace(/\.\s*/g, ", ").replace(/,\s*,+/g, ",").trim().replace(/,\s*$/, "");
-  const full = `${cleaned}${FADE_SUFFIX}`;
-  if (full.length <= SUNO_STYLE_LIMIT) return full;
-  const budget = SUNO_STYLE_LIMIT - FADE_SUFFIX.length;
-  const truncated = cleaned.slice(0, budget);
-  const lastComma = truncated.lastIndexOf(",");
-  const base = lastComma > 0 ? truncated.slice(0, lastComma) : truncated;
-  return `${base}${FADE_SUFFIX}`;
-}
 
 function requireAuth(req: NextRequest): string | null {
   const session = req.cookies.get("rthmic_session");
@@ -117,7 +105,7 @@ export async function POST(req: NextRequest) {
   const vocalist = await getVocalistPref(uid);
   const genre = vocalist !== "none" ? `${rawGenre}, ${vocalist} vocalist` : rawGenre;
   const lyrics = toSunoPronunciation(rawLyrics.slice(0, SUNO_CHAR_LIMIT));
-  const builtStyle = buildMusicStyle(genre);
+  const builtStyle = buildSunoStyle(genre);
 
   const jobId = crypto.randomUUID();
   const job: QueueJob = {
