@@ -483,6 +483,7 @@ const HOME_TILES: {
   adminPreview?: boolean;
 }[] = [
   { id: "create", href: "/speak",     label: "Create a Rthm",        shortLabel: "Create",     icon: <MicIcon />,     accent: "rgba(201,165,90,0.55)", image: "/images/tiles/create.jpg" },
+  { id: "right-now", href: "/speak?quick=1", label: "Right Now", shortLabel: "Right Now", icon: <SituationIcon />, accent: "rgba(120,200,210,0.55)", image: "/images/tiles/create.jpg", imageScale: 1.08 },
   { id: "my-rthms", href: "/library/my-rthms", label: "My Rthms",      shortLabel: "My Rthms",   icon: <PlayIcon />,    accent: "rgba(100,140,255,0.5)", image: "/images/tiles/my-rthms.jpg" },
   { id: "bridge", href: "/bridge", label: "Rthmic Bridge", shortLabel: "Bridge", icon: <BridgeTileIcon />, accent: "rgba(180,160,140,0.55)", image: "/images/tiles/bridge.jpg" },
   { id: "invite", href: "/invite", label: "Rthmic Invite", shortLabel: "Invite", icon: <InviteTileIcon />, accent: "rgba(218,185,120,0.55)", image: "/images/tiles/invite.jpg", adminOnly: true },
@@ -493,6 +494,16 @@ const HOME_TILES: {
   { id: "about", href: "/understand",label: "About RTHMIC",          shortLabel: "About",      icon: <InfoIcon />,    accent: "rgba(255,255,255,0.15)", image: "/images/tiles/about.jpg" },
   { id: "studio", href: "/studio",    label: "Developer",            shortLabel: "Developer",  icon: <LockIcon />,    accent: "rgba(109,40,217,0.55)", image: "/images/tiles/feedback.jpg", adminOnly: true },
 ];
+
+function SituationIcon() {
+  return (
+    <svg width="23" height="23" viewBox="0 0 24 24" fill="none">
+      <path d="M12 4.5v2.2M12 17.3v2.2M4.5 12h2.2M17.3 12h2.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <circle cx="12" cy="12" r="4.3" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M12 9.5v2.7l1.8 1.1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 function HomeTile({ tile, reorderMode }: { tile: typeof HOME_TILES[number]; reorderMode?: boolean; delay?: number }) {
   const inner = (

@@ -181,6 +181,7 @@ export default function SpeakPage() {
   const genStartedAtRef = useRef<number | null>(null);
   const [genDurationMs, setGenDurationMs] = useState<number | null>(null);
   const [wasAutoStopped, setWasAutoStopped] = useState(false);
+  const [quickMode, setQuickMode] = useState(false);
 
   // Ref mirror of selectedPillar — updated synchronously so stale closures
   // (recorder.onstop, memoised callbacks) always read the live value.
@@ -740,14 +741,23 @@ export default function SpeakPage() {
     const seedParam = params.get("seed");
     const menuSlugParam = params.get("menuSlug");
     const menuTitleParam = params.get("menuTitle");
+    const quickParam = params.get("quick");
     menuSlugRef.current = menuSlugParam ?? null;
     menuTitleRef.current = menuTitleParam ?? null;
     if (pillarParam) {
+      setQuickMode(false);
       seedRef.current = seedParam ?? null;
       setSelectedPillar(pillarParam);
       setIsDedication(pillarParam === "bridge" || pillarParam === "invite");
       setPhase("priming");
+    } else if (quickParam === "1") {
+      setQuickMode(true);
+      seedRef.current = seedParam ?? null;
+      setSelectedPillar(null);
+      setIsDedication(false);
+      setPhase("idle");
     } else {
+      setQuickMode(false);
       setSelectedPillar(null);
       setPhase("module");
     }
@@ -878,10 +888,10 @@ export default function SpeakPage() {
             }} />
           )}
           {phase === "idle" && (
-            <IdleView onRecord={startRecording} errorMsg={errorMsg} selectedPillar={selectedPillar} />
+            <IdleView onRecord={startRecording} errorMsg={errorMsg} selectedPillar={selectedPillar} quickMode={quickMode} />
           )}
           {phase === "recording" && (
-            <RecordingView orbRef={orbRef} onStop={stopRecording} seconds={recordingSeconds} maxSeconds={MAX_RECORDING_SECONDS} selectedPillar={selectedPillar} />
+            <RecordingView orbRef={orbRef} onStop={stopRecording} seconds={recordingSeconds} maxSeconds={MAX_RECORDING_SECONDS} selectedPillar={selectedPillar} quickMode={quickMode} />
           )}
           {phase === "understanding" && <UnderstandingView pillar={selectedPillar} />}
           {phase === "confirming" && understandResult && (
@@ -1854,11 +1864,11 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
 
 // ─── Idle ─────────────────────────────────────────────────────────────────────
 
-function IdleView({ onRecord, errorMsg, selectedPillar }: { onRecord: () => void; errorMsg: string; selectedPillar: string | null }) {
+function IdleView({ onRecord, errorMsg, selectedPillar, quickMode }: { onRecord: () => void; errorMsg: string; selectedPillar: string | null; quickMode?: boolean }) {
   const [micRequesting, setMicRequesting] = useState(false);
 
-  const idleHeading  = (selectedPillar && PILLAR_PROMPT[selectedPillar])   ?? "Speak freely";
-  const idleSubtitle = (selectedPillar && PILLAR_SUBTITLE[selectedPillar]) ?? "Two Rthms will be built for you.";
+  const idleHeading  = quickMode ? "What is happening right now?" : (selectedPillar && PILLAR_PROMPT[selectedPillar])   ?? "Speak freely";
+  const idleSubtitle = quickMode ? "RTHMIC will suggest the right category." : (selectedPillar && PILLAR_SUBTITLE[selectedPillar]) ?? "Two Rthms will be built for you.";
 
   return (
     <section className="flex-1 flex flex-col items-center justify-center pb-24 gap-10">
@@ -1921,14 +1931,16 @@ function RecordingView({
   orbRef,
   onStop,
   selectedPillar,
+  quickMode,
 }: {
   orbRef: React.RefObject<HTMLDivElement | null>;
   onStop: () => void;
   seconds: number;
   maxSeconds: number;
   selectedPillar?: string | null;
+  quickMode?: boolean;
 }) {
-  const heading = (selectedPillar && PILLAR_PROMPT[selectedPillar]) ?? "Speak freely";
+  const heading = quickMode ? "Describe the situation" : (selectedPillar && PILLAR_PROMPT[selectedPillar]) ?? "Speak freely";
   return (
     <section
       className="flex-1 flex flex-col items-center justify-center pb-24 gap-10"
@@ -2155,7 +2167,7 @@ function ConfirmingView({
             className="w-full py-5 rounded-2xl text-sm font-semibold tracking-wide active:scale-[0.98] transition-all touch-manipulation"
             style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.45)", color: "#c9a55a" }}
           >
-            Yes — build my Rthms
+            Continue with {result.pillar}
           </button>
           <button
             onClick={onAddMore}
