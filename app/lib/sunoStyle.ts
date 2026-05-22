@@ -31,7 +31,22 @@ const KNOWN_SENSITIVE_STYLE_TERMS = [
   "Smash Mouth",
 ];
 
+const ALLOWED_ARTIST_REFERENCE_STYLES = [
+  "Hamilton-style Broadway hip-hop in the zone of Lin-Manuel Miranda and clipping",
+];
+
 export function sanitizeSunoStyle(style: string): string {
+  if (ALLOWED_ARTIST_REFERENCE_STYLES.some((allowed) => style.includes(allowed))) {
+    return style
+      .replace(/\.\s*/g, ", ")
+      .replace(/,\s*fade out ending,\s*resolving outro/gi, "")
+      .replace(/,\s*,+/g, ",")
+      .replace(/\s{2,}/g, " ")
+      .replace(/\s+,/g, ",")
+      .trim()
+      .replace(/^[,.\s]+|[,.\s]+$/g, "");
+  }
+
   let cleaned = style;
 
   for (const pattern of ARTIST_REFERENCE_PATTERNS) {
