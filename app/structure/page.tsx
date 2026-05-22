@@ -6,7 +6,7 @@ import { AppHeader } from "@/app/components/AppHeader";
 import { RevealBlock } from "@/app/components/RevealBlock";
 import { useGeneration } from "@/app/contexts/GenerationContext";
 import { usePillarTheme } from "@/app/contexts/PillarThemeContext";
-import type { SavedRhythm } from "@/app/api/library/route";
+import type { SavedRhythm } from "@/app/types/library";
 import { MenusIcon } from "@/app/components/HomeTileIcons";
 import { MENU_CONFIGS, MENU_GROUPS } from "@/app/lib/menuConfigs";
 

@@ -1,6 +1,6 @@
 "use client";
 
-import type { SavedRhythm } from "@/app/api/library/route";
+import type { SavedRhythm } from "@/app/types/library";
 
 export const AUDIO_CACHE = "rthmic-audio-v1";
 export const KEEP_ALL_OFFLINE_KEY = "rthmic_keep_all_offline";

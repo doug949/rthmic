@@ -8,7 +8,7 @@ import { useSwipeBack } from "@/app/hooks/useSwipeBack";
 import { useGeneration } from "@/app/contexts/GenerationContext";
 import { useAudio } from "@/app/contexts/AudioContext";
 import CustomStyleInput from "@/app/components/CustomStyleInput";
-import type { SavedRhythm } from "@/app/api/library/route";
+import type { SavedRhythm } from "@/app/types/library";
 import { BUILD_UPON_GENRE, buildUponLyrics, buildUponTitle } from "@/app/lib/buildUpon";
 import {
   RhythmRow,

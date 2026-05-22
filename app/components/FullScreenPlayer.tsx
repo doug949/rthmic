@@ -7,7 +7,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import { useRouter } from "next/navigation";
 import { useAudio } from "@/app/contexts/AudioContext";
 import { useGeneration } from "@/app/contexts/GenerationContext";
-import type { SavedRhythm } from "@/app/api/library/route";
+import type { SavedRhythm } from "@/app/types/library";
 import type { TimedWord } from "@/app/types/pipeline";
 import CustomStyleInput from "@/app/components/CustomStyleInput";
 import { useOfflineAudio } from "@/app/hooks/useOfflineAudio";

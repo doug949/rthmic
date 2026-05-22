@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import type { SavedRhythm } from "@/app/api/library/route";
+import type { SavedRhythm } from "@/app/types/library";
 import { useOfflineAudio } from "@/app/hooks/useOfflineAudio";
 
 export type { SavedRhythm };

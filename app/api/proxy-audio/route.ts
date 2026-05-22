@@ -6,7 +6,7 @@ export const maxDuration = 30;
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "redis";
-import type { SavedRhythm } from "@/app/api/library/route";
+import type { SavedRhythm } from "@/app/types/library";
 import { getWasabiSignedUrl } from "@/app/lib/wasabiUpload";
 import { MENU_CONFIGS } from "@/app/lib/menuConfigs";
 

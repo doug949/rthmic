@@ -7,7 +7,7 @@ import { RevealBlock } from "@/app/components/RevealBlock";
 import { useGeneration } from "@/app/contexts/GenerationContext";
 import { useAudio } from "@/app/contexts/AudioContext";
 import { usePillarTheme } from "@/app/contexts/PillarThemeContext";
-import type { SavedRhythm } from "@/app/api/library/route";
+import type { SavedRhythm } from "@/app/types/library";
 import { getMenuConfig } from "@/app/lib/menuConfigs";
 import { sideLabelFor } from "@/app/lib/rhythmPairs";
 

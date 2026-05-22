@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "redis";
 import { USERS_KEY, userQueueKey, jobKey } from "@/app/lib/queueLib";
 import type { QueueJob } from "@/app/lib/queueLib";
-import type { SavedRhythm } from "@/app/api/library/route";
+import type { SavedRhythm } from "@/app/types/library";
 
 export const maxDuration = 20;
 

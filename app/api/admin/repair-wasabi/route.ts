@@ -4,7 +4,7 @@
 import { HeadObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "redis";
-import type { SavedRhythm } from "@/app/api/library/route";
+import type { SavedRhythm } from "@/app/types/library";
 import { uploadAudioToWasabi } from "@/app/lib/wasabiUpload";
 
 const BUCKET = "rthm-audio";

@@ -13,7 +13,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "redis";
-import type { SavedRhythm } from "@/app/api/library/route";
+import type { SavedRhythm } from "@/app/types/library";
 
 const NINETY_DAYS_SEC = 90 * 24 * 60 * 60;
 const REDIS_AVAILABLE = !!process.env.REDIS_URL;

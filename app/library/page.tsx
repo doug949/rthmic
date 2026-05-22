@@ -5,7 +5,7 @@ import { TransitionLink } from "@/app/components/TransitionLink";
 import { AppHeader } from "@/app/components/AppHeader";
 import { RevealBlock } from "@/app/components/RevealBlock";
 import { useSwipeBack } from "@/app/hooks/useSwipeBack";
-import type { SavedRhythm } from "@/app/api/library/route";
+import type { SavedRhythm } from "@/app/types/library";
 import {
   MyRthmsIcon,
   MyFavouritesIcon,

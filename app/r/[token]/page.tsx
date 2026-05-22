@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import { RevealBlock } from "@/app/components/RevealBlock";
-import type { SavedRhythm } from "@/app/api/library/route";
+import type { SavedRhythm } from "@/app/types/library";
 
 const LYRIC_SYNC_LEAD_SECONDS = 0.35;
 

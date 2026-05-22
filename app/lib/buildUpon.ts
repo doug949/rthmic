@@ -1,4 +1,4 @@
-import type { SavedRhythm } from "@/app/api/library/route";
+import type { SavedRhythm } from "@/app/types/library";
 
 export const BUILD_UPON_GENRE =
   "Scandinavian minimal microhouse in the zone of Trentemoller and Royksopp. Warm male voice, slightly vocoded, intimate and understated. Hypnotic and repetitive like a focus mantra. Clean electronic groove, soft synth pads, gentle pulsing bass, minimal percussion. 90 BPM. Emotionally grounded, intelligent, premium. No sharp edges, no drops, no build-ups. Calm forward motion.";

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "redis";
-import type { SavedRhythm } from "@/app/api/library/route";
+import type { SavedRhythm } from "@/app/types/library";
 import { fromSunoPronunciation } from "@/app/lib/sunoLyrics";
 
 const REDIS_AVAILABLE = !!process.env.REDIS_URL;
