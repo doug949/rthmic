@@ -15,6 +15,7 @@ function fmt(ts: number): string {
 export default function CodexNotesPage() {
   const [notes, setNotes] = useState<CodexNote[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAddressed, setShowAddressed] = useState(false);
 
   const loadNotes = useCallback((showSpinner = false) => {
     if (showSpinner) setLoading(true);
@@ -100,8 +101,17 @@ export default function CodexNotesPage() {
 
         {doneNotes.length > 0 && (
           <div className="flex flex-col gap-2 pt-3">
-          <p className="text-[10px] uppercase tracking-widest text-white/25 px-1">Addressed</p>
-            {doneNotes.map((note) => (
+            <button
+              onClick={() => setShowAddressed((open) => !open)}
+              className="flex items-center justify-between rounded-xl px-1 py-2 touch-manipulation active:bg-white/[0.04] transition-colors"
+              aria-expanded={showAddressed}
+            >
+              <p className="text-[10px] uppercase tracking-widest text-white/25">
+                Addressed · {doneNotes.length}
+              </p>
+              <span className="text-sm text-white/25" style={{ transform: showAddressed ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 160ms ease" }}>›</span>
+            </button>
+            {showAddressed && doneNotes.map((note) => (
               <NoteCard key={note.id} note={note} done onToggleDone={() => setDone(note.id, false)} />
             ))}
           </div>
