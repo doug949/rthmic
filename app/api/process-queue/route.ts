@@ -16,6 +16,7 @@ import type { SavedRhythm } from "@/app/api/library/route";
 import type { Song, TimedWord } from "@/app/types/pipeline";
 import { uploadAudioToWasabi } from "@/app/lib/wasabiUpload";
 import { tagsForSavedRhythm } from "@/app/lib/autoTags";
+import { extractSunoTaskId } from "@/app/lib/sunoResponse";
 
 export const maxDuration = 60;
 
@@ -214,10 +215,7 @@ async function startJob(
   }
 
   const json = await res.json();
-  const taskId: string =
-    json.data?.taskId ??
-    (typeof json.data === "string" ? json.data : undefined) ??
-    json.taskId;
+  const taskId = extractSunoTaskId(json);
 
   if (!taskId) {
     console.error(`[queue] No taskId for ${job.jobId}: ${JSON.stringify(json).slice(0, 300)}`);

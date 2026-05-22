@@ -8,6 +8,7 @@ import { createClient } from "redis";
 import { withRedisQueue, getUserJobIds, getJob, pushJob, updateJob, indexTaskId } from "@/app/lib/queueLib";
 import type { QueueJob } from "@/app/lib/queueLib";
 import { toSunoPronunciation } from "@/app/lib/sunoLyrics";
+import { extractSunoTaskId } from "@/app/lib/sunoResponse";
 import type { StyleChoice } from "@/app/services/llmService";
 import type { PillarType } from "@/app/types/pipeline";
 
@@ -85,11 +86,11 @@ async function startSunoJob(job: QueueJob): Promise<string | null> {
       return null;
     }
     const json = await res.json();
-    const taskId: string =
-      json.data?.taskId ??
-      (typeof json.data === "string" ? json.data : undefined) ??
-      json.taskId;
-    return taskId ?? null;
+    const taskId = extractSunoTaskId(json);
+    if (!taskId) {
+      console.error(`[queue] Suno start returned no taskId for ${job.jobId}: ${JSON.stringify(json).slice(0, 400)}`);
+    }
+    return taskId;
   } catch (err) {
     console.error("[queue] Suno start error:", err);
     return null;
