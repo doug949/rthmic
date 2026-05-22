@@ -70,30 +70,33 @@ function LoginForm() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center px-6">
-      <h1 className="text-2xl font-semibold tracking-[0.2em] text-white/90 uppercase mb-12">
+    <main className="min-h-screen bg-[#08090b] flex flex-col items-center justify-center px-6">
+      <h1 className="text-2xl font-semibold tracking-[0.22em] text-white/82 uppercase mb-12">
         RTHMIC
       </h1>
 
-      <form onSubmit={handleSubmit} className="w-full max-w-xs flex flex-col gap-3">
-        <input
-          ref={inputRef}
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Invite code"
-          autoFocus
-          autoComplete="current-password"
-          className={`
-            w-full bg-white/[0.05] border rounded-xl px-5 py-4
-            text-white placeholder-white/20 text-sm tracking-wide
-            outline-none focus:bg-white/[0.08]
-            transition-all duration-200
-            ${error ? "border-red-500/50" : "border-white/10 focus:border-white/25"}
-          `}
-        />
+      <form onSubmit={handleSubmit} className="w-full max-w-sm flex flex-col gap-3">
+        <label className="flex flex-col gap-2">
+          <span className="text-[10px] uppercase tracking-[0.24em] text-white/48 px-1">Access code</span>
+          <input
+            ref={inputRef}
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Enter your access code"
+            autoFocus
+            autoComplete="current-password"
+            className={`
+              w-full bg-white/[0.10] border rounded-2xl pl-5 pr-16 py-4
+              text-white placeholder-white/42 text-base tracking-wide
+              outline-none focus:bg-white/[0.14]
+              transition-all duration-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]
+              ${error ? "border-red-500/65" : "border-white/22 focus:border-white/48"}
+            `}
+          />
+        </label>
         {error && (
-          <p className="text-xs text-red-400/80 text-center">Incorrect password</p>
+          <p className="text-xs text-red-400/80 text-center">Access code not recognised</p>
         )}
         <button
           type="submit"
@@ -109,23 +112,26 @@ function LoginForm() {
         </button>
       </form>
 
-      <form onSubmit={requestAccess} className="w-full max-w-xs flex flex-col gap-3 mt-8">
+      <form onSubmit={requestAccess} className="w-full max-w-sm flex flex-col gap-3 mt-8">
         <p className="text-xs text-white/35 text-center leading-relaxed">
           Need access? Enter your email and we&apos;ll be in touch.
         </p>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => { setEmail(e.target.value); setAccessRequested(false); setAccessError(""); }}
-          placeholder="Email address"
-          autoComplete="email"
-          className="
-            w-full bg-white/[0.035] border border-white/10 rounded-xl px-5 py-4
-            text-white placeholder-white/20 text-sm tracking-wide
-            outline-none focus:bg-white/[0.06] focus:border-white/25
-            transition-all duration-200
-          "
-        />
+        <label className="flex flex-col gap-2">
+          <span className="text-[10px] uppercase tracking-[0.24em] text-white/38 px-1">Email</span>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => { setEmail(e.target.value); setAccessRequested(false); setAccessError(""); }}
+            placeholder="you@example.com"
+            autoComplete="email"
+            className="
+              w-full bg-white/[0.07] border border-white/16 rounded-2xl px-5 py-4
+              text-white placeholder-white/34 text-base tracking-wide
+              outline-none focus:bg-white/[0.10] focus:border-white/36
+              transition-all duration-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)]
+            "
+          />
+        </label>
         {accessRequested && (
           <p className="text-xs text-white/55 text-center">Request received. We&apos;ll email you about access.</p>
         )}
