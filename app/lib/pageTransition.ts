@@ -1,6 +1,7 @@
 type Router = { push: (href: string) => void; back: () => void };
 
 const NAV_INTENT_KEY = "rthmic:navigation-intent";
+const PREVIOUS_ROUTE_KEY = "rthmic:previous-route";
 
 // Module-level singleton — the overlay subscribes once at layout mount.
 let _onStart: (() => void) | null = null;
@@ -27,6 +28,14 @@ export function transitionTo(href: string, router: Router) {
   _onStart?.();
   setTimeout(() => {
     if (href === "__back__") {
+      const previousRoute = sessionStorage.getItem(PREVIOUS_ROUTE_KEY);
+      if (previousRoute && previousRoute !== currentPath && previousRoute.startsWith("/")) {
+        sessionStorage.setItem(NAV_INTENT_KEY, previousRoute);
+        sessionStorage.removeItem(PREVIOUS_ROUTE_KEY);
+        router.push(previousRoute);
+        return;
+      }
+
       const before = typeof window !== "undefined" ? window.location.href : "";
       router.back();
       window.setTimeout(() => {
@@ -36,6 +45,9 @@ export function transitionTo(href: string, router: Router) {
         }
       }, 650);
     } else {
+      if (typeof window !== "undefined" && currentPath && currentPath !== href) {
+        sessionStorage.setItem(PREVIOUS_ROUTE_KEY, currentPath);
+      }
       router.push(href);
     }
     // Reveal is triggered by usePathname() change in PageTransitionLayer,
