@@ -7,7 +7,6 @@ const LAST_ROUTE_KEY = "rthmic:last-route";
 const RELOAD_REASON_KEY = "rthmic:last-reload-reason";
 const RELOAD_REPORTED_KEY = "rthmic:last-reload-reported";
 const NAV_INTENT_KEY = "rthmic:navigation-intent";
-const SERVER_BUILD_KEY = "rthmic:last-server-build";
 
 function currentRoute() {
   return `${window.location.pathname}${window.location.search}${window.location.hash}`;
@@ -45,14 +44,8 @@ export default function RoutePersistence() {
           `Current route after reload: ${route}`,
           `Previous route before reload: ${previousRoute ?? "unknown"}`,
           `Stored reload reason: ${reason ?? "unknown"}`,
-          `Navigation intent: ${navigationIntent ?? "none"}`,
           `Navigation type: ${nav?.type ?? "unknown"}`,
           `Will restore route: ${shouldRestore ? "yes" : "no"}`,
-          `Client build: ${process.env.NEXT_PUBLIC_RTHMIC_BUILD ?? "dev"}`,
-          `Last seen server build: ${sessionStorage.getItem(SERVER_BUILD_KEY) ?? "unknown"}`,
-          `Visibility state: ${document.visibilityState}`,
-          `Online: ${navigator.onLine ? "yes" : "no"}`,
-          `Time origin: ${Math.round(performance.timeOrigin)}`,
           `User agent: ${navigator.userAgent}`,
         ].join("\n");
         fetch("/api/feedback", {
