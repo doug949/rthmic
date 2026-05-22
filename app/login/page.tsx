@@ -71,13 +71,29 @@ function LoginForm() {
 
   return (
     <main className="min-h-screen bg-[#08090b] flex flex-col items-center justify-center px-6">
-      <h1 className="text-2xl font-semibold tracking-[0.22em] text-white/82 uppercase mb-12">
+      <h1
+        className="text-2xl font-semibold tracking-[0.22em] uppercase mb-12"
+        style={{ color: "rgba(255,255,255,0.9)" }}
+      >
         RTHMIC
       </h1>
 
-      <form onSubmit={handleSubmit} className="w-full max-w-sm flex flex-col gap-3">
+      <form
+        onSubmit={handleSubmit}
+        className="w-full max-w-sm flex flex-col gap-3 rounded-3xl p-4"
+        style={{
+          background: "rgba(0,0,0,0.28)",
+          border: "1px solid rgba(255,255,255,0.14)",
+          boxShadow: "0 18px 60px rgba(0,0,0,0.38)",
+        }}
+      >
         <label className="flex flex-col gap-2">
-          <span className="text-[10px] uppercase tracking-[0.24em] text-white/48 px-1">Access code</span>
+          <span
+            className="text-[11px] uppercase tracking-[0.24em] px-1"
+            style={{ color: "rgba(255,255,255,0.72)" }}
+          >
+            Access code
+          </span>
           <input
             ref={inputRef}
             type="password"
@@ -86,13 +102,17 @@ function LoginForm() {
             placeholder="Enter your access code"
             autoFocus
             autoComplete="current-password"
-            className={`
-              w-full bg-white/[0.10] border rounded-2xl pl-5 pr-16 py-4
-              text-white placeholder-white/42 text-base tracking-wide
-              outline-none focus:bg-white/[0.14]
-              transition-all duration-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]
-              ${error ? "border-red-500/65" : "border-white/22 focus:border-white/48"}
-            `}
+            className="w-full rounded-2xl px-5 py-4 text-base tracking-wide outline-none transition-all duration-200"
+            aria-label="Access code"
+            style={{
+              WebkitAppearance: "none",
+              appearance: "none",
+              background: "rgba(255,255,255,0.92)",
+              border: error ? "2px solid rgba(248,113,113,0.95)" : "2px solid rgba(255,255,255,0.92)",
+              color: "#08090b",
+              caretColor: "#08090b",
+              boxShadow: "0 10px 30px rgba(0,0,0,0.34)",
+            }}
           />
         </label>
         {error && (
@@ -101,12 +121,12 @@ function LoginForm() {
         <button
           type="submit"
           disabled={loading || !password}
-          className="
-            w-full bg-white text-black font-medium text-sm tracking-wide
-            rounded-xl py-4 mt-1
-            disabled:opacity-30 transition-opacity duration-200
-            active:scale-[0.98]
-          "
+          className="w-full font-semibold text-sm tracking-wide rounded-xl py-4 mt-1 transition-opacity duration-200 active:scale-[0.98]"
+          style={{
+            background: password ? "#ffffff" : "rgba(255,255,255,0.42)",
+            color: "#08090b",
+            opacity: loading ? 0.7 : 1,
+          }}
         >
           {loading ? "…" : "Enter"}
         </button>
