@@ -1,5 +1,5 @@
 import { createClient } from "redis";
-import type { SavedRhythm } from "@/app/api/library/route";
+import type { SavedRhythm } from "@/app/types/library";
 import type { PillarType, Song, TimedWord } from "@/app/types/pipeline";
 import { tagsForSavedRhythm } from "@/app/lib/autoTags";
 import { uploadAudioToWasabi } from "@/app/lib/wasabiUpload";

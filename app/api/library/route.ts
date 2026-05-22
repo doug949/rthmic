@@ -15,39 +15,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "redis";
 import type { PillarType, TimedWord } from "@/app/types/pipeline";
 import { normalisePillar } from "@/app/types/pipeline";
+import type { SavedRhythm } from "@/app/types/library";
 import { normalizeTags, tagsForSavedRhythm } from "@/app/lib/autoTags";
 import { fromSunoPronunciation } from "@/app/lib/sunoLyrics";
 
-export interface SavedRhythm {
-  id: string;
-  title: string;
-  pillar: PillarType;
-  audioUrl?: string;
-  lyrics?: string;
-  savedAt: number;
-  status: "new" | "active" | "favourite" | "archived" | "deleted";
-  deletedAt?: number;
-  tags?: string[];
-  note?: string;
-  playCount?: number;
-  lastPlayedAt?: number;
-  rthmixId?: string;       // album container ID when this rhythm belongs to a Rthmix
-  rthmixTitle?: string;
-  rthmixType?: "memory" | "progression";
-  rthmixTrackNumber?: string;
-  rthmixTrackRole?: "ground-zero" | "memory-hook" | "unlock" | "bonus";
-  rthmixUnlock?: string;
-  rthmixAlbumArtPrompt?: string;
-  rthmixAlbumArtUrl?: string;
-  pairId?: string;         // A/B-side pair generated from the same Suno task
-  side?: "A" | "B";
-  alternateId?: string;
-  preferredSideId?: string; // chosen default side for an A/B pair
-  sunoClipId?: string;      // raw Suno clip ID (audioId) for timed-lyrics API
-  sunoTaskId?: string;      // Suno task ID — required alongside audioId to fetch timed lyrics
-  timedLyrics?: TimedWord[]; // word-level synchronized lyric data from Suno
-  audioKey?: string;        // Wasabi S3 key — present once audio is permanently stored
-}
+export type { SavedRhythm };
 
 const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
 const REDIS_AVAILABLE = !!process.env.REDIS_URL;
