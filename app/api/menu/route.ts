@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "redis";
 import type { SavedRhythm } from "@/app/types/library";
+import { menuKey, readSavedRhythms, writeSavedRhythms } from "@/app/lib/rhythmStorage";
 import { fromSunoPronunciation } from "@/app/lib/sunoLyrics";
 
 const REDIS_AVAILABLE = !!process.env.REDIS_URL;
-
-function menuKey(uid: string, slug: string) {
-  return `menu:${uid}:${slug}`;
-}
 
 function samePair(a: SavedRhythm, b: SavedRhythm): boolean {
   if (a.id === b.id) return true;
@@ -58,11 +55,11 @@ export async function GET(request: NextRequest) {
 
   try {
     const songs = await withRedis(async (client) => {
-      const data = await client.get(menuKey(uid, slug));
-      const parsed = data ? (JSON.parse(data) as SavedRhythm[]) : [];
+      const key = menuKey(uid, slug);
+      const parsed = await readSavedRhythms(client, key);
       const normalised = parsed.map(restoreDisplayLyrics);
       if (JSON.stringify(normalised) !== JSON.stringify(parsed)) {
-        await client.set(menuKey(uid, slug), JSON.stringify(normalised));
+        await writeSavedRhythms(client, key, normalised);
       }
       return normalised;
     });
@@ -83,28 +80,26 @@ export async function POST(request: NextRequest) {
 
   try {
     await withRedis(async (client) => {
+      const key = menuKey(uid, slug);
       if (action === "updateSong") {
-        const data = await client.get(menuKey(uid, slug));
-        const existing: SavedRhythm[] = data ? JSON.parse(data) : [];
+        const existing = await readSavedRhythms(client, key);
         const updated = existing.map((s) =>
           s.id === body.id ? { ...s, timedLyrics: body.timedLyrics } : s
         );
-        await client.set(menuKey(uid, slug), JSON.stringify(updated));
+        await writeSavedRhythms(client, key, updated);
       } else if (action === "preferSide") {
-        const data = await client.get(menuKey(uid, slug));
-        const existing: SavedRhythm[] = data ? JSON.parse(data) : [];
+        const existing = await readSavedRhythms(client, key);
         const preferred = existing.find((s) => s.id === body.id);
         const updated = preferred
           ? existing.map((s) => samePair(s, preferred) ? { ...s, preferredSideId: preferred.id } : s)
           : existing;
-        await client.set(menuKey(uid, slug), JSON.stringify(updated));
+        await writeSavedRhythms(client, key, updated);
       } else {
         // Prepend new songs to existing (newest first)
         if (!Array.isArray(body.songs)) return;
         const newSongs = (body.songs as SavedRhythm[]).map(restoreDisplayLyrics);
-        const data = await client.get(menuKey(uid, slug));
-        const existing: SavedRhythm[] = data ? JSON.parse(data) : [];
-        await client.set(menuKey(uid, slug), JSON.stringify([...newSongs, ...existing]));
+        const existing = await readSavedRhythms(client, key);
+        await writeSavedRhythms(client, key, [...newSongs, ...existing]);
       }
     });
     return NextResponse.json({ ok: true });

@@ -17,16 +17,13 @@ import type { PillarType, TimedWord } from "@/app/types/pipeline";
 import { normalisePillar } from "@/app/types/pipeline";
 import type { SavedRhythm } from "@/app/types/library";
 import { normalizeTags, tagsForSavedRhythm } from "@/app/lib/autoTags";
+import { libraryKey, readSavedRhythms, writeSavedRhythms } from "@/app/lib/rhythmStorage";
 import { fromSunoPronunciation } from "@/app/lib/sunoLyrics";
 
 export type { SavedRhythm };
 
 const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
 const REDIS_AVAILABLE = !!process.env.REDIS_URL;
-
-function libKey(uid: string) {
-  return `lib:${uid}`;
-}
 
 function requireAuth(request: NextRequest): string | null {
   const session = request.cookies.get("rthmic_session");
@@ -79,8 +76,8 @@ export async function GET(request: NextRequest) {
 
   try {
     const rhythms = await withRedis(async (client) => {
-      const data = await client.get(libKey(uid));
-      const all: SavedRhythm[] = data ? JSON.parse(data) : [];
+      const key = libraryKey(uid);
+      const all = await readSavedRhythms(client, key);
 
       // Lazily purge deleted items older than 30 days
       const now = Date.now();
@@ -90,7 +87,7 @@ export async function GET(request: NextRequest) {
 
       // Write back if anything was purged
       if (kept.length !== all.length) {
-        await client.set(libKey(uid), JSON.stringify(kept));
+        await writeSavedRhythms(client, key, kept);
       }
 
       // Normalise legacy pillar names and quietly backfill missing tags.
@@ -104,7 +101,7 @@ export async function GET(request: NextRequest) {
       });
 
       if (JSON.stringify(normalised) !== JSON.stringify(kept)) {
-        await client.set(libKey(uid), JSON.stringify(normalised));
+        await writeSavedRhythms(client, key, normalised);
       }
 
       return normalised;
@@ -145,8 +142,8 @@ export async function POST(request: NextRequest) {
   try {
     let retagged = 0;
     await withRedis(async (client) => {
-      const data = await client.get(libKey(uid));
-      const current: SavedRhythm[] = data ? JSON.parse(data) : [];
+      const key = libraryKey(uid);
+      const current = await readSavedRhythms(client, key);
 
       let updated: SavedRhythm[];
 
@@ -209,7 +206,7 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      await client.set(libKey(uid), JSON.stringify(updated));
+      await writeSavedRhythms(client, key, updated);
     });
 
     return NextResponse.json({ ok: true, retagged });

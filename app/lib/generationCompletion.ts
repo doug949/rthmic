@@ -2,11 +2,17 @@ import { createClient } from "redis";
 import type { SavedRhythm } from "@/app/types/library";
 import type { PillarType, Song, TimedWord } from "@/app/types/pipeline";
 import { tagsForSavedRhythm } from "@/app/lib/autoTags";
+import {
+  libraryKey,
+  menuKey,
+  prependUniqueSavedRhythms,
+  readSavedRhythms,
+  type RedisClient,
+  writeSavedRhythms,
+} from "@/app/lib/rhythmStorage";
 import { uploadAudioToWasabi } from "@/app/lib/wasabiUpload";
 
 const APP_URL = "https://rthmic.app";
-
-type RedisClient = ReturnType<typeof createClient>;
 
 interface SaveCompletedSongsParams {
   client: RedisClient;
@@ -24,13 +30,7 @@ async function saveToLibrary(
   userId: string,
   rhythm: SavedRhythm
 ): Promise<boolean> {
-  const key = `lib:${userId}`;
-  const raw = await client.get(key);
-  const all: SavedRhythm[] = raw ? JSON.parse(raw) : [];
-  if (all.some((r) => r.id === rhythm.id)) return false;
-  all.unshift(rhythm);
-  await client.set(key, JSON.stringify(all));
-  return true;
+  return (await prependUniqueSavedRhythms(client, libraryKey(userId), [rhythm])) === 1;
 }
 
 async function saveToMenu(
@@ -39,14 +39,7 @@ async function saveToMenu(
   slug: string,
   rhythms: SavedRhythm[]
 ): Promise<number> {
-  const key = `menu:${userId}:${slug}`;
-  const raw = await client.get(key);
-  const existing: SavedRhythm[] = raw ? JSON.parse(raw) : [];
-  const existingIds = new Set(existing.map((r) => r.id));
-  const fresh = rhythms.filter((r) => !existingIds.has(r.id));
-  if (!fresh.length) return 0;
-  await client.set(key, JSON.stringify([...fresh, ...existing]));
-  return fresh.length;
+  return prependUniqueSavedRhythms(client, menuKey(userId, slug), rhythms);
 }
 
 async function attachTimedLyrics(userId: string, songId: string, taskId: string, audioId: string, menuSlug?: string) {
@@ -59,13 +52,12 @@ async function attachTimedLyrics(userId: string, songId: string, taskId: string,
     const client = createClient({ url: process.env.REDIS_URL });
     await client.connect();
     try {
-      const key = menuSlug ? `menu:${userId}:${menuSlug}` : `lib:${userId}`;
-      const raw = await client.get(key);
-      const all: SavedRhythm[] = raw ? JSON.parse(raw) : [];
+      const key = menuSlug ? menuKey(userId, menuSlug) : libraryKey(userId);
+      const all = await readSavedRhythms(client, key);
       const idx = all.findIndex((r) => r.id === songId);
       if (idx !== -1) {
         all[idx].timedLyrics = data.timedWords;
-        await client.set(key, JSON.stringify(all));
+        await writeSavedRhythms(client, key, all);
       }
     } finally {
       await client.disconnect();
