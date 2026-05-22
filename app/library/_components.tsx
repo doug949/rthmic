@@ -22,6 +22,7 @@ export function RhythmRow({
   showLyrics,
   onToggleLyrics,
   onPlay,
+  onMarkListened,
   onGraduate,
   onUngraduate,
   onArchive,
@@ -50,6 +51,7 @@ export function RhythmRow({
   showLyrics: boolean;
   onToggleLyrics: () => void;
   onPlay: () => void;
+  onMarkListened?: () => void;
   onGraduate?: () => void;
   onUngraduate?: () => void;
   onArchive: () => void;
@@ -310,6 +312,9 @@ export function RhythmRow({
       {/* Action bar — primary actions only */}
       <div className="flex" style={{ borderTop: `1px solid ${favourite ? "rgba(201,165,90,0.12)" : P ? P.divider : "rgba(255,255,255,0.06)"}` }}>
         <SmallBtn onClick={onShare} label={shareToast ? "Copied!" : "Share"} sublabel={shareToast ? "Link ready" : "Send link"} icon="↗" active={shareToast} gold={favourite} purple={!!P} />
+        {isNew && onMarkListened && (
+          <SmallBtn onClick={onMarkListened} label="Listened" sublabel="Move to My Rthms" icon="✓" purple />
+        )}
         {onGraduate && (
           <SmallBtn onClick={onGraduate} label="Add to Favs" icon="☆" purple={!!P} />
         )}

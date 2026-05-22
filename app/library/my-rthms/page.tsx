@@ -192,6 +192,15 @@ export default function MyRthmsPage() {
   const handleGraduate = (id: string) =>
     updateRhythm(id, { status: "favourite" });
 
+  const handleMarkListened = (rhythm: SavedRhythm) => {
+    updateRhythm(rhythm.id, { status: "active" });
+    const alternate = rhythms.find((r) =>
+      r.id === rhythm.alternateId ||
+      (rhythm.pairId && r.pairId === rhythm.pairId && r.id !== rhythm.id)
+    );
+    if (alternate?.status === "new") updateRhythm(alternate.id, { status: "active" });
+  };
+
   const handleUngraduate = (id: string) =>
     updateRhythm(id, { status: "active" });
 
@@ -440,6 +449,7 @@ export default function MyRthmsPage() {
                       showLyrics={showLyricsId === rhythm.id}
                       onToggleLyrics={() => setShowLyricsId(showLyricsId === rhythm.id ? null : rhythm.id)}
                       onPlay={() => selectMode ? toggleSelect(rhythm.id) : togglePlay(rhythm)}
+                      onMarkListened={() => handleMarkListened(rhythm)}
                       onGraduate={() => handleGraduate(rhythm.id)}
                       onArchive={() => handleArchive(rhythm)}
                       onRemove={() => handleRemove(rhythm.id)}
