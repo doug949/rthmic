@@ -42,6 +42,7 @@ function periodStart(period: TimePeriod): number {
 const ALL_TIME_PREVIEW = 8;
 const CHART_LIMIT = 20;
 const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+const LISTENED_EXIT_MS = 240;
 
 function periodLabel(period: TimePeriod): string {
   if (period === "today") return "Past 24 Hours";
@@ -95,6 +96,7 @@ export default function MyRthmsPage() {
   const [confirmBatchDelete, setConfirmBatchDelete] = useState(false);
   const [autoTagging, setAutoTagging] = useState(false);
   const [autoTagMessage, setAutoTagMessage] = useState<string | null>(null);
+  const [listenedExitingIds, setListenedExitingIds] = useState<Set<string>>(new Set());
 
   const { currentTrackId, isPlaying, currentTime, duration, handlePlayUrl } = useAudio();
   const { startGeneration } = useGeneration();
@@ -193,12 +195,21 @@ export default function MyRthmsPage() {
     updateRhythm(id, { status: "favourite" });
 
   const handleMarkListened = (rhythm: SavedRhythm) => {
-    updateRhythm(rhythm.id, { status: "active" });
     const alternate = rhythms.find((r) =>
       r.id === rhythm.alternateId ||
       (rhythm.pairId && r.pairId === rhythm.pairId && r.id !== rhythm.id)
     );
-    if (alternate?.status === "new") updateRhythm(alternate.id, { status: "active" });
+    const ids = [rhythm.id, ...(alternate?.status === "new" ? [alternate.id] : [])];
+    setListenedExitingIds((prev) => new Set([...prev, ...ids]));
+    setTimeout(() => {
+      updateRhythm(rhythm.id, { status: "active" });
+      if (alternate?.status === "new") updateRhythm(alternate.id, { status: "active" });
+      setListenedExitingIds((prev) => {
+        const next = new Set(prev);
+        ids.forEach((id) => next.delete(id));
+        return next;
+      });
+    }, LISTENED_EXIT_MS);
   };
 
   const handleUngraduate = (id: string) =>
@@ -418,8 +429,20 @@ export default function MyRthmsPage() {
             </div>
             {newCards.map(({ key, rhythm, alternate, preferredSideId }) => {
               const isSelected = selectedIds.has(rhythm.id);
+              const isExiting = listenedExitingIds.has(rhythm.id) || (alternate ? listenedExitingIds.has(alternate.id) : false);
               return (
-                <div key={key} className="relative">
+                <div
+                  key={key}
+                  style={{
+                    display: "grid",
+                    gridTemplateRows: isExiting ? "0fr" : "1fr",
+                    opacity: isExiting ? 0 : 1,
+                    transform: isExiting ? "translateY(-8px) scale(0.985)" : "translateY(0) scale(1)",
+                    transition: `grid-template-rows ${LISTENED_EXIT_MS}ms cubic-bezier(0.16,1,0.3,1), opacity 160ms ease, transform ${LISTENED_EXIT_MS}ms cubic-bezier(0.16,1,0.3,1)`,
+                    pointerEvents: isExiting ? "none" : undefined,
+                  }}
+                >
+                <div className="relative overflow-hidden">
                   {selectMode && (
                     <button
                       onClick={() => toggleSelect(rhythm.id)}
@@ -467,6 +490,7 @@ export default function MyRthmsPage() {
                       onPreferSide={alternate ? () => handlePreferSide(rhythm.id) : undefined}
                     />
                   </div>
+                </div>
                 </div>
               );
             })}
