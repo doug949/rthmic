@@ -65,11 +65,11 @@ Return ONLY a valid JSON array of 6 concept names. No explanation, no markdown, 
   }
 
   const pillarBriefs: Record<string, string> = {
-    memory: "things to remember, practise, or recall under pressure",
+    memory: "concrete lists, sequences, names, numbers, phrases, or labels the user needs to memorise accurately",
     menus: "daily menus that are options to consider, not to-do lists",
-    mindset: "situations where a mindset shift would help, including prioritisation and triage",
-    mode: "states someone may want to enter on purpose, like focus, recovery, confidence, or play",
-    movement: "moments where the body or energy feels stuck and needs motion",
+    mindset: "upcoming situations, events, or decisions the user is about to walk into and wants the right mindset for",
+    mode: "unhelpful states the user is already in and wants to shake off, reset, or move through",
+    movement: "avoided, stalled, overwhelming, or repeatedly postponed tasks the user needs help starting",
     journal: "moments from the day worth capturing as a personal song",
     epiphany: "fresh realisations, ideas, or insights worth preserving",
     bridge: "personal messages made for someone else",
@@ -77,18 +77,26 @@ Return ONLY a valid JSON array of 6 concept names. No explanation, no markdown, 
   };
   const brief = pillarBriefs[pillar] ?? "useful personalised Rthm starting points";
 
+  const extraGuidance: Record<string, string> = {
+    memory: "Return things like phone numbers, names from a networking event, musical instrument strings, speeches, passcodes, language words, process steps, checklist orders, formulas, or labelled parts. Do NOT suggest emotional states or abstract recovery phrases.",
+    mindset: "Return first-person upcoming situations like job interview, first date, important purchase, giving a speech, difficult meeting, performance review, sales call, medical appointment, negotiation, or exam. Do NOT return advice phrases.",
+    mode: "Return first-person current states to shift out of, such as awkward confrontation aftermath, anxiety about last night, resentment, shame spiral, post-argument replay, Sunday dread, social hangover, or feeling defensive. Do NOT return aspirational modes like deep focus.",
+    movement: "Return stuck-task situations, such as avoiding admin, overwhelmed and don't know where to start, task never reaches the top of the list, messy room, unopened email, delayed application, postponed workout, or project restart.",
+  };
+  const guidance = extraGuidance[pillar] ? `\n${extraGuidance[pillar]}` : "";
+
   return hasPast
     ? `You are suggesting starting points for the ${pillar} pillar in RTHMIC.
 This pillar is about ${brief}.
 The user has already made these Rthms:
 ${pastList}
 
-Suggest 6 concise starting points they might want to make next. Avoid repeats. Make them practical, specific, and immediately speakable. Keep each item under 7 words.
+Suggest 6 concise starting points they might want to make next. Avoid repeats. Make them practical, specific, and immediately speakable. Keep each item under 8 words.${guidance}
 
 Return ONLY a valid JSON array of 6 strings. No explanation, no markdown, no extra text.`
     : `Suggest 6 concise starting points for the ${pillar} pillar in RTHMIC.
 This pillar is about ${brief}.
-Make them practical, specific, and immediately speakable. Include at least one prioritisation or triage option when the pillar is mindset. Keep each item under 7 words.
+Make them practical, specific, and immediately speakable. Keep each item under 8 words.${guidance}
 
 Return ONLY a valid JSON array of 6 strings. No explanation, no markdown, no extra text.`;
 }
@@ -131,11 +139,11 @@ export async function GET(req: NextRequest) {
     const fallback: Record<string, string[]> = {
       booksummary: ["Atomic Habits", "Thinking, Fast and Slow", "Sapiens", "Deep Work", "Antifragile", "Range"],
       explain: ["Compound interest", "Cognitive dissonance", "First principles thinking", "The Pareto principle", "Neuroplasticity", "Occam's razor"],
-      mindset: ["Too much to do", "Before a hard meeting", "Prioritise the next hour", "Stop spiralling", "Start before ready", "Recover after a knock"],
+      mindset: ["I'm going for a job interview", "I'm going on a date", "I'm about to give a speech", "I'm making an important purchase", "I'm entering a difficult meeting", "I'm starting a negotiation"],
       menus: ["Morning menu", "Airport packing menu", "End of workday", "Before bed", "Leaving the house", "Room reset"],
-      memory: ["Six Croatian words", "A short speech", "Client names", "Exam definitions", "A process sequence", "Key talking points"],
-      mode: ["Deep focus", "Calm confidence", "Creative play", "Steady admin", "Recovery mode", "Bold outreach"],
-      movement: ["Get unstuck", "Start walking", "Clean the kitchen", "Stretch and reset", "Begin the workout", "Move through resistance"],
+      memory: ["My spouse's phone number", "Names from a networking event", "Strings on a musical instrument", "Six Croatian words", "A short speech", "A process sequence"],
+      mode: ["I just had an awkward confrontation", "I'm anxious about last night", "I'm resenting something", "I'm replaying what I said", "I'm stuck in a shame spiral", "I feel defensive and tense"],
+      movement: ["I've been avoiding this task", "I don't know where to start", "This never reaches my to-do list", "I need to open the email", "The room is too messy", "I've delayed this for weeks"],
       journal: ["Today in one scene", "A strange good moment", "What I learned today", "A thing worth keeping", "A hard day ending", "Small wins"],
       epiphany: ["The new idea", "What finally clicked", "A better frame", "Something I realised", "The missing link", "A useful metaphor"],
       bridge: ["Encourage a friend", "Thank a collaborator", "Repair a moment", "Celebrate someone", "Explain how you feel", "Send reassurance"],
