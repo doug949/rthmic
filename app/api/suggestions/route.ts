@@ -32,6 +32,74 @@ async function getPastTitles(uid: string, pillar: string): Promise<string[]> {
   }
 }
 
+const CHALLENGE_STARTERS: Record<string, string[]> = {
+  memory: [
+    "My spouse's phone number",
+    "Names from a networking event",
+    "Strings on a musical instrument",
+    "Six Croatian words",
+    "A short speech",
+    "A process sequence",
+    "A passcode I keep forgetting",
+    "The order of a checklist",
+    "Key client names",
+    "Exam definitions",
+    "A route with turns",
+    "Parts of a diagram",
+  ],
+  mindset: [
+    "I have two hours to finish",
+    "I'm walking into a party alone",
+    "I'm going for a job interview",
+    "I'm going on a date",
+    "I'm about to give a speech",
+    "I'm making an important purchase",
+    "I'm entering a difficult meeting",
+    "I'm starting a negotiation",
+    "I'm about to make a sales call",
+    "I'm going to a medical appointment",
+    "I'm sitting an exam today",
+    "I'm asking for something important",
+  ],
+  mode: [
+    "I just had an awkward confrontation",
+    "I'm anxious about last night",
+    "I'm resenting something",
+    "I'm replaying what I said",
+    "I'm stuck in a shame spiral",
+    "I feel defensive and tense",
+    "I can't stop overthinking it",
+    "I'm carrying Sunday dread",
+    "I feel socially hungover",
+    "I'm irritated and can't drop it",
+    "I feel embarrassed about earlier",
+    "I'm bracing for bad news",
+  ],
+  movement: [
+    "I've been avoiding this task",
+    "I don't know where to start",
+    "This never reaches my to-do list",
+    "I need to open the email",
+    "The room is too messy",
+    "I've delayed this for weeks",
+    "I need to start the application",
+    "The admin pile is growing",
+    "I keep postponing the workout",
+    "I need to clear the kitchen",
+    "The project needs a restart",
+    "I feel overwhelmed by options",
+  ],
+};
+
+function sampleStarters(pillar: string, past: string[]) {
+  const starters = CHALLENGE_STARTERS[pillar];
+  if (!starters) return null;
+  const pastSet = new Set(past.map((title) => title.toLowerCase()));
+  const available = starters.filter((starter) => !pastSet.has(starter.toLowerCase()));
+  const pool = available.length >= 6 ? available : starters;
+  return [...pool].sort(() => Math.random() - 0.5).slice(0, 6);
+}
+
 function buildPrompt(pillar: string, past: string[]): string {
   const hasPast = past.length > 0;
   const pastList = hasPast ? past.map((t) => `- ${t}`).join("\n") : "";
@@ -112,6 +180,11 @@ export async function GET(req: NextRequest) {
   }
 
   const past = await getPastTitles(uid, pillar);
+  const curated = sampleStarters(pillar, past);
+  if (curated) {
+    return NextResponse.json({ suggestions: curated }, { headers: { "Cache-Control": "no-store" } });
+  }
+
   const prompt = buildPrompt(pillar, past);
 
   const anthropic = new Anthropic();
@@ -139,11 +212,11 @@ export async function GET(req: NextRequest) {
     const fallback: Record<string, string[]> = {
       booksummary: ["Atomic Habits", "Thinking, Fast and Slow", "Sapiens", "Deep Work", "Antifragile", "Range"],
       explain: ["Compound interest", "Cognitive dissonance", "First principles thinking", "The Pareto principle", "Neuroplasticity", "Occam's razor"],
-      mindset: ["I'm going for a job interview", "I'm going on a date", "I'm about to give a speech", "I'm making an important purchase", "I'm entering a difficult meeting", "I'm starting a negotiation"],
+      mindset: CHALLENGE_STARTERS.mindset.slice(0, 6),
       menus: ["Morning menu", "Airport packing menu", "End of workday", "Before bed", "Leaving the house", "Room reset"],
-      memory: ["My spouse's phone number", "Names from a networking event", "Strings on a musical instrument", "Six Croatian words", "A short speech", "A process sequence"],
-      mode: ["I just had an awkward confrontation", "I'm anxious about last night", "I'm resenting something", "I'm replaying what I said", "I'm stuck in a shame spiral", "I feel defensive and tense"],
-      movement: ["I've been avoiding this task", "I don't know where to start", "This never reaches my to-do list", "I need to open the email", "The room is too messy", "I've delayed this for weeks"],
+      memory: CHALLENGE_STARTERS.memory.slice(0, 6),
+      mode: CHALLENGE_STARTERS.mode.slice(0, 6),
+      movement: CHALLENGE_STARTERS.movement.slice(0, 6),
       journal: ["Today in one scene", "A strange good moment", "What I learned today", "A thing worth keeping", "A hard day ending", "Small wins"],
       epiphany: ["The new idea", "What finally clicked", "A better frame", "Something I realised", "The missing link", "A useful metaphor"],
       bridge: ["Encourage a friend", "Thank a collaborator", "Repair a moment", "Celebrate someone", "Explain how you feel", "Send reassurance"],
