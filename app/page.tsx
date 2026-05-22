@@ -483,7 +483,7 @@ const HOME_TILES: {
   adminPreview?: boolean;
 }[] = [
   { id: "create", href: "/speak",     label: "Create a Rthm",        shortLabel: "Create",     icon: <MicIcon />,     accent: "rgba(201,165,90,0.55)", image: "/images/tiles/create.jpg" },
-  { id: "right-now", href: "/speak?quick=1", label: "Right Now", shortLabel: "Right Now", icon: <SituationIcon />, accent: "rgba(120,200,210,0.55)", image: "/images/tiles/create.jpg", imageScale: 1.08 },
+  { id: "right-now", href: "/speak?quick=1", label: "In The Moment", shortLabel: "In The Moment", icon: <SituationIcon />, accent: "rgba(120,200,210,0.55)", image: "/images/tiles/in-the-moment.jpg" },
   { id: "my-rthms", href: "/library/my-rthms", label: "My Rthms",      shortLabel: "My Rthms",   icon: <PlayIcon />,    accent: "rgba(100,140,255,0.5)", image: "/images/tiles/my-rthms.jpg" },
   { id: "bridge", href: "/bridge", label: "Rthmic Bridge", shortLabel: "Bridge", icon: <BridgeTileIcon />, accent: "rgba(180,160,140,0.55)", image: "/images/tiles/bridge.jpg" },
   { id: "invite", href: "/invite", label: "Rthmic Invite", shortLabel: "Invite", icon: <InviteTileIcon />, accent: "rgba(218,185,120,0.55)", image: "/images/tiles/invite.jpg", adminOnly: true },
