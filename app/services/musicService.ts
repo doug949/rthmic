@@ -5,6 +5,8 @@
 import { tracks } from "@/app/data/tracks";
 import type { Song, PillarType } from "@/app/types/pipeline";
 import { toSunoPronunciation } from "@/app/lib/sunoLyrics";
+import { extractSunoTaskId } from "@/app/lib/sunoResponse";
+import { buildSunoStyle } from "@/app/lib/sunoStyle";
 
 const USE_MOCK = !process.env.SUNO_API_KEY;
 const BASE_URL = "https://api.sunoapi.org/api/v1";
@@ -102,7 +104,7 @@ export async function generateSongs(lyrics: string, pillar: PillarType): Promise
       instrumental: false,
       model: "V5",
       prompt: toSunoPronunciation(lyrics),   // phonetic substitution for branded spellings
-      style: PILLAR_STYLES[pillar],         // genre/mood tags
+      style: buildSunoStyle(PILLAR_STYLES[pillar]), // genre/mood tags
       title: `RTHM — ${pillar}`,
       callBackUrl: "https://rthmic.app/api/suno-webhook", // required by sunoapi.org; we use polling
     }),
@@ -116,11 +118,7 @@ export async function generateSongs(lyrics: string, pillar: PillarType): Promise
   const json = await res.json();
   console.log("Suno generate response:", JSON.stringify(json));
 
-  // sunoapi.org may return taskId at json.data.taskId or json.data directly
-  const taskId: string =
-    json.data?.taskId ??          // { data: { taskId: "..." } }
-    (typeof json.data === "string" ? json.data : undefined) ?? // { data: "taskId" }
-    json.taskId;                  // { taskId: "..." }
+  const taskId = extractSunoTaskId(json);
 
   if (!taskId) {
     throw new Error(

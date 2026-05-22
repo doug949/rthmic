@@ -17,6 +17,7 @@ import type { Song, TimedWord } from "@/app/types/pipeline";
 import { uploadAudioToWasabi } from "@/app/lib/wasabiUpload";
 import { tagsForSavedRhythm } from "@/app/lib/autoTags";
 import { extractSunoTaskId } from "@/app/lib/sunoResponse";
+import { buildSunoStyle } from "@/app/lib/sunoStyle";
 
 export const maxDuration = 60;
 
@@ -200,7 +201,7 @@ async function startJob(
       instrumental: false,
       model: "V5",
       prompt: job.lyrics,
-      style: job.genre,
+      style: buildSunoStyle(job.genre),
       title: job.title,
       callBackUrl: `${APP_URL}/api/suno-webhook`,
     }),
