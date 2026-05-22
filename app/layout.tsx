@@ -64,6 +64,11 @@ export default function RootLayout({
     <html lang="en" className={`${raleway.variable} ${dmSans.variable} h-full antialiased`}>
       <head>
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        <style
+          dangerouslySetInnerHTML={{
+            __html: "html,body{background:#0d1628;color-scheme:dark;}body::before{content:'';position:fixed;inset:0;background:#0d1628;z-index:-2147483648;}",
+          }}
+        />
       </head>
       <body className="min-h-full flex flex-col bg-[#0a0a0a]">
         <PillarThemeProvider>

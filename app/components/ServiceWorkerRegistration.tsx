@@ -17,7 +17,10 @@ export default function ServiceWorkerRegistration() {
         const res = await fetch(`/api/version?t=${Date.now()}`, { cache: "no-store" });
         if (!res.ok) return;
         const data = await res.json() as { build?: string };
-        if (data.build && data.build !== currentBuild) setServerBuild(data.build);
+        if (data.build) {
+          sessionStorage.setItem("rthmic:last-server-build", data.build);
+          if (data.build !== currentBuild) setServerBuild(data.build);
+        }
       } catch {
         // Version checks are best-effort.
       }
