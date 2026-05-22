@@ -47,6 +47,7 @@ export type AudioQueueTrack = {
 
 export type AudioQueueOptions = {
   loopEach?: boolean;
+  loopAll?: boolean;
 };
 
 const AudioCtx = createContext<AudioContextValue | null>(null);
@@ -67,6 +68,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   const queueRef         = useRef<AudioQueueTrack[]>([]);
   const queueIndexRef    = useRef(-1);
   const queueLoopEachRef = useRef(false);
+  const queueLoopAllRef  = useRef(false);
   const attachAndPlayRef = useRef<((id: string, url: string, generation: number, meta?: { sunoTaskId?: string; rhythmId?: string }) => void) | null>(null);
 
   const openPlayer  = useCallback(() => setPlayerOpen(true),  []);
@@ -92,6 +94,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     queueRef.current = [];
     queueIndexRef.current = -1;
     queueLoopEachRef.current = false;
+    queueLoopAllRef.current = false;
   }, [stopCurrent]);
 
   const playQueuedTrack = useCallback((track: AudioQueueTrack, index: number) => {
@@ -133,9 +136,12 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       });
       audio.addEventListener("ended", () => {
         if (audio.loop) return;
-        const nextTrack = queueRef.current[queueIndexRef.current + 1];
+        const nextTrack =
+          queueRef.current[queueIndexRef.current + 1] ??
+          (queueLoopAllRef.current ? queueRef.current[0] : undefined);
         if (nextTrack) {
-          playQueuedTrack(nextTrack, queueIndexRef.current + 1);
+          const nextIndex = queueRef.current.findIndex((candidate) => candidate.id === nextTrack.id);
+          playQueuedTrack(nextTrack, nextIndex >= 0 ? nextIndex : 0);
           return;
         }
         setIsPlaying(false);
@@ -146,6 +152,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         queueRef.current = [];
         queueIndexRef.current = -1;
         queueLoopEachRef.current = false;
+        queueLoopAllRef.current = false;
       });
 
       // Stall detection via currentTime polling — the only reliable approach on iOS Safari.
@@ -266,6 +273,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       queueRef.current = [];
       queueIndexRef.current = -1;
       queueLoopEachRef.current = false;
+      queueLoopAllRef.current = false;
       const generation = ++generationRef.current;
       setLoadingId(trackId);
       setCurrentTrackId(trackId);
@@ -309,6 +317,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       queueRef.current = [];
       queueIndexRef.current = -1;
       queueLoopEachRef.current = false;
+      queueLoopAllRef.current = false;
       const generation = ++generationRef.current;
       setLoadingId(id);
       setCurrentTrackId(id);
@@ -332,6 +341,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       const generation = ++generationRef.current;
       queueRef.current = playable;
       queueLoopEachRef.current = !!options.loopEach;
+      queueLoopAllRef.current = !!options.loopAll;
       queueIndexRef.current = playable.findIndex((candidate) => candidate.id === track.id);
       setLoadingId(track.id);
       setCurrentTrackId(track.id);
@@ -344,20 +354,25 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     [stopCurrent, attachAndPlay]
   );
 
+  const resumePlayback = useCallback(() => {
+    if (!audioRef.current) return;
+    audioRef.current.play()
+      .then(() => setIsPlaying(true))
+      .catch((err) => {
+        console.warn("Resume failed:", err.message);
+        setIsPlaying(false);
+      });
+  }, []);
+
   const togglePlayPause = useCallback(() => {
     if (!audioRef.current) return;
     if (isPlaying) {
       audioRef.current.pause();
       setIsPlaying(false);
     } else {
-      audioRef.current.play()
-        .then(() => setIsPlaying(true))
-        .catch((err) => {
-          console.warn("Resume failed:", err.message);
-          setIsPlaying(false);
-        });
+      resumePlayback();
     }
-  }, [isPlaying]);
+  }, [isPlaying, resumePlayback]);
 
   const restart = useCallback(() => {
     if (audioRef.current) {
@@ -410,7 +425,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       ],
     });
     navigator.mediaSession.setActionHandler("play", () => {
-      audioRef.current?.play().catch(console.error);
+      resumePlayback();
     });
     navigator.mediaSession.setActionHandler("pause", () => {
       audioRef.current?.pause();
@@ -435,7 +450,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       navigator.mediaSession.setActionHandler("nexttrack", null);
       navigator.mediaSession.setActionHandler("previoustrack", null);
     };
-  }, [currentTrackId, currentTitle, playQueuedTrack]);
+  }, [currentTrackId, currentTitle, playQueuedTrack, resumePlayback]);
 
   // Keep the OS playback state in sync so the lock screen shows the right icon
   useEffect(() => {

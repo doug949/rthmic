@@ -67,7 +67,7 @@ export default function MenuDetailPage({ params }: { params: Promise<{ slug: str
   const router = useRouter();
   const tm = getMenuConfig(slug);
   const { genPhase, startGeneration } = useGeneration();
-  const { handlePlayUrl, stop: stopAudio, currentTrackId, isPlaying } = useAudio();
+  const { playQueue, stop: stopAudio, currentTrackId, isPlaying } = useAudio();
   const { setActivePillar } = usePillarTheme();
 
   const [songs, setSongs] = useState<SavedRhythm[]>([]);
@@ -165,8 +165,15 @@ export default function MenuDetailPage({ params }: { params: Promise<{ slug: str
     if (currentTrackId === song.id && isPlaying) {
       stopAudio();
     } else if (song.audioUrl || song.audioKey) {
-      const url = song.audioKey ? `/api/proxy-audio?id=${encodeURIComponent(song.id)}` : song.audioUrl!;
-      handlePlayUrl(song.id, url, song.title, { rhythmId: song.id, sunoTaskId: song.sunoTaskId });
+      const tracks = currentBatch
+        .filter((candidate) => candidate.audioUrl || candidate.audioKey)
+        .map((candidate) => ({
+          id: candidate.id,
+          url: candidate.audioKey ? `/api/proxy-audio?id=${encodeURIComponent(candidate.id)}` : candidate.audioUrl!,
+          title: candidate.title,
+          meta: { rhythmId: candidate.id, sunoTaskId: candidate.sunoTaskId },
+        }));
+      playQueue(tracks, song.id, { loopAll: true });
     }
   };
 
