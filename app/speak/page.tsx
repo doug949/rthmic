@@ -1842,7 +1842,7 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
           className="w-full py-5 rounded-2xl text-sm font-semibold tracking-wide active:scale-[0.98] transition-all touch-manipulation"
           style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.45)", color: "#c9a55a" }}
         >
-          Talk to Rthmic
+          Next
         </button>
       </RevealBlock>
     </section>
@@ -2347,14 +2347,14 @@ function GenreView({
     <section className="flex-1 flex flex-col pb-10 gap-5 overflow-y-auto">
       <RevealBlock delay={0} className="flex-shrink-0">
         <h2 className="text-2xl font-light text-white leading-snug" style={{ fontFamily: "var(--font-display)" }}>
-          Choose your style
+          Style
         </h2>
         <p className="text-sm text-white/50 mt-2 leading-relaxed">
           {loadingRec
-            ? "Finding the best match for your state…"
+            ? "Finding a match for your state…"
             : recommendedIndex !== null
-              ? "We've suggested one based on your state. You can override it."
-            : "Select the style for your Rthm."}
+              ? "Suggested from what you said. You can override it."
+            : "Choose the sound for your Rthm."}
         </p>
       </RevealBlock>
 
@@ -2379,9 +2379,6 @@ function GenreView({
             >
               {canProceed ? buildLabel : "Select a style below"}
             </button>
-            <p className="text-[11px] text-white/45 leading-relaxed mt-2 px-1">
-              Rthmic recommends a starting style. Use it, select another, or describe a new style below.
-            </p>
           </div>
         </RevealBlock>
       )}
@@ -2394,16 +2391,25 @@ function GenreView({
         </RevealBlock>
       ) : (
         <div className="flex flex-col gap-5">
+          {/* ── Custom one-off ── */}
+          <RevealBlock delay={20}>
+            <CustomStyleInput
+              onStyleChange={(s) => { setCustomStyle(s); setCustomSelected(true); setSelectedIndex(null); }}
+              selected={customSelected}
+              onSelect={selectCustom}
+              onSave={persistCustomStyle}
+            />
+          </RevealBlock>
 
           {/* ── Style Archetypes (built-in, permanent) ── */}
           {builtInGenres.length > 0 && (
             <div className="flex flex-col gap-2">
-              <RevealBlock delay={20}>
+              <RevealBlock delay={40}>
                 <p className="text-[10px] text-white/40 uppercase tracking-[0.25em]">Style Archetypes</p>
               </RevealBlock>
               <div className="flex flex-col gap-2">
                 {builtInGenres.map((genre, i) =>
-                  renderTile(genre, i, 40 + i * 20)
+                  renderTile(genre, i, 60 + i * 20)
                 )}
               </div>
             </div>
@@ -2422,32 +2428,10 @@ function GenreView({
               </div>
             </div>
           )}
-
-          {/* ── Custom one-off ── */}
-          <RevealBlock delay={60 + allGenres.length * 20}>
-            <CustomStyleInput
-              onStyleChange={(s) => { setCustomStyle(s); setCustomSelected(true); setSelectedIndex(null); }}
-              selected={customSelected}
-              onSelect={selectCustom}
-              onSave={persistCustomStyle}
-            />
-          </RevealBlock>
         </div>
       )}
 
       <RevealBlock delay={80} className="flex flex-col gap-3 mt-auto flex-shrink-0">
-        <button
-          onClick={() => {
-            if (!canProceed) return;
-            if (customSelected && customStyle) persistCustomStyle(customStyle);
-            onGenerate(selectedGenre);
-          }}
-          disabled={!canProceed}
-          className="w-full py-5 rounded-2xl text-sm font-semibold tracking-wide active:scale-[0.98] transition-all touch-manipulation disabled:opacity-30"
-          style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.45)", color: "#c9a55a" }}
-        >
-          {buildLabel}
-        </button>
         <button
           onClick={onDiscard}
           className="w-full py-3 text-white/35 hover:text-white/55 text-sm tracking-wide transition-colors touch-manipulation"
