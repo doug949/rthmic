@@ -505,6 +505,7 @@ const HOME_TILES: {
   { id: "rthmix", href: "/rthmix",    label: "Rthmix",                shortLabel: "Rthmix",     icon: <CassetteIcon />, accent: "rgba(230,155,60,0.5)", image: "/images/tiles/optimized/rthmix.webp" },
   { id: "structure", href: "/structure", label: "Menus",                 shortLabel: "Menus",      icon: <MenusIcon />,   accent: "rgba(100,195,165,0.5)", image: "/images/tiles/optimized/structure.webp", imageScale: 1.12 },
   { id: "adhd", href: "/speak",     label: "ADHD Collection",       shortLabel: "ADHD Collection",       icon: <BrainIcon />,   accent: "rgba(220,110,140,0.5)", image: "/images/tiles/optimized/adhd.webp" },
+  { id: "reddit-adhd", href: "/reddit-adhd", label: "ADHD Reddit Response", shortLabel: "Reddit ADHD", icon: <BrainIcon />, accent: "rgba(220,110,140,0.55)", adminOnly: true },
   { id: "settings", href: "/settings",  label: "Settings and Styles",   shortLabel: "Settings + Styles", icon: <EQIcon />, accent: "rgba(160,130,220,0.5)", image: "/images/tiles/optimized/settings.webp", imageScale: 1.12 },
   { id: "about", href: "/understand",label: "About RTHMIC",          shortLabel: "About",      icon: <InfoIcon />,    accent: "rgba(255,255,255,0.15)", image: "/images/tiles/optimized/about.webp" },
   { id: "studio", href: "/studio",    label: "Developer",            shortLabel: "Developer",  icon: <LockIcon />,    accent: "rgba(109,40,217,0.55)", image: "/images/tiles/optimized/feedback.webp", adminOnly: true },
