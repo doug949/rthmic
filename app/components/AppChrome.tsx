@@ -10,7 +10,7 @@ import QuickCodexNote from "@/app/components/QuickCodexNote";
 import OfflineAudioKeeper from "@/app/components/OfflineAudioKeeper";
 
 function isStandalonePublicRoute(pathname: string | null) {
-  return pathname?.startsWith("/r/") ?? false;
+  return pathname === "/login" || (pathname?.startsWith("/r/") ?? false);
 }
 
 export default function AppChrome() {
