@@ -39,6 +39,7 @@ export default function Home() {
   const [clearingQueue, setClearingQueue] = useState(false);
   const [queueCleared, setQueueCleared] = useState<number | null>(null);
   const [buildCopied, setBuildCopied] = useState(false);
+  const [serverBuild, setServerBuild] = useState("");
   const [screenReady, setScreenReady] = useState(false);
   const [tilesReady, setTilesReady] = useState(false);
   const [introComplete, setIntroComplete] = useState(false);
@@ -62,6 +63,10 @@ export default function Home() {
     fetch("/api/settings")
       .then((r) => r.json())
       .then((d) => { if (d.name) setUserName(d.name); })
+      .catch(() => {});
+    fetch(`/api/version?t=${Date.now()}`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d: { build?: string }) => { if (d.build) setServerBuild(d.build); })
       .catch(() => {});
   }, []);
 
@@ -206,7 +211,7 @@ export default function Home() {
     setReorderMode(false);
   };
 
-  const buildId = process.env.NEXT_PUBLIC_RTHMIC_BUILD ?? "dev";
+  const buildId = serverBuild || process.env.NEXT_PUBLIC_RTHMIC_BUILD || "unknown";
   const buildLabel = `RTHMIC beta · ${buildId}`;
 
   const copyBuildLabel = async () => {
