@@ -1,17 +1,15 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import type { Dispatch, ReactNode, SetStateAction } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppHeader } from "@/app/components/AppHeader";
 import { RevealBlock } from "@/app/components/RevealBlock";
 import { CassetteIcon } from "@/app/components/HomeTileIcons";
 import type { SavedRhythm } from "@/app/types/library";
-import { useAudio, type AudioQueueTrack } from "@/app/contexts/AudioContext";
+import { useAudio, type AudioQueueOptions, type AudioQueueTrack } from "@/app/contexts/AudioContext";
 import { RhythmRow } from "@/app/library/_components";
 import { groupRhythmPairs, sideLabelFor } from "@/app/lib/rhythmPairs";
 
-const RTHMIX_CODE = "doug2026";
 const CROATIAN_RTHMIX_ID = "croatian-starter-memory";
 const CROATIAN_ALBUM_TITLE = "Croatian Starter";
 const CROATIAN_ALBUM_ART_PROMPT = "Square album cover for Croatian Starter, a premium Rthmix memory album: Adriatic coastline at dusk, purple-gold moonlit water, six small glowing language tokens, subtle tamburica strings, modern minimal typography, cinematic but clean.";
@@ -107,22 +105,16 @@ const croatianMemoryRthmix = [
 ];
 
 export default function RthmixPage() {
-  const router = useRouter();
-  const [allowed, setAllowed] = useState(false);
-  const [checked, setChecked] = useState(false);
+  const [topic, setTopic] = useState("");
+  const [building, setBuilding] = useState(false);
+  const [buildError, setBuildError] = useState<string | null>(null);
+  const [queuedPlan, setQueuedPlan] = useState<{ title: string; tracks: Array<{ number: string; title: string; unlock: string }> } | null>(null);
   const [rhythms, setRhythms] = useState<SavedRhythm[]>([]);
   const [showLyricsId, setShowLyricsId] = useState<string | null>(null);
   const [shareToastId, setShareToastId] = useState<string | null>(null);
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const [selectedSideIds, setSelectedSideIds] = useState<Record<string, string>>({});
   const { currentTrackId, isPlaying, currentTime, duration, handlePlayUrl, playQueue } = useAudio();
-
-  useEffect(() => {
-    const match = document.cookie.match(/(?:^|;\s*)rthmic_code=([^;]+)/);
-    const code = match ? decodeURIComponent(match[1]) : "";
-    setAllowed(code === RTHMIX_CODE);
-    setChecked(true);
-  }, []);
 
   const fetchLibrary = useCallback(async () => {
     try {
@@ -134,12 +126,11 @@ export default function RthmixPage() {
   }, []);
 
   useEffect(() => {
-    if (!allowed) return;
     fetchLibrary();
     const onMutated = () => fetchLibrary();
     window.addEventListener("library-mutated", onMutated);
     return () => window.removeEventListener("library-mutated", onMutated);
-  }, [allowed, fetchLibrary]);
+  }, [fetchLibrary]);
 
   const mutate = useCallback(async (body: Record<string, unknown>) => {
     await fetch("/api/library", {
@@ -153,6 +144,37 @@ export default function RthmixPage() {
 
   const updateRhythm = (id: string, patch: Partial<SavedRhythm>) =>
     mutate({ action: "update", id, ...patch });
+
+  const handleBuildRthmix = async () => {
+    const cleanTopic = topic.trim();
+    if (!cleanTopic || building) return;
+    setBuilding(true);
+    setBuildError(null);
+    setQueuedPlan(null);
+    try {
+      const res = await fetch("/api/rthmix/build", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic: cleanTopic }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error ?? "Rthmix build failed");
+      setQueuedPlan({
+        title: data.plan.title,
+        tracks: (data.plan.tracks ?? []).map((track: { number: string; title: string; unlock: string }) => ({
+          number: track.number,
+          title: track.title,
+          unlock: track.unlock,
+        })),
+      });
+      setTopic("");
+      await fetchLibrary();
+    } catch (error) {
+      setBuildError(error instanceof Error ? error.message : "Rthmix build failed");
+    } finally {
+      setBuilding(false);
+    }
+  };
 
   const markActive = (rhythm: SavedRhythm) => {
     if (rhythm.status !== "new") return;
@@ -217,6 +239,21 @@ export default function RthmixPage() {
     .filter((track): track is AudioQueueTrack => !!track);
   const readyTrackCount = albumCards.filter(({ card }) => !!card).length;
 
+  const rthmixAlbums = useMemo(() => {
+    const groups = new Map<string, SavedRhythm[]>();
+    for (const rhythm of rhythms) {
+      if (rhythm.status === "deleted" || !rhythm.rthmixId || rhythm.rthmixId === CROATIAN_RTHMIX_ID) continue;
+      const current = groups.get(rhythm.rthmixId) ?? [];
+      current.push(rhythm);
+      groups.set(rhythm.rthmixId, current);
+    }
+    return Array.from(groups.entries()).map(([id, items]) => ({
+      id,
+      title: items[0]?.rthmixTitle ?? "Rthmix",
+      rhythms: items.sort((a, b) => (a.rthmixTrackNumber ?? "").localeCompare(b.rthmixTrackNumber ?? "")),
+    }));
+  }, [rhythms]);
+
   const playAlbumFrom = (rhythm: SavedRhythm) => {
     const track = queueTrackFor(rhythm);
     if (!track) return;
@@ -235,28 +272,6 @@ export default function RthmixPage() {
     playQueue(albumQueue, undefined, { loopEach: true });
   };
 
-  if (!checked) {
-    return (
-      <main className="relative z-10 min-h-screen flex items-center justify-center">
-        <div className="w-6 h-6 rounded-full border-2 border-white/15 border-t-white/50 animate-spin" />
-      </main>
-    );
-  }
-
-  if (!allowed) {
-    return (
-      <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ animation: "page-enter 380ms ease forwards" }}>
-        <RevealBlock delay={0}>
-          <AppHeader title="Rthmix" titleIcon={<CassetteIcon />} />
-        </RevealBlock>
-        <section className="flex-1 flex flex-col items-center justify-center text-center pb-28">
-          <p className="text-sm text-white/45">Rthmix is in private preview.</p>
-          <button onClick={() => router.push("/")} className="mt-5 text-xs uppercase tracking-widest text-white/35">Return Home</button>
-        </section>
-      </main>
-    );
-  }
-
   return (
     <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ animation: "page-enter 380ms ease forwards" }}>
       <RevealBlock delay={0}>
@@ -266,8 +281,7 @@ export default function RthmixPage() {
       <section className="flex-1 flex flex-col gap-4 pb-28">
         <div className="rounded-2xl border px-5 py-5" style={{ background: "rgba(230,155,60,0.08)", borderColor: "rgba(230,155,60,0.28)" }}>
           <div className="flex items-center gap-2 mb-2">
-            <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: "rgba(240,170,80,0.9)" }}>Private preview</p>
-            <span className="text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-full" style={{ background: "rgba(230,155,60,0.12)", color: "rgba(240,170,80,0.72)", border: "1px solid rgba(230,155,60,0.22)" }}>Soon</span>
+            <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: "rgba(240,170,80,0.9)" }}>Rthmix builder</p>
           </div>
           <h1 className="text-2xl font-light text-white/90 leading-tight" style={{ fontFamily: "var(--font-display)" }}>
             Build albums that teach one unlock at a time.
@@ -275,7 +289,60 @@ export default function RthmixPage() {
           <p className="text-sm text-white/45 leading-relaxed mt-3">
             Rthmix is where a goal becomes track zero, ordered progress tracks, and a reflective bonus track.
           </p>
+          <div className="mt-5 flex flex-col gap-3">
+            <textarea
+              value={topic}
+              onChange={(event) => setTopic(event.target.value)}
+              placeholder="What should this Rthmix teach or build?"
+              className="w-full min-h-24 rounded-xl border bg-black/20 px-4 py-3 text-sm text-white/86 placeholder:text-white/25 outline-none resize-none"
+              style={{ borderColor: "rgba(230,155,60,0.22)" }}
+            />
+            <button
+              onClick={handleBuildRthmix}
+              disabled={building || !topic.trim()}
+              className="inline-flex items-center justify-center rounded-full border px-4 py-3 text-[11px] uppercase tracking-widest touch-manipulation active:scale-[0.98] transition disabled:opacity-40 disabled:active:scale-100"
+              style={{ background: "rgba(230,155,60,0.18)", borderColor: "rgba(240,170,80,0.34)", color: "rgba(255,235,205,0.92)" }}
+            >
+              {building ? "Building Rthmix..." : "Build Rthmix"}
+            </button>
+            {buildError && <p className="text-xs text-red-200/70">{buildError}</p>}
+            {queuedPlan && (
+              <div className="rounded-xl border px-4 py-3" style={{ background: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.09)" }}>
+                <p className="text-xs text-white/65">{queuedPlan.title} queued</p>
+                <p className="text-[11px] text-white/35 mt-1">{queuedPlan.tracks.length} tracks are generating. They will appear here as they complete.</p>
+              </div>
+            )}
+          </div>
         </div>
+
+        {rthmixAlbums.length > 0 && (
+          <RthmixSection
+            label="Your Rthmixes"
+            intro="Generated albums appear here as each track completes. Start from track zero, then move through the ordered unlocks."
+          >
+            {rthmixAlbums.map((album) => (
+              <GeneratedRthmixAlbum
+                key={album.id}
+                title={album.title}
+                rhythms={album.rhythms}
+                currentTrackId={currentTrackId}
+                isPlaying={isPlaying}
+                currentTime={currentTime}
+                duration={duration}
+                showLyricsId={showLyricsId}
+                setShowLyricsId={setShowLyricsId}
+                playQueue={playQueue}
+                handlePlayUrl={handlePlayUrl}
+                updateRhythm={updateRhythm}
+                handleShare={handleShare}
+                shareToastId={shareToastId}
+                confirmRemoveId={confirmRemoveId}
+                setConfirmRemoveId={setConfirmRemoveId}
+                mutate={mutate}
+              />
+            ))}
+          </RthmixSection>
+        )}
 
         <RthmixSection
           label="Memory Rthmixes"
@@ -393,6 +460,127 @@ function AlbumArt() {
       <div style={{ position: "absolute", left: 10, right: 10, bottom: 10 }}>
         <p className="text-[8px] uppercase tracking-[0.22em] text-white/70">Croatian</p>
         <p className="text-[13px] leading-none text-white/90" style={{ fontFamily: "var(--font-display)" }}>Starter</p>
+      </div>
+    </div>
+  );
+}
+
+function GeneratedRthmixAlbum({
+  title,
+  rhythms,
+  currentTrackId,
+  isPlaying,
+  currentTime,
+  duration,
+  showLyricsId,
+  setShowLyricsId,
+  playQueue,
+  handlePlayUrl,
+  updateRhythm,
+  handleShare,
+  shareToastId,
+  confirmRemoveId,
+  setConfirmRemoveId,
+  mutate,
+}: {
+  title: string;
+  rhythms: SavedRhythm[];
+  currentTrackId: string | null;
+  isPlaying: boolean;
+  currentTime: number;
+  duration: number;
+  showLyricsId: string | null;
+  setShowLyricsId: (id: string | null) => void;
+  playQueue: (tracks: AudioQueueTrack[], startId?: string, options?: AudioQueueOptions) => Promise<void>;
+  handlePlayUrl: (id: string, url: string, title?: string, meta?: AudioQueueTrack["meta"]) => Promise<void>;
+  updateRhythm: (id: string, patch: Partial<SavedRhythm>) => void;
+  handleShare: (rhythm: SavedRhythm) => Promise<void>;
+  shareToastId: string | null;
+  confirmRemoveId: string | null;
+  setConfirmRemoveId: Dispatch<SetStateAction<string | null>>;
+  mutate: (body: Record<string, unknown>) => Promise<void>;
+}) {
+  const queue = rhythms
+    .filter((rhythm) => rhythm.audioUrl || rhythm.audioKey)
+    .map((rhythm) => ({
+      id: rhythm.id,
+      url: `/api/proxy-audio?id=${encodeURIComponent(rhythm.id)}`,
+      title: rhythm.title,
+      meta: { rhythmId: rhythm.id },
+    }));
+
+  const playFrom = (rhythm: SavedRhythm) => {
+    const url = `/api/proxy-audio?id=${encodeURIComponent(rhythm.id)}`;
+    if (currentTrackId === rhythm.id) {
+      handlePlayUrl(rhythm.id, url, rhythm.title, { rhythmId: rhythm.id });
+      return;
+    }
+    playQueue(queue, rhythm.id, { loopEach: true });
+  };
+
+  return (
+    <div className="rounded-2xl border overflow-hidden" style={{ background: "rgba(255,255,255,0.045)", borderColor: "rgba(255,255,255,0.10)" }}>
+      <div className="px-5 py-4 border-b flex items-center justify-between gap-3" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
+        <div className="min-w-0">
+          <p className="text-[10px] uppercase tracking-[0.28em] text-white/35">Progression Album</p>
+          <h2 className="text-lg font-light text-white/88 mt-1 truncate" style={{ fontFamily: "var(--font-display)" }}>{title}</h2>
+          <p className="text-xs text-white/35 mt-1">{rhythms.length} generated track{rhythms.length === 1 ? "" : "s"}</p>
+        </div>
+        {queue.length > 0 && (
+          <button
+            onClick={() => playQueue(queue, undefined, { loopEach: true })}
+            className="flex-shrink-0 inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-[11px] uppercase tracking-widest touch-manipulation active:scale-[0.98] transition-transform"
+            style={{ background: "rgba(230,155,60,0.14)", borderColor: "rgba(240,170,80,0.28)", color: "rgba(255,235,205,0.9)" }}
+          >
+            <PlayTinyIcon />
+            Start
+          </button>
+        )}
+      </div>
+      <div className="flex flex-col">
+        {rhythms.map((rhythm) => (
+          <div key={rhythm.id} className="border-b last:border-b-0" style={{ borderColor: "rgba(255,255,255,0.07)" }}>
+            <div className="px-5 pt-4 pb-2 flex items-start gap-3">
+              <TrackNumber number={rhythm.rthmixTrackNumber ?? "--"} />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-white/78">{rhythm.title}</p>
+                {rhythm.rthmixUnlock && <p className="text-xs mt-1" style={{ color: "rgba(240,170,80,0.72)" }}>{rhythm.rthmixUnlock}</p>}
+              </div>
+            </div>
+            <div className="px-3 pb-3">
+              <RhythmRow
+                rhythm={rhythm}
+                playing={currentTrackId === rhythm.id && isPlaying}
+                currentTime={currentTrackId === rhythm.id ? currentTime : 0}
+                duration={currentTrackId === rhythm.id ? duration : 0}
+                showLyrics={showLyricsId === rhythm.id}
+                onToggleLyrics={() => setShowLyricsId(showLyricsId === rhythm.id ? null : rhythm.id)}
+                onPlay={() => playFrom(rhythm)}
+                favourite={rhythm.status === "favourite"}
+                isNew={rhythm.status === "new"}
+                onGraduate={rhythm.status === "active" ? () => updateRhythm(rhythm.id, { status: "favourite" }) : undefined}
+                onUngraduate={rhythm.status === "favourite" ? () => updateRhythm(rhythm.id, { status: "active" }) : undefined}
+                onArchive={() => updateRhythm(rhythm.id, { status: "archived" })}
+                onRemove={() => {
+                  if (confirmRemoveId === rhythm.id) {
+                    mutate({ action: "remove", id: rhythm.id });
+                    setConfirmRemoveId(null);
+                  } else {
+                    setConfirmRemoveId(rhythm.id);
+                    setTimeout(() => setConfirmRemoveId((id) => id === rhythm.id ? null : id), 3000);
+                  }
+                }}
+                onRecreate={() => {}}
+                onBuildUpon={() => {}}
+                onShare={() => handleShare(rhythm)}
+                onTag={(tags) => updateRhythm(rhythm.id, { tags })}
+                onNote={(note) => updateRhythm(rhythm.id, { note })}
+                confirmingRemove={confirmRemoveId === rhythm.id}
+                shareToast={shareToastId === rhythm.id}
+              />
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

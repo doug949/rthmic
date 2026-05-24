@@ -92,6 +92,19 @@ export async function POST(req: NextRequest) {
   const title = typeof body.title === "string" ? body.title.slice(0, 80) : "RTHM";
   const note = typeof body.note === "string" ? body.note : undefined;
   const menuSlug = typeof body.menuSlug === "string" ? body.menuSlug : undefined;
+  const rthmixId = typeof body.rthmixId === "string" ? body.rthmixId : undefined;
+  const rthmixTitle = typeof body.rthmixTitle === "string" ? body.rthmixTitle : undefined;
+  const rthmixType = body.rthmixType === "memory" || body.rthmixType === "progression" ? body.rthmixType : undefined;
+  const rthmixTrackNumber = typeof body.rthmixTrackNumber === "string" ? body.rthmixTrackNumber : undefined;
+  const rthmixTrackRole =
+    body.rthmixTrackRole === "ground-zero" ||
+    body.rthmixTrackRole === "memory-hook" ||
+    body.rthmixTrackRole === "unlock" ||
+    body.rthmixTrackRole === "bonus"
+      ? body.rthmixTrackRole
+      : undefined;
+  const rthmixUnlock = typeof body.rthmixUnlock === "string" ? body.rthmixUnlock : undefined;
+  const rthmixAlbumArtPrompt = typeof body.rthmixAlbumArtPrompt === "string" ? body.rthmixAlbumArtPrompt : undefined;
 
   if (!rawLyrics.trim()) return NextResponse.json({ error: "lyrics required" }, { status: 400 });
 
@@ -112,6 +125,13 @@ export async function POST(req: NextRequest) {
     genre: builtStyle,
     note,
     menuSlug,
+    rthmixId,
+    rthmixTitle,
+    rthmixType,
+    rthmixTrackNumber,
+    rthmixTrackRole,
+    rthmixUnlock,
+    rthmixAlbumArtPrompt,
     createdAt: Date.now(),
     updatedAt: Date.now(),
   };

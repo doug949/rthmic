@@ -76,6 +76,13 @@ async function pollJob(
     songs: pollData.songs,
     note: job.note,
     menuSlug: job.menuSlug,
+    rthmixId: job.rthmixId,
+    rthmixTitle: job.rthmixTitle,
+    rthmixType: job.rthmixType,
+    rthmixTrackNumber: job.rthmixTrackNumber,
+    rthmixTrackRole: job.rthmixTrackRole,
+    rthmixUnlock: job.rthmixUnlock,
+    rthmixAlbumArtPrompt: job.rthmixAlbumArtPrompt,
   });
   console.log(`[queue] saved ${saved}/${rhythms.length} rhythm(s) for user ${job.userId}${job.menuSlug ? ` menu ${job.menuSlug}` : ""}`);
 

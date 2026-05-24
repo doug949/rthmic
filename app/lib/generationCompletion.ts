@@ -23,6 +23,13 @@ interface SaveCompletedSongsParams {
   songs: Song[];
   note?: string;
   menuSlug?: string;
+  rthmixId?: string;
+  rthmixTitle?: string;
+  rthmixType?: SavedRhythm["rthmixType"];
+  rthmixTrackNumber?: string;
+  rthmixTrackRole?: SavedRhythm["rthmixTrackRole"];
+  rthmixUnlock?: string;
+  rthmixAlbumArtPrompt?: string;
 }
 
 async function saveToLibrary(
@@ -76,6 +83,13 @@ export async function saveCompletedSongs({
   songs,
   note,
   menuSlug,
+  rthmixId,
+  rthmixTitle,
+  rthmixType,
+  rthmixTrackNumber,
+  rthmixTrackRole,
+  rthmixUnlock,
+  rthmixAlbumArtPrompt,
 }: SaveCompletedSongsParams): Promise<{ saved: number; rhythms: SavedRhythm[] }> {
   const pairId = songs.length > 1 ? jobId : undefined;
   const rhythms: SavedRhythm[] = [];
@@ -112,6 +126,13 @@ export async function saveCompletedSongs({
       } : {}),
       ...(audioKey ? { audioKey } : {}),
       ...(note ? { note } : {}),
+      ...(rthmixId ? { rthmixId } : {}),
+      ...(rthmixTitle ? { rthmixTitle } : {}),
+      ...(rthmixType ? { rthmixType } : {}),
+      ...(rthmixTrackNumber ? { rthmixTrackNumber } : {}),
+      ...(rthmixTrackRole ? { rthmixTrackRole } : {}),
+      ...(rthmixUnlock ? { rthmixUnlock } : {}),
+      ...(rthmixAlbumArtPrompt ? { rthmixAlbumArtPrompt } : {}),
     };
 
     if (!menuSlug) rhythm.tags = tagsForSavedRhythm(rhythm);

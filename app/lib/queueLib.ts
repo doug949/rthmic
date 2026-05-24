@@ -15,6 +15,13 @@ export interface QueueJob {
   genre: string;
   note?: string;
   menuSlug?: string;
+  rthmixId?: string;
+  rthmixTitle?: string;
+  rthmixType?: "memory" | "progression";
+  rthmixTrackNumber?: string;
+  rthmixTrackRole?: "ground-zero" | "memory-hook" | "unlock" | "bonus";
+  rthmixUnlock?: string;
+  rthmixAlbumArtPrompt?: string;
   sunoTaskId?: string;
   createdAt: number;
   updatedAt: number;
