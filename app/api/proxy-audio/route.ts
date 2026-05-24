@@ -153,8 +153,7 @@ export async function GET(request: NextRequest) {
     return new NextResponse("Audio fetch failed", { status: 502 });
   }
 
-  const audioBytes = await upstream.arrayBuffer();
-  if (audioBytes.byteLength === 0) {
+  if (!upstream.body) {
     return new NextResponse("Audio fetch failed", { status: 502 });
   }
 
@@ -162,13 +161,15 @@ export async function GET(request: NextRequest) {
     "Content-Type": upstream.headers.get("Content-Type") ?? "audio/mpeg",
     "Accept-Ranges": "bytes",
     "Cache-Control": "no-store",
-    "Content-Length": String(audioBytes.byteLength),
   });
+  if (upstream.headers.has("Content-Length")) {
+    headers.set("Content-Length", upstream.headers.get("Content-Length")!);
+  }
   if (upstream.headers.has("Content-Range")) {
     headers.set("Content-Range", upstream.headers.get("Content-Range")!);
   }
 
-  return new NextResponse(audioBytes, {
+  return new NextResponse(upstream.body, {
     status: upstream.status,
     headers,
   });
