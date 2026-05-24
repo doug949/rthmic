@@ -1,7 +1,7 @@
 "use client";
 
 import type { Dispatch, ReactNode, SetStateAction } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppHeader } from "@/app/components/AppHeader";
 import { RevealBlock } from "@/app/components/RevealBlock";
 import { CassetteIcon } from "@/app/components/HomeTileIcons";
@@ -13,6 +13,15 @@ import { groupRhythmPairs, sideLabelFor } from "@/app/lib/rhythmPairs";
 const CROATIAN_RTHMIX_ID = "croatian-starter-memory";
 const CROATIAN_ALBUM_TITLE = "Croatian Starter";
 const CROATIAN_ALBUM_ART_PROMPT = "Square album cover for Croatian Starter, a premium Rthmix memory album: Adriatic coastline at dusk, purple-gold moonlit water, six small glowing language tokens, subtle tamburica strings, modern minimal typography, cinematic but clean.";
+
+const RTHMIX_SUGGESTIONS = [
+  "How compound interest works",
+  "Croatian for a weekend trip",
+  "The basics of ADHD time blindness",
+  "How to think in first principles",
+  "A beginner guide to wine tasting",
+  "The story of the Roman Empire",
+];
 
 const progressionTracks = [
   {
@@ -107,6 +116,7 @@ const croatianMemoryRthmix = [
 export default function RthmixPage() {
   const [topic, setTopic] = useState("");
   const [building, setBuilding] = useState(false);
+  const [voicePhase, setVoicePhase] = useState<"idle" | "recording" | "transcribing">("idle");
   const [buildError, setBuildError] = useState<string | null>(null);
   const [queuedPlan, setQueuedPlan] = useState<{ title: string; tracks: Array<{ number: string; title: string; unlock: string }> } | null>(null);
   const [rhythms, setRhythms] = useState<SavedRhythm[]>([]);
@@ -115,6 +125,10 @@ export default function RthmixPage() {
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const [selectedSideIds, setSelectedSideIds] = useState<Record<string, string>>({});
   const { currentTrackId, isPlaying, currentTime, duration, handlePlayUrl, playQueue } = useAudio();
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const mimeTypeRef = useRef("");
+  const streamRef = useRef<MediaStream | null>(null);
 
   const fetchLibrary = useCallback(async () => {
     try {
@@ -145,8 +159,8 @@ export default function RthmixPage() {
   const updateRhythm = (id: string, patch: Partial<SavedRhythm>) =>
     mutate({ action: "update", id, ...patch });
 
-  const handleBuildRthmix = async () => {
-    const cleanTopic = topic.trim();
+  const handleBuildRthmix = async (overrideTopic?: string) => {
+    const cleanTopic = (overrideTopic ?? topic).trim();
     if (!cleanTopic || building) return;
     setBuilding(true);
     setBuildError(null);
@@ -174,6 +188,78 @@ export default function RthmixPage() {
     } finally {
       setBuilding(false);
     }
+  };
+
+  const startRecording = async () => {
+    if (building || voicePhase !== "idle") return;
+    setBuildError(null);
+    setQueuedPlan(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      chunksRef.current = [];
+
+      const preferredTypes = ["audio/mp4", "audio/webm;codecs=opus", "audio/webm"];
+      let recorder: MediaRecorder | null = null;
+      let chosenMime = "";
+      for (const type of preferredTypes) {
+        if (!MediaRecorder.isTypeSupported(type)) continue;
+        try {
+          recorder = new MediaRecorder(stream, { mimeType: type, audioBitsPerSecond: 32000 });
+          chosenMime = type;
+          break;
+        } catch { /* try next */ }
+      }
+      if (!recorder) {
+        recorder = new MediaRecorder(stream, { audioBitsPerSecond: 32000 });
+        chosenMime = recorder.mimeType || "audio/webm";
+      }
+
+      mimeTypeRef.current = chosenMime;
+      mediaRecorderRef.current = recorder;
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) chunksRef.current.push(event.data);
+      };
+      recorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: mimeTypeRef.current || "audio/webm" });
+        streamRef.current?.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+        mediaRecorderRef.current = null;
+        transcribeAndBuild(blob).catch((error) => {
+          setBuildError(error instanceof Error ? error.message : "Could not transcribe topic");
+          setVoicePhase("idle");
+        });
+      };
+      recorder.start(250);
+      setVoicePhase("recording");
+    } catch (error) {
+      const raw = error instanceof Error ? error.message : "";
+      setBuildError(/denied|not allowed/i.test(raw) ? "Microphone access denied. Please allow microphone access and try again." : "Could not start recording. Please try again.");
+      setVoicePhase("idle");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current?.state === "recording") {
+      setVoicePhase("transcribing");
+      mediaRecorderRef.current.stop();
+    }
+  };
+
+  const transcribeAndBuild = async (audio: Blob) => {
+    setVoicePhase("transcribing");
+    const mimeType = audio.type || "audio/webm";
+    const ext = mimeType.includes("mp4") ? "m4a" : "webm";
+    const form = new FormData();
+    form.append("audio", audio, `rthmix-topic.${ext}`);
+    const res = await fetch("/api/transcribe", { method: "POST", body: form });
+    if (!res.ok) throw new Error("Could not transcribe topic");
+    const data = await res.json();
+    const transcript = typeof data.transcript === "string" ? data.transcript.trim() : "";
+    if (!transcript) throw new Error("No topic heard. Please try again.");
+    setTopic(transcript);
+    setVoicePhase("idle");
+    await handleBuildRthmix(transcript);
   };
 
   const markActive = (rhythm: SavedRhythm) => {
@@ -290,15 +376,66 @@ export default function RthmixPage() {
             Rthmix is where a goal becomes track zero, ordered progress tracks, and a reflective bonus track.
           </p>
           <div className="mt-5 flex flex-col gap-3">
+            <button
+              onClick={voicePhase === "recording" ? stopRecording : startRecording}
+              disabled={building || voicePhase === "transcribing"}
+              className="w-full min-h-36 rounded-2xl border flex flex-col items-center justify-center gap-3 touch-manipulation active:scale-[0.99] transition disabled:opacity-55 disabled:active:scale-100"
+              style={{
+                background: voicePhase === "recording" ? "rgba(239,68,68,0.12)" : "rgba(230,155,60,0.12)",
+                borderColor: voicePhase === "recording" ? "rgba(252,165,165,0.34)" : "rgba(240,170,80,0.3)",
+                color: "rgba(255,245,230,0.92)",
+              }}
+              aria-label={voicePhase === "recording" ? "Stop recording Rthmix topic" : "Record Rthmix topic"}
+            >
+              <span
+                className="w-16 h-16 rounded-full flex items-center justify-center"
+                style={{
+                  background: voicePhase === "recording" ? "rgba(239,68,68,0.22)" : "rgba(230,155,60,0.18)",
+                  boxShadow: voicePhase === "recording" ? "0 0 28px rgba(239,68,68,0.18)" : "0 0 30px rgba(230,155,60,0.14)",
+                }}
+              >
+                {voicePhase === "recording" ? <StopIcon /> : <MicTopicIcon />}
+              </span>
+              <span className="text-sm font-medium text-white/82">
+                {building
+                  ? "Building your Rthmix"
+                  : voicePhase === "recording"
+                    ? "Tap to finish"
+                    : voicePhase === "transcribing"
+                      ? "Listening back..."
+                      : "Say the topic"}
+              </span>
+              <span className="text-xs text-white/38">
+                {voicePhase === "recording" ? "Rthmix will build from what you say." : "One sentence is enough."}
+              </span>
+            </button>
+
+            <div className="flex flex-wrap gap-2">
+              {RTHMIX_SUGGESTIONS.map((suggestion) => (
+                <button
+                  key={suggestion}
+                  onClick={() => {
+                    setTopic(suggestion);
+                    handleBuildRthmix(suggestion);
+                  }}
+                  disabled={building || voicePhase !== "idle"}
+                  className="rounded-full border px-3 py-2 text-[11px] text-white/58 touch-manipulation active:scale-[0.98] transition disabled:opacity-35"
+                  style={{ background: "rgba(255,255,255,0.045)", borderColor: "rgba(255,255,255,0.10)" }}
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+
             <textarea
               value={topic}
               onChange={(event) => setTopic(event.target.value)}
-              placeholder="What should this Rthmix teach or build?"
+              placeholder="Or edit the topic before building"
               className="w-full min-h-24 rounded-xl border bg-black/20 px-4 py-3 text-sm text-white/86 placeholder:text-white/25 outline-none resize-none"
               style={{ borderColor: "rgba(230,155,60,0.22)" }}
             />
             <button
-              onClick={handleBuildRthmix}
+              onClick={() => handleBuildRthmix()}
               disabled={building || !topic.trim()}
               className="inline-flex items-center justify-center rounded-full border px-4 py-3 text-[11px] uppercase tracking-widest touch-manipulation active:scale-[0.98] transition disabled:opacity-40 disabled:active:scale-100"
               style={{ background: "rgba(230,155,60,0.18)", borderColor: "rgba(240,170,80,0.34)", color: "rgba(255,235,205,0.92)" }}
@@ -590,6 +727,23 @@ function PlayTinyIcon() {
   return (
     <svg width="10" height="10" viewBox="0 0 12 12" fill="none" aria-hidden="true">
       <path d="M3 1.8L10 6L3 10.2V1.8Z" fill="currentColor" />
+    </svg>
+  );
+}
+
+function MicTopicIcon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 14.5c1.8 0 3-1.35 3-3.15V6.65c0-1.8-1.2-3.15-3-3.15S9 4.85 9 6.65v4.7c0 1.8 1.2 3.15 3 3.15Z" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M6.5 10.8c0 3.35 2.25 5.7 5.5 5.7s5.5-2.35 5.5-5.7M12 16.5v3.7M9 20.2h6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function StopIcon() {
+  return (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor" />
     </svg>
   );
 }
