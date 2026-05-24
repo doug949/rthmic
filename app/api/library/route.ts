@@ -24,6 +24,7 @@ import { fromSunoPronunciation } from "@/app/lib/sunoLyrics";
 export type { SavedRhythm };
 
 const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+const NEW_RTHM_WINDOW = 24 * 60 * 60 * 1000;
 
 function legacyPairKey(rhythm: SavedRhythm): string {
   const baseTitle = rhythm.title.replace(/\s+\(Variation\)$/i, "").trim().toLowerCase();
@@ -67,13 +68,15 @@ export async function GET(request: NextRequest) {
         (r) => r.status !== "deleted" || (r.deletedAt !== undefined && now - r.deletedAt < THIRTY_DAYS)
       );
 
-      // Write back if anything was purged
-      if (kept.length !== all.length) {
-        await writeSavedRhythms(client, key, kept);
-      }
+      // New Rthms graduate into the main library after 24 hours even if unplayed.
+      const aged = kept.map((r) =>
+        r.status === "new" && now - r.savedAt >= NEW_RTHM_WINDOW
+          ? { ...r, status: "active" as const }
+          : r
+      );
 
       // Normalise legacy pillar names and quietly backfill missing tags.
-      const normalised = kept.map((r) => {
+      const normalised = aged.map((r) => {
         const pillar = normalisePillar(r.pillar) as PillarType;
         return {
           ...restoreDisplayLyrics(r),
@@ -82,7 +85,7 @@ export async function GET(request: NextRequest) {
         };
       });
 
-      if (JSON.stringify(normalised) !== JSON.stringify(kept)) {
+      if (JSON.stringify(normalised) !== JSON.stringify(all)) {
         await writeSavedRhythms(client, key, normalised);
       }
 
