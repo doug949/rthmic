@@ -82,6 +82,17 @@ function isEmptyAudioResponse(response: Response): boolean {
   return response.headers.get("Content-Length") === "0";
 }
 
+async function fetchAudio(url: string | undefined, headers: Record<string, string>): Promise<Response | null> {
+  if (!url) return null;
+
+  try {
+    return await fetch(url, { headers });
+  } catch (error) {
+    console.warn("[proxy-audio] Upstream audio fetch failed:", error);
+    return null;
+  }
+}
+
 export async function GET(request: NextRequest) {
   const rhythmId = request.nextUrl.searchParams.get("id");
   const token = request.nextUrl.searchParams.get("token");
@@ -138,18 +149,16 @@ export async function GET(request: NextRequest) {
     "Referer": "https://sunoapi.org/",
   };
   if (range) cdnHeaders["Range"] = range;
-  let upstream = await fetch(audioUrl, { headers: cdnHeaders });
+  let upstream = await fetchAudio(audioUrl, cdnHeaders);
 
   // If Wasabi fetch failed (signed URL for non-existent object), fall back to Suno
-  if (((!upstream.ok && upstream.status !== 206) || isEmptyAudioResponse(upstream)) && rhythm.audioKey) {
-    console.warn(`[proxy-audio] Wasabi fetch failed (${upstream.status}) for ${rhythm.audioKey} — falling back to Suno`);
+  if ((!upstream || (!upstream.ok && upstream.status !== 206) || isEmptyAudioResponse(upstream)) && rhythm.audioKey) {
+    console.warn(`[proxy-audio] Wasabi fetch failed (${upstream?.status ?? "network"}) for ${rhythm.audioKey} — falling back to Suno`);
     const fallbackUrl = (await getFreshUrl(rhythm)) ?? rhythm.audioUrl;
-    if (fallbackUrl) {
-      upstream = await fetch(fallbackUrl, { headers: cdnHeaders });
-    }
+    upstream = await fetchAudio(fallbackUrl, cdnHeaders);
   }
 
-  if ((!upstream.ok && upstream.status !== 206) || isEmptyAudioResponse(upstream)) {
+  if (!upstream || (!upstream.ok && upstream.status !== 206) || isEmptyAudioResponse(upstream)) {
     return new NextResponse("Audio fetch failed", { status: 502 });
   }
 
