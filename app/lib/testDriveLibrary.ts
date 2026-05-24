@@ -1,4 +1,4 @@
-import type { SavedRhythm } from "@/app/api/library/route";
+import type { SavedRhythm } from "@/app/types/library";
 
 export const TEST_DRIVE_CODE = "testdrive";
 

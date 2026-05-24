@@ -1,6 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { AUDIO_CACHE } from "@/app/lib/offlineAudio";
+
+async function purgeAppCaches() {
+  if (!("caches" in window)) return;
+  const keys = await caches.keys();
+  await Promise.all(keys.filter((key) => key !== AUDIO_CACHE).map((key) => caches.delete(key)));
+}
 
 export default function ServiceWorkerRegistration() {
   const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
@@ -118,13 +125,19 @@ export default function ServiceWorkerRegistration() {
         onClick={() => {
           updatingRef.current = true;
           setUpdating(true);
-          if (waitingWorker) {
-            waitingWorker.postMessage({ type: "SKIP_WAITING" });
-          } else {
-            sessionStorage.setItem("rthmic:last-reload-reason", "user-clicked-update");
-            sessionStorage.setItem("rthmic:last-route", `${window.location.pathname}${window.location.search}${window.location.hash}`);
+          sessionStorage.setItem("rthmic:last-reload-reason", "user-clicked-update");
+          sessionStorage.setItem("rthmic:last-route", `${window.location.pathname}${window.location.search}${window.location.hash}`);
+          purgeAppCaches().finally(() => {
+            navigator.serviceWorker.controller?.postMessage({ type: "PURGE_APP_CACHES" });
+            if (waitingWorker) {
+              waitingWorker.postMessage({ type: "SKIP_WAITING" });
+              window.setTimeout(() => {
+                if (updatingRef.current) window.location.reload();
+              }, 5000);
+              return;
+            }
             window.location.reload();
-          }
+          });
         }}
         disabled={updating}
         className="flex-shrink-0 rounded-full px-4 py-2 text-[11px] uppercase tracking-widest touch-manipulation active:scale-[0.98] transition-transform"

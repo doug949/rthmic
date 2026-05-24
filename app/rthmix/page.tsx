@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { AppHeader } from "@/app/components/AppHeader";
 import { RevealBlock } from "@/app/components/RevealBlock";
 import { CassetteIcon } from "@/app/components/HomeTileIcons";
-import type { SavedRhythm } from "@/app/api/library/route";
+import type { SavedRhythm } from "@/app/types/library";
 import { useAudio, type AudioQueueTrack } from "@/app/contexts/AudioContext";
 import { RhythmRow } from "@/app/library/_components";
 import { groupRhythmPairs, sideLabelFor } from "@/app/lib/rhythmPairs";

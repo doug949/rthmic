@@ -2,25 +2,18 @@
 // Used by My Rthms to show placeholder "Generating…" cards.
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "redis";
-import { getUserJobIds, getJob } from "@/app/lib/queueLib";
+import { requireUserId } from "@/app/lib/auth";
+import { REDIS_AVAILABLE } from "@/app/lib/redis";
+import { withRedisQueue, getUserJobIds, getJob } from "@/app/lib/queueLib";
 
 export const maxDuration = 10;
 
-function requireAuth(req: NextRequest): string | null {
-  const session = req.cookies.get("rthmic_session");
-  if (session?.value !== process.env.RTHMIC_SESSION_TOKEN) return null;
-  return req.cookies.get("rthmic_uid")?.value ?? null;
-}
-
 export async function GET(req: NextRequest) {
-  const uid = requireAuth(req);
+  const uid = requireUserId(req);
   if (!uid) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!process.env.REDIS_URL) return NextResponse.json({ jobs: [] });
+  if (!REDIS_AVAILABLE) return NextResponse.json({ jobs: [] });
 
-  const client = createClient({ url: process.env.REDIS_URL });
-  await client.connect();
-  try {
+  return withRedisQueue(async (client) => {
     const jobIds = await getUserJobIds(client, uid);
     const active = [];
     for (const jobId of jobIds) {
@@ -36,7 +29,5 @@ export async function GET(req: NextRequest) {
       }
     }
     return NextResponse.json({ jobs: active }, { headers: { "Cache-Control": "no-store" } });
-  } finally {
-    await client.disconnect();
-  }
+  });
 }

@@ -2,18 +2,14 @@
 // Done jobs are left in the library; only queue state is cleared.
 
 import { NextRequest, NextResponse } from "next/server";
+import { requireUserId } from "@/app/lib/auth";
+import { REDIS_AVAILABLE } from "@/app/lib/redis";
 import { withRedisQueue, getUserJobIds, getJob, jobKey, userQueueKey, USERS_KEY } from "@/app/lib/queueLib";
 
-function requireAuth(req: NextRequest): string | null {
-  const session = req.cookies.get("rthmic_session");
-  if (session?.value !== process.env.RTHMIC_SESSION_TOKEN) return null;
-  return req.cookies.get("rthmic_uid")?.value ?? null;
-}
-
 export async function POST(req: NextRequest) {
-  const uid = requireAuth(req);
+  const uid = requireUserId(req);
   if (!uid) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!process.env.REDIS_URL) return NextResponse.json({ cleared: 0 });
+  if (!REDIS_AVAILABLE) return NextResponse.json({ cleared: 0 });
 
   let cleared = 0;
 

@@ -12,55 +12,18 @@
 // POST returns ok:true — the app works, saves just don't persist.
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "redis";
 import type { PillarType, TimedWord } from "@/app/types/pipeline";
 import { normalisePillar } from "@/app/types/pipeline";
+import type { SavedRhythm } from "@/app/types/library";
 import { normalizeTags, tagsForSavedRhythm } from "@/app/lib/autoTags";
+import { requireUserId } from "@/app/lib/auth";
+import { REDIS_AVAILABLE, withRedis } from "@/app/lib/redis";
+import { libraryKey, readSavedRhythms, writeSavedRhythms } from "@/app/lib/rhythmStorage";
 import { fromSunoPronunciation } from "@/app/lib/sunoLyrics";
 
-export interface SavedRhythm {
-  id: string;
-  title: string;
-  pillar: PillarType;
-  audioUrl?: string;
-  lyrics?: string;
-  savedAt: number;
-  status: "new" | "active" | "favourite" | "archived" | "deleted";
-  deletedAt?: number;
-  tags?: string[];
-  note?: string;
-  playCount?: number;
-  lastPlayedAt?: number;
-  rthmixId?: string;       // album container ID when this rhythm belongs to a Rthmix
-  rthmixTitle?: string;
-  rthmixType?: "memory" | "progression";
-  rthmixTrackNumber?: string;
-  rthmixTrackRole?: "ground-zero" | "memory-hook" | "unlock" | "bonus";
-  rthmixUnlock?: string;
-  rthmixAlbumArtPrompt?: string;
-  rthmixAlbumArtUrl?: string;
-  pairId?: string;         // A/B-side pair generated from the same Suno task
-  side?: "A" | "B";
-  alternateId?: string;
-  preferredSideId?: string; // chosen default side for an A/B pair
-  sunoClipId?: string;      // raw Suno clip ID (audioId) for timed-lyrics API
-  sunoTaskId?: string;      // Suno task ID — required alongside audioId to fetch timed lyrics
-  timedLyrics?: TimedWord[]; // word-level synchronized lyric data from Suno
-  audioKey?: string;        // Wasabi S3 key — present once audio is permanently stored
-}
+export type { SavedRhythm };
 
 const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
-const REDIS_AVAILABLE = !!process.env.REDIS_URL;
-
-function libKey(uid: string) {
-  return `lib:${uid}`;
-}
-
-function requireAuth(request: NextRequest): string | null {
-  const session = request.cookies.get("rthmic_session");
-  if (session?.value !== process.env.RTHMIC_SESSION_TOKEN) return null;
-  return request.cookies.get("rthmic_uid")?.value ?? null;
-}
 
 function legacyPairKey(rhythm: SavedRhythm): string {
   const baseTitle = rhythm.title.replace(/\s+\(Variation\)$/i, "").trim().toLowerCase();
@@ -81,21 +44,9 @@ function restoreDisplayLyrics(rhythm: SavedRhythm): SavedRhythm {
     : rhythm;
 }
 
-async function withRedis<T>(
-  fn: (client: ReturnType<typeof createClient>) => Promise<T>
-): Promise<T> {
-  const client = createClient({ url: process.env.REDIS_URL });
-  await client.connect();
-  try {
-    return await fn(client);
-  } finally {
-    await client.disconnect();
-  }
-}
-
 // GET /api/library — fetch all rhythms (active, archived, recently deleted)
 export async function GET(request: NextRequest) {
-  const uid = requireAuth(request);
+  const uid = requireUserId(request);
   if (!uid) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -107,8 +58,8 @@ export async function GET(request: NextRequest) {
 
   try {
     const rhythms = await withRedis(async (client) => {
-      const data = await client.get(libKey(uid));
-      const all: SavedRhythm[] = data ? JSON.parse(data) : [];
+      const key = libraryKey(uid);
+      const all = await readSavedRhythms(client, key);
 
       // Lazily purge deleted items older than 30 days
       const now = Date.now();
@@ -118,7 +69,7 @@ export async function GET(request: NextRequest) {
 
       // Write back if anything was purged
       if (kept.length !== all.length) {
-        await client.set(libKey(uid), JSON.stringify(kept));
+        await writeSavedRhythms(client, key, kept);
       }
 
       // Normalise legacy pillar names and quietly backfill missing tags.
@@ -132,7 +83,7 @@ export async function GET(request: NextRequest) {
       });
 
       if (JSON.stringify(normalised) !== JSON.stringify(kept)) {
-        await client.set(libKey(uid), JSON.stringify(normalised));
+        await writeSavedRhythms(client, key, normalised);
       }
 
       return normalised;
@@ -153,7 +104,7 @@ export async function GET(request: NextRequest) {
 //   { action: "preferSide", id: string }                                  — set preferred A/B-side for the pair
 //   { action: "retag" }                                                    — re-run auto-tagging across saved rhythms
 export async function POST(request: NextRequest) {
-  const uid = requireAuth(request);
+  const uid = requireUserId(request);
   if (!uid) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -173,8 +124,8 @@ export async function POST(request: NextRequest) {
   try {
     let retagged = 0;
     await withRedis(async (client) => {
-      const data = await client.get(libKey(uid));
-      const current: SavedRhythm[] = data ? JSON.parse(data) : [];
+      const key = libraryKey(uid);
+      const current = await readSavedRhythms(client, key);
 
       let updated: SavedRhythm[];
 
@@ -237,7 +188,7 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      await client.set(libKey(uid), JSON.stringify(updated));
+      await writeSavedRhythms(client, key, updated);
     });
 
     return NextResponse.json({ ok: true, retagged });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import type { SavedRhythm } from "@/app/api/library/route";
+import type { SavedRhythm } from "@/app/types/library";
 import { cacheRhythmAudio, keepAllOfflineEnabled, pruneDeletedOfflineAudio } from "@/app/lib/offlineAudio";
 
 export default function OfflineAudioKeeper() {

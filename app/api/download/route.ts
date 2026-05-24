@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "redis";
-import type { SavedRhythm } from "@/app/api/library/route";
+import type { SavedRhythm } from "@/app/types/library";
 import type { ShareEntry } from "@/app/api/share/route";
+import { requireUserId } from "@/app/lib/auth";
+import { REDIS_AVAILABLE, withRedis } from "@/app/lib/redis";
+import { libraryKey, readSavedRhythms } from "@/app/lib/rhythmStorage";
 import { getWasabiSignedUrl } from "@/app/lib/wasabiUpload";
 
 export const maxDuration = 30;
-
-function requireAuth(req: NextRequest): string | null {
-  const session = req.cookies.get("rthmic_session");
-  if (session?.value !== process.env.RTHMIC_SESSION_TOKEN) return null;
-  return req.cookies.get("rthmic_uid")?.value ?? null;
-}
 
 function sanitizeFilename(name: string): string {
   return (
@@ -37,29 +33,29 @@ export async function GET(req: NextRequest) {
   const rawName  = req.nextUrl.searchParams.get("filename") ?? "rthm";
 
   if (!token && !rhythmId) return new NextResponse("id or token required", { status: 400 });
-  if (!process.env.REDIS_URL) return new NextResponse("Not configured", { status: 500 });
+  if (!REDIS_AVAILABLE) return new NextResponse("Not configured", { status: 500 });
 
   let rhythm: SavedRhythm | null = null;
   try {
-    const client = createClient({ url: process.env.REDIS_URL });
-    await client.connect();
-    if (token) {
-      const raw = await client.get(`shr:${token}`);
-      const entry = raw ? JSON.parse(raw) as ShareEntry : null;
-      rhythm = entry?.rhythm ?? null;
-    } else {
-      const uid = requireAuth(req);
+    const result = await withRedis<SavedRhythm | null | "unauthorized">(async (client) => {
+      if (token) {
+        const raw = await client.get(`shr:${token}`);
+        const entry = raw ? JSON.parse(raw) as ShareEntry : null;
+        return entry?.rhythm ?? null;
+      }
+
+      const uid = requireUserId(req);
       if (!uid) {
-        await client.disconnect();
-        return new NextResponse("Unauthorized", { status: 401 });
+        return "unauthorized";
       }
-      const raw = await client.get(`lib:${uid}`);
-      if (raw) {
-        const all: SavedRhythm[] = JSON.parse(raw);
-        rhythm = all.find((r) => r.id === rhythmId) ?? null;
-      }
+
+      const all = await readSavedRhythms(client, libraryKey(uid));
+      return all.find((r) => r.id === rhythmId) ?? null;
+    });
+    if (result === "unauthorized") {
+      return new NextResponse("Unauthorized", { status: 401 });
     }
-    await client.disconnect();
+    rhythm = result;
   } catch { /* fall through */ }
 
   if (!rhythm) return new NextResponse("Not found", { status: 404 });

@@ -2,32 +2,24 @@
 // Protected by the same session token. Returns JSON readable in the browser.
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "redis";
+import { requireUserId } from "@/app/lib/auth";
+import { REDIS_AVAILABLE, withRedis } from "@/app/lib/redis";
 import { USERS_KEY, userQueueKey, jobKey } from "@/app/lib/queueLib";
 import type { QueueJob } from "@/app/lib/queueLib";
-import type { SavedRhythm } from "@/app/api/library/route";
+import { libraryKey, readSavedRhythms } from "@/app/lib/rhythmStorage";
 
 export const maxDuration = 20;
 
 const SUNO_BASE = "https://api.sunoapi.org/api/v1";
 const APP_URL = "https://rthmic.app";
 
-function requireAuth(req: NextRequest): string | null {
-  const session = req.cookies.get("rthmic_session");
-  if (session?.value !== process.env.RTHMIC_SESSION_TOKEN) return null;
-  return req.cookies.get("rthmic_uid")?.value ?? null;
-}
-
 export async function GET(req: NextRequest) {
-  const uid = requireAuth(req);
+  const uid = requireUserId(req);
   if (!uid) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  if (!process.env.REDIS_URL) return NextResponse.json({ error: "No REDIS_URL" }, { status: 500 });
+  if (!REDIS_AVAILABLE) return NextResponse.json({ error: "No REDIS_URL" }, { status: 500 });
 
-  const client = createClient({ url: process.env.REDIS_URL });
-  await client.connect();
-
-  try {
+  return withRedis(async (client) => {
     // 1. Queue state
     const allUsers = await client.sMembers(USERS_KEY);
     const userJobIds: string[] = await client.lRange(userQueueKey(uid), 0, -1);
@@ -71,8 +63,7 @@ export async function GET(req: NextRequest) {
     }
 
     // 2. Library — first 5 items
-    const libRaw = await client.get(`lib:${uid}`);
-    const library: SavedRhythm[] = libRaw ? JSON.parse(libRaw) : [];
+    const library = await readSavedRhythms(client, libraryKey(uid));
     const recentLib = library.slice(0, 5).map((r) => ({
       id: r.id,
       title: r.title,
@@ -101,7 +92,5 @@ export async function GET(req: NextRequest) {
       },
       { headers: { "Cache-Control": "no-store" } }
     );
-  } finally {
-    await client.disconnect();
-  }
+  });
 }

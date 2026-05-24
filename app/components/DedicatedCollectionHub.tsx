@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { AppHeader } from "@/app/components/AppHeader";
 import { RevealBlock } from "@/app/components/RevealBlock";
 import { TransitionLink } from "@/app/components/TransitionLink";
-import type { SavedRhythm } from "@/app/api/library/route";
+import type { SavedRhythm } from "@/app/types/library";
 
 type CollectionKind = "bridge" | "invite";
 

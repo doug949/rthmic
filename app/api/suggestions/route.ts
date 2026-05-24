@@ -4,32 +4,21 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
-import { createClient } from "redis";
-import type { SavedRhythm } from "@/app/api/library/route";
+import { requireUserId } from "@/app/lib/auth";
+import { REDIS_AVAILABLE, withRedis } from "@/app/lib/redis";
+import { libraryKey, readSavedRhythms } from "@/app/lib/rhythmStorage";
 
 export const maxDuration = 20;
 
-function requireAuth(req: NextRequest): string | null {
-  const session = req.cookies.get("rthmic_session");
-  if (session?.value !== process.env.RTHMIC_SESSION_TOKEN) return null;
-  return req.cookies.get("rthmic_uid")?.value ?? null;
-}
-
 async function getPastTitles(uid: string, pillar: string): Promise<string[]> {
-  if (!process.env.REDIS_URL) return [];
-  const client = createClient({ url: process.env.REDIS_URL });
-  await client.connect();
-  try {
-    const raw = await client.get(`lib:${uid}`);
-    if (!raw) return [];
-    const rhythms: SavedRhythm[] = JSON.parse(raw);
+  if (!REDIS_AVAILABLE) return [];
+  return withRedis(async (client) => {
+    const rhythms = await readSavedRhythms(client, libraryKey(uid));
     return rhythms
       .filter((r) => r.pillar?.toLowerCase() === pillar.toLowerCase() && r.status !== "deleted")
       .map((r) => r.title)
       .slice(0, 30); // cap context to avoid huge prompts
-  } finally {
-    await client.disconnect();
-  }
+  });
 }
 
 const CHALLENGE_STARTERS: Record<string, string[]> = {
@@ -170,7 +159,7 @@ Return ONLY a valid JSON array of 6 strings. No explanation, no markdown, no ext
 }
 
 export async function GET(req: NextRequest) {
-  const uid = requireAuth(req);
+  const uid = requireUserId(req);
   if (!uid) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const pillar = req.nextUrl.searchParams.get("pillar") ?? "";

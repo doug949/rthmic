@@ -12,10 +12,8 @@ import {
   removeJobFromUserList, USERS_KEY, userQueueKey, indexTaskId,
 } from "@/app/lib/queueLib";
 import type { QueueJob } from "@/app/lib/queueLib";
-import type { SavedRhythm } from "@/app/api/library/route";
-import type { Song, TimedWord } from "@/app/types/pipeline";
-import { uploadAudioToWasabi } from "@/app/lib/wasabiUpload";
-import { tagsForSavedRhythm } from "@/app/lib/autoTags";
+import type { Song } from "@/app/types/pipeline";
+import { saveCompletedSongs } from "@/app/lib/generationCompletion";
 import { extractSunoTaskId } from "@/app/lib/sunoResponse";
 import { buildSunoStyle } from "@/app/lib/sunoStyle";
 
@@ -25,61 +23,6 @@ const MAX_CONCURRENT = 5;
 const MAX_AGE_MS = 20 * 60 * 1000; // mark failed after 20 min stuck generating
 const APP_URL = "https://rthmic.app";
 const SUNO_BASE = "https://api.sunoapi.org/api/v1";
-
-// ─── Library save (direct Redis, mirrors /api/library POST save) ──────────────
-
-async function saveToLibrary(
-  client: ReturnType<typeof createClient>,
-  userId: string,
-  rhythm: SavedRhythm
-): Promise<void> {
-  const key = `lib:${userId}`;
-  const raw = await client.get(key);
-  const all: SavedRhythm[] = raw ? JSON.parse(raw) : [];
-  // Avoid duplicate if already saved (cron retry safety)
-  if (all.some((r) => r.id === rhythm.id)) return;
-  all.unshift(rhythm);
-  await client.set(key, JSON.stringify(all));
-}
-
-async function saveToMenu(
-  client: ReturnType<typeof createClient>,
-  userId: string,
-  slug: string,
-  rhythms: SavedRhythm[]
-): Promise<void> {
-  const key = `menu:${userId}:${slug}`;
-  const raw = await client.get(key);
-  const existing: SavedRhythm[] = raw ? JSON.parse(raw) : [];
-  const existingIds = new Set(existing.map((r) => r.id));
-  const fresh = rhythms.filter((r) => !existingIds.has(r.id));
-  if (!fresh.length) return;
-  await client.set(key, JSON.stringify([...fresh, ...existing]));
-}
-
-// ─── Attach timed lyrics to an already-saved rhythm (best-effort) ────────────
-
-async function attachTimedLyrics(userId: string, songId: string, taskId: string, audioId: string, menuSlug?: string) {
-  try {
-    const res = await fetch(`${APP_URL}/api/timed-lyrics?taskId=${encodeURIComponent(taskId)}&audioId=${encodeURIComponent(audioId)}`);
-    if (!res.ok) return;
-    const data = await res.json() as { timedWords?: TimedWord[] };
-    if (!data.timedWords?.length) return;
-
-    const client = createClient({ url: process.env.REDIS_URL });
-    await client.connect();
-    try {
-      const key = menuSlug ? `menu:${userId}:${menuSlug}` : `lib:${userId}`;
-      const raw = await client.get(key);
-      const all: SavedRhythm[] = raw ? JSON.parse(raw) : [];
-      const idx = all.findIndex((r) => r.id === songId);
-      if (idx !== -1) {
-        all[idx].timedLyrics = data.timedWords;
-        await client.set(key, JSON.stringify(all));
-      }
-    } finally { await client.disconnect(); }
-  } catch { /* non-critical */ }
-}
 
 // ─── Poll one generating job via /api/poll-generation ────────────────────────
 
@@ -124,60 +67,17 @@ async function pollJob(
 
   if (pollData.status !== "ready" || !pollData.songs?.length) return "still-waiting";
 
-  // Save both songs. Because these are shown as playable immediately,
-  // wait for the permanent audio copy where possible instead of saving first
-  // and patching audioKey in a later background task.
-  const pairId = pollData.songs.length > 1 ? job.jobId : undefined;
-  const menuRhythms: SavedRhythm[] = [];
-  for (let i = 0; i < pollData.songs.length; i++) {
-    const song = pollData.songs[i];
-    const wasabiKey = `rhythms/${job.userId}/${song.id}.mp3`;
-    let audioKey: string | undefined;
-
-    if (song.audioUrl) {
-      try {
-        audioKey = await uploadAudioToWasabi(song.audioUrl, wasabiKey);
-        console.log(`[queue] Wasabi upload done before save: ${wasabiKey}`);
-      } catch (e) {
-        console.warn(`[queue] Wasabi upload failed before save for ${song.id}, saving Suno fallback:`, e);
-      }
-    }
-
-    const rhythm: SavedRhythm = {
-      id: song.id,
-      title: song.title,
-      pillar: job.pillar,
-      audioUrl: song.audioUrl,
-      lyrics: job.lyrics,
-      sunoClipId: song.sunoClipId,
-      sunoTaskId: song.sunoTaskId,
-      savedAt: Date.now(),
-      status: job.menuSlug ? "active" : "new",
-      ...(pairId ? {
-        pairId,
-        side: (i === 0 ? "A" : "B") as "A" | "B",
-        alternateId: pollData.songs[i === 0 ? 1 : 0]?.id,
-      } : {}),
-      ...(audioKey ? { audioKey } : {}),
-      ...(job.note ? { note: job.note } : {}),
-    };
-    if (!job.menuSlug) rhythm.tags = tagsForSavedRhythm(rhythm);
-    if (job.menuSlug) {
-      menuRhythms.push(rhythm);
-    } else {
-      await saveToLibrary(client, job.userId, rhythm);
-      console.log(`[queue] saved ${rhythm.id} (${rhythm.title}) for user ${job.userId}`);
-    }
-
-    // Best-effort timed lyrics — fire and forget
-    if (song.sunoClipId && song.sunoTaskId) {
-      attachTimedLyrics(job.userId, song.id, song.sunoTaskId, song.sunoClipId, job.menuSlug).catch(() => {});
-    }
-  }
-  if (job.menuSlug && menuRhythms.length) {
-    await saveToMenu(client, job.userId, job.menuSlug, menuRhythms);
-    console.log(`[queue] saved menu ${job.menuSlug} (${menuRhythms.length} songs) for user ${job.userId}`);
-  }
+  const { saved, rhythms } = await saveCompletedSongs({
+    client,
+    userId: job.userId,
+    jobId: job.jobId,
+    pillar: job.pillar,
+    lyrics: job.lyrics,
+    songs: pollData.songs,
+    note: job.note,
+    menuSlug: job.menuSlug,
+  });
+  console.log(`[queue] saved ${saved}/${rhythms.length} rhythm(s) for user ${job.userId}${job.menuSlug ? ` menu ${job.menuSlug}` : ""}`);
 
   job.status = "done";
   await updateJob(client, job);

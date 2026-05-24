@@ -3,14 +3,12 @@
 // The cron at /api/process-queue is a backup fallback for any missed webhooks.
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "redis";
 import {
   jobIdForTaskId, getJob, updateJob, removeJobFromUserList,
   USERS_KEY, userQueueKey, withRedisQueue,
 } from "@/app/lib/queueLib";
-import type { SavedRhythm } from "@/app/api/library/route";
-import { uploadAudioToWasabi } from "@/app/lib/wasabiUpload";
-import { tagsForSavedRhythm } from "@/app/lib/autoTags";
+import type { Song } from "@/app/types/pipeline";
+import { saveCompletedSongs } from "@/app/lib/generationCompletion";
 
 export const maxDuration = 60;
 
@@ -88,34 +86,6 @@ function extractTaskId(body: Record<string, unknown>): string | undefined {
   }
 }
 
-async function saveToLibrary(
-  client: ReturnType<typeof createClient>,
-  userId: string,
-  rhythm: SavedRhythm
-): Promise<void> {
-  const key = `lib:${userId}`;
-  const raw = await client.get(key);
-  const all: SavedRhythm[] = raw ? JSON.parse(raw) : [];
-  if (all.some((r) => r.id === rhythm.id)) return; // duplicate guard
-  all.unshift(rhythm);
-  await client.set(key, JSON.stringify(all));
-}
-
-async function saveToMenu(
-  client: ReturnType<typeof createClient>,
-  userId: string,
-  slug: string,
-  rhythms: SavedRhythm[]
-): Promise<void> {
-  const key = `menu:${userId}:${slug}`;
-  const raw = await client.get(key);
-  const existing: SavedRhythm[] = raw ? JSON.parse(raw) : [];
-  const existingIds = new Set(existing.map((r) => r.id));
-  const fresh = rhythms.filter((r) => !existingIds.has(r.id));
-  if (!fresh.length) return;
-  await client.set(key, JSON.stringify([...fresh, ...existing]));
-}
-
 export async function POST(req: NextRequest) {
   let body: Record<string, unknown> = {};
   try {
@@ -170,56 +140,29 @@ export async function POST(req: NextRequest) {
         return;
       }
 
-      // Save up to 2 clips only after audio is readable. Prefer a completed
-      // Wasabi copy so first play uses permanent storage rather than a fresh CDN race.
-      const toSave = playable.slice(0, 2);
-      const pairId = toSave.length > 1 ? jobId : undefined;
-      const menuRhythms: SavedRhythm[] = [];
-      for (let i = 0; i < toSave.length; i++) {
-        const { clip, audioUrl: clipAudioUrl } = toSave[i];
+      const songs: Song[] = playable.slice(0, 2).map(({ clip, audioUrl }, i) => {
         const rawClipId = String(clip.id ?? "");
         const baseTitle = String(clip.title ?? job.title);
-        const rhythmId = `${rawClipId || "suno"}-${i}`;
-        const wasabiKey = `rhythms/${job.userId}/${rhythmId}.mp3`;
-        let audioKey: string | undefined;
-
-        try {
-          audioKey = await uploadAudioToWasabi(clipAudioUrl, wasabiKey);
-          console.log(`[webhook] Wasabi upload done before save: ${wasabiKey}`);
-        } catch (e) {
-          console.warn(`[webhook] Wasabi upload failed before save for ${rhythmId}, saving Suno fallback:`, e);
-        }
-
-        const rhythm: SavedRhythm = {
-          id: rhythmId,
+        return {
+          id: `${rawClipId || "suno"}-${i}`,
           title: i === 0 ? baseTitle : `${baseTitle} (Variation)`,
-          pillar: job.pillar,
-          audioUrl: clipAudioUrl,
-          lyrics: job.lyrics,
+          audioUrl,
           sunoClipId: rawClipId || undefined,
           sunoTaskId: taskId,
-          savedAt: Date.now(),
-          status: job.menuSlug ? "active" : "new",
-          ...(pairId ? {
-            pairId,
-            side: (i === 0 ? "A" : "B") as "A" | "B",
-            alternateId: `${String(toSave[i === 0 ? 1 : 0]?.clip.id ?? "") || "suno"}-${i === 0 ? 1 : 0}`,
-          } : {}),
-          ...(audioKey ? { audioKey } : {}),
-          ...(job.note ? { note: job.note } : {}),
         };
-        if (job.menuSlug) {
-          menuRhythms.push(rhythm);
-        } else {
-          rhythm.tags = tagsForSavedRhythm(rhythm);
-          await saveToLibrary(client, job.userId, rhythm);
-          console.log(`[webhook] saved ${rhythm.id} ("${rhythm.title}") for user ${job.userId}`);
-        }
-      }
-      if (job.menuSlug && menuRhythms.length) {
-        await saveToMenu(client, job.userId, job.menuSlug, menuRhythms);
-        console.log(`[webhook] saved menu ${job.menuSlug} (${menuRhythms.length} songs) for user ${job.userId}`);
-      }
+      });
+
+      const { saved, rhythms } = await saveCompletedSongs({
+        client,
+        userId: job.userId,
+        jobId,
+        pillar: job.pillar,
+        lyrics: job.lyrics,
+        songs,
+        note: job.note,
+        menuSlug: job.menuSlug,
+      });
+      console.log(`[webhook] saved ${saved}/${rhythms.length} rhythm(s) for user ${job.userId}${job.menuSlug ? ` menu ${job.menuSlug}` : ""}`);
 
       // Mark job done and clean up
       job.status = "done";

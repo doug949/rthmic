@@ -155,6 +155,44 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       let lastAdvanceAt = Date.now();
       let recoverRetries = 0;
       let stallInterval: ReturnType<typeof setInterval> | null = null;
+      let hardRecovering = false;
+
+      const hardRecover = async () => {
+        if (hardRecovering || generation !== generationRef.current) return;
+        hardRecovering = true;
+        if (stallInterval) { clearInterval(stallInterval); stallInterval = null; }
+
+        const resumeAt = Number.isFinite(audio.currentTime) ? audio.currentTime : 0;
+        let recoveryUrl = url;
+        if (meta?.rhythmId) {
+          recoveryUrl = `/api/proxy-audio?id=${encodeURIComponent(meta.rhythmId)}`;
+        }
+
+        if (meta?.sunoTaskId && meta?.rhythmId) {
+          try {
+            const res = await fetch(
+              `/api/refresh-audio?taskId=${encodeURIComponent(meta.sunoTaskId)}&id=${encodeURIComponent(meta.rhythmId)}`
+            );
+            if (res.ok) {
+              const { url: freshUrl } = await res.json();
+              if (typeof freshUrl === "string" && freshUrl) recoveryUrl = freshUrl;
+            }
+          } catch {
+            console.warn("Audio refresh failed during stall recovery");
+          }
+        }
+
+        const freshGen = ++generationRef.current;
+        attachAndPlayRef.current?.(id, recoveryUrl, freshGen, meta);
+        setTimeout(() => {
+          if (generationRef.current !== freshGen || !audioRef.current || resumeAt <= 0) return;
+          try {
+            audioRef.current.currentTime = resumeAt;
+          } catch {
+            // Some iOS streams reject seeking before enough metadata is loaded.
+          }
+        }, 250);
+      };
 
       const startStallCheck = () => {
         if (stallInterval) return;
@@ -171,8 +209,8 @@ export function AudioProvider({ children }: { children: ReactNode }) {
           } else if (Date.now() - lastAdvanceAt > 2500) {
             // currentTime hasn't moved in 5s while supposedly playing — genuinely stalled
             if (recoverRetries >= 3) {
-              clearInterval(stallInterval!); stallInterval = null;
-              setIsPlaying(false); return;
+              hardRecover().catch(() => setIsPlaying(false));
+              return;
             }
             recoverRetries++;
             lastAdvanceAt = Date.now();
@@ -344,20 +382,25 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     [stopCurrent, attachAndPlay]
   );
 
+  const resumePlayback = useCallback(() => {
+    if (!audioRef.current) return;
+    audioRef.current.play()
+      .then(() => setIsPlaying(true))
+      .catch((err) => {
+        console.warn("Resume failed:", err.message);
+        setIsPlaying(false);
+      });
+  }, []);
+
   const togglePlayPause = useCallback(() => {
     if (!audioRef.current) return;
     if (isPlaying) {
       audioRef.current.pause();
       setIsPlaying(false);
     } else {
-      audioRef.current.play()
-        .then(() => setIsPlaying(true))
-        .catch((err) => {
-          console.warn("Resume failed:", err.message);
-          setIsPlaying(false);
-        });
+      resumePlayback();
     }
-  }, [isPlaying]);
+  }, [isPlaying, resumePlayback]);
 
   const restart = useCallback(() => {
     if (audioRef.current) {
@@ -410,7 +453,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       ],
     });
     navigator.mediaSession.setActionHandler("play", () => {
-      audioRef.current?.play().catch(console.error);
+      resumePlayback();
     });
     navigator.mediaSession.setActionHandler("pause", () => {
       audioRef.current?.pause();
@@ -435,7 +478,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       navigator.mediaSession.setActionHandler("nexttrack", null);
       navigator.mediaSession.setActionHandler("previoustrack", null);
     };
-  }, [currentTrackId, currentTitle, playQueuedTrack]);
+  }, [currentTrackId, currentTitle, playQueuedTrack, resumePlayback]);
 
   // Keep the OS playback state in sync so the lock screen shows the right icon
   useEffect(() => {
