@@ -68,8 +68,8 @@ export default function SharePage() {
   // ── Audio wiring ──────────────────────────────────────────────────────────
   useEffect(() => {
     const el = audioRef.current;
-    if (!el || !rhythm?.audioUrl) return;
-    el.src = rhythm.audioUrl;
+    if (!el || (!rhythm?.audioUrl && !rhythm?.audioKey)) return;
+    el.src = `/api/proxy-audio?token=${encodeURIComponent(token)}`;
 
     const onMeta  = () => setDuration(el.duration);
     const onEnded = () => { setIsPlaying(false); setCurrentTime(0); if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; } };
@@ -86,7 +86,7 @@ export default function SharePage() {
       el.removeEventListener("play", onPlay);
       el.removeEventListener("pause", onPause);
     };
-  }, [rhythm]);
+  }, [rhythm, token]);
 
   // ── rAF loop for smooth currentTime ──────────────────────────────────────
   useEffect(() => {
@@ -228,7 +228,7 @@ export default function SharePage() {
     );
   }
 
-  const canPlay = !!rhythm?.audioUrl;
+  const canPlay = !!(rhythm?.audioUrl || rhythm?.audioKey);
   const progress = duration > 0 ? currentTime / duration : 0;
 
   return (

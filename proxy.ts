@@ -14,6 +14,7 @@ export function proxy(request: NextRequest) {
     pathname.startsWith("/api/suno-webhook") || // Suno calls this — no session cookie
     pathname.startsWith("/api/process-queue") || // Vercel cron — auth via CRON_SECRET header
     pathname.startsWith("/api/poll-generation") || // polled by cron self-call and frontend
+    pathname.startsWith("/api/proxy-audio") || // handler enforces auth for library ids; share tokens are public
     pathname.startsWith("/images/") ||
     pathname === "/bg.jpg" ||
     pathname === "/apple-touch-icon.png"

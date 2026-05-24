@@ -5,6 +5,7 @@ export const maxDuration = 30;
 // Falls back to the stored audioUrl if the Suno refresh fails.
 
 import { NextRequest, NextResponse } from "next/server";
+import type { ShareEntry } from "@/app/api/share/route";
 import type { SavedRhythm } from "@/app/types/library";
 import { requireUserId } from "@/app/lib/auth";
 import { REDIS_AVAILABLE, withRedis } from "@/app/lib/redis";
@@ -82,17 +83,24 @@ function isEmptyAudioResponse(response: Response): boolean {
 }
 
 export async function GET(request: NextRequest) {
-  const uid = requireUserId(request);
-  if (!uid) return new NextResponse("Unauthorized", { status: 401 });
-
   const rhythmId = request.nextUrl.searchParams.get("id");
-  if (!rhythmId) return new NextResponse("id required", { status: 400 });
+  const token = request.nextUrl.searchParams.get("token");
+  if (!rhythmId && !token) return new NextResponse("id or token required", { status: 400 });
 
   // Look up the rhythm in Redis
   let rhythm: SavedRhythm | null = null;
   if (REDIS_AVAILABLE) {
     try {
       rhythm = await withRedis(async (client) => {
+        if (token) {
+          const raw = await client.get(`shr:${token}`);
+          const entry = raw ? (JSON.parse(raw) as ShareEntry) : null;
+          return entry?.rhythm ?? null;
+        }
+
+        const uid = requireUserId(request);
+        if (!uid) return null;
+
         const rhythms = await readSavedRhythms(client, libraryKey(uid));
         let found = rhythms.find((r) => r.id === rhythmId) ?? null;
         if (found) return found;

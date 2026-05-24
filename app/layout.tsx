@@ -2,15 +2,9 @@ import type { Metadata, Viewport } from "next";
 import { Raleway, DM_Sans } from "next/font/google";
 import "./globals.css";
 import ServiceWorkerRegistration from "@/app/components/ServiceWorkerRegistration";
-import IntroSequence from "@/app/components/IntroSequence";
 import { AudioProvider } from "@/app/contexts/AudioContext";
 import { GenerationProvider } from "@/app/contexts/GenerationContext";
-import MiniPlayer from "@/app/components/MiniPlayer";
-import FullScreenPlayer from "@/app/components/FullScreenPlayer";
-import GenerationBanner from "@/app/components/GenerationBanner";
-import PageFooter from "@/app/components/PageFooter";
-import QuickCodexNote from "@/app/components/QuickCodexNote";
-import OfflineAudioKeeper from "@/app/components/OfflineAudioKeeper";
+import AppChrome from "@/app/components/AppChrome";
 import { AmbientBackground } from "@/app/components/AmbientBackground";
 import { PageTransitionLayer } from "@/app/components/PageTransitionLayer";
 import { PillarThemeProvider } from "@/app/contexts/PillarThemeContext";
@@ -71,16 +65,10 @@ export default function RootLayout({
           <PageTransitionLayer />
           <RoutePersistence />
           <ServiceWorkerRegistration />
-          <IntroSequence />
           <GenerationProvider>
             <AudioProvider>
-              <GenerationBanner />
               {children}
-              <MiniPlayer />
-              <FullScreenPlayer />
-              <OfflineAudioKeeper />
-              <QuickCodexNote />
-              <PageFooter />
+              <AppChrome />
             </AudioProvider>
           </GenerationProvider>
         </PillarThemeProvider>
