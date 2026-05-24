@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { AppHeader } from "@/app/components/AppHeader";
 import { RevealBlock } from "@/app/components/RevealBlock";
 import { BrainIcon } from "@/app/components/HomeTileIcons";
-import { transitionTo as navigateTo } from "@/app/lib/pageTransition";
 
 const ADMIN_CODE = "doug2026";
 
@@ -40,6 +39,7 @@ export default function RedditAdhdPage() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState("");
   const [queuedTitle, setQueuedTitle] = useState("");
+  const [queuedJobId, setQueuedJobId] = useState("");
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -57,6 +57,7 @@ export default function RedditAdhdPage() {
     if (phase !== "idle") return;
     setError("");
     setQueuedTitle("");
+    setQueuedJobId("");
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
@@ -131,6 +132,7 @@ export default function RedditAdhdPage() {
 
     setError("");
     setQueuedTitle("");
+    setQueuedJobId("");
     try {
       setPhase("understanding");
       const understand = await fetch("/api/understand", {
@@ -162,8 +164,8 @@ export default function RedditAdhdPage() {
       if (!queue.ok) throw new Error(queueData.error ?? "Could not queue Rthm");
 
       setQueuedTitle(title);
+      setQueuedJobId(typeof queueData.jobId === "string" ? queueData.jobId : "");
       setPhase("queued");
-      setTimeout(() => navigateTo("/library/my-rthms", router), 1300);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not queue Rthm");
       setPhase("idle");
@@ -192,7 +194,7 @@ export default function RedditAdhdPage() {
     );
   }
 
-  const busy = phase !== "idle";
+  const busy = phase !== "idle" && phase !== "queued";
 
   return (
     <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ animation: "page-enter 380ms ease forwards" }}>
@@ -247,7 +249,7 @@ export default function RedditAdhdPage() {
 
         <button
           onClick={buildRthm}
-          disabled={busy || !thread.trim() || !spokenResponse.trim()}
+          disabled={phase !== "idle" || !thread.trim() || !spokenResponse.trim()}
           className="rounded-full border px-4 py-3 text-[11px] uppercase tracking-widest touch-manipulation active:scale-[0.98] transition disabled:opacity-40 disabled:active:scale-100"
           style={{ background: "rgba(220,110,140,0.16)", borderColor: "rgba(248,160,185,0.32)", color: "rgba(255,232,240,0.9)" }}
         >
@@ -255,9 +257,33 @@ export default function RedditAdhdPage() {
         </button>
 
         {queuedTitle && (
-          <div className="rounded-2xl border px-5 py-4" style={{ background: "rgba(255,255,255,0.045)", borderColor: "rgba(255,255,255,0.10)" }}>
+          <div className="rounded-2xl border px-5 py-4 flex flex-col gap-3" style={{ background: "rgba(255,255,255,0.045)", borderColor: "rgba(255,255,255,0.10)" }}>
             <p className="text-sm text-white/72">{queuedTitle}</p>
-            <p className="text-xs text-white/35 mt-1">Queued. Opening My Rthms.</p>
+            <p className="text-xs text-white/35">
+              Queued{queuedJobId ? ` as ${queuedJobId.slice(0, 8)}` : ""}. It will appear under Rthmic Bridge while generating.
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => router.push("/library/my-rthms?collection=bridge")}
+                className="rounded-full border px-3 py-2 text-[10px] uppercase tracking-widest"
+                style={{ background: "rgba(220,110,140,0.12)", borderColor: "rgba(248,160,185,0.26)", color: "rgba(255,232,240,0.86)" }}
+              >
+                Open Bridge
+              </button>
+              <button
+                onClick={() => {
+                  setThread("");
+                  setSpokenResponse("");
+                  setQueuedTitle("");
+                  setQueuedJobId("");
+                  setPhase("idle");
+                }}
+                className="rounded-full border px-3 py-2 text-[10px] uppercase tracking-widest"
+                style={{ background: "rgba(255,255,255,0.045)", borderColor: "rgba(255,255,255,0.10)", color: "rgba(255,255,255,0.55)" }}
+              >
+                New response
+              </button>
+            </div>
           </div>
         )}
 
