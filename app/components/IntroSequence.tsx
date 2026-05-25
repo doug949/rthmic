@@ -11,7 +11,10 @@ function sleep(ms: number): Promise<void> {
 }
 
 export default function IntroSequence() {
-  const [gone, setGone] = useState(false);
+  const [gone, setGone] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return sessionStorage.getItem(SEEN_KEY) === "1";
+  });
   const [overlayOpacity, setOverlayOpacity] = useState(1);
   const [contentOpacity, setContentOpacity] = useState(0);
   const [showLogo, setShowLogo] = useState(false);
@@ -27,10 +30,7 @@ export default function IntroSequence() {
   };
 
   useEffect(() => {
-    if (sessionStorage.getItem(SEEN_KEY)) {
-      const timer = setTimeout(() => setGone(true), 0);
-      return () => clearTimeout(timer);
-    }
+    if (gone) return;
 
     let cancelled = false;
 
@@ -58,7 +58,7 @@ export default function IntroSequence() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [gone]);
 
   if (gone) return null;
 
