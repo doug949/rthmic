@@ -365,7 +365,7 @@ export default function RthmixPage() {
       </RevealBlock>
 
       <section className="flex-1 flex flex-col gap-4 pb-28">
-        <div className="rounded-2xl border px-5 py-5" style={{ background: "rgba(230,155,60,0.08)", borderColor: "rgba(230,155,60,0.28)" }}>
+        <div className="rounded-2xl border px-5 py-5" style={{ background: "rgba(255,255,255,0.035)", borderColor: "rgba(255,255,255,0.09)" }}>
           <div className="flex items-center gap-2 mb-2">
             <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: "rgba(240,170,80,0.9)" }}>Rthmix builder</p>
           </div>
@@ -381,8 +381,8 @@ export default function RthmixPage() {
               disabled={building || voicePhase === "transcribing"}
               className="w-full min-h-36 rounded-2xl border flex flex-col items-center justify-center gap-3 touch-manipulation active:scale-[0.99] transition disabled:opacity-55 disabled:active:scale-100"
               style={{
-                background: voicePhase === "recording" ? "rgba(239,68,68,0.12)" : "rgba(230,155,60,0.12)",
-                borderColor: voicePhase === "recording" ? "rgba(252,165,165,0.34)" : "rgba(240,170,80,0.3)",
+                background: voicePhase === "recording" ? "rgba(239,68,68,0.10)" : "rgba(255,255,255,0.035)",
+                borderColor: voicePhase === "recording" ? "rgba(252,165,165,0.30)" : "rgba(255,255,255,0.10)",
                 color: "rgba(255,245,230,0.92)",
               }}
               aria-label={voicePhase === "recording" ? "Stop recording Rthmix topic" : "Record Rthmix topic"}
@@ -390,8 +390,8 @@ export default function RthmixPage() {
               <span
                 className="w-16 h-16 rounded-full flex items-center justify-center"
                 style={{
-                  background: voicePhase === "recording" ? "rgba(239,68,68,0.22)" : "rgba(230,155,60,0.18)",
-                  boxShadow: voicePhase === "recording" ? "0 0 28px rgba(239,68,68,0.18)" : "0 0 30px rgba(230,155,60,0.14)",
+                  background: voicePhase === "recording" ? "rgba(239,68,68,0.18)" : "rgba(255,255,255,0.07)",
+                  boxShadow: voicePhase === "recording" ? "0 0 24px rgba(239,68,68,0.14)" : "none",
                 }}
               >
                 {voicePhase === "recording" ? <StopIcon /> : <MicTopicIcon />}
@@ -432,13 +432,13 @@ export default function RthmixPage() {
               onChange={(event) => setTopic(event.target.value)}
               placeholder="Or edit the topic before building"
               className="w-full min-h-24 rounded-xl border bg-black/20 px-4 py-3 text-sm text-white/86 placeholder:text-white/25 outline-none resize-none"
-              style={{ borderColor: "rgba(230,155,60,0.22)" }}
+              style={{ borderColor: "rgba(255,255,255,0.10)" }}
             />
             <button
               onClick={() => handleBuildRthmix()}
               disabled={building || !topic.trim()}
               className="inline-flex items-center justify-center rounded-full border px-4 py-3 text-[11px] uppercase tracking-widest touch-manipulation active:scale-[0.98] transition disabled:opacity-40 disabled:active:scale-100"
-              style={{ background: "rgba(230,155,60,0.18)", borderColor: "rgba(240,170,80,0.34)", color: "rgba(255,235,205,0.92)" }}
+              style={{ background: "rgba(255,255,255,0.055)", borderColor: "rgba(240,170,80,0.24)", color: "rgba(255,235,205,0.92)" }}
             >
               {building ? "Building Rthmix..." : "Build Rthmix"}
             </button>

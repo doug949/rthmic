@@ -203,7 +203,7 @@ export default function RedditAdhdPage() {
       </RevealBlock>
 
       <section className="flex-1 flex flex-col gap-4 pb-28">
-        <div className="rounded-2xl border px-5 py-5" style={{ background: "rgba(220,110,140,0.08)", borderColor: "rgba(220,110,140,0.28)" }}>
+        <div className="rounded-2xl border px-5 py-5" style={{ background: "rgba(255,255,255,0.035)", borderColor: "rgba(255,255,255,0.09)" }}>
           <p className="text-[10px] uppercase tracking-[0.3em] mb-2" style={{ color: "rgba(248,160,185,0.9)" }}>Private response builder</p>
           <h1 className="text-2xl font-light text-white/90 leading-tight" style={{ fontFamily: "var(--font-display)" }}>
             Turn a pasted ADHD question into a direct Rthm response.
@@ -226,12 +226,12 @@ export default function RedditAdhdPage() {
           disabled={busy && phase !== "recording"}
           className="w-full min-h-32 rounded-2xl border flex flex-col items-center justify-center gap-3 touch-manipulation active:scale-[0.99] transition disabled:opacity-50 disabled:active:scale-100"
           style={{
-            background: phase === "recording" ? "rgba(239,68,68,0.12)" : "rgba(220,110,140,0.11)",
-            borderColor: phase === "recording" ? "rgba(252,165,165,0.34)" : "rgba(220,110,140,0.30)",
+            background: phase === "recording" ? "rgba(239,68,68,0.10)" : "rgba(255,255,255,0.035)",
+            borderColor: phase === "recording" ? "rgba(252,165,165,0.30)" : "rgba(255,255,255,0.10)",
             color: "rgba(255,245,250,0.92)",
           }}
         >
-          <span className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: phase === "recording" ? "rgba(239,68,68,0.22)" : "rgba(220,110,140,0.16)" }}>
+          <span className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: phase === "recording" ? "rgba(239,68,68,0.18)" : "rgba(255,255,255,0.07)" }}>
             {phase === "recording" ? <StopIcon /> : <MicIcon />}
           </span>
           <span className="text-sm font-medium text-white/82">
@@ -251,7 +251,7 @@ export default function RedditAdhdPage() {
           onClick={buildRthm}
           disabled={phase !== "idle" || !thread.trim() || !spokenResponse.trim()}
           className="rounded-full border px-4 py-3 text-[11px] uppercase tracking-widest touch-manipulation active:scale-[0.98] transition disabled:opacity-40 disabled:active:scale-100"
-          style={{ background: "rgba(220,110,140,0.16)", borderColor: "rgba(248,160,185,0.32)", color: "rgba(255,232,240,0.9)" }}
+          style={{ background: "rgba(255,255,255,0.055)", borderColor: "rgba(248,160,185,0.24)", color: "rgba(255,232,240,0.9)" }}
         >
           {phase === "understanding" ? "Shaping response..." : phase === "queueing" ? "Queueing Rthm..." : phase === "queued" ? "Queued" : "Build response Rthm"}
         </button>
@@ -266,7 +266,7 @@ export default function RedditAdhdPage() {
               <button
                 onClick={() => router.push("/library/my-rthms?collection=bridge")}
                 className="rounded-full border px-3 py-2 text-[10px] uppercase tracking-widest"
-                style={{ background: "rgba(220,110,140,0.12)", borderColor: "rgba(248,160,185,0.26)", color: "rgba(255,232,240,0.86)" }}
+                style={{ background: "rgba(255,255,255,0.055)", borderColor: "rgba(248,160,185,0.22)", color: "rgba(255,232,240,0.86)" }}
               >
                 Open Bridge
               </button>
