@@ -2,11 +2,22 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AUDIO_CACHE } from "@/app/lib/offlineAudio";
+import { LAST_ROUTE_KEY, RELOAD_REASON_KEY, SW_VERSION_KEY, currentClientRoute, recordDiagnosticEvent, safeSetLocalItem, safeSetSessionItem } from "@/app/lib/clientDiagnostics";
 
 async function purgeAppCaches() {
   if (!("caches" in window)) return;
   const keys = await caches.keys();
   await Promise.all(keys.filter((key) => key !== AUDIO_CACHE).map((key) => caches.delete(key)));
+}
+
+function persistUpdateReloadReason() {
+  safeSetSessionItem(RELOAD_REASON_KEY, "user-clicked-update");
+  safeSetSessionItem(LAST_ROUTE_KEY, currentClientRoute());
+}
+
+function persistServiceWorkerVersion(version: string) {
+  safeSetSessionItem(SW_VERSION_KEY, version);
+  safeSetLocalItem(SW_VERSION_KEY, version);
 }
 
 export default function ServiceWorkerRegistration() {
@@ -24,7 +35,10 @@ export default function ServiceWorkerRegistration() {
         const res = await fetch(`/api/version?t=${Date.now()}`, { cache: "no-store" });
         if (!res.ok) return;
         const data = await res.json() as { build?: string };
-        if (data.build && data.build !== currentBuild) setServerBuild(data.build);
+        if (data.build && data.build !== currentBuild) {
+          recordDiagnosticEvent("app-update-available", { currentBuild, serverBuild: data.build });
+          setServerBuild(data.build);
+        }
       } catch {
         // Version checks are best-effort.
       }
@@ -50,31 +64,55 @@ export default function ServiceWorkerRegistration() {
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
 
+    const onMessage = (event: MessageEvent) => {
+      if (event.data?.type === "SW_VERSION" && typeof event.data.version === "string") {
+        persistServiceWorkerVersion(event.data.version);
+        recordDiagnosticEvent("service-worker-version", { version: event.data.version });
+      }
+    };
+
+    navigator.serviceWorker.addEventListener("message", onMessage);
+
     navigator.serviceWorker.register("/sw.js").then((registration) => {
+      recordDiagnosticEvent("service-worker-register", { scope: registration.scope });
+
       const showUpdate = (worker: ServiceWorker | null) => {
-        if (worker && navigator.serviceWorker.controller) setWaitingWorker(worker);
+        if (worker && navigator.serviceWorker.controller) {
+          recordDiagnosticEvent("service-worker-waiting", { state: worker.state });
+          setWaitingWorker(worker);
+        }
       };
 
       showUpdate(registration.waiting);
-      registration.update().catch(() => {});
+      registration.active?.postMessage({ type: "GET_SW_VERSION" });
+      navigator.serviceWorker.controller?.postMessage({ type: "GET_SW_VERSION" });
+      registration.update().catch((error) => {
+        recordDiagnosticEvent("service-worker-update-check-failed", { message: String(error) });
+      });
 
       registration.addEventListener("updatefound", () => {
         const worker = registration.installing;
         if (!worker) return;
         worker.addEventListener("statechange", () => {
+          recordDiagnosticEvent("service-worker-statechange", { state: worker.state });
           if (worker.state === "installed") showUpdate(worker);
         });
       });
 
       navigator.serviceWorker.addEventListener("controllerchange", () => {
+        recordDiagnosticEvent("service-worker-controllerchange", { updating: updatingRef.current });
         if (!updatingRef.current) return;
-        sessionStorage.setItem("rthmic:last-reload-reason", "user-clicked-update");
-        sessionStorage.setItem("rthmic:last-route", `${window.location.pathname}${window.location.search}${window.location.hash}`);
+        persistUpdateReloadReason();
         window.location.reload();
       });
-    }).catch(() => {
-        // SW registration is best-effort — app works without it
+    }).catch((error) => {
+      recordDiagnosticEvent("service-worker-register-failed", { message: String(error) });
+      // SW registration is best-effort — app works without it
     });
+
+    return () => {
+      navigator.serviceWorker.removeEventListener("message", onMessage);
+    };
   }, []);
 
   if (!waitingWorker && !appUpdateAvailable && !updating) return null;
@@ -125,8 +163,8 @@ export default function ServiceWorkerRegistration() {
         onClick={() => {
           updatingRef.current = true;
           setUpdating(true);
-          sessionStorage.setItem("rthmic:last-reload-reason", "user-clicked-update");
-          sessionStorage.setItem("rthmic:last-route", `${window.location.pathname}${window.location.search}${window.location.hash}`);
+          persistUpdateReloadReason();
+          recordDiagnosticEvent("app-update-clicked", { hasWaitingWorker: !!waitingWorker, appUpdateAvailable });
           purgeAppCaches().finally(() => {
             navigator.serviceWorker.controller?.postMessage({ type: "PURGE_APP_CACHES" });
             if (waitingWorker) {

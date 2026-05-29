@@ -4,8 +4,13 @@ import type { ReactNode } from "react";
 import { useCallback, useEffect, useState } from "react";
 import { AppHeader } from "@/app/components/AppHeader";
 import {
+  getDeploymentVersion,
   getDiagnosticSessionId,
+  getMemorySnapshot,
+  getServiceWorkerVersion,
+  getStorageSnapshot,
   readDiagnosticEvents,
+  readPersistedRouteState,
   readRouteStack,
   type DiagnosticEvent,
 } from "@/app/lib/clientDiagnostics";
@@ -15,6 +20,9 @@ interface DiagnosticsSnapshot {
   sessionId: string;
   clientBuild: string;
   serverBuild: string;
+  clientDeployment: string;
+  serverDeployment: string;
+  serviceWorkerVersion: string;
   online: boolean;
   visibilityState: DocumentVisibilityState;
   navigationType: string;
@@ -23,6 +31,9 @@ interface DiagnosticsSnapshot {
   lastRoute: string | null;
   reloadReason: string | null;
   routeStack: string[];
+  persistedRouteState: unknown;
+  memory: Record<string, number | string>;
+  storage: Record<string, number | string>;
   events: DiagnosticEvent[];
   userAgent: string;
 }
@@ -53,12 +64,15 @@ function collectStorage(key: string): string | null {
 async function collectSnapshot(): Promise<DiagnosticsSnapshot> {
   const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
   let serverBuild = "unknown";
+  let serverDeployment = "unknown";
   try {
     const res = await fetch(`/api/version?t=${Date.now()}`, { cache: "no-store" });
-    const data = await res.json() as { build?: string };
+    const data = await res.json() as { build?: string; deployment?: string };
     serverBuild = data.build ?? "unknown";
+    serverDeployment = data.deployment ?? serverBuild;
   } catch {
     serverBuild = "unreachable";
+    serverDeployment = "unreachable";
   }
 
   return {
@@ -66,6 +80,9 @@ async function collectSnapshot(): Promise<DiagnosticsSnapshot> {
     sessionId: getDiagnosticSessionId(),
     clientBuild: process.env.NEXT_PUBLIC_RTHMIC_BUILD ?? "dev",
     serverBuild,
+    clientDeployment: getDeploymentVersion(),
+    serverDeployment,
+    serviceWorkerVersion: getServiceWorkerVersion(),
     online: navigator.onLine,
     visibilityState: document.visibilityState,
     navigationType: nav?.type ?? "unknown",
@@ -74,6 +91,9 @@ async function collectSnapshot(): Promise<DiagnosticsSnapshot> {
     lastRoute: collectStorage("rthmic:last-route"),
     reloadReason: collectStorage("rthmic:last-reload-reason"),
     routeStack: readRouteStack(),
+    persistedRouteState: readPersistedRouteState(),
+    memory: getMemorySnapshot(),
+    storage: getStorageSnapshot(),
     events: readDiagnosticEvents(),
     userAgent: navigator.userAgent,
   };
@@ -150,6 +170,9 @@ export default function DiagnosticsPage() {
             <Panel title="Build And Cache">
               <Row label="Client build" value={snapshot.clientBuild} />
               <Row label="Server build" value={snapshot.serverBuild} />
+              <Row label="Client deploy" value={snapshot.clientDeployment} />
+              <Row label="Server deploy" value={snapshot.serverDeployment} />
+              <Row label="SW version" value={snapshot.serviceWorkerVersion} />
               <Row label="Service worker" value={snapshot.serviceWorker} />
               <Row label="Caches" value={snapshot.caches.length ? snapshot.caches.join(", ") : "none"} />
             </Panel>
@@ -158,6 +181,12 @@ export default function DiagnosticsPage() {
               <Row label="Last route" value={snapshot.lastRoute ?? "none"} />
               <Row label="Reload reason" value={snapshot.reloadReason ?? "none"} />
               <Row label="Route stack" value={snapshot.routeStack.length ? snapshot.routeStack.join(" -> ") : "none"} />
+              <Row label="Saved route" value={snapshot.persistedRouteState ? JSON.stringify(snapshot.persistedRouteState) : "none"} />
+            </Panel>
+
+            <Panel title="Memory And Storage">
+              <Row label="Memory" value={JSON.stringify(snapshot.memory)} />
+              <Row label="Storage" value={JSON.stringify(snapshot.storage)} />
             </Panel>
 
             <Panel title={`Recent Events (${snapshot.events.length})`}>

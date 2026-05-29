@@ -1,3 +1,4 @@
+const SW_VERSION = "rthmic-sw-audio-v2";
 const AUDIO_CACHE_NAME = "rthmic-audio-v1";
 
 self.addEventListener("activate", (event) => {
@@ -12,10 +13,12 @@ self.addEventListener("activate", (event) => {
         )
       )
   );
-  self.clients.claim();
 });
 
 self.addEventListener("message", (event) => {
+  if (event.data?.type === "GET_SW_VERSION") {
+    event.source?.postMessage({ type: "SW_VERSION", version: SW_VERSION });
+  }
   if (event.data?.type === "SKIP_WAITING") {
     self.skipWaiting();
   }
