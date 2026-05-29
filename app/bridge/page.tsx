@@ -4,7 +4,7 @@ export default function BridgePage() {
   return (
     <DedicatedCollectionHub
       kind="bridge"
-      title="Rthmic Bridge"
+      title="RTHMIC Bridge"
       eyebrow="For someone else"
       intro="Create and manage Rthms made to reach another person. Bridges stay separate from your main library so they feel more like messages than personal tracks."
       createLabel="Create a Bridge"

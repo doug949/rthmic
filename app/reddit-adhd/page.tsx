@@ -260,7 +260,7 @@ export default function RedditAdhdPage() {
           <div className="rounded-2xl border px-5 py-4 flex flex-col gap-3" style={{ background: "rgba(255,255,255,0.045)", borderColor: "rgba(255,255,255,0.10)" }}>
             <p className="text-sm text-white/72">{queuedTitle}</p>
             <p className="text-xs text-white/35">
-              Queued{queuedJobId ? ` as ${queuedJobId.slice(0, 8)}` : ""}. It will appear under Rthmic Bridge while generating.
+              Queued{queuedJobId ? ` as ${queuedJobId.slice(0, 8)}` : ""}. It will appear under RTHMIC Bridge while generating.
             </p>
             <div className="grid grid-cols-2 gap-2">
               <button

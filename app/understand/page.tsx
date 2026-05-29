@@ -11,13 +11,13 @@ import { InfoIcon } from "@/app/components/HomeTileIcons";
 const panels = [
   {
     heading: "What",
-    body: "Rthmic generates complete songs — built specifically to solve your immediate challenge in the moment.",
+    body: "RTHMIC generates complete songs — built specifically to solve your immediate challenge in the moment.",
     detail: "Each song is called a Rthm. Not background music. A tool. Created for exactly what you're facing right now.",
   },
   {
     heading: "When",
     body: "Use it when you're stuck. Overwhelmed. Procrastinating. Frozen before a task.",
-    detail: "The moment you notice resistance — that's when Rthmic works. You don't need to be ready. You just need to press play.",
+    detail: "The moment you notice resistance — that's when RTHMIC works. You don't need to be ready. You just need to press play.",
   },
   {
     heading: "How",

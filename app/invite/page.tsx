@@ -4,7 +4,7 @@ export default function InvitePage() {
   return (
     <DedicatedCollectionHub
       kind="invite"
-      title="Rthmic Invite"
+      title="RTHMIC Invite"
       eyebrow="Invite through experience"
       intro="Create and manage Rthms that invite someone into RTHMIC. Invites stay separate from your main library so the act of sending one feels clear and deliberate."
       createLabel="Create an Invite"

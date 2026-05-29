@@ -51,7 +51,7 @@ export const MENU_CONFIGS: MenuConfig[] = [
     description: "Options for the session ahead.",
     seed: "My start-the-day menu — priorities, intentions, and possible moves for the session ahead, not a to-do list",
     emptyHeadline: "What belongs in today's opening loop?",
-    emptyIntro: "Name the things that could matter today. Rthmic will keep them available without making them compulsory.",
+    emptyIntro: "Name the things that could matter today. RTHMIC will keep them available without making them compulsory.",
     emptyPrompts: [
       "What deserves to stay in view today?",
       "What could make the day feel meaningfully started?",

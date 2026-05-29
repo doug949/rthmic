@@ -2,7 +2,7 @@
 
 ## What It Is
 
-A Rthmic Invite is a song sent to someone to introduce them to RTHMIC.
+A RTHMIC Invite is a song sent to someone to introduce them to RTHMIC.
 The song IS the invitation. They press play. They experience the concept before it's explained.
 
 This is not a pitch. It is a demonstration by being itself.

@@ -127,17 +127,17 @@ const PILLAR_COLOR: Record<string, string> = {
 const DEFAULT_COLOR = "201,165,90";
 
 const PILLAR_SUBTITLE: Record<string, string> = {
-  memory:      "Rthmic will lock it in.",
-  menus:       "Rthmic will carry your list.",
-  mindset:     "Rthmic will prepare you.",
-  mode:        "Rthmic will meet you there.",
-  movement:    "Rthmic will get it moving.",
-  journal:     "Rthmic will hold the day.",
-  epiphany:    "Rthmic will hold the idea.",
-  explain:     "Rthmic will make it click.",
-  booksummary: "Rthmic will carry the idea.",
-  bridge:      "Rthmic will reach them.",
-  invite:      "Rthmic will bring them in.",
+  memory:      "RTHMIC will lock it in.",
+  menus:       "RTHMIC will carry your list.",
+  mindset:     "RTHMIC will prepare you.",
+  mode:        "RTHMIC will meet you there.",
+  movement:    "RTHMIC will get it moving.",
+  journal:     "RTHMIC will hold the day.",
+  epiphany:    "RTHMIC will hold the idea.",
+  explain:     "RTHMIC will make it click.",
+  booksummary: "RTHMIC will carry the idea.",
+  bridge:      "RTHMIC will reach them.",
+  invite:      "RTHMIC will bring them in.",
 };
 
 interface UnderstandResult {
@@ -926,17 +926,17 @@ const PILLARS: PillarDefinition[] = [
     tagline: "Imprint through association",
     icon: <MemoryIcon />,
     advanced: true,
-    detail: "Use this when you need to memorise something — a speech, a script, a sequence, a list of names, or any content you need to recall under real conditions. Rthmic encodes the information into a song using linked images, scenes, and sensory anchors so retrieval feels natural rather than effortful.",
+    detail: "Use this when you need to memorise something — a speech, a script, a sequence, a list of names, or any content you need to recall under real conditions. RTHMIC encodes the information into a song using linked images, scenes, and sensory anchors so retrieval feels natural rather than effortful.",
     guidance: "Describe what you're trying to remember and where it's slipping. Name the specific items if you can — the more concrete, the better the Rthm.",
     priming: {
       headline: "Be specific. Be thorough.",
       subheadline: "The more detail you give, the stronger the Rthm.",
       instructions: [
         "Name the items you need to remember — in order if there's an order. Say them out loud as if reciting to someone who has never heard them before.",
-        "Include any associations, stories, or context you already have. Everything you give Rthmic is material it can work with.",
+        "Include any associations, stories, or context you already have. Everything you give RTHMIC is material it can work with.",
         "If something is slipping, say where — the item that won't stick, the part of the sequence you keep losing, the gap that opens up under pressure.",
       ],
-      footnote: "Speak for as long as it takes to get through the material once. Rthmic captures everything — even a rough pass is enough to build from.",
+      footnote: "Speak for as long as it takes to get through the material once. RTHMIC captures everything — even a rough pass is enough to build from.",
     },
   },
   {
@@ -944,8 +944,8 @@ const PILLARS: PillarDefinition[] = [
     label: "Menus",
     tagline: "Ambient selection of actions",
     icon: <MenusIcon />,
-    detail: "Use this when you have a list of tasks and need to move through them without pressure. Rthmic turns your to-do list into a gentle, ambient field of options — no obligation, no fixed order. You hear the possibilities and choose what calls to you. Works for morning routines, afternoon catch-ups, and winding down at night.",
-    guidance: "Tell Rthmic your list of tasks or actions — as many as you like. Describe what you need to get through today, this morning, or tonight.",
+    detail: "Use this when you have a list of tasks and need to move through them without pressure. RTHMIC turns your to-do list into a gentle, ambient field of options — no obligation, no fixed order. You hear the possibilities and choose what calls to you. Works for morning routines, afternoon catch-ups, and winding down at night.",
+    guidance: "Tell RTHMIC your list of tasks or actions — as many as you like. Describe what you need to get through today, this morning, or tonight.",
     priming: {
       headline: "Take your time.",
       subheadline: "Two or three minutes is fine. This is a menu, not a test.",
@@ -954,7 +954,7 @@ const PILLARS: PillarDefinition[] = [
         "No order needed. No priority ranking. It should feel like a wash of possibilities, not a to-do list.",
         "Include the ordinary things too: water, keys, toothbrush, bag, charger, lunch, the small practical cues that keep a day moving.",
       ],
-      footnote: "Speak until the menu feels represented. Rthmic will turn it into options you can loop while you move.",
+      footnote: "Speak until the menu feels represented. RTHMIC will turn it into options you can loop while you move.",
     },
   },
   {
@@ -963,15 +963,15 @@ const PILLARS: PillarDefinition[] = [
     tagline: "Preparation before events",
     icon: <MindsetIcon />,
     advanced: true,
-    detail: "Use this before something important — a presentation, a difficult conversation, a performance, a meeting, or any moment that requires you to show up at your best. Rthmic builds a calm upward trajectory that moves you from unsettled to ready, grounded rather than hyped.",
+    detail: "Use this before something important — a presentation, a difficult conversation, a performance, a meeting, or any moment that requires you to show up at your best. RTHMIC builds a calm upward trajectory that moves you from unsettled to ready, grounded rather than hyped.",
     guidance: "Describe what's coming and how you're feeling about it. Be specific about the moment you're preparing for — the more detail, the better.",
     priming: {
-      headline: "Tell Rthmic what's coming.",
+      headline: "Tell RTHMIC what's coming.",
       subheadline: "And honestly, how you're feeling about it.",
       instructions: [
         "Describe the event, conversation, or moment that's ahead — what it is, when it's happening, and what it will require of you.",
-        "Be honest about where you are right now. Uncertain? Underprepared? Dreading it? Say that. The more clearly you name the gap, the better Rthmic can close it.",
-        "You don't need to feel positive going in. Rthmic builds toward readiness — but it starts from wherever you actually are.",
+        "Be honest about where you are right now. Uncertain? Underprepared? Dreading it? Say that. The more clearly you name the gap, the better RTHMIC can close it.",
+        "You don't need to feel positive going in. RTHMIC builds toward readiness — but it starts from wherever you actually are.",
       ],
       footnote: "Most people speak for 1–3 minutes. The event doesn't need to feel big for this to help — even small moments benefit from preparation.",
     },
@@ -981,7 +981,7 @@ const PILLARS: PillarDefinition[] = [
     label: "Mode",
     tagline: "In-the-moment rescue",
     icon: <ModeIcon />,
-    detail: "Use this when you're already inside a difficult state — overwhelm, freeze, anxiety, spiral, anger, or shutdown. Rthmic interrupts the pattern quickly, acknowledges exactly where you are, and guides you back to steady ground. It doesn't argue with how you feel. It meets you there.",
+    detail: "Use this when you're already inside a difficult state — overwhelm, freeze, anxiety, spiral, anger, or shutdown. RTHMIC interrupts the pattern quickly, acknowledges exactly where you are, and guides you back to steady ground. It doesn't argue with how you feel. It meets you there.",
     guidance: "Describe exactly what you're feeling right now. Don't soften it — the more honestly you name the state, the better the song can meet you there.",
     priming: {
       headline: "Say exactly what you're feeling.",
@@ -989,9 +989,9 @@ const PILLARS: PillarDefinition[] = [
       instructions: [
         "Name the state you're in. Overwhelmed, frozen, spiralling, angry, ashamed, exhausted — say the word. Describe what it feels like in your body and your head.",
         "You don't need to explain it or justify it. You don't need to figure out why. Just describe what's happening, as honestly as you can.",
-        "The more precisely you name the state, the more precisely Rthmic can interrupt it.",
+        "The more precisely you name the state, the more precisely RTHMIC can interrupt it.",
       ],
-      footnote: "This doesn't need to take long. Even 30 seconds of honest description is enough. Rthmic will meet you exactly where you are.",
+      footnote: "This doesn't need to take long. Even 30 seconds of honest description is enough. RTHMIC will meet you exactly where you are.",
     },
   },
   {
@@ -999,7 +999,7 @@ const PILLARS: PillarDefinition[] = [
     label: "Movement",
     tagline: "Cut-through via rhythmic repetition",
     icon: <MovementIcon />,
-    detail: "Use this when you're stuck — not in emotional crisis, but in friction. The work isn't moving. You keep not starting, or you start and stall. Rthmic uses a steady rhythmic loop to carry you through the resistance. The groove does the work that willpower can't.",
+    detail: "Use this when you're stuck — not in emotional crisis, but in friction. The work isn't moving. You keep not starting, or you start and stall. RTHMIC uses a steady rhythmic loop to carry you through the resistance. The groove does the work that willpower can't.",
     guidance: "Describe what you're trying to do and what's blocking you. Name the specific task or work — what keeps not starting, or where you keep stalling.",
     priming: {
       headline: "Name the thing you're not doing.",
@@ -1007,7 +1007,7 @@ const PILLARS: PillarDefinition[] = [
       instructions: [
         "Describe the task, project, or piece of work that needs to move. Be specific — what exactly is it? What does actually doing it look like?",
         "Then describe the resistance. Is it the start? A particular part? The sheer weight of it? The anxiety underneath the avoidance?",
-        "Rthmic works best when it knows exactly what it's helping you move through — the groove is built around your specific friction.",
+        "RTHMIC works best when it knows exactly what it's helping you move through — the groove is built around your specific friction.",
       ],
       footnote: "Most people speak for 1–2 minutes. You don't need a therapist's insight — just a clear description of what's stuck and what doing it looks like.",
     },
@@ -1017,7 +1017,7 @@ const PILLARS: PillarDefinition[] = [
     label: "Journal",
     tagline: "Speak your day. Keep it as a Rthm.",
     icon: <JournalIcon />,
-    detail: "Use this at the end of a day — or any time you want to capture a moment before it disappears. Speak what happened, how it felt, the small things you might forget. Rthmic turns it into a song you can keep. Play it back in six months and remember exactly what today felt like.",
+    detail: "Use this at the end of a day — or any time you want to capture a moment before it disappears. Speak what happened, how it felt, the small things you might forget. RTHMIC turns it into a song you can keep. Play it back in six months and remember exactly what today felt like.",
     guidance: "Just talk. What happened today? Who did you speak to? What surprised you, frustrated you, made you laugh, or sat with you longer than expected? The mundane details are often the most valuable — those are what memory loses first.",
     priming: {
       headline: "Speak your day.",
@@ -1035,7 +1035,7 @@ const PILLARS: PillarDefinition[] = [
     label: "Epiphany",
     tagline: "Capture the idea before it slips",
     icon: <EpiphanyIcon />,
-    detail: "Use this when an idea, insight, or realisation just arrived and you don't want to lose it. Rthmic crystallises the thought in song form — the shape of it, what it changes, why it matters. The song becomes a container for the exact moment of understanding, so you can return to it with full fidelity.",
+    detail: "Use this when an idea, insight, or realisation just arrived and you don't want to lose it. RTHMIC crystallises the thought in song form — the shape of it, what it changes, why it matters. The song becomes a container for the exact moment of understanding, so you can return to it with full fidelity.",
     guidance: "Describe the idea as clearly as you can — what you realised, what triggered it, what it changes. Say the version that surprised you, not the safe summary. The raw form of the thought is the most valuable input.",
     priming: {
       headline: "Say the idea before it softens.",
@@ -1043,7 +1043,7 @@ const PILLARS: PillarDefinition[] = [
       instructions: [
         "Describe the realisation, insight, or idea as precisely as you can right now. What did you just understand? What clicked? What's the thing you're afraid will blur if you don't catch it?",
         "Say what it changes. What did you think before that you no longer think? What does this now make possible that wasn't possible before?",
-        "Include what triggered it if you can — sometimes the context is part of the idea. And say it in your own language, not polished language. Rthmic works best with the raw version.",
+        "Include what triggered it if you can — sometimes the context is part of the idea. And say it in your own language, not polished language. RTHMIC works best with the raw version.",
       ],
       footnote: "Speak while the clarity is still sharp. Even 30 seconds is enough to lock in the essence. The song will hold the idea in the exact form it arrived — not the revised version.",
     },
@@ -1197,7 +1197,7 @@ const ADHD_PILLARS: PillarDefinition[] = [
     tagline: "Already late, can't start, can't move",
     icon: <TimePanicIcon />,
     adhdOnly: true,
-    detail: "Time blindness means the future doesn't feel real until it's already now — and then it floods in all at once. This is for the moment when you realise you're late, you're behind, you can't start, and your brain is stuck in a loop instead of moving. Rthmic interrupts the loop and gets you into motion.",
+    detail: "Time blindness means the future doesn't feel real until it's already now — and then it floods in all at once. This is for the moment when you realise you're late, you're behind, you can't start, and your brain is stuck in a loop instead of moving. RTHMIC interrupts the loop and gets you into motion.",
     guidance: "Say exactly where you are. Late for what? How long have you been stuck? What's the first thing that needs to happen? Say all of it, fast — don't curate.",
     priming: {
       headline: "Say it fast. What's happening right now?",
@@ -1207,7 +1207,7 @@ const ADHD_PILLARS: PillarDefinition[] = [
         "Say how long you've been frozen or avoiding. Even if it's been hours.",
         "Say the one first thing that would move you. Even if it feels impossible right now.",
       ],
-      footnote: "Keep it under a minute. Rthmic will get you unstuck.",
+      footnote: "Keep it under a minute. RTHMIC will get you unstuck.",
     },
   },
   {
@@ -1235,7 +1235,7 @@ const ADHD_PILLARS: PillarDefinition[] = [
 // so it can be rendered with its own visual treatment.
 const BRIDGE_PILLAR: PillarDefinition = {
   slug: "bridge",
-  label: "Rthmic Bridge",
+  label: "RTHMIC Bridge",
   tagline: "A Rthm to communicate and connect",
   detail: "Use this when you want to reach someone — to say something you find hard to say, to help them through something, to celebrate them, or simply to let them know they're on your mind. RTHMIC builds a complete song shaped around that person and what you want them to feel. You send the link; they can play it from anywhere.",
   guidance: "Tell RTHMIC who this is for and what you want them to feel or know. You don't need to be poetic — just honest. The more specific you are about the person and the moment, the more the song will feel like it was made for them.",
@@ -1767,7 +1767,7 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
           </RevealBlock>
           <RevealBlock delay={100}>
             <p className="text-base text-white/60 leading-relaxed">
-              {p?.subheadline ?? "Say what matters in ordinary words. Rthmic will shape it from there."}
+              {p?.subheadline ?? "Say what matters in ordinary words. RTHMIC will shape it from there."}
             </p>
           </RevealBlock>
         </div>
@@ -1843,7 +1843,7 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
 
         <RevealBlock delay={180 + instructions.length * 45 + (hasSuggestions ? 45 : 0)}>
           <p className="text-xs text-white/40 leading-relaxed border-t border-white/[0.06] pt-4">
-            {p?.footnote ?? "Most people speak for 1–3 minutes. After 5 minutes Rthmic will capture what you've said — you'll have the option to add more if it feels right."}
+            {p?.footnote ?? "Most people speak for 1–3 minutes. After 5 minutes RTHMIC will capture what you've said — you'll have the option to add more if it feels right."}
           </p>
         </RevealBlock>
       </div>

@@ -241,7 +241,7 @@ export default function MenuDetailPage({ params }: { params: Promise<{ slug: str
           <RevealBlock delay={160}>
             <p className="text-center text-[11px] text-white/25 leading-relaxed px-4">
               Speak naturally. Say the options you want kept in circulation.
-              Rthmic will build a loop, not a checklist.
+              RTHMIC will build a loop, not a checklist.
             </p>
           </RevealBlock>
         </section>

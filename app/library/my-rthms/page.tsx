@@ -56,8 +56,8 @@ function collectionFromQuery(value: string | null): LibraryCollection {
 }
 
 function collectionTitle(collection: LibraryCollection): string {
-  if (collection === "bridge") return "Rthmic Bridge";
-  if (collection === "invite") return "Rthmic Invite";
+  if (collection === "bridge") return "RTHMIC Bridge";
+  if (collection === "invite") return "RTHMIC Invite";
   return "My Rthms";
 }
 
@@ -311,7 +311,7 @@ export default function MyRthmsPage() {
     });
   };
 
-  // ── Rthmic category + tag lists (from active rthms only) ──────────────────
+  // ── RTHMIC category + tag lists (from active rthms only) ──────────────────
   const pillarSet = new Set<string>();
   const tagSet    = new Set<string>();
   for (const r of myRthms) {
@@ -728,10 +728,10 @@ function TagFilterRows({
   return (
     <div className="flex flex-col gap-2.5">
 
-      {/* Row 1 — Rthmic Categories, single select */}
+      {/* Row 1 — RTHMIC Categories, single select */}
       {pillars.length > 0 && (
         <div className="flex flex-col gap-1.5">
-          <span className="text-[9px] uppercase tracking-widest text-white/25 px-0.5">Rthmic Categories</span>
+          <span className="text-[9px] uppercase tracking-widest text-white/25 px-0.5">RTHMIC Categories</span>
           <div className="flex gap-2 overflow-x-auto pb-0.5 -mx-1 px-1 scrollbar-none">
             {pillars.map((p) => {
               const active = selectedPillar === p;

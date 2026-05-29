@@ -72,7 +72,7 @@ export default function StructurePage() {
             <div className="flex items-center gap-2.5 mb-1">
               <span style={{ color: TEAL.dim }}><StructureIcon /></span>
               <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: TEAL.dim }}>
-                Rthmic Menus
+                RTHMIC Menus
               </p>
             </div>
             <p className="text-xl font-light text-white/70 leading-snug" style={{ fontFamily: "var(--font-display)" }}>
