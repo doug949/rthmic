@@ -506,7 +506,7 @@ const HOME_TILES: {
   { id: "my-rthms", href: "/library/my-rthms", label: "My Rthms",      shortLabel: "My Rthms",   icon: <PlayIcon />,    accent: "rgba(100,140,255,0.5)", image: "/images/tiles/optimized/my-rthms.webp" },
   { id: "bridge", href: "/bridge", label: "Rthmic Bridge", shortLabel: "Bridge", icon: <BridgeTileIcon />, accent: "rgba(180,160,140,0.55)", image: "/images/tiles/optimized/bridge.webp" },
   { id: "invite", href: "/invite", label: "Rthmic Invite", shortLabel: "Invite", icon: <InviteTileIcon />, accent: "rgba(218,185,120,0.55)", image: "/images/tiles/optimized/invite.webp", adminOnly: true },
-  { id: "rthmix", href: "/rthmix",    label: "Rthmix",                shortLabel: "Rthmix",     icon: <CassetteIcon />, accent: "rgba(230,155,60,0.5)", image: "/images/tiles/optimized/rthmix.webp" },
+  { id: "rthmix", href: "/rthmix",    label: "Rhythmixes",             shortLabel: "Rhythmixes",     icon: <CassetteIcon />, accent: "rgba(230,155,60,0.5)", image: "/images/tiles/optimized/rthmix.webp" },
   { id: "structure", href: "/structure", label: "Menus",                 shortLabel: "Menus",      icon: <MenusIcon />,   accent: "rgba(100,195,165,0.5)", image: "/images/tiles/optimized/structure.webp", imageScale: 1.12 },
   { id: "adhd", href: "/speak",     label: "ADHD Collection",       shortLabel: "ADHD Collection",       icon: <BrainIcon />,   accent: "rgba(220,110,140,0.5)", image: "/images/tiles/optimized/adhd.webp" },
   { id: "reddit-adhd", href: "/reddit-adhd", label: "ADHD Reddit Response", shortLabel: "Reddit ADHD", icon: <BrainIcon />, accent: "rgba(220,110,140,0.55)", adminOnly: true },

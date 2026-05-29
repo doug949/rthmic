@@ -11,7 +11,6 @@ import { RhythmRow } from "@/app/library/_components";
 import { groupRhythmPairs, sideLabelFor } from "@/app/lib/rhythmPairs";
 
 const CROATIAN_RTHMIX_ID = "croatian-starter-memory";
-const CROATIAN_ALBUM_TITLE = "Croatian Starter";
 const CROATIAN_ALBUM_ART_PROMPT = "Square album cover for Croatian Starter, a premium Rthmix memory album: Adriatic coastline at dusk, purple-gold moonlit water, six small glowing language tokens, subtle tamburica strings, modern minimal typography, cinematic but clean.";
 
 const RTHMIX_SUGGESTIONS = [
@@ -21,29 +20,6 @@ const RTHMIX_SUGGESTIONS = [
   "How to think in first principles",
   "A beginner guide to wine tasting",
   "The story of the Roman Empire",
-];
-
-const progressionTracks = [
-  {
-    title: "RTHMIX Album Generator",
-    detail: "Turn a goal into track zero, ordered unlock tracks, and a reflective bonus track. Intended for gradual generation.",
-    status: "Prototype next",
-  },
-  {
-    title: "Track Zero",
-    detail: "Explain the concept, the target, and how the listener should move through the album.",
-    status: "Planned",
-  },
-  {
-    title: "Ordered Unlocks",
-    detail: "Each track revisits the previous unlock briefly, then introduces one new unlock.",
-    status: "Planned",
-  },
-  {
-    title: "Bonus Reflection",
-    detail: "Close the Rthmix by acknowledging what has been achieved and giving it a moment to land.",
-    status: "Planned",
-  },
 ];
 
 const croatianMemoryRthmix = [
@@ -124,6 +100,7 @@ export default function RthmixPage() {
   const [shareToastId, setShareToastId] = useState<string | null>(null);
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const [selectedSideIds, setSelectedSideIds] = useState<Record<string, string>>({});
+  const [viewMode, setViewMode] = useState<"home" | "collection" | "create">("home");
   const { currentTrackId, isPlaying, currentTime, duration, handlePlayUrl, playQueue } = useAudio();
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -140,10 +117,13 @@ export default function RthmixPage() {
   }, []);
 
   useEffect(() => {
-    fetchLibrary();
-    const onMutated = () => fetchLibrary();
+    const timer = window.setTimeout(() => { void fetchLibrary(); }, 0);
+    const onMutated = () => { void fetchLibrary(); };
     window.addEventListener("library-mutated", onMutated);
-    return () => window.removeEventListener("library-mutated", onMutated);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("library-mutated", onMutated);
+    };
   }, [fetchLibrary]);
 
   const mutate = useCallback(async (body: Record<string, unknown>) => {
@@ -361,221 +341,284 @@ export default function RthmixPage() {
   return (
     <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ animation: "page-enter 380ms ease forwards" }}>
       <RevealBlock delay={0}>
-        <AppHeader title="Rthmix" titleIcon={<CassetteIcon />} />
+        <AppHeader title="Rhythmixes" titleIcon={<CassetteIcon />} />
       </RevealBlock>
 
       <section className="flex-1 flex flex-col gap-4 pb-28">
         <div className="rounded-2xl border px-5 py-5" style={{ background: "rgba(255,255,255,0.035)", borderColor: "rgba(255,255,255,0.09)" }}>
           <div className="flex items-center gap-2 mb-2">
-            <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: "rgba(240,170,80,0.9)" }}>Rthmix builder</p>
+            <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: "rgba(240,170,80,0.9)" }}>Rhythmixes</p>
           </div>
           <h1 className="text-2xl font-light text-white/90 leading-tight" style={{ fontFamily: "var(--font-display)" }}>
-            Build albums that teach one unlock at a time.
+            Listen to your Rhythmix collection or create a new one.
           </h1>
           <p className="text-sm text-white/45 leading-relaxed mt-3">
-            Rthmix is where a goal becomes track zero, ordered progress tracks, and a reflective bonus track.
+            Rhythmixes are multi-track Rthm albums for learning, remembering, or building one unlock at a time.
           </p>
-          <div className="mt-5 flex flex-col gap-3">
-            <button
-              onClick={voicePhase === "recording" ? stopRecording : startRecording}
-              disabled={building || voicePhase === "transcribing"}
-              className="w-full min-h-36 rounded-2xl border flex flex-col items-center justify-center gap-3 touch-manipulation active:scale-[0.99] transition disabled:opacity-55 disabled:active:scale-100"
-              style={{
-                background: voicePhase === "recording" ? "rgba(239,68,68,0.10)" : "rgba(255,255,255,0.035)",
-                borderColor: voicePhase === "recording" ? "rgba(252,165,165,0.30)" : "rgba(255,255,255,0.10)",
-                color: "rgba(255,245,230,0.92)",
-              }}
-              aria-label={voicePhase === "recording" ? "Stop recording Rthmix topic" : "Record Rthmix topic"}
-            >
-              <span
-                className="w-16 h-16 rounded-full flex items-center justify-center"
-                style={{
-                  background: voicePhase === "recording" ? "rgba(239,68,68,0.18)" : "rgba(255,255,255,0.07)",
-                  boxShadow: voicePhase === "recording" ? "0 0 24px rgba(239,68,68,0.14)" : "none",
-                }}
-              >
-                {voicePhase === "recording" ? <StopIcon /> : <MicTopicIcon />}
-              </span>
-              <span className="text-sm font-medium text-white/82">
-                {building
-                  ? "Building your Rthmix"
-                  : voicePhase === "recording"
-                    ? "Tap to finish"
-                    : voicePhase === "transcribing"
-                      ? "Listening back..."
-                      : "Say the topic"}
-              </span>
-              <span className="text-xs text-white/38">
-                {voicePhase === "recording" ? "Rthmix will build from what you say." : "One sentence is enough."}
-              </span>
-            </button>
 
-            <div className="flex flex-wrap gap-2">
-              {RTHMIX_SUGGESTIONS.map((suggestion) => (
-                <button
-                  key={suggestion}
-                  onClick={() => {
-                    setTopic(suggestion);
-                    handleBuildRthmix(suggestion);
-                  }}
-                  disabled={building || voicePhase !== "idle"}
-                  className="rounded-full border px-3 py-2 text-[11px] text-white/58 touch-manipulation active:scale-[0.98] transition disabled:opacity-35"
-                  style={{ background: "rgba(255,255,255,0.045)", borderColor: "rgba(255,255,255,0.10)" }}
-                >
-                  {suggestion}
-                </button>
-              ))}
-            </div>
-
-            <textarea
-              value={topic}
-              onChange={(event) => setTopic(event.target.value)}
-              placeholder="Or edit the topic before building"
-              className="w-full min-h-24 rounded-xl border bg-black/20 px-4 py-3 text-sm text-white/86 placeholder:text-white/25 outline-none resize-none"
-              style={{ borderColor: "rgba(255,255,255,0.10)" }}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-5">
+            <RthmixChoiceCard
+              title="Listen to Rhythmixes"
+              detail="Browse your existing Rhythmix collection, start an album, or jump into a track."
+              eyebrow={`${rthmixAlbums.length + 1} collection${rthmixAlbums.length + 1 === 1 ? "" : "s"}`}
+              active={viewMode === "collection"}
+              onClick={() => setViewMode("collection")}
             />
-            <button
-              onClick={() => handleBuildRthmix()}
-              disabled={building || !topic.trim()}
-              className="inline-flex items-center justify-center rounded-full border px-4 py-3 text-[11px] uppercase tracking-widest touch-manipulation active:scale-[0.98] transition disabled:opacity-40 disabled:active:scale-100"
-              style={{ background: "rgba(255,255,255,0.055)", borderColor: "rgba(240,170,80,0.24)", color: "rgba(255,235,205,0.92)" }}
-            >
-              {building ? "Building Rthmix..." : "Build Rthmix"}
-            </button>
-            {buildError && <p className="text-xs text-red-200/70">{buildError}</p>}
-            {queuedPlan && (
-              <div className="rounded-xl border px-4 py-3" style={{ background: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.09)" }}>
-                <p className="text-xs text-white/65">{queuedPlan.title} queued</p>
-                <p className="text-[11px] text-white/35 mt-1">{queuedPlan.tracks.length} tracks are generating. They will appear here as they complete.</p>
-              </div>
-            )}
+            <RthmixChoiceCard
+              title="Create a new Rhythmix"
+              detail="Pick a suggested topic or speak your own idea and let Rthmic build the album."
+              eyebrow="Suggestions + voice"
+              active={viewMode === "create"}
+              onClick={() => setViewMode("create")}
+            />
           </div>
         </div>
 
-        {rthmixAlbums.length > 0 && (
-          <RthmixSection
-            label="Your Rthmixes"
-            intro="Generated albums appear here as each track completes. Start from track zero, then move through the ordered unlocks."
-          >
-            {rthmixAlbums.map((album) => (
-              <GeneratedRthmixAlbum
-                key={album.id}
-                title={album.title}
-                rhythms={album.rhythms}
-                currentTrackId={currentTrackId}
-                isPlaying={isPlaying}
-                currentTime={currentTime}
-                duration={duration}
-                showLyricsId={showLyricsId}
-                setShowLyricsId={setShowLyricsId}
-                playQueue={playQueue}
-                handlePlayUrl={handlePlayUrl}
-                updateRhythm={updateRhythm}
-                handleShare={handleShare}
-                shareToastId={shareToastId}
-                confirmRemoveId={confirmRemoveId}
-                setConfirmRemoveId={setConfirmRemoveId}
-                mutate={mutate}
-              />
-            ))}
-          </RthmixSection>
+        {viewMode === "home" && (
+          <div className="rounded-2xl border px-5 py-4" style={{ background: "rgba(255,255,255,0.025)", borderColor: "rgba(255,255,255,0.07)" }}>
+            <p className="text-[10px] uppercase tracking-[0.28em] text-white/35">Choose a path</p>
+            <p className="text-xs text-white/38 leading-relaxed mt-2">
+              Start by listening to what you already have, or create a fresh Rhythmix from a topic that is on your mind.
+            </p>
+          </div>
         )}
 
-        <RthmixSection
-          label="Memory Rthmixes"
-          intro="Kept separate because these are retrieval chains: one memory hook per track. Each track loops until it feels ready, then you skip forward."
-        >
-          <div className="rounded-2xl border overflow-hidden" style={{ background: "rgba(139,92,246,0.06)", borderColor: "rgba(139,92,246,0.22)" }}>
-            <div className="px-5 py-4 border-b flex gap-4" style={{ borderColor: "rgba(139,92,246,0.16)" }}>
-              <AlbumArt />
-              <div className="flex-1 min-w-0">
-                <p className="text-[10px] uppercase tracking-[0.28em]" style={{ color: "rgba(167,139,250,0.82)" }}>Memory Album</p>
-                <h2 className="text-lg font-light text-white/88 mt-1" style={{ fontFamily: "var(--font-display)" }}>
-                  Croatian Starter
-                </h2>
-                <p className="text-xs text-white/42 leading-relaxed mt-2">
-                  Ground zero plus six Memory Rthms and a bonus reflection. {readyTrackCount}/8 tracks available.
-                </p>
-                {albumQueue.length > 0 && (
-                  <button
-                    onClick={playAlbum}
-                    className="mt-3 inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-[11px] uppercase tracking-widest touch-manipulation active:scale-[0.98] transition-transform"
-                    style={{ background: "rgba(139,92,246,0.16)", borderColor: "rgba(196,181,253,0.28)", color: "rgba(233,213,255,0.9)" }}
-                  >
-                    <PlayTinyIcon />
-                    Start album
-                  </button>
-                )}
-              </div>
+        {viewMode === "create" && (
+          <div className="rounded-2xl border px-5 py-5" style={{ background: "rgba(255,255,255,0.035)", borderColor: "rgba(255,255,255,0.09)" }}>
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: "rgba(240,170,80,0.9)" }}>Create Rhythmix</p>
+              <button onClick={() => setViewMode("home")} className="text-[10px] uppercase tracking-widest text-white/35 touch-manipulation active:text-white/60 transition-colors">
+                Back
+              </button>
             </div>
-            <div className="flex flex-col">
-              {albumCards.map(({ track, card }) => {
-                if (!card) return <MemoryTrack key={track.number} {...track} />;
-                const { key, rhythm, alternate, preferredSideId } = card;
-                return (
-                  <div key={track.number} className="px-0 py-0 border-b last:border-b-0" style={{ borderColor: "rgba(139,92,246,0.13)" }}>
-                    <div className="px-5 pt-4 pb-2 flex items-start gap-3">
-                      <TrackNumber number={track.number} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-sm font-semibold text-white/78">{track.title}</p>
-                          <span className="text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-full" style={{ background: "rgba(139,92,246,0.12)", color: "rgba(196,181,253,0.72)" }}>Memory</span>
-                        </div>
-                        <p className="text-xs mt-1" style={{ color: "rgba(196,181,253,0.74)" }}>{track.unlock}</p>
-                      </div>
-                    </div>
-                    <div className="px-3 pb-3">
-                      <RhythmRow
-                        rhythm={rhythm}
-                        playing={currentTrackId === rhythm.id && isPlaying}
-                        currentTime={currentTrackId === rhythm.id ? currentTime : 0}
-                        duration={currentTrackId === rhythm.id ? duration : 0}
-                        showLyrics={showLyricsId === rhythm.id}
-                        onToggleLyrics={() => setShowLyricsId(showLyricsId === rhythm.id ? null : rhythm.id)}
-                        onPlay={() => playAlbumFrom(rhythm)}
-                        favourite={rhythm.status === "favourite"}
-                        isNew={rhythm.status === "new"}
-                        onGraduate={rhythm.status === "active" ? () => updateRhythm(rhythm.id, { status: "favourite" }) : undefined}
-                        onUngraduate={rhythm.status === "favourite" ? () => updateRhythm(rhythm.id, { status: "active" }) : undefined}
-                        onArchive={() => updateRhythm(rhythm.id, { status: "archived" })}
-                        onRemove={() => {
-                          if (confirmRemoveId === rhythm.id) {
-                            mutate({ action: "remove", id: rhythm.id });
-                            setConfirmRemoveId(null);
-                          } else {
-                            setConfirmRemoveId(rhythm.id);
-                            setTimeout(() => setConfirmRemoveId((id) => id === rhythm.id ? null : id), 3000);
-                          }
-                        }}
-                        onRecreate={() => {}}
-                        onBuildUpon={() => {}}
-                        onShare={() => handleShare(rhythm)}
-                        onTag={(tags) => updateRhythm(rhythm.id, { tags })}
-                        onNote={(note) => updateRhythm(rhythm.id, { note })}
-                        confirmingRemove={confirmRemoveId === rhythm.id}
-                        shareToast={shareToastId === rhythm.id}
-                        sideLabel={alternate ? sideLabelFor(rhythm) : undefined}
-                        alternateLabel={alternate?.title}
-                        onSwapSide={alternate ? () => setSelectedSideIds((prev) => ({ ...prev, [key]: alternate.id })) : undefined}
-                        sidePreference={!preferredSideId ? "none" : preferredSideId === rhythm.id ? "current" : "other"}
-                        onPreferSide={alternate ? () => mutate({ action: "preferSide", id: rhythm.id }) : undefined}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+            <h2 className="text-xl font-light text-white/90 leading-tight" style={{ fontFamily: "var(--font-display)" }}>
+              Turn a topic into a new album.
+            </h2>
+            <p className="text-sm text-white/45 leading-relaxed mt-3">
+              Use a suggestion if one sparks something, or speak the thing you want transformed into a Rhythmix.
+            </p>
+            <div className="mt-5 flex flex-col gap-3">
+              <button
+                onClick={voicePhase === "recording" ? stopRecording : startRecording}
+                disabled={building || voicePhase === "transcribing"}
+                className="w-full min-h-36 rounded-2xl border flex flex-col items-center justify-center gap-3 touch-manipulation active:scale-[0.99] transition disabled:opacity-55 disabled:active:scale-100"
+                style={{
+                  background: voicePhase === "recording" ? "rgba(239,68,68,0.10)" : "rgba(255,255,255,0.035)",
+                  borderColor: voicePhase === "recording" ? "rgba(252,165,165,0.30)" : "rgba(255,255,255,0.10)",
+                  color: "rgba(255,245,230,0.92)",
+                }}
+                aria-label={voicePhase === "recording" ? "Stop recording Rhythmix topic" : "Record Rhythmix topic"}
+              >
+                <span
+                  className="w-16 h-16 rounded-full flex items-center justify-center"
+                  style={{
+                    background: voicePhase === "recording" ? "rgba(239,68,68,0.18)" : "rgba(255,255,255,0.07)",
+                    boxShadow: voicePhase === "recording" ? "0 0 24px rgba(239,68,68,0.14)" : "none",
+                  }}
+                >
+                  {voicePhase === "recording" ? <StopIcon /> : <MicTopicIcon />}
+                </span>
+                <span className="text-sm font-medium text-white/82">
+                  {building
+                    ? "Building your Rhythmix"
+                    : voicePhase === "recording"
+                      ? "Tap to finish"
+                      : voicePhase === "transcribing"
+                        ? "Listening back..."
+                        : "Say the topic"}
+                </span>
+                <span className="text-xs text-white/38">
+                  {voicePhase === "recording" ? "Rhythmix will build from what you say." : "One sentence is enough."}
+                </span>
+              </button>
+
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.24em] text-white/30 mb-2">Suggested Rhythmixes</p>
+                <div className="flex flex-wrap gap-2">
+                  {RTHMIX_SUGGESTIONS.map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      onClick={() => {
+                        setTopic(suggestion);
+                        handleBuildRthmix(suggestion);
+                      }}
+                      disabled={building || voicePhase !== "idle"}
+                      className="rounded-full border px-3 py-2 text-[11px] text-white/58 touch-manipulation active:scale-[0.98] transition disabled:opacity-35"
+                      style={{ background: "rgba(255,255,255,0.045)", borderColor: "rgba(255,255,255,0.10)" }}
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <textarea
+                value={topic}
+                onChange={(event) => setTopic(event.target.value)}
+                placeholder="Or type/edit the topic before building"
+                className="w-full min-h-24 rounded-xl border bg-black/20 px-4 py-3 text-sm text-white/86 placeholder:text-white/25 outline-none resize-none"
+                style={{ borderColor: "rgba(255,255,255,0.10)" }}
+              />
+              <button
+                onClick={() => handleBuildRthmix()}
+                disabled={building || !topic.trim()}
+                className="inline-flex items-center justify-center rounded-full border px-4 py-3 text-[11px] uppercase tracking-widest touch-manipulation active:scale-[0.98] transition disabled:opacity-40 disabled:active:scale-100"
+                style={{ background: "rgba(255,255,255,0.055)", borderColor: "rgba(240,170,80,0.24)", color: "rgba(255,235,205,0.92)" }}
+              >
+                {building ? "Building Rhythmix..." : "Build Rhythmix"}
+              </button>
+              {buildError && <p className="text-xs text-red-200/70">{buildError}</p>}
+              {queuedPlan && (
+                <div className="rounded-xl border px-4 py-3" style={{ background: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.09)" }}>
+                  <p className="text-xs text-white/65">{queuedPlan.title} queued</p>
+                  <p className="text-[11px] text-white/35 mt-1">{queuedPlan.tracks.length} tracks are generating. They will appear in your collection as they complete.</p>
+                </div>
+              )}
             </div>
           </div>
-        </RthmixSection>
+        )}
 
-        <RthmixSection
-          label="Progression Rthmixes"
-          intro="Goal-based albums where track zero explains the mission and each following track builds one conceptual unlock."
-        >
-          {progressionTracks.map((track) => (
-            <RthmixAction key={track.title} {...track} />
-          ))}
-        </RthmixSection>
+        {viewMode === "collection" && (
+          <>
+            <div className="flex items-center justify-between gap-3 px-1">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.28em] text-white/35">Rhythmix collection</p>
+                <p className="text-xs text-white/35 leading-relaxed mt-1">Listen through existing Rhythmixes and browse the album tracks.</p>
+              </div>
+              <button onClick={() => setViewMode("home")} className="text-[10px] uppercase tracking-widest text-white/35 touch-manipulation active:text-white/60 transition-colors">
+                Back
+              </button>
+            </div>
+
+            {rthmixAlbums.length > 0 ? (
+              <RthmixSection
+                label="Your Rhythmixes"
+                intro="Generated albums appear here as each track completes. Start from track zero, then move through the ordered unlocks."
+              >
+                {rthmixAlbums.map((album) => (
+                  <GeneratedRthmixAlbum
+                    key={album.id}
+                    title={album.title}
+                    rhythms={album.rhythms}
+                    currentTrackId={currentTrackId}
+                    isPlaying={isPlaying}
+                    currentTime={currentTime}
+                    duration={duration}
+                    showLyricsId={showLyricsId}
+                    setShowLyricsId={setShowLyricsId}
+                    playQueue={playQueue}
+                    handlePlayUrl={handlePlayUrl}
+                    updateRhythm={updateRhythm}
+                    handleShare={handleShare}
+                    shareToastId={shareToastId}
+                    confirmRemoveId={confirmRemoveId}
+                    setConfirmRemoveId={setConfirmRemoveId}
+                    mutate={mutate}
+                  />
+                ))}
+              </RthmixSection>
+            ) : (
+              <div className="rounded-2xl border px-5 py-4" style={{ background: "rgba(255,255,255,0.025)", borderColor: "rgba(255,255,255,0.07)" }}>
+                <p className="text-sm text-white/68">No generated Rhythmixes yet.</p>
+                <p className="text-xs text-white/35 leading-relaxed mt-1">Create one from a suggested topic or by speaking your own idea.</p>
+                <button
+                  onClick={() => setViewMode("create")}
+                  className="mt-3 inline-flex items-center justify-center rounded-full border px-4 py-2.5 text-[10px] uppercase tracking-widest touch-manipulation active:scale-[0.98] transition"
+                  style={{ background: "rgba(255,255,255,0.055)", borderColor: "rgba(240,170,80,0.24)", color: "rgba(255,235,205,0.92)" }}
+                >
+                  Create one
+                </button>
+              </div>
+            )}
+
+            <RthmixSection
+              label="Memory Rhythmixes"
+              intro="Kept separate because these are retrieval chains: one memory hook per track. Each track loops until it feels ready, then you skip forward."
+            >
+              <div className="rounded-2xl border overflow-hidden" style={{ background: "rgba(139,92,246,0.06)", borderColor: "rgba(139,92,246,0.22)" }}>
+                <div className="px-5 py-4 border-b flex gap-4" style={{ borderColor: "rgba(139,92,246,0.16)" }}>
+                  <AlbumArt />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] uppercase tracking-[0.28em]" style={{ color: "rgba(167,139,250,0.82)" }}>Memory Album</p>
+                    <h2 className="text-lg font-light text-white/88 mt-1" style={{ fontFamily: "var(--font-display)" }}>
+                      Croatian Starter
+                    </h2>
+                    <p className="text-xs text-white/42 leading-relaxed mt-2">
+                      Ground zero plus six Memory Rthms and a bonus reflection. {readyTrackCount}/8 tracks available.
+                    </p>
+                    {albumQueue.length > 0 && (
+                      <button
+                        onClick={playAlbum}
+                        className="mt-3 inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-[11px] uppercase tracking-widest touch-manipulation active:scale-[0.98] transition-transform"
+                        style={{ background: "rgba(139,92,246,0.16)", borderColor: "rgba(196,181,253,0.28)", color: "rgba(233,213,255,0.9)" }}
+                      >
+                        <PlayTinyIcon />
+                        Start album
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="flex flex-col">
+                  {albumCards.map(({ track, card }) => {
+                    if (!card) return <MemoryTrack key={track.number} {...track} />;
+                    const { key, rhythm, alternate, preferredSideId } = card;
+                    return (
+                      <div key={track.number} className="px-0 py-0 border-b last:border-b-0" style={{ borderColor: "rgba(139,92,246,0.13)" }}>
+                        <div className="px-5 pt-4 pb-2 flex items-start gap-3">
+                          <TrackNumber number={track.number} />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="text-sm font-semibold text-white/78">{track.title}</p>
+                              <span className="text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-full" style={{ background: "rgba(139,92,246,0.12)", color: "rgba(196,181,253,0.72)" }}>Memory</span>
+                            </div>
+                            <p className="text-xs mt-1" style={{ color: "rgba(196,181,253,0.74)" }}>{track.unlock}</p>
+                          </div>
+                        </div>
+                        <div className="px-3 pb-3">
+                          <RhythmRow
+                            rhythm={rhythm}
+                            playing={currentTrackId === rhythm.id && isPlaying}
+                            currentTime={currentTrackId === rhythm.id ? currentTime : 0}
+                            duration={currentTrackId === rhythm.id ? duration : 0}
+                            showLyrics={showLyricsId === rhythm.id}
+                            onToggleLyrics={() => setShowLyricsId(showLyricsId === rhythm.id ? null : rhythm.id)}
+                            onPlay={() => playAlbumFrom(rhythm)}
+                            favourite={rhythm.status === "favourite"}
+                            isNew={rhythm.status === "new"}
+                            onGraduate={rhythm.status === "active" ? () => updateRhythm(rhythm.id, { status: "favourite" }) : undefined}
+                            onUngraduate={rhythm.status === "favourite" ? () => updateRhythm(rhythm.id, { status: "active" }) : undefined}
+                            onArchive={() => updateRhythm(rhythm.id, { status: "archived" })}
+                            onRemove={() => {
+                              if (confirmRemoveId === rhythm.id) {
+                                mutate({ action: "remove", id: rhythm.id });
+                                setConfirmRemoveId(null);
+                              } else {
+                                setConfirmRemoveId(rhythm.id);
+                                setTimeout(() => setConfirmRemoveId((id) => id === rhythm.id ? null : id), 3000);
+                              }
+                            }}
+                            onRecreate={() => {}}
+                            onBuildUpon={() => {}}
+                            onShare={() => handleShare(rhythm)}
+                            onTag={(tags) => updateRhythm(rhythm.id, { tags })}
+                            onNote={(note) => updateRhythm(rhythm.id, { note })}
+                            confirmingRemove={confirmRemoveId === rhythm.id}
+                            shareToast={shareToastId === rhythm.id}
+                            sideLabel={alternate ? sideLabelFor(rhythm) : undefined}
+                            alternateLabel={alternate?.title}
+                            onSwapSide={alternate ? () => setSelectedSideIds((prev) => ({ ...prev, [key]: alternate.id })) : undefined}
+                            sidePreference={!preferredSideId ? "none" : preferredSideId === rhythm.id ? "current" : "other"}
+                            onPreferSide={alternate ? () => mutate({ action: "preferSide", id: rhythm.id }) : undefined}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </RthmixSection>
+          </>
+        )}
       </section>
     </main>
   );
@@ -796,21 +839,28 @@ function MemoryTrack({ number, title, unlock, detail, hook }: {
   );
 }
 
-function RthmixAction({ title, detail, status }: { title: string; detail: string; status: string }) {
+function RthmixChoiceCard({ title, detail, eyebrow, active, onClick }: {
+  title: string;
+  detail: string;
+  eyebrow: string;
+  active: boolean;
+  onClick: () => void;
+}) {
   return (
-    <div className="rounded-2xl border px-5 py-4" style={{ background: "rgba(255,255,255,0.045)", borderColor: "rgba(255,255,255,0.10)" }}>
-      <div className="flex items-start gap-3">
-        <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "rgba(230,155,60,0.14)", color: "rgba(240,170,80,0.9)" }}>
-          +
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="text-sm font-semibold text-white/78">{title}</p>
-            <span className="text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.32)" }}>{status}</span>
-          </div>
-          <p className="text-xs text-white/40 leading-relaxed mt-1">{detail}</p>
-        </div>
-      </div>
-    </div>
+    <button
+      onClick={onClick}
+      className="rounded-2xl border px-5 py-4 text-left touch-manipulation active:scale-[0.99] transition"
+      style={{
+        background: active ? "rgba(230,155,60,0.10)" : "rgba(255,255,255,0.045)",
+        borderColor: active ? "rgba(240,170,80,0.34)" : "rgba(255,255,255,0.10)",
+        boxShadow: active ? "0 0 28px rgba(230,155,60,0.08)" : "none",
+      }}
+    >
+      <span className="text-[9px] uppercase tracking-[0.24em]" style={{ color: active ? "rgba(255,224,180,0.78)" : "rgba(255,255,255,0.32)" }}>
+        {eyebrow}
+      </span>
+      <span className="block text-sm font-semibold text-white/82 mt-2">{title}</span>
+      <span className="block text-xs text-white/40 leading-relaxed mt-1">{detail}</span>
+    </button>
   );
 }
