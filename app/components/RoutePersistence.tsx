@@ -3,19 +3,41 @@
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  CURRENT_ROUTE_KEY,
+  LAST_ROUTE_KEY,
+  NAV_INTENT_KEY,
+  PREVIOUS_ROUTE_KEY,
+  RELOAD_REASON_KEY,
   currentClientRoute,
   getDiagnosticSessionId,
+  persistCurrentRoute,
+  readPersistedRouteState,
+  readRouteStack,
   recordDiagnosticEvent,
-  updateRouteStack,
+  safeGetLocalItem,
+  safeGetSessionItem,
+  safeRemoveSessionItem,
+  safeSetSessionItem,
 } from "@/app/lib/clientDiagnostics";
 
-const LAST_ROUTE_KEY = "rthmic:last-route";
-const RELOAD_REASON_KEY = "rthmic:last-reload-reason";
 const RELOAD_REPORTED_KEY = "rthmic:last-reload-reported";
-const NAV_INTENT_KEY = "rthmic:navigation-intent";
+const RESTORE_ATTEMPT_KEY = "rthmic:reload-restore-attempt";
+const LAST_SNAPSHOT_KEY = "rthmic:last-route-snapshot-at";
 
 function currentRoute() {
   return currentClientRoute();
+}
+
+function isRestorableRoute(route: string | null | undefined): route is string {
+  return !!route && route.startsWith("/") && !route.startsWith("//");
+}
+
+function bestRouteToRestore(routeAfterReload: string): string | null {
+  const persisted = readPersistedRouteState()?.route;
+  const sessionRoute = safeGetSessionItem(LAST_ROUTE_KEY) ?? safeGetSessionItem(CURRENT_ROUTE_KEY);
+  const localRoute = safeGetLocalItem(CURRENT_ROUTE_KEY);
+  const candidates = [persisted, sessionRoute, localRoute];
+  return candidates.find((candidate) => isRestorableRoute(candidate) && candidate !== routeAfterReload) ?? null;
 }
 
 export default function RoutePersistence() {
@@ -27,20 +49,18 @@ export default function RoutePersistence() {
     const wasReload = nav?.type === "reload";
     const route = currentRoute();
     const sessionId = getDiagnosticSessionId();
-    const previousRoute = sessionStorage.getItem(LAST_ROUTE_KEY);
-    const reason = sessionStorage.getItem(RELOAD_REASON_KEY);
-    const navigationIntent = sessionStorage.getItem(NAV_INTENT_KEY);
-    const intendedHome = navigationIntent === "/";
+    const previousRoute = bestRouteToRestore(route);
+    const reason = safeGetSessionItem(RELOAD_REASON_KEY);
+    const navigationIntent = safeGetSessionItem(NAV_INTENT_KEY);
+    const restoreAttemptId = previousRoute ? `${previousRoute} -> ${route}` : null;
+    const previousAttempt = safeGetSessionItem(RESTORE_ATTEMPT_KEY);
     const shouldRestore = !!(
       wasReload &&
-      !intendedHome &&
+      reason !== "user-clicked-update" &&
       previousRoute &&
-      previousRoute !== route &&
-      previousRoute.startsWith("/") &&
-      route === "/"
+      restoreAttemptId &&
+      previousAttempt !== restoreAttemptId
     );
-
-    const shouldReport = !!(wasReload && reason !== "user-clicked-update" && previousRoute && previousRoute !== route);
 
     if (wasReload) {
       recordDiagnosticEvent("reload", {
@@ -49,13 +69,15 @@ export default function RoutePersistence() {
         navigationType: nav?.type ?? "unknown",
         willRestore: shouldRestore,
         navigationIntent,
+        persistedRouteState: readPersistedRouteState(),
+        routeStack: readRouteStack(),
       });
     }
 
-    if (shouldReport) {
-      const alreadyReported = sessionStorage.getItem(RELOAD_REPORTED_KEY);
+    if (wasReload && reason !== "user-clicked-update" && previousRoute && previousRoute !== route) {
+      const alreadyReported = safeGetSessionItem(RELOAD_REPORTED_KEY);
       if (alreadyReported !== previousRoute) {
-        sessionStorage.setItem(RELOAD_REPORTED_KEY, previousRoute);
+        safeSetSessionItem(RELOAD_REPORTED_KEY, previousRoute);
         const transcript = [
           "[App diagnostic] Unexpected reload detected.",
           `Current route after reload: ${route}`,
@@ -63,6 +85,7 @@ export default function RoutePersistence() {
           `Stored reload reason: ${reason ?? "unknown"}`,
           `Navigation type: ${nav?.type ?? "unknown"}`,
           `Will restore route: ${shouldRestore ? "yes" : "no"}`,
+          `Navigation intent: ${navigationIntent ?? "none"}`,
           `Session: ${sessionId}`,
           `User agent: ${navigator.userAgent}`,
         ].join("\n");
@@ -75,49 +98,78 @@ export default function RoutePersistence() {
       }
     }
 
-    if (shouldRestore && previousRoute) {
+    if (shouldRestore && previousRoute && restoreAttemptId) {
+      safeSetSessionItem(RESTORE_ATTEMPT_KEY, restoreAttemptId);
+      const stack = readRouteStack();
+      const previousStackRoute = stack.find((candidate) => candidate !== previousRoute && candidate !== route);
+      if (previousStackRoute) safeSetSessionItem(PREVIOUS_ROUTE_KEY, previousStackRoute);
+      recordDiagnosticEvent("route-restore", {
+        from: route,
+        to: previousRoute,
+        routeStack: stack,
+      });
       router.replace(previousRoute);
       return;
     }
 
-    sessionStorage.setItem(LAST_ROUTE_KEY, route);
-    updateRouteStack(route);
+    persistCurrentRoute(route);
     if (route === navigationIntent || navigationIntent === "__back__") {
-      sessionStorage.removeItem(NAV_INTENT_KEY);
+      safeRemoveSessionItem(NAV_INTENT_KEY);
     }
   }, [pathname, router]);
 
   useEffect(() => {
-    const markReload = () => {
-      if (sessionStorage.getItem(RELOAD_REASON_KEY) !== "user-clicked-update") {
-        sessionStorage.setItem(RELOAD_REASON_KEY, "browser-or-runtime");
-      }
-      sessionStorage.setItem(LAST_ROUTE_KEY, currentRoute());
-      recordDiagnosticEvent("pagehide", {
+    const snapshotRoute = (reason: string) => {
+      const route = currentRoute();
+      safeSetSessionItem(LAST_SNAPSHOT_KEY, new Date().toISOString());
+      persistCurrentRoute(route);
+      recordDiagnosticEvent(reason, {
         visibilityState: document.visibilityState,
-        persisted: "unknown",
+      });
+    };
+
+    const markPageHide = (event: PageTransitionEvent) => {
+      if (safeGetSessionItem(RELOAD_REASON_KEY) !== "user-clicked-update") {
+        safeSetSessionItem(RELOAD_REASON_KEY, "browser-or-runtime");
+      }
+      snapshotRoute("pagehide");
+      recordDiagnosticEvent("pagehide-detail", {
+        visibilityState: document.visibilityState,
+        persisted: event.persisted,
       });
     };
 
     const markBeforeUnload = () => {
-      recordDiagnosticEvent("beforeunload", {
-        visibilityState: document.visibilityState,
-      });
+      snapshotRoute("beforeunload");
     };
 
     const markVisibility = () => {
-      recordDiagnosticEvent("visibilitychange", {
-        visibilityState: document.visibilityState,
-      });
+      snapshotRoute("visibilitychange");
     };
 
-    window.addEventListener("pagehide", markReload);
+    const markFreeze = () => {
+      snapshotRoute("freeze");
+    };
+
+    const markResume = () => {
+      snapshotRoute("resume");
+    };
+
+    const interval = window.setInterval(() => persistCurrentRoute(currentRoute()), 1500);
+    persistCurrentRoute(currentRoute());
+
+    window.addEventListener("pagehide", markPageHide);
     window.addEventListener("beforeunload", markBeforeUnload);
     document.addEventListener("visibilitychange", markVisibility);
+    document.addEventListener("freeze", markFreeze);
+    document.addEventListener("resume", markResume);
     return () => {
-      window.removeEventListener("pagehide", markReload);
+      window.clearInterval(interval);
+      window.removeEventListener("pagehide", markPageHide);
       window.removeEventListener("beforeunload", markBeforeUnload);
       document.removeEventListener("visibilitychange", markVisibility);
+      document.removeEventListener("freeze", markFreeze);
+      document.removeEventListener("resume", markResume);
     };
   }, []);
 

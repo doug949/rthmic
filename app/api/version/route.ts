@@ -8,8 +8,14 @@ export async function GET() {
     process.env.NEXT_PUBLIC_RTHMIC_BUILD ??
     "dev";
 
+  const deployment =
+    process.env.VERCEL_DEPLOYMENT_ID ??
+    process.env.NETLIFY_DEPLOY_ID ??
+    process.env.NEXT_PUBLIC_RTHMIC_DEPLOYMENT ??
+    build;
+
   return NextResponse.json(
-    { build },
+    { build, deployment },
     {
       headers: {
         "Cache-Control": "no-store, no-cache, must-revalidate",

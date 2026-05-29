@@ -8,6 +8,7 @@ import { AmbientBackground } from "@/app/components/AmbientBackground";
 import { PageTransitionLayer } from "@/app/components/PageTransitionLayer";
 import { PillarThemeProvider } from "@/app/contexts/PillarThemeContext";
 import RoutePersistence from "@/app/components/RoutePersistence";
+import { RuntimeDiagnosticsBoundary, RuntimeDiagnosticsListeners } from "@/app/components/RuntimeDiagnostics";
 
 // Fonts are defined with system fallbacks in globals.css so cloud builds do not depend on fetching Google Fonts.
 export const metadata: Metadata = {
@@ -49,14 +50,17 @@ export default function RootLayout({
         <PillarThemeProvider>
           <AmbientBackground />
           <PageTransitionLayer />
+          <RuntimeDiagnosticsListeners />
           <RoutePersistence />
           <ServiceWorkerRegistration />
-          <GenerationProvider>
-            <AudioProvider>
-              {children}
-              <AppChrome />
-            </AudioProvider>
-          </GenerationProvider>
+          <RuntimeDiagnosticsBoundary>
+            <GenerationProvider>
+              <AudioProvider>
+                {children}
+                <AppChrome />
+              </AudioProvider>
+            </GenerationProvider>
+          </RuntimeDiagnosticsBoundary>
         </PillarThemeProvider>
       </body>
     </html>

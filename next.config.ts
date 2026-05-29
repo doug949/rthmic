@@ -6,6 +6,12 @@ const nextConfig: NextConfig = {
       process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ??
       process.env.NEXT_PUBLIC_RTHMIC_BUILD ??
       "dev",
+    NEXT_PUBLIC_RTHMIC_DEPLOYMENT:
+      process.env.VERCEL_DEPLOYMENT_ID ??
+      process.env.NETLIFY_DEPLOY_ID ??
+      process.env.NEXT_PUBLIC_RTHMIC_DEPLOYMENT ??
+      process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ??
+      "dev",
   },
   // Allow audio from Wasabi S3
   async headers() {
