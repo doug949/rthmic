@@ -4,12 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TransitionLink } from "@/app/components/TransitionLink";
 import { AUDIO_CACHE, keepAllOfflineEnabled, setKeepAllOffline } from "@/app/lib/offlineAudio";
+import { HOME_INTRO_ENABLED, HOME_INTRO_SEEN_KEY } from "@/app/lib/introConfig";
 
 const SCREEN_FADE_MS = 1800;
 const TILE_ENTER_MS = 1600;
 const TILE_ROW_DELAY_MS = 260;
 const HOME_TILE_ORDER_KEY = "rthmic_home_tile_order_v2";
-const INTRO_SEEN_KEY = "rthmic_intro_v4";
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -71,7 +71,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (sessionStorage.getItem(INTRO_SEEN_KEY)) {
+    if (!HOME_INTRO_ENABLED || sessionStorage.getItem(HOME_INTRO_SEEN_KEY)) {
       setIntroComplete(true);
       return;
     }

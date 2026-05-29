@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { HOME_INTRO_ENABLED, HOME_INTRO_SEEN_KEY } from "@/app/lib/introConfig";
 
-const SEEN_KEY  = "rthmic_intro_v4";
 const FADE      = 700;   // ms — consistent in/out, no duration-switch glitch
 const QUOTE_CONTAINER_FADE = 1800;
 const HOLD_Q    = 3000;  // ms quote hold
@@ -38,7 +38,7 @@ function sleep(ms: number): Promise<void> {
 }
 
 export default function IntroSequence() {
-  const [gone,             setGone]             = useState(false);
+  const [gone,             setGone]             = useState(!HOME_INTRO_ENABLED);
   const [overlayOpacity,   setOverlayOpacity]   = useState(1);
   const [contentOpacity,   setContentOpacity]   = useState(0);
   const [showLogo,         setShowLogo]         = useState(false);
@@ -48,7 +48,7 @@ export default function IntroSequence() {
   const [quoteStage, setQuoteStage] = useState(0);
 
   const skip = () => {
-    sessionStorage.setItem(SEEN_KEY, "1");
+    sessionStorage.setItem(HOME_INTRO_SEEN_KEY, "1");
     setContentOpacity(0);
     setOverlayOpacity(0);
     setTimeout(() => {
@@ -58,7 +58,13 @@ export default function IntroSequence() {
   };
 
   useEffect(() => {
-    if (sessionStorage.getItem(SEEN_KEY)) {
+    if (!HOME_INTRO_ENABLED) {
+      window.dispatchEvent(new Event("rthmic:intro-complete"));
+      setGone(true);
+      return;
+    }
+
+    if (sessionStorage.getItem(HOME_INTRO_SEEN_KEY)) {
       setGone(true);
       return;
     }
@@ -97,7 +103,7 @@ export default function IntroSequence() {
 
       // ── Fade overlay out → reveal main menu ───────────────────
       if (cancelled) return;
-      sessionStorage.setItem(SEEN_KEY, "1");
+      sessionStorage.setItem(HOME_INTRO_SEEN_KEY, "1");
       setOverlayOpacity(0);
       await sleep(FADE + 50);
       if (cancelled) return;

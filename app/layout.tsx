@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Raleway, DM_Sans } from "next/font/google";
 import "./globals.css";
 import ServiceWorkerRegistration from "@/app/components/ServiceWorkerRegistration";
 import { AudioProvider } from "@/app/contexts/AudioContext";
@@ -10,20 +9,7 @@ import { PageTransitionLayer } from "@/app/components/PageTransitionLayer";
 import { PillarThemeProvider } from "@/app/contexts/PillarThemeContext";
 import RoutePersistence from "@/app/components/RoutePersistence";
 
-// Display font — wordmark, headings. Geometric, elegant, premium sans.
-const raleway = Raleway({
-  variable: "--font-display",
-  subsets: ["latin"],
-  weight: ["200", "300", "400", "500", "600"],
-});
-
-// UI font — labels, buttons, body copy. Clean and precise.
-const dmSans = DM_Sans({
-  variable: "--font-dm-sans",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600"],
-});
-
+// Fonts are defined with system fallbacks in globals.css so cloud builds do not depend on fetching Google Fonts.
 export const metadata: Metadata = {
   title: "RTHMIC",
   description: "Stream RTHM audio tracks",
@@ -55,7 +41,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${raleway.variable} ${dmSans.variable} h-full antialiased`}>
+    <html lang="en" className="h-full antialiased">
       <head>
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
       </head>
