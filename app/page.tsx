@@ -255,10 +255,22 @@ export default function Home() {
         <p className="text-xs mt-1.5 tracking-widest uppercase" style={{ color: "#c9a55a", opacity: 0.6 }}>
           music to live by
         </p>
-        {(userName || userCode) && (
+        {userCode ? (
           <p className="text-xs mt-2 font-light" style={{ color: "rgba(255,255,255,0.85)", letterSpacing: "0.02em" }}>
             {greeting()}{userName ? `, ${userName}` : ""}
           </p>
+        ) : (
+          <div className="mt-4 mr-12 flex flex-col items-start gap-2 sm:flex-row sm:items-center">
+            <p className="text-xs leading-relaxed text-white/45">
+              New here? Request access to start making your own Rthms.
+            </p>
+            <TransitionLink
+              href="/login"
+              className="inline-flex min-h-10 items-center justify-center rounded-full border border-[#c9a55a]/45 bg-[#c9a55a]/10 px-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#c9a55a] active:scale-[0.98] transition-all touch-manipulation"
+            >
+              Request access
+            </TransitionLink>
+          </div>
         )}
 
         {/* Hamburger — top right of header */}
