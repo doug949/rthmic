@@ -1114,7 +1114,7 @@ const CF_IDS: Record<string, string> = {
   booksummary: "2e1d19d0dc33f42e7031bf59e9d1f586",
 };
 
-const ALL_PILLAR_SLUGS = [...FOR_YOU_PILLARS.map((p) => p.slug), "auto"];
+const ALL_PILLAR_SLUGS = FOR_YOU_PILLARS.map((p) => p.slug);
 
 const PILLAR_IMAGES: Record<string, string> = Object.fromEntries(
   ALL_PILLAR_SLUGS.map((s) => [s, cfThumb(CF_IDS[s] ?? CF_IDS.default)])
@@ -1131,7 +1131,6 @@ const PILLAR_GRID = [
     image: PILLAR_IMAGES[p.slug] ?? null,
     video: PILLAR_VIDEOS[p.slug] ?? null,
   })),
-  { slug: "auto", label: "Surprise me", icon: null, image: PILLAR_IMAGES["auto"] ?? null, video: PILLAR_VIDEOS["auto"] ?? null },
 ];
 
 // ─── The Vault — coming-soon reflective pillars ───────────────────────────────
