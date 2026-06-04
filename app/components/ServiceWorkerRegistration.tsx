@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { AUDIO_CACHE } from "@/app/lib/offlineAudio";
 import { LAST_ROUTE_KEY, RELOAD_REASON_KEY, SW_VERSION_KEY, currentClientRoute, recordDiagnosticEvent, safeSetLocalItem, safeSetSessionItem } from "@/app/lib/clientDiagnostics";
 
+const VERSION_CHECK_INTERVAL_MS = 30_000;
+
 async function purgeAppCaches() {
   if (!("caches" in window)) return;
   const keys = await caches.keys();
@@ -45,7 +47,8 @@ export default function ServiceWorkerRegistration() {
     };
 
     checkAppVersion();
-    const timer = window.setTimeout(checkAppVersion, 3500);
+    const quickCheckTimer = window.setTimeout(checkAppVersion, 3500);
+    const interval = window.setInterval(checkAppVersion, VERSION_CHECK_INTERVAL_MS);
     const onVisible = () => {
       if (document.visibilityState === "visible") checkAppVersion();
     };
@@ -54,7 +57,8 @@ export default function ServiceWorkerRegistration() {
     window.addEventListener("online", checkAppVersion);
 
     return () => {
-      window.clearTimeout(timer);
+      window.clearTimeout(quickCheckTimer);
+      window.clearInterval(interval);
       window.removeEventListener("focus", checkAppVersion);
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("online", checkAppVersion);
