@@ -32,6 +32,10 @@ function isRestorableRoute(route: string | null | undefined): route is string {
   return !!route && route.startsWith("/") && !route.startsWith("//");
 }
 
+function isAutoRestoreRoute(route: string): boolean {
+  return route === "/speak" || route.startsWith("/speak?");
+}
+
 function bestRouteToRestore(routeAfterReload: string): string | null {
   const persisted = readPersistedRouteState()?.route;
   const sessionRoute = safeGetSessionItem(LAST_ROUTE_KEY) ?? safeGetSessionItem(CURRENT_ROUTE_KEY);
@@ -57,7 +61,9 @@ export default function RoutePersistence() {
     const shouldRestore = !!(
       wasReload &&
       reason !== "user-clicked-update" &&
+      !navigationIntent &&
       previousRoute &&
+      isAutoRestoreRoute(previousRoute) &&
       restoreAttemptId &&
       previousAttempt !== restoreAttemptId
     );
