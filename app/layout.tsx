@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import ServiceWorkerRegistration from "@/app/components/ServiceWorkerRegistration";
+import RouteTileBackground from "@/app/components/RouteTileBackground";
 import { AudioProvider } from "@/app/contexts/AudioContext";
 import { GenerationProvider } from "@/app/contexts/GenerationContext";
 import AppChrome from "@/app/components/AppChrome";
@@ -49,6 +50,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-[#0a0a0a]">
         <PillarThemeProvider>
           <AmbientBackground />
+          <RouteTileBackground />
           <PageTransitionLayer />
           <RuntimeDiagnosticsListeners />
           <RoutePersistence />

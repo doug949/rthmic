@@ -1123,8 +1123,6 @@ const PILLAR_VIDEOS: Record<string, string> = Object.fromEntries(
   ALL_PILLAR_SLUGS.map((s) => [s, cfHls(CF_IDS[s] ?? CF_IDS.default)])
 );
 
-const CREATE_TILE_IMAGE = "/images/tiles/optimized/create.webp";
-
 function ArtworkBackdrop({ image, objectPosition = "50% 34%" }: { image: string; objectPosition?: string }) {
   return (
     <div className="absolute inset-0 -mx-5 -my-4 pointer-events-none overflow-hidden" aria-hidden="true">
@@ -1347,9 +1345,7 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
   const modalPillar = openInfo ? allPillars.find((p) => p.slug === openInfo) ?? null : null;
 
   return (
-    <section className="relative flex-1 flex flex-col pb-6 overflow-hidden">
-      <ArtworkBackdrop image={CREATE_TILE_IMAGE} objectPosition="50% 48%" />
-      <div className="relative z-10 flex-1 overflow-y-auto">
+    <section className="flex-1 flex flex-col pb-6 overflow-y-auto">
       <RevealBlock delay={0}>
         <div className="flex flex-col gap-1.5 pt-2 pb-5">
           <p className="text-xl font-light text-white/70 leading-snug" style={{ fontFamily: "var(--font-display)" }}>
@@ -1549,7 +1545,6 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
           </div>
         </RevealBlock>
 
-      </div>
       </div>
 
       {/* ── Pillar info modal ─────────────────────────────────────────────────── */}
