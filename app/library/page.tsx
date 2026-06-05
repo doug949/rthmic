@@ -20,7 +20,8 @@ interface QueueJob {
   jobId: string;
   title: string;
   pillar: string;
-  status: "pending" | "generating";
+  status: "pending" | "generating" | "failed";
+  failureReason?: string;
 }
 
 export default function CatalogPage() {
@@ -127,13 +128,15 @@ const [clearingQueue, setClearingQueue]     = useState(false);
                 style={{ background: "rgba(109,40,217,0.05)", borderColor: "rgba(109,40,217,0.28)" }}
               >
                 <div className="flex-shrink-0 relative flex h-2.5 w-2.5">
-                  <span className="absolute inline-flex h-full w-full rounded-full animate-ping opacity-60" style={{ background: job.status === "generating" ? "rgba(109,40,217,0.8)" : "rgba(255,255,255,0.3)" }} />
-                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full" style={{ background: job.status === "generating" ? "rgb(109,40,217)" : "rgba(255,255,255,0.25)" }} />
+                  {job.status !== "failed" && (
+                    <span className="absolute inline-flex h-full w-full rounded-full animate-ping opacity-60" style={{ background: job.status === "generating" ? "rgba(109,40,217,0.8)" : "rgba(255,255,255,0.3)" }} />
+                  )}
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full" style={{ background: job.status === "failed" ? "rgba(248,113,113,0.72)" : job.status === "generating" ? "rgb(109,40,217)" : "rgba(255,255,255,0.25)" }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm truncate" style={{ color: job.status === "generating" ? "rgb(167,139,250)" : "rgba(255,255,255,0.6)" }}>{job.title}</p>
-                  <p className="text-[10px] uppercase tracking-wider mt-0.5" style={{ color: job.status === "generating" ? "rgb(139,92,246)" : "rgba(255,255,255,0.25)" }}>
-                    {job.status === "generating" ? "Generating…" : "Queued"} · {job.pillar}
+                  <p className="text-sm truncate" style={{ color: job.status === "failed" ? "rgba(248,113,113,0.78)" : job.status === "generating" ? "rgb(167,139,250)" : "rgba(255,255,255,0.6)" }}>{job.title}</p>
+                  <p className="text-[10px] uppercase tracking-wider mt-0.5" style={{ color: job.status === "failed" ? "rgba(248,113,113,0.58)" : job.status === "generating" ? "rgb(139,92,246)" : "rgba(255,255,255,0.25)" }}>
+                    {job.status === "failed" ? `Failed${job.failureReason ? ` · ${job.failureReason}` : ""}` : job.status === "generating" ? "Generating…" : "Queued"} · {job.pillar}
                   </p>
                 </div>
               </div>

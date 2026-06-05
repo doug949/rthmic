@@ -171,6 +171,14 @@ export async function POST(req: NextRequest) {
       });
       console.log(`[webhook] saved ${saved}/${rhythms.length} rhythm(s) for user ${job.userId}${job.menuSlug ? ` menu ${job.menuSlug}` : ""}`);
 
+      if (saved <= 0) {
+        job.status = "failed";
+        job.failureReason = "Generated but could not save to library";
+        await updateJob(client, job);
+        console.warn(`[webhook] job ${jobId} generated but saved zero rhythms`);
+        return;
+      }
+
       // Mark job done and clean up
       job.status = "done";
       job.updatedAt = Date.now();

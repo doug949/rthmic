@@ -8,6 +8,7 @@ export interface QueueJob {
   jobId: string;
   userId: string;
   status: "pending" | "generating" | "done" | "failed";
+  failureReason?: string;
   pillar: PillarType;
   title: string;
   style: StyleChoice;

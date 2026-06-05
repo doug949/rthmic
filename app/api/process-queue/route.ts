@@ -15,7 +15,6 @@ import type { QueueJob } from "@/app/lib/queueLib";
 import type { Song } from "@/app/types/pipeline";
 import { saveCompletedSongs } from "@/app/lib/generationCompletion";
 import { extractSunoTaskId } from "@/app/lib/sunoResponse";
-import { buildSunoStyle } from "@/app/lib/sunoStyle";
 
 export const maxDuration = 60;
 
@@ -36,6 +35,7 @@ async function pollJob(
   if (Date.now() - job.updatedAt > MAX_AGE_MS) {
     console.error(`[queue] Job ${job.jobId} timed out after ${Math.round((Date.now() - job.updatedAt) / 60000)} min`);
     job.status = "failed";
+    job.failureReason = "Timed out while waiting for Suno";
     await updateJob(client, job);
     return "failed";
   }
@@ -61,6 +61,7 @@ async function pollJob(
 
   if (pollData.status === "failed") {
     job.status = "failed";
+    job.failureReason = "Suno generation failed";
     await updateJob(client, job);
     return "failed";
   }
@@ -86,6 +87,13 @@ async function pollJob(
   });
   console.log(`[queue] saved ${saved}/${rhythms.length} rhythm(s) for user ${job.userId}${job.menuSlug ? ` menu ${job.menuSlug}` : ""}`);
 
+  if (saved <= 0) {
+    job.status = "failed";
+    job.failureReason = "Generated but could not save to library";
+    await updateJob(client, job);
+    return "failed";
+  }
+
   job.status = "done";
   await updateJob(client, job);
   return "saved";
@@ -108,7 +116,7 @@ async function startJob(
       instrumental: false,
       model: "V5",
       prompt: job.lyrics,
-      style: buildSunoStyle(job.genre),
+      style: job.genre,
       title: job.title,
       callBackUrl: `${APP_URL}/api/suno-webhook`,
     }),
@@ -118,6 +126,7 @@ async function startJob(
     const text = await res.text();
     console.error(`[queue] Suno start failed for ${job.jobId}: ${res.status} ${text}`);
     job.status = "failed";
+    job.failureReason = `Suno start failed (${res.status})`;
     await updateJob(client, job);
     return;
   }
@@ -128,6 +137,7 @@ async function startJob(
   if (!taskId) {
     console.error(`[queue] No taskId for ${job.jobId}: ${JSON.stringify(json).slice(0, 300)}`);
     job.status = "failed";
+    job.failureReason = "Suno returned no task ID";
     await updateJob(client, job);
     return;
   }
@@ -159,7 +169,7 @@ async function processUserQueue(
   for (const job of jobs.filter((j) => j.status === "generating")) {
     const result = await pollJob(client, job);
     if (result === "saved") { completed++; await removeJobFromUserList(client, userId, job.jobId); }
-    if (result === "failed") { failed++; await removeJobFromUserList(client, userId, job.jobId); }
+    if (result === "failed") failed++;
   }
 
   // 2. Count still-generating, start pending up to cap
@@ -186,7 +196,6 @@ async function processUserQueue(
   }
   if (!anyActive) {
     await client.sRem(USERS_KEY, userId);
-    await client.del(userQueueKey(userId));
   }
 
   return { started, completed, failed };

@@ -18,12 +18,13 @@ export async function GET(req: NextRequest) {
     const active = [];
     for (const jobId of jobIds) {
       const job = await getJob(client, jobId);
-      if (job && (job.status === "pending" || job.status === "generating")) {
+      if (job && (job.status === "pending" || job.status === "generating" || job.status === "failed")) {
         active.push({
           jobId: job.jobId,
           title: job.title,
           pillar: job.pillar,
           status: job.status,
+          failureReason: job.failureReason,
           createdAt: job.createdAt,
         });
       }
