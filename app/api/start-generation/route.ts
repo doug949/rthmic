@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { StyleChoice } from "@/app/services/llmService";
 import { toSunoPronunciation } from "@/app/lib/sunoLyrics";
-import { extractSunoTaskId } from "@/app/lib/sunoResponse";
+import { extractSunoTaskId, sunoStartError } from "@/app/lib/sunoResponse";
 import { buildSunoStyle } from "@/app/lib/sunoStyle";
 
 const BASE_URL = "https://api.sunoapi.org/api/v1";
@@ -82,6 +82,9 @@ export async function POST(req: NextRequest) {
 
     const json = await res.json();
     console.log("Suno start response:", JSON.stringify(json));
+
+    const apiError = sunoStartError(json);
+    if (apiError) throw new Error(apiError);
 
     const taskId = extractSunoTaskId(json);
 

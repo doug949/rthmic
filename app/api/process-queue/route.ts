@@ -14,7 +14,7 @@ import {
 import type { QueueJob } from "@/app/lib/queueLib";
 import type { Song } from "@/app/types/pipeline";
 import { saveCompletedSongs } from "@/app/lib/generationCompletion";
-import { extractSunoTaskId } from "@/app/lib/sunoResponse";
+import { extractSunoTaskId, sunoStartError } from "@/app/lib/sunoResponse";
 
 export const maxDuration = 60;
 
@@ -132,6 +132,15 @@ async function startJob(
   }
 
   const json = await res.json();
+  const apiError = sunoStartError(json);
+  if (apiError) {
+    console.error(`[queue] Suno start rejected for ${job.jobId}: ${apiError} ${JSON.stringify(json).slice(0, 300)}`);
+    job.status = "failed";
+    job.failureReason = apiError;
+    await updateJob(client, job);
+    return;
+  }
+
   const taskId = extractSunoTaskId(json);
 
   if (!taskId) {

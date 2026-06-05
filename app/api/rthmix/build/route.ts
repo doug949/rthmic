@@ -5,7 +5,7 @@ import { REDIS_AVAILABLE, withRedis, type RedisClient } from "@/app/lib/redis";
 import { withRedisQueue, getUserJobIds, getJob, pushJob, updateJob, indexTaskId } from "@/app/lib/queueLib";
 import type { QueueJob } from "@/app/lib/queueLib";
 import { toSunoPronunciation } from "@/app/lib/sunoLyrics";
-import { extractSunoTaskId } from "@/app/lib/sunoResponse";
+import { extractSunoTaskId, sunoStartError } from "@/app/lib/sunoResponse";
 import { buildSunoStyle } from "@/app/lib/sunoStyle";
 import type { PillarType } from "@/app/types/pipeline";
 import type { StyleChoice } from "@/app/services/llmService";
@@ -166,7 +166,7 @@ async function startSunoJob(job: QueueJob): Promise<string | null> {
         instrumental: false,
         model: "V5",
         prompt: job.lyrics,
-        style: buildSunoStyle(job.genre),
+        style: job.genre,
         title: job.title,
         callBackUrl: `${APP_URL}/api/suno-webhook`,
       }),
@@ -176,6 +176,11 @@ async function startSunoJob(job: QueueJob): Promise<string | null> {
       return null;
     }
     const json = await res.json();
+    const apiError = sunoStartError(json);
+    if (apiError) {
+      console.error(`[rthmix] Suno start rejected: ${apiError} ${JSON.stringify(json).slice(0, 300)}`);
+      return null;
+    }
     return extractSunoTaskId(json);
   } catch (error) {
     console.error("[rthmix] Suno start error:", error);

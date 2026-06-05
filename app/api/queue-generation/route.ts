@@ -9,7 +9,7 @@ import type { QueueJob } from "@/app/lib/queueLib";
 import { requireUserId } from "@/app/lib/auth";
 import { REDIS_AVAILABLE, withRedis, type RedisClient } from "@/app/lib/redis";
 import { toSunoPronunciation } from "@/app/lib/sunoLyrics";
-import { extractSunoTaskId } from "@/app/lib/sunoResponse";
+import { extractSunoTaskId, sunoStartError } from "@/app/lib/sunoResponse";
 import { buildSunoStyle } from "@/app/lib/sunoStyle";
 import type { StyleChoice } from "@/app/services/llmService";
 import type { PillarType } from "@/app/types/pipeline";
@@ -43,7 +43,7 @@ async function countGenerating(client: RedisClient, userId: string): Promise<num
   return count;
 }
 
-async function startSunoJob(job: QueueJob): Promise<string | null> {
+async function startSunoJob(job: QueueJob): Promise<{ taskId: string | null; error?: string }> {
   try {
     const res = await fetch(`${SUNO_BASE}/generate`, {
       method: "POST",
@@ -64,17 +64,23 @@ async function startSunoJob(job: QueueJob): Promise<string | null> {
     if (!res.ok) {
       const text = await res.text();
       console.error(`[queue] Suno start failed: ${res.status} ${text}`);
-      return null;
+      return { taskId: null, error: `Suno start failed (${res.status})` };
     }
     const json = await res.json();
+    const apiError = sunoStartError(json);
+    if (apiError) {
+      console.error(`[queue] Suno start rejected for ${job.jobId}: ${apiError} ${JSON.stringify(json).slice(0, 400)}`);
+      return { taskId: null, error: apiError };
+    }
     const taskId = extractSunoTaskId(json);
     if (!taskId) {
       console.error(`[queue] Suno start returned no taskId for ${job.jobId}: ${JSON.stringify(json).slice(0, 400)}`);
+      return { taskId: null, error: "Suno returned no task ID" };
     }
-    return taskId;
+    return { taskId };
   } catch (err) {
     console.error("[queue] Suno start error:", err);
-    return null;
+    return { taskId: null, error: err instanceof Error ? err.message : "Suno start error" };
   }
 }
 
@@ -148,7 +154,7 @@ export async function POST(req: NextRequest) {
       return;
     }
 
-    const taskId = await startSunoJob(job);
+    const { taskId, error } = await startSunoJob(job);
     if (taskId) {
       job.sunoTaskId = taskId;
       job.status = "generating";
@@ -157,6 +163,8 @@ export async function POST(req: NextRequest) {
       await indexTaskId(client, taskId, jobId); // webhook reverse-lookup
       console.log(`[queue] job ${jobId} started immediately → Suno task ${taskId}`);
     } else {
+      if (error) job.failureReason = error;
+      await updateJob(client, job);
       console.warn(`[queue] immediate start failed for ${jobId}, cron will retry`);
     }
   });

@@ -5,7 +5,7 @@
 import { tracks } from "@/app/data/tracks";
 import type { Song, PillarType } from "@/app/types/pipeline";
 import { toSunoPronunciation } from "@/app/lib/sunoLyrics";
-import { extractSunoTaskId } from "@/app/lib/sunoResponse";
+import { extractSunoTaskId, sunoStartError } from "@/app/lib/sunoResponse";
 import { buildSunoStyle } from "@/app/lib/sunoStyle";
 
 const USE_MOCK = !process.env.SUNO_API_KEY;
@@ -117,6 +117,9 @@ export async function generateSongs(lyrics: string, pillar: PillarType): Promise
 
   const json = await res.json();
   console.log("Suno generate response:", JSON.stringify(json));
+
+  const apiError = sunoStartError(json);
+  if (apiError) throw new Error(apiError);
 
   const taskId = extractSunoTaskId(json);
 
