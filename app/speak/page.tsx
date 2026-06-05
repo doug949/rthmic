@@ -19,7 +19,7 @@ import { MicIcon as HeaderMicIcon } from "@/app/components/HomeTileIcons";
 
 type Phase = "module" | "priming" | "idle" | "recording" | "understanding" | "confirming" | "genre" | "queued";
 
-const SKIP_CONFIRMATION_PILLARS = new Set(["booksummary", "explain", "menus"]);
+const SKIP_CONFIRMATION_PILLARS = new Set(["explain", "menus"]);
 
 function shouldSkipConfirmation(pillar?: string | null) {
   return SKIP_CONFIRMATION_PILLARS.has((pillar ?? "").toLowerCase());
