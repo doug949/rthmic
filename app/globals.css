@@ -95,6 +95,31 @@ html, body {
   100% { transform: translate(10%, -10%) scale(0.88); }
 }
 
+/* ─── Site-wide animated gradient mesh blobs ─────────────────────────────── */
+@keyframes mesh-blob-1 {
+  0%   { transform: translate(0%, 0%) scale(1);     }
+  33%  { transform: translate(8%, 14%) scale(1.15); }
+  66%  { transform: translate(-5%, 8%) scale(0.92); }
+  100% { transform: translate(0%, 0%) scale(1);     }
+}
+@keyframes mesh-blob-2 {
+  0%   { transform: translate(0%, 0%) scale(1);      }
+  40%  { transform: translate(-12%, -8%) scale(1.2); }
+  70%  { transform: translate(6%, -14%) scale(0.88); }
+  100% { transform: translate(0%, 0%) scale(1);      }
+}
+@keyframes mesh-blob-3 {
+  0%   { transform: translate(0%, 0%) scale(1);      }
+  30%  { transform: translate(14%, -10%) scale(1.1); }
+  60%  { transform: translate(-8%, 12%) scale(0.95); }
+  100% { transform: translate(0%, 0%) scale(1);      }
+}
+@keyframes mesh-blob-4 {
+  0%   { transform: translate(0%, 0%) scale(1);       }
+  50%  { transform: translate(-10%, 16%) scale(1.18); }
+  100% { transform: translate(0%, 0%) scale(1);       }
+}
+
 /* ─── Safe area padding for iPhone notch / home bar ──────────────────────── */
 .pt-safe {
   padding-top: env(safe-area-inset-top);
