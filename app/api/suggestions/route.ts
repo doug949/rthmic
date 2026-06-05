@@ -305,6 +305,87 @@ const BOOK_STARTERS = [
   "The Diving Bell and the Butterfly",
 ];
 
+const EXPLAIN_STARTERS = [
+  "Emergence",
+  "Feedback loops",
+  "Path dependence",
+  "Network effects",
+  "The Lindy effect",
+  "Goodhart's law",
+  "The map is not the territory",
+  "Second-order thinking",
+  "Bayesian reasoning",
+  "Opportunity cost",
+  "Regression to the mean",
+  "The availability heuristic",
+  "Confirmation bias",
+  "The Dunning-Kruger effect",
+  "Loss aversion",
+  "Incentive gradients",
+  "Game theory",
+  "The prisoner's dilemma",
+  "Coordination problems",
+  "Tragedy of the commons",
+  "Moral luck",
+  "Chesterton's fence",
+  "Hanlon's razor",
+  "Systems thinking",
+  "Leverage points",
+  "Compounding",
+  "Entropy",
+  "The adjacent possible",
+  "Mimetic desire",
+  "The Overton window",
+  "The Streisand effect",
+  "Survivorship bias",
+  "Cobra effects",
+  "Principal-agent problems",
+  "The hedonic treadmill",
+  "Cognitive load",
+  "Working memory",
+  "Attention residue",
+  "Flow states",
+  "Neuroplasticity",
+  "Epigenetics",
+  "The microbiome",
+  "Circadian rhythms",
+  "Plate tectonics",
+  "Natural selection",
+  "Convergent evolution",
+  "Quantum superposition",
+  "Relativity",
+  "Black holes",
+  "Dark matter",
+  "The Fermi paradox",
+  "Cryptography",
+  "Public key encryption",
+  "Zero-knowledge proofs",
+  "Machine learning",
+  "Neural networks",
+  "The alignment problem",
+  "Blockchain consensus",
+  "Supply chains",
+  "Inflation",
+  "Bubbles and crashes",
+  "Comparative advantage",
+  "Externalities",
+  "Market failures",
+  "Civil disobedience",
+  "Cultural capital",
+  "Social proof",
+  "The uncanny valley",
+  "Semiotics",
+  "The hero's journey",
+  "Narrative identity",
+  "Liminal space",
+  "Negative capability",
+  "Occam's razor",
+  "First principles thinking",
+  "The Pareto principle",
+  "Cognitive dissonance",
+  "Compound interest",
+];
+
 function normalizeSuggestion(value: string) {
   return value.trim().toLowerCase().replace(/\s+/g, " ");
 }
@@ -368,12 +449,12 @@ ${pastList}
 ${dismissedInstruction}
 ${shuffleInstruction}
 
-Suggest ${count} books that would make great Rthms next. Be guided by their taste, but do not repeat any book they have already done, dismissed, or currently see. Vary widely across history, science, biography, memoir, philosophy, culture, politics, nature writing, creativity, economics, literary criticism, graphic memoir, reportage, travel, food, design, technology, medicine, and big-idea fiction. Avoid letting self-help dominate.
+Suggest ${count} books that would make great Rthms next. Be guided by their taste, but do not repeat any book they have already done, dismissed, or recently saw. Vary widely across history, science, biography, memoir, philosophy, culture, politics, nature writing, creativity, economics, literary criticism, graphic memoir, reportage, travel, food, design, technology, medicine, and big-idea fiction. Avoid letting self-help dominate. Make this batch feel fresh, not like a default list.
 
 Return ONLY a valid JSON array of ${count} book titles. No explanation, no markdown, no extra text.`
       : `You are suggesting books for someone who turns book summaries into personalised music Rthms.${dismissedInstruction}
 ${shuffleInstruction}
-Suggest ${count} books that would make great personalised music Rthms. Include a varied mix across history, science, biography, memoir, philosophy, culture, politics, nature writing, creativity, economics, literary criticism, graphic memoir, reportage, travel, food, design, technology, medicine, and big-idea fiction. Popular and accessible, not too obscure. Avoid letting self-help dominate.
+Suggest ${count} books that would make great personalised music Rthms. Include a varied mix across history, science, biography, memoir, philosophy, culture, politics, nature writing, creativity, economics, literary criticism, graphic memoir, reportage, travel, food, design, technology, medicine, and big-idea fiction. Popular and accessible, not too obscure. Avoid letting self-help dominate. Make this batch feel fresh, not like a default list.
 
 Return ONLY a valid JSON array of ${count} book titles. No explanation, no markdown, no extra text.`;
   }
@@ -386,10 +467,10 @@ ${pastList}
 ${dismissedInstruction}
 ${shuffleInstruction}
 
-Suggest ${count} fascinating concepts to explain next. Be guided by their intellectual interests — adjacent ideas, related fields — but do not repeat anything they have already covered. Keep concepts crisp and nameable (2–5 words max each).
+Suggest ${count} fascinating concepts to explain next. Be guided by their intellectual interests — adjacent ideas, related fields — but do not repeat anything they have already covered or recently saw. Keep concepts crisp and nameable (2–5 words max each). Make this batch feel fresh, not like a default list.
 
 Return ONLY a valid JSON array of ${count} concept names. No explanation, no markdown, no extra text.`
-      : `Suggest ${count} fascinating concepts that would make great personalised music Rthms. Mix mental models, science, psychology, economics, and philosophy. Keep each concept crisp and nameable (2–5 words max).
+      : `Suggest ${count} fascinating concepts that would make great personalised music Rthms. Mix mental models, science, psychology, economics, technology, history, art, language, and philosophy. Keep each concept crisp and nameable (2–5 words max). Make this batch feel fresh, not like a default list.
 ${dismissedInstruction}
 ${shuffleInstruction}
 
@@ -467,6 +548,7 @@ export async function GET(req: NextRequest) {
     const msg = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: pillar === "booksummary" ? 512 : 320,
+      temperature: 1,
       messages: [{ role: "user", content: prompt }],
     });
 
@@ -488,7 +570,7 @@ export async function GET(req: NextRequest) {
   if (suggestions.length < count) {
     const fallback: Record<string, string[]> = {
       booksummary: BOOK_STARTERS,
-      explain: ["Compound interest", "Cognitive dissonance", "First principles thinking", "The Pareto principle", "Neuroplasticity", "Occam's razor"],
+      explain: EXPLAIN_STARTERS,
       mindset: CHALLENGE_STARTERS.mindset.slice(0, 6),
       menus: ["Morning menu", "Airport packing menu", "End of workday", "Before bed", "Leaving the house", "Room reset"],
       memory: CHALLENGE_STARTERS.memory.slice(0, 6),

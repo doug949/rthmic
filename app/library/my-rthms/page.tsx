@@ -129,6 +129,16 @@ export default function MyRthmsPage() {
     } catch { /* ignore */ }
   }, []);
 
+  async function dismissFailedJob(jobId: string) {
+    setQueueJobs((jobs) => jobs.filter((job) => job.jobId !== jobId));
+    try {
+      const res = await fetch(`/api/queue-jobs?jobId=${encodeURIComponent(jobId)}`, { method: "DELETE" });
+      if (!res.ok) await fetchQueueJobs();
+    } catch {
+      await fetchQueueJobs();
+    }
+  }
+
   useEffect(() => {
     const p = new URLSearchParams(window.location.search).get("period");
     const c = collectionFromQuery(new URLSearchParams(window.location.search).get("collection"));
@@ -403,6 +413,16 @@ export default function MyRthmsPage() {
                     {job.status === "failed" ? `Failed · ${displayGenerationFailure(job.failureReason)}` : job.status === "generating" ? "Generating…" : "Queued"} · {job.pillar}
                   </p>
                 </div>
+                {job.status === "failed" && (
+                  <button
+                    onClick={() => dismissFailedJob(job.jobId)}
+                    className="h-8 w-8 flex-shrink-0 rounded-full text-lg leading-none touch-manipulation transition-colors active:bg-white/[0.08]"
+                    style={{ color: "rgba(255,255,255,0.34)", border: "1px solid rgba(255,255,255,0.08)" }}
+                    aria-label={`Dismiss failed generation ${job.title}`}
+                  >
+                    ×
+                  </button>
+                )}
               </div>
             ))}
           </div>

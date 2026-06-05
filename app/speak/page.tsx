@@ -55,10 +55,14 @@ function suggestionDismissKey(pillar: string) {
   return `rthmic:dismissed-suggestions:${pillar}`;
 }
 
-function readDismissedSuggestions(pillar: string): string[] {
+function suggestionLastShownKey(pillar: string) {
+  return `rthmic:last-shown-suggestions:${pillar}`;
+}
+
+function readSuggestionList(key: string): string[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = window.localStorage.getItem(suggestionDismissKey(pillar));
+    const raw = window.localStorage.getItem(key);
     const parsed = raw ? JSON.parse(raw) : [];
     return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
   } catch {
@@ -66,9 +70,25 @@ function readDismissedSuggestions(pillar: string): string[] {
   }
 }
 
-function writeDismissedSuggestions(pillar: string, dismissed: string[]) {
+function writeSuggestionList(key: string, items: string[], limit = 100) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(suggestionDismissKey(pillar), JSON.stringify(dismissed.slice(-100)));
+  window.localStorage.setItem(key, JSON.stringify(items.slice(-limit)));
+}
+
+function readDismissedSuggestions(pillar: string): string[] {
+  return readSuggestionList(suggestionDismissKey(pillar));
+}
+
+function writeDismissedSuggestions(pillar: string, dismissed: string[]) {
+  writeSuggestionList(suggestionDismissKey(pillar), dismissed);
+}
+
+function readLastShownSuggestions(pillar: string): string[] {
+  return readSuggestionList(suggestionLastShownKey(pillar));
+}
+
+function writeLastShownSuggestions(pillar: string, shown: string[]) {
+  writeSuggestionList(suggestionLastShownKey(pillar), shown, 50);
 }
 
 function suggestionCountForPillar(pillar: string) {
@@ -80,6 +100,7 @@ async function fetchSuggestions(pillar: string, dismissed: string[] = [], exclud
   params.set("count", String(suggestionCountForPillar(pillar)));
   if (dismissed.length) params.set("dismissed", JSON.stringify(dismissed));
   if (exclude.length) params.set("exclude", JSON.stringify(exclude));
+  params.set("fresh", String(Date.now()));
   const res = await fetch(`/api/suggestions?${params.toString()}`, { cache: "no-store" });
   if (!res.ok) return [];
   const data = await res.json();
@@ -1425,10 +1446,15 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
     if (!hasSuggestions) return;
     let cancelled = false;
     const dismissed = readDismissedSuggestions(pillar!);
+    const lastShown = readLastShownSuggestions(pillar!);
     setDismissedSuggestions(dismissed);
     setSuggestionsLoading(true);
-    fetchSuggestions(pillar!, dismissed).then((s) => {
-      if (!cancelled) { setSuggestions(s); setSuggestionsLoading(false); }
+    fetchSuggestions(pillar!, dismissed, lastShown).then((s) => {
+      if (!cancelled) {
+        setSuggestions(s);
+        writeLastShownSuggestions(pillar!, s);
+        setSuggestionsLoading(false);
+      }
     });
     return () => { cancelled = true; };
   }, [pillar, hasSuggestions]);
@@ -1437,8 +1463,10 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
     setShuffling(true);
     const dismissed = readDismissedSuggestions(pillar!);
     setDismissedSuggestions(dismissed);
-    const s = await fetchSuggestions(pillar!, dismissed, suggestions);
+    const lastShown = readLastShownSuggestions(pillar!);
+    const s = await fetchSuggestions(pillar!, dismissed, [...suggestions, ...lastShown]);
     setSuggestions(s);
+    writeLastShownSuggestions(pillar!, s);
     setShuffling(false);
   }
 
