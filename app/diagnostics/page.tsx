@@ -34,8 +34,18 @@ interface DiagnosticsSnapshot {
   persistedRouteState: unknown;
   memory: Record<string, number | string>;
   storage: Record<string, number | string>;
+  queueJobs: DiagnosticQueueJob[];
   events: DiagnosticEvent[];
   userAgent: string;
+}
+
+interface DiagnosticQueueJob {
+  jobId: string;
+  title: string;
+  pillar: string;
+  status: string;
+  failureReason?: string;
+  createdAt?: number;
 }
 
 async function cacheNames(): Promise<string[]> {
@@ -51,6 +61,17 @@ async function serviceWorkerStatus(): Promise<string> {
   const waiting = registration.waiting ? `waiting:${registration.waiting.state}` : "waiting:none";
   const installing = registration.installing ? `installing:${registration.installing.state}` : "installing:none";
   return [active, waiting, installing].join(" / ");
+}
+
+async function collectQueueJobs(): Promise<DiagnosticQueueJob[]> {
+  try {
+    const res = await fetch(`/api/queue-jobs?t=${Date.now()}`, { cache: "no-store" });
+    if (!res.ok) return [];
+    const data = await res.json() as { jobs?: DiagnosticQueueJob[] };
+    return Array.isArray(data.jobs) ? data.jobs : [];
+  } catch {
+    return [];
+  }
 }
 
 function collectStorage(key: string): string | null {
@@ -94,6 +115,7 @@ async function collectSnapshot(): Promise<DiagnosticsSnapshot> {
     persistedRouteState: readPersistedRouteState(),
     memory: getMemorySnapshot(),
     storage: getStorageSnapshot(),
+    queueJobs: await collectQueueJobs(),
     events: readDiagnosticEvents(),
     userAgent: navigator.userAgent,
   };
@@ -187,6 +209,23 @@ export default function DiagnosticsPage() {
             <Panel title="Memory And Storage">
               <Row label="Memory" value={JSON.stringify(snapshot.memory)} />
               <Row label="Storage" value={JSON.stringify(snapshot.storage)} />
+            </Panel>
+
+            <Panel title={`Queue Jobs (${snapshot.queueJobs.length})`}>
+              {snapshot.queueJobs.length === 0 ? (
+                <p className="text-sm text-white/45">No queued, generating, or failed jobs visible.</p>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {snapshot.queueJobs.map((job) => (
+                    <div key={job.jobId} className="rounded-xl border p-3" style={{ borderColor: "rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.035)" }}>
+                      <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: job.status === "failed" ? "rgba(248,113,113,0.82)" : "rgba(201,165,90,0.82)" }}>{job.status}</p>
+                      <p className="mt-1 text-sm text-white/72">{job.title}</p>
+                      <p className="mt-1 text-xs text-white/45">{job.pillar} · {job.jobId}</p>
+                      {job.failureReason && <p className="mt-2 text-xs text-red-300/70">{job.failureReason}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
             </Panel>
 
             <Panel title={`Recent Events (${snapshot.events.length})`}>
