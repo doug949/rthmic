@@ -1099,6 +1099,8 @@ const FOR_YOU_SUBCATEGORIES = [
 
 // Menus pillar is accessible via /structure — excluded from the speak catalog
 const FOR_YOU_PILLARS = PILLARS.filter((p) => p.slug !== "menus");
+const HIDDEN_CREATE_PILLARS = new Set(["journal", "epiphany"]);
+const CREATE_PILLARS = FOR_YOU_PILLARS.filter((p) => !HIDDEN_CREATE_PILLARS.has(p.slug));
 
 const CF_CUSTOMER = "customer-8nptfx7buiwn0mw3.cloudflarestream.com";
 
@@ -1155,7 +1157,7 @@ function PillarArtworkBackdrop({ pillar }: { pillar?: string | null }) {
 }
 
 const PILLAR_GRID = [
-  ...FOR_YOU_PILLARS.map((p) => ({
+  ...CREATE_PILLARS.map((p) => ({
     slug: p.slug,
     label: p.label,
     icon: p.icon ?? null,
@@ -1355,7 +1357,7 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
       </RevealBlock>
 
       <div className="flex flex-col gap-2">
-        {/* ── Pillar image grid — 3×3 ── */}
+        {/* ── Pillar image grid ── */}
         <RevealBlock delay={0}>
           <div className="grid grid-cols-3 gap-1.5 pb-4">
             {PILLAR_GRID.map((p) => (
