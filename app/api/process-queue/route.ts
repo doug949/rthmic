@@ -14,7 +14,7 @@ import {
 import type { QueueJob } from "@/app/lib/queueLib";
 import type { Song } from "@/app/types/pipeline";
 import { saveCompletedSongs } from "@/app/lib/generationCompletion";
-import { extractSunoTaskId, sunoStartError } from "@/app/lib/sunoResponse";
+import { extractSunoTaskId, isSunoCreditError, sunoStartError } from "@/app/lib/sunoResponse";
 
 export const maxDuration = 60;
 
@@ -126,7 +126,13 @@ async function startJob(
     const text = await res.text();
     console.error(`[queue] Suno start failed for ${job.jobId}: ${res.status} ${text}`);
     job.status = "failed";
-    job.failureReason = `Suno start failed (${res.status})`;
+    try {
+      job.failureReason = sunoStartError(JSON.parse(text)) ?? `Suno start failed (${res.status})`;
+    } catch {
+      job.failureReason = isSunoCreditError(text)
+        ? "Suno credits are empty. Top up the connected Suno account, then try again."
+        : `Suno start failed (${res.status})`;
+    }
     await updateJob(client, job);
     return;
   }

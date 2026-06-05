@@ -11,6 +11,7 @@ import CustomStyleInput from "@/app/components/CustomStyleInput";
 import type { SavedRhythm } from "@/app/types/library";
 import { RhythmRow } from "../_components";
 import { BUILD_UPON_GENRE, buildUponLyrics, buildUponTitle } from "@/app/lib/buildUpon";
+import { displayGenerationFailure } from "@/app/lib/generationErrors";
 import { groupRhythmPairs, sideLabelFor } from "@/app/lib/rhythmPairs";
 import { PlayIcon } from "@/app/components/HomeTileIcons";
 
@@ -399,7 +400,7 @@ export default function MyRthmsPage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm truncate" style={{ color: job.status === "failed" ? "rgba(248,113,113,0.78)" : job.status === "generating" ? "rgb(210,242,255)" : "rgba(255,255,255,0.6)" }}>{job.title}</p>
                   <p className="text-[10px] uppercase tracking-wider mt-0.5" style={{ color: job.status === "failed" ? "rgba(248,113,113,0.58)" : job.status === "generating" ? "rgba(170,225,255,0.62)" : "rgba(255,255,255,0.25)" }}>
-                    {job.status === "failed" ? `Failed${job.failureReason ? ` · ${job.failureReason}` : ""}` : job.status === "generating" ? "Generating…" : "Queued"} · {job.pillar}
+                    {job.status === "failed" ? `Failed · ${displayGenerationFailure(job.failureReason)}` : job.status === "generating" ? "Generating…" : "Queued"} · {job.pillar}
                   </p>
                 </div>
               </div>

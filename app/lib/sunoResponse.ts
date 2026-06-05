@@ -69,6 +69,9 @@ export function sunoStartError(payload: unknown): string | null {
   const msg = payload.msg ?? payload.message ?? payload.error;
   const text = typeof msg === "string" && msg.trim() ? msg.trim() : "";
 
+  if (isSunoCreditError(text)) {
+    return "Suno credits are empty. Top up the connected Suno account, then try again.";
+  }
   if (typeof code === "number" && code !== 200) {
     return text ? `Suno ${code}: ${text}` : `Suno returned code ${code}`;
   }
@@ -78,4 +81,9 @@ export function sunoStartError(payload: unknown): string | null {
   if (text && text.toLowerCase() !== "success") return text;
 
   return null;
+}
+
+export function isSunoCreditError(message: string | undefined | null): boolean {
+  const text = (message ?? "").toLowerCase();
+  return text.includes("credits are insufficient") || text.includes("please top up") || text.includes("top up");
 }

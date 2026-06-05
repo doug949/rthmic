@@ -9,7 +9,7 @@ import type { QueueJob } from "@/app/lib/queueLib";
 import { requireUserId } from "@/app/lib/auth";
 import { REDIS_AVAILABLE, withRedis, type RedisClient } from "@/app/lib/redis";
 import { toSunoPronunciation } from "@/app/lib/sunoLyrics";
-import { extractSunoTaskId, sunoStartError } from "@/app/lib/sunoResponse";
+import { extractSunoTaskId, isSunoCreditError, sunoStartError } from "@/app/lib/sunoResponse";
 import { buildSunoStyle } from "@/app/lib/sunoStyle";
 import type { StyleChoice } from "@/app/services/llmService";
 import type { PillarType } from "@/app/types/pipeline";
@@ -64,6 +64,13 @@ async function startSunoJob(job: QueueJob): Promise<{ taskId: string | null; err
     if (!res.ok) {
       const text = await res.text();
       console.error(`[queue] Suno start failed: ${res.status} ${text}`);
+      try {
+        const apiError = sunoStartError(JSON.parse(text));
+        if (apiError) return { taskId: null, error: apiError };
+      } catch { /* non-JSON response */ }
+      if (isSunoCreditError(text)) {
+        return { taskId: null, error: "Suno credits are empty. Top up the connected Suno account, then try again." };
+      }
       return { taskId: null, error: `Suno start failed (${res.status})` };
     }
     const json = await res.json();
@@ -164,8 +171,9 @@ export async function POST(req: NextRequest) {
       console.log(`[queue] job ${jobId} started immediately → Suno task ${taskId}`);
     } else {
       if (error) job.failureReason = error;
+      if (isSunoCreditError(error)) job.status = "failed";
       await updateJob(client, job);
-      console.warn(`[queue] immediate start failed for ${jobId}, cron will retry`);
+      console.warn(`[queue] immediate start failed for ${jobId}${job.status === "failed" ? "" : ", cron will retry"}`);
     }
   });
 
