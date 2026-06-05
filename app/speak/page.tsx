@@ -71,13 +71,19 @@ function writeDismissedSuggestions(pillar: string, dismissed: string[]) {
   window.localStorage.setItem(suggestionDismissKey(pillar), JSON.stringify(dismissed.slice(-100)));
 }
 
-async function fetchSuggestions(pillar: string, dismissed: string[] = []): Promise<string[]> {
+function suggestionCountForPillar(pillar: string) {
+  return pillar === "booksummary" ? 12 : 6;
+}
+
+async function fetchSuggestions(pillar: string, dismissed: string[] = [], exclude: string[] = []): Promise<string[]> {
   const params = new URLSearchParams({ pillar });
+  params.set("count", String(suggestionCountForPillar(pillar)));
   if (dismissed.length) params.set("dismissed", JSON.stringify(dismissed));
+  if (exclude.length) params.set("exclude", JSON.stringify(exclude));
   const res = await fetch(`/api/suggestions?${params.toString()}`, { cache: "no-store" });
   if (!res.ok) return [];
   const data = await res.json();
-  const blocked = new Set(dismissed.map(normalizeSuggestion));
+  const blocked = new Set([...dismissed, ...exclude].map(normalizeSuggestion));
   return (data.suggestions ?? []).filter((item: string) => !blocked.has(normalizeSuggestion(item)));
 }
 
@@ -1431,7 +1437,7 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
     setShuffling(true);
     const dismissed = readDismissedSuggestions(pillar!);
     setDismissedSuggestions(dismissed);
-    const s = await fetchSuggestions(pillar!, dismissed);
+    const s = await fetchSuggestions(pillar!, dismissed, suggestions);
     setSuggestions(s);
     setShuffling(false);
   }
@@ -1572,7 +1578,7 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
               </div>
               <div className="flex flex-wrap gap-2">
                 {suggestionsLoading
-                  ? Array.from({ length: 6 }).map((_, i) => (
+                  ? Array.from({ length: suggestionCountForPillar(pillar!) }).map((_, i) => (
                       <div
                         key={i}
                         className="h-7 rounded-full animate-pulse"

@@ -159,6 +159,150 @@ const BOOK_STARTERS = [
   "Sapiens",
   "Thinking, Fast and Slow",
   "Atomic Habits",
+  "A People's History of the United States",
+  "The Invention of Nature",
+  "The Guns of August",
+  "The Sleepwalkers",
+  "Bury My Heart at Wounded Knee",
+  "Caste",
+  "Empire of Pain",
+  "Bad Blood",
+  "The New Jim Crow",
+  "Evicted",
+  "Nickel and Dimed",
+  "Invisible Women",
+  "Data Feminism",
+  "Weapons of Math Destruction",
+  "The Design of Everyday Things",
+  "The Death and Life of Great American Cities",
+  "The Omnivore's Dilemma",
+  "Salt, Fat, Acid, Heat",
+  "Ultra-Processed People",
+  "The Rise and Fall of the Dinosaurs",
+  "Your Inner Fish",
+  "I Contain Multitudes",
+  "The Botany of Desire",
+  "Finding the Mother Tree",
+  "Underland",
+  "The Peregrine",
+  "Pilgrim at Tinker Creek",
+  "Ducks",
+  "Maus",
+  "Persepolis",
+  "Fun Home",
+  "Citizen",
+  "Bluets",
+  "On Photography",
+  "The Story of Art",
+  "The Poetics of Space",
+  "Steal Like an Artist",
+  "Show Your Work",
+  "The War of Art",
+  "Big Magic",
+  "Letters to a Young Poet",
+  "The Writing Life",
+  "The Anthropocene Reviewed",
+  "The Mushroom at the End of the World",
+  "Seeing Like a State",
+  "The Road to Serfdom",
+  "The Communist Manifesto",
+  "The Prince",
+  "Leviathan",
+  "The Second Sex",
+  "The Ethics of Ambiguity",
+  "The Souls of Black Folk",
+  "Pedagogy of the Oppressed",
+  "The Presentation of Self in Everyday Life",
+  "Bowling Alone",
+  "The Tipping Point",
+  "Outliers",
+  "Moneyball",
+  "Liar's Poker",
+  "Barbarians at the Gate",
+  "Creativity, Inc.",
+  "Shoe Dog",
+  "The Everything Store",
+  "No Logo",
+  "This Changes Everything",
+  "How to Hide an Empire",
+  "Prisoners of Geography",
+  "The Revenge of Geography",
+  "1491",
+  "1493",
+  "The Columbian Exchange",
+  "The Great Influenza",
+  "The Hot Zone",
+  "And the Band Played On",
+  "Being Mortal",
+  "When Breath Becomes Air",
+  "The Spirit Catches You and You Fall Down",
+  "Mountains Beyond Mountains",
+  "The Color of Law",
+  "The Sum of Us",
+  "Between the World and Me",
+  "Men Explain Things to Me",
+  "Consider the Lobster",
+  "A Supposedly Fun Thing I'll Never Do Again",
+  "Slouching Towards Bethlehem",
+  "The White Album",
+  "The Electric Kool-Aid Acid Test",
+  "Hell's Angels",
+  "In Cold Blood",
+  "The Journalist and the Murderer",
+  "Into Thin Air",
+  "Into the Wild",
+  "Wild",
+  "The Old Ways",
+  "The Lost City of Z",
+  "Endurance",
+  "The Worst Journey in the World",
+  "Longitude",
+  "Cod",
+  "Salt",
+  "The Code Book",
+  "The Innovators",
+  "Steve Jobs",
+  "The Soul of a New Machine",
+  "Hackers",
+  "Chaos",
+  "The Elegant Universe",
+  "The Fabric of the Cosmos",
+  "Reality Is Not What It Seems",
+  "Seven Brief Lessons on Physics",
+  "The Blind Watchmaker",
+  "The Extended Phenotype",
+  "The Language Instinct",
+  "Behave",
+  "Determined",
+  "The Blank Slate",
+  "The Better Angels of Our Nature",
+  "Factfulness",
+  "Enlightenment Now",
+  "The Demon-Haunted World",
+  "Pale Blue Dot",
+  "The Varieties of Scientific Experience",
+  "Surely You're Joking, Mr. Feynman!",
+  "What I Talk About When I Talk About Running",
+  "Crying in H Mart",
+  "Stay True",
+  "Heavy",
+  "In the Dream House",
+  "The Chronology of Water",
+  "Know My Name",
+  "I Know Why the Caged Bird Sings",
+  "The Autobiography of Malcolm X",
+  "Long Walk to Freedom",
+  "Narrative of the Life of Frederick Douglass",
+  "The Diary of a Young Girl",
+  "Night",
+  "If This Is a Man",
+  "The Periodic Table",
+  "Lab Girl",
+  "Hidden Figures",
+  "The Glass Castle",
+  "Angela's Ashes",
+  "A Heartbreaking Work of Staggering Genius",
+  "The Diving Bell and the Butterfly",
 ];
 
 function normalizeSuggestion(value: string) {
@@ -186,24 +330,34 @@ function parseDismissed(value: string | null) {
   return [];
 }
 
+function parseCount(value: string | null) {
+  const parsed = Number.parseInt(value ?? "", 10);
+  if (!Number.isFinite(parsed)) return 6;
+  return Math.min(Math.max(parsed, 1), 18);
+}
+
 function takeFresh(pool: string[], blocked: Set<string>, count = 6) {
   const available = uniqueSuggestions(pool).filter((item) => !blocked.has(normalizeSuggestion(item)));
   return available.sort(() => Math.random() - 0.5).slice(0, count);
 }
 
-function sampleStarters(pillar: string, past: string[], dismissed: string[]) {
+function sampleStarters(pillar: string, past: string[], dismissed: string[], excluded: string[], count: number) {
   const starters = CHALLENGE_STARTERS[pillar];
   if (!starters) return null;
-  const blocked = new Set([...past, ...dismissed].map(normalizeSuggestion));
-  return takeFresh(starters, blocked);
+  const blocked = new Set([...past, ...dismissed, ...excluded].map(normalizeSuggestion));
+  return takeFresh(starters, blocked, count);
 }
 
-function buildPrompt(pillar: string, past: string[], dismissed: string[]): string {
+function buildPrompt(pillar: string, past: string[], dismissed: string[], excluded: string[], count: number): string {
   const hasPast = past.length > 0;
   const pastList = hasPast ? past.map((t) => `- ${t}`).join("\n") : "";
   const dismissedList = dismissed.length ? dismissed.map((t) => `- ${t}`).join("\n") : "";
+  const excludedList = excluded.length ? excluded.map((t) => `- ${t}`).join("\n") : "";
   const dismissedInstruction = dismissed.length
     ? `\nNever suggest these dismissed items again:\n${dismissedList}\n`
+    : "";
+  const shuffleInstruction = excluded.length
+    ? `\nFor this shuffle, do not suggest anything currently visible:\n${excludedList}\n`
     : "";
 
   if (pillar === "booksummary") {
@@ -212,14 +366,16 @@ function buildPrompt(pillar: string, past: string[], dismissed: string[]): strin
 They have already made Rthms from these books:
 ${pastList}
 ${dismissedInstruction}
+${shuffleInstruction}
 
-Suggest 6 books that would make great Rthms next. Be guided by their taste, but do not repeat any book they have already done or dismissed. Vary widely across history, science, biography, memoir, philosophy, culture, politics, nature writing, creativity, economics, literary criticism, and big-idea fiction. Avoid letting self-help dominate.
+Suggest ${count} books that would make great Rthms next. Be guided by their taste, but do not repeat any book they have already done, dismissed, or currently see. Vary widely across history, science, biography, memoir, philosophy, culture, politics, nature writing, creativity, economics, literary criticism, graphic memoir, reportage, travel, food, design, technology, medicine, and big-idea fiction. Avoid letting self-help dominate.
 
-Return ONLY a valid JSON array of 6 book titles. No explanation, no markdown, no extra text.`
-      : `Suggest 6 books that would make great personalised music Rthms.${dismissedInstruction}
-Include a varied mix across history, science, biography, memoir, philosophy, culture, politics, nature writing, creativity, economics, literary criticism, and big-idea fiction. Popular and accessible, not too obscure. Avoid letting self-help dominate.
+Return ONLY a valid JSON array of ${count} book titles. No explanation, no markdown, no extra text.`
+      : `You are suggesting books for someone who turns book summaries into personalised music Rthms.${dismissedInstruction}
+${shuffleInstruction}
+Suggest ${count} books that would make great personalised music Rthms. Include a varied mix across history, science, biography, memoir, philosophy, culture, politics, nature writing, creativity, economics, literary criticism, graphic memoir, reportage, travel, food, design, technology, medicine, and big-idea fiction. Popular and accessible, not too obscure. Avoid letting self-help dominate.
 
-Return ONLY a valid JSON array of 6 book titles. No explanation, no markdown, no extra text.`;
+Return ONLY a valid JSON array of ${count} book titles. No explanation, no markdown, no extra text.`;
   }
 
   if (pillar === "explain") {
@@ -228,14 +384,16 @@ Return ONLY a valid JSON array of 6 book titles. No explanation, no markdown, no
 They have already made Rthms explaining these concepts:
 ${pastList}
 ${dismissedInstruction}
+${shuffleInstruction}
 
-Suggest 6 fascinating concepts to explain next. Be guided by their intellectual interests — adjacent ideas, related fields — but do not repeat anything they have already covered. Keep concepts crisp and nameable (2–5 words max each).
+Suggest ${count} fascinating concepts to explain next. Be guided by their intellectual interests — adjacent ideas, related fields — but do not repeat anything they have already covered. Keep concepts crisp and nameable (2–5 words max each).
 
-Return ONLY a valid JSON array of 6 concept names. No explanation, no markdown, no extra text.`
-      : `Suggest 6 fascinating concepts that would make great personalised music Rthms. Mix mental models, science, psychology, economics, and philosophy. Keep each concept crisp and nameable (2–5 words max).
+Return ONLY a valid JSON array of ${count} concept names. No explanation, no markdown, no extra text.`
+      : `Suggest ${count} fascinating concepts that would make great personalised music Rthms. Mix mental models, science, psychology, economics, and philosophy. Keep each concept crisp and nameable (2–5 words max).
 ${dismissedInstruction}
+${shuffleInstruction}
 
-Return ONLY a valid JSON array of 6 concept names. No explanation, no markdown, no extra text.`;
+Return ONLY a valid JSON array of ${count} concept names. No explanation, no markdown, no extra text.`;
   }
 
   const pillarBriefs: Record<string, string> = {
@@ -265,16 +423,18 @@ This pillar is about ${brief}.
 The user has already made these Rthms:
 ${pastList}
 ${dismissedInstruction}
+${shuffleInstruction}
 
-Suggest 6 concise starting points they might want to make next. Avoid repeats. Make them practical, specific, and immediately speakable. Keep each item under 8 words.${guidance}
+Suggest ${count} concise starting points they might want to make next. Avoid repeats. Make them practical, specific, and immediately speakable. Keep each item under 8 words.${guidance}
 
-Return ONLY a valid JSON array of 6 strings. No explanation, no markdown, no extra text.`
-    : `Suggest 6 concise starting points for the ${pillar} pillar in RTHMIC.
+Return ONLY a valid JSON array of ${count} strings. No explanation, no markdown, no extra text.`
+    : `Suggest ${count} concise starting points for the ${pillar} pillar in RTHMIC.
 This pillar is about ${brief}.
 Make them practical, specific, and immediately speakable. Keep each item under 8 words.${guidance}
 ${dismissedInstruction}
+${shuffleInstruction}
 
-Return ONLY a valid JSON array of 6 strings. No explanation, no markdown, no extra text.`;
+Return ONLY a valid JSON array of ${count} strings. No explanation, no markdown, no extra text.`;
 }
 
 export async function GET(req: NextRequest) {
@@ -288,23 +448,25 @@ export async function GET(req: NextRequest) {
   }
 
   const dismissed = parseDismissed(req.nextUrl.searchParams.get("dismissed")).slice(0, 100);
-  const blocked = new Set(dismissed.map(normalizeSuggestion));
+  const excluded = parseDismissed(req.nextUrl.searchParams.get("exclude")).slice(0, 50);
+  const count = parseCount(req.nextUrl.searchParams.get("count"));
+  const blocked = new Set([...dismissed, ...excluded].map(normalizeSuggestion));
   const past = await getPastTitles(uid, pillar);
   past.forEach((title) => blocked.add(normalizeSuggestion(title)));
 
-  const curated = sampleStarters(pillar, past, dismissed);
+  const curated = sampleStarters(pillar, past, dismissed, excluded, count);
   if (curated) {
     return NextResponse.json({ suggestions: curated }, { headers: { "Cache-Control": "no-store" } });
   }
 
-  const prompt = buildPrompt(pillar, past, dismissed);
+  const prompt = buildPrompt(pillar, past, dismissed, excluded, count);
 
   let suggestions: string[] = [];
   try {
     const anthropic = new Anthropic();
     const msg = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 256,
+      max_tokens: pillar === "booksummary" ? 512 : 320,
       messages: [{ role: "user", content: prompt }],
     });
 
@@ -320,10 +482,10 @@ export async function GET(req: NextRequest) {
 
   suggestions = uniqueSuggestions(suggestions)
     .filter((item) => !blocked.has(normalizeSuggestion(item)))
-    .slice(0, 6);
+    .slice(0, count);
 
   // Fallback: never return empty
-  if (suggestions.length < 6) {
+  if (suggestions.length < count) {
     const fallback: Record<string, string[]> = {
       booksummary: BOOK_STARTERS,
       explain: ["Compound interest", "Cognitive dissonance", "First principles thinking", "The Pareto principle", "Neuroplasticity", "Occam's razor"],
@@ -337,10 +499,10 @@ export async function GET(req: NextRequest) {
       bridge: ["Encourage a friend", "Thank a collaborator", "Repair a moment", "Celebrate someone", "Explain how you feel", "Send reassurance"],
       invite: ["Invite a founder", "Invite a coach", "Invite a musician", "Invite a teacher", "Invite a friend", "Invite an early tester"],
     };
-    const fillers = takeFresh(fallback[pillar] ?? ["Clear the surface", "Start the next thing", "Find the simple path", "Reset the room", "Make it concrete", "Move one step"], blocked, 6);
+    const fillers = takeFresh(fallback[pillar] ?? ["Clear the surface", "Start the next thing", "Find the simple path", "Reset the room", "Make it concrete", "Move one step"], blocked, count);
     suggestions = uniqueSuggestions([...suggestions, ...fillers])
       .filter((item) => !blocked.has(normalizeSuggestion(item)))
-      .slice(0, 6);
+      .slice(0, count);
   }
 
   return NextResponse.json({ suggestions }, { headers: { "Cache-Control": "no-store" } });
