@@ -1123,6 +1123,33 @@ const PILLAR_VIDEOS: Record<string, string> = Object.fromEntries(
   ALL_PILLAR_SLUGS.map((s) => [s, cfHls(CF_IDS[s] ?? CF_IDS.default)])
 );
 
+function PillarArtworkBackdrop({ pillar }: { pillar?: string | null }) {
+  const image = pillar ? PILLAR_IMAGES[pillar] : null;
+  if (!image) return null;
+
+  return (
+    <div className="absolute inset-0 -mx-5 -my-4 pointer-events-none overflow-hidden" aria-hidden="true">
+      <img
+        src={image}
+        alt=""
+        className="absolute inset-0 h-full w-full object-cover"
+        style={{ objectPosition: "50% 34%", opacity: 0.42 }}
+      />
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "linear-gradient(to bottom, rgba(5,8,16,0.58) 0%, rgba(5,8,16,0.76) 38%, rgba(5,8,16,0.94) 100%)",
+        }}
+      />
+      <div
+        className="absolute inset-0"
+        style={{ background: "radial-gradient(circle at 50% 18%, rgba(255,255,255,0.12), transparent 42%)" }}
+      />
+    </div>
+  );
+}
+
 const PILLAR_GRID = [
   ...FOR_YOU_PILLARS.map((p) => ({
     slug: p.slug,
@@ -1740,8 +1767,9 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
         </div>
       )}
 
-    <section className="flex-1 flex flex-col justify-between pb-6">
-      <div className="flex-1 overflow-y-auto flex flex-col gap-4 pt-1 pb-4">
+    <section className="relative flex-1 flex flex-col justify-between pb-6 overflow-hidden">
+      <PillarArtworkBackdrop pillar={pillar} />
+      <div className="relative z-10 flex-1 overflow-y-auto flex flex-col gap-4 pt-1 pb-4">
 
         {/* Pillar badge */}
         {pillarDef && (
@@ -1847,7 +1875,7 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
         </RevealBlock>
       </div>
 
-      <RevealBlock delay={180 + instructions.length * 45 + (hasSuggestions ? 95 : 50)} className="flex-shrink-0">
+      <RevealBlock delay={180 + instructions.length * 45 + (hasSuggestions ? 95 : 50)} className="relative z-10 flex-shrink-0">
         <button
           onClick={() => onReady()}
           className="w-full py-5 rounded-2xl text-sm font-semibold tracking-wide active:scale-[0.98] transition-all touch-manipulation"
@@ -1870,9 +1898,10 @@ function IdleView({ onRecord, errorMsg, selectedPillar, quickMode }: { onRecord:
   const idleSubtitle = quickMode ? "RTHMIC will suggest the right category." : (selectedPillar && PILLAR_SUBTITLE[selectedPillar]) ?? "Two Rthms will be built for you.";
 
   return (
-    <section className="flex-1 flex flex-col items-center justify-center pb-24 gap-10">
+    <section className="relative flex-1 flex flex-col items-center justify-center pb-24 gap-10 overflow-hidden">
+      <PillarArtworkBackdrop pillar={quickMode ? null : selectedPillar} />
       <RevealBlock delay={0}>
-        <div className="text-center">
+        <div className="relative z-10 text-center">
           <p className="text-[10px] text-white/35 uppercase tracking-[0.3em] mb-2">Tap to</p>
           <h2 className="text-2xl font-light tracking-wide text-white leading-snug" style={{ fontFamily: "var(--font-display)" }}>{idleHeading}</h2>
           <p className="text-sm text-white/50 mt-2">{idleSubtitle}</p>
@@ -1880,7 +1909,7 @@ function IdleView({ onRecord, errorMsg, selectedPillar, quickMode }: { onRecord:
       </RevealBlock>
 
       <RevealBlock delay={60}>
-        <div className="relative flex items-center justify-center">
+        <div className="relative z-10 flex items-center justify-center">
           <style>{`
             @keyframes rim-spin {
               from { transform: rotate(0deg); }
@@ -1914,11 +1943,11 @@ function IdleView({ onRecord, errorMsg, selectedPillar, quickMode }: { onRecord:
       </RevealBlock>
 
       {micRequesting && (
-        <p className="text-xs text-white/35 tracking-wide animate-pulse">Requesting microphone…</p>
+        <p className="relative z-10 text-xs text-white/35 tracking-wide animate-pulse">Requesting microphone…</p>
       )}
 
       {errorMsg && (
-        <p className="text-xs text-white/50 text-center max-w-xs">{errorMsg}</p>
+        <p className="relative z-10 text-xs text-white/50 text-center max-w-xs">{errorMsg}</p>
       )}
     </section>
   );
@@ -1942,15 +1971,16 @@ function RecordingView({
   const heading = quickMode ? "Describe the situation" : (selectedPillar && PILLAR_PROMPT[selectedPillar]) ?? "Speak freely";
   return (
     <section
-      className="flex-1 flex flex-col items-center justify-center pb-24 gap-10"
+      className="relative flex-1 flex flex-col items-center justify-center pb-24 gap-10 overflow-hidden"
       onClick={onStop}
     >
-      <div className="text-center pointer-events-none">
+      <PillarArtworkBackdrop pillar={quickMode ? null : selectedPillar} />
+      <div className="relative z-10 text-center pointer-events-none">
         <h2 className="text-2xl font-light tracking-wide text-white" style={{ fontFamily: "var(--font-display)" }}>{heading}</h2>
         <p className="text-sm text-white/50 mt-2">Tap to stop</p>
       </div>
 
-      <div className="relative flex items-center justify-center pointer-events-none">
+      <div className="relative z-10 flex items-center justify-center pointer-events-none">
         <span
           className="absolute w-48 h-48 rounded-full animate-ping"
           style={{ animationDuration: "2.4s", border: "1px solid rgba(201,165,90,0.12)" }}
@@ -2030,9 +2060,10 @@ function UnderstandingView({ pillar }: { pillar?: string | null }) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <section className="flex-1 flex flex-col items-center justify-center pb-24 gap-8">
+    <section className="relative flex-1 flex flex-col items-center justify-center pb-24 gap-8 overflow-hidden">
+      <PillarArtworkBackdrop pillar={pillar} />
       <RevealBlock delay={0}>
-        <div className="flex flex-col items-center gap-8 w-full">
+        <div className="relative z-10 flex flex-col items-center gap-8 w-full">
           <SpectrumVisualiser color={pillarColor} />
           <div className="text-center flex flex-col items-center gap-3 max-w-xs">
             <h2 className="text-xl font-light tracking-wide text-white" style={{ fontFamily: "var(--font-display)" }}>{copy.heading}</h2>
