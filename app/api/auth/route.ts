@@ -27,7 +27,8 @@ async function isBetaCode(code: string): Promise<boolean> {
 }
 
 export async function POST(request: NextRequest) {
-  const { password } = await request.json();
+  const { password: rawPassword } = await request.json();
+  const password = typeof rawPassword === "string" ? rawPassword.trim() : "";
 
   // RTHMIC_CODES is a comma-separated list of valid invite codes.
   // Any matching code grants access. Remove a code to revoke.

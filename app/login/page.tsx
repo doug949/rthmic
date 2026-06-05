@@ -19,7 +19,7 @@ function LoginForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    await loginWith(password);
+    await loginWith(password.trim());
   }
 
   async function loginWith(code: string) {
@@ -70,21 +70,39 @@ function LoginForm() {
   }
 
   return (
-    <main className="min-h-screen bg-[#08090b] flex flex-col items-center justify-center px-6">
-      <h1
-        className="text-2xl font-semibold tracking-[0.22em] uppercase mb-8"
-        style={{ color: "rgba(255,255,255,0.9)" }}
-      >
-        RTHMIC
-      </h1>
+    <main className="relative z-10 min-h-screen flex flex-col items-center justify-center px-6 py-10">
+      <div className="mb-9 text-center">
+        <h1
+          className="text-4xl uppercase"
+          style={{
+            fontFamily: "var(--font-display)",
+            fontWeight: 300,
+            letterSpacing: "0.22em",
+            color: "#c9a55a",
+            textShadow: "0 0 28px rgba(201,165,90,0.18)",
+          }}
+        >
+          RTHMIC
+        </h1>
+        <p
+          className="mt-2 text-[10px] uppercase"
+          style={{
+            letterSpacing: "0.32em",
+            color: "rgba(201,165,90,0.58)",
+          }}
+        >
+          music to live by
+        </p>
+      </div>
 
       <form
         onSubmit={handleSubmit}
         className="w-full max-w-sm flex flex-col gap-4 rounded-3xl p-5"
         style={{
-          background: "rgba(8,9,11,0.88)",
-          border: "2px solid rgba(255,255,255,0.72)",
+          background: "rgba(8,14,26,0.78)",
+          border: "1px solid rgba(255,255,255,0.22)",
           boxShadow: "0 20px 70px rgba(0,0,0,0.62)",
+          backdropFilter: "blur(18px)",
         }}
       >
         <label className="flex flex-col gap-2">
@@ -124,10 +142,10 @@ function LoginForm() {
         )}
         <button
           type="submit"
-          disabled={loading || !password}
+          disabled={loading || !password.trim()}
           className="w-full font-semibold text-base tracking-wide rounded-xl py-4 transition-opacity duration-200 active:scale-[0.98]"
           style={{
-            background: password ? "#ffffff" : "rgba(255,255,255,0.72)",
+            background: password.trim() ? "#ffffff" : "rgba(255,255,255,0.72)",
             color: "#08090b",
             opacity: loading ? 0.7 : 1,
           }}
