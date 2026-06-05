@@ -88,7 +88,6 @@ export function RhythmRow({
     action:  "rgba(167,139,250,0.75)",
   } : null;
   const canPlay = !!rhythm.audioUrl || !!rhythm.audioKey;
-  const mayBeExpired = Date.now() - rhythm.savedAt > 20 * 60 * 60 * 1000;
   const offlineUrl = canPlay ? `/api/proxy-audio?id=${encodeURIComponent(rhythm.id)}` : undefined;
   const { isCached, cacheTrack, caching } = useOfflineAudio(offlineUrl);
   const [tagEditOpen, setTagEditOpen] = useState(false);
@@ -96,6 +95,7 @@ export function RhythmRow({
   const [noteEditOpen, setNoteEditOpen] = useState(false);
   const [noteInput, setNoteInput] = useState(rhythm.note ?? "");
   const [moreOpen, setMoreOpen] = useState(false);
+  const [sideFlipping, setSideFlipping] = useState(false);
 
   const tags = rhythm.tags ?? [];
   const preferredSide = sidePreference === "current";
@@ -115,6 +115,15 @@ export function RhythmRow({
 
   const removeTag = (tag: string) => onTag?.(tags.filter((t) => t !== tag));
 
+  const handleSwapSide = () => {
+    if (!onSwapSide) return;
+    setSideFlipping(true);
+    window.setTimeout(() => {
+      onSwapSide();
+      window.setTimeout(() => setSideFlipping(false), 180);
+    }, 180);
+  };
+
   const fmt = (s: number) => {
     const m = Math.floor(s / 60);
     const sec = Math.floor(s % 60);
@@ -123,7 +132,7 @@ export function RhythmRow({
 
   return (
     <div
-      className={`rounded-2xl border transition-all duration-200 ${dimmed ? "opacity-50" : ""}`}
+      className={`rounded-2xl border transition-all duration-200 ${dimmed ? "opacity-50" : ""} ${sideFlipping ? "rthmic-side-flip" : ""}`}
       style={
         favourite
           ? { background: playing ? "rgba(201,165,90,0.07)" : "rgba(201,165,90,0.03)", borderColor: playing ? "rgba(201,165,90,0.35)" : "rgba(201,165,90,0.15)" }
@@ -170,9 +179,6 @@ export function RhythmRow({
               </span>
             )}
             <span className="text-[10px] uppercase tracking-wider" style={{ color: favourite ? "rgba(201,165,90,0.6)" : P ? P.sub : "rgba(255,255,255,0.5)" }}>{rhythm.pillar}</span>
-            {mayBeExpired && !playing && canPlay && (
-              <span className="text-[10px] uppercase tracking-wider" style={{ color: favourite ? "rgba(201,165,90,0.5)" : "rgba(255,255,255,0.5)" }}>· may have expired</span>
-            )}
             {tags.map((tag) => (
               <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: favourite ? "rgba(201,165,90,0.1)" : "rgba(255,255,255,0.06)", color: favourite ? "rgba(201,165,90,0.65)" : "rgba(255,255,255,0.55)" }}>
                 {tag}
@@ -212,7 +218,7 @@ export function RhythmRow({
               </button>
             )}
             <button
-              onClick={onSwapSide}
+              onClick={handleSwapSide}
               className="text-[10px] uppercase tracking-widest rounded-full px-3 py-1.5 touch-manipulation active:scale-[0.98] transition-transform"
               style={{
                 background: favourite ? "rgba(201,165,90,0.10)" : "rgba(255,255,255,0.055)",

@@ -47,11 +47,38 @@ interface PillarDefinition {
 
 // ─── Suggestion chips for explain + booksummary ───────────────────────────────
 
-async function fetchSuggestions(pillar: string): Promise<string[]> {
-  const res = await fetch(`/api/suggestions?pillar=${pillar}`, { cache: "no-store" });
+function normalizeSuggestion(value: string) {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function suggestionDismissKey(pillar: string) {
+  return `rthmic:dismissed-suggestions:${pillar}`;
+}
+
+function readDismissedSuggestions(pillar: string): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(suggestionDismissKey(pillar));
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeDismissedSuggestions(pillar: string, dismissed: string[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(suggestionDismissKey(pillar), JSON.stringify(dismissed.slice(-100)));
+}
+
+async function fetchSuggestions(pillar: string, dismissed: string[] = []): Promise<string[]> {
+  const params = new URLSearchParams({ pillar });
+  if (dismissed.length) params.set("dismissed", JSON.stringify(dismissed));
+  const res = await fetch(`/api/suggestions?${params.toString()}`, { cache: "no-store" });
   if (!res.ok) return [];
   const data = await res.json();
-  return data.suggestions ?? [];
+  const blocked = new Set(dismissed.map(normalizeSuggestion));
+  return (data.suggestions ?? []).filter((item: string) => !blocked.has(normalizeSuggestion(item)));
 }
 
 function fmtDuration(ms: number): string {
@@ -1070,10 +1097,10 @@ const PILLARS: PillarDefinition[] = [
   {
     slug: "booksummary",
     label: "Book Summary",
-    tagline: "The one big idea from a nonfiction book",
+    tagline: "The one big idea from a book",
     icon: <BookSummaryIcon />,
     advanced: true,
-    detail: "Use this when you want to understand — or share — the core concept from a popular nonfiction book. RTHMIC builds a song around the book's ONE big idea: the premise, how it works, what most people miss, and why it matters. Works for books you've read, books you want to understand, or ideas you want to pass on. Works best for 'one big idea' books — Atomic Habits, Sapiens, Thinking Fast and Slow, and their kind.",
+    detail: "Use this when you want to understand — or share — the core concept from a book. RTHMIC builds a song around the book's ONE big idea: the premise, how it works, what most people miss, and why it matters. Works for books you've read, books you want to understand, or ideas you want to pass on. Try history, science, memoir, philosophy, culture, economics, creativity, nature writing, or big-idea fiction.",
     guidance: "Just name the book. RTHMIC knows the core idea. If you want the song to focus on a particular aspect — a chapter, a concept, how it applies to your life — say that too. The more specific you are, the more personal the song becomes.",
     priming: {
       headline: "Which book?",
@@ -1083,7 +1110,7 @@ const PILLARS: PillarDefinition[] = [
         "If you want it to focus on a specific part of the book — a particular concept, chapter, or framework — say that.",
         "If you want the song to connect the idea to something specific in your life or work, describe that too. It makes the song feel personal rather than generic.",
       ],
-      footnote: "Works best with 'one big idea' nonfiction — the kind where the title becomes shorthand for a whole way of thinking. Atomic Habits, Sapiens, Deep Work, Thinking Fast and Slow, The Power of Habit, and anything like them.",
+      footnote: "Works best with books that carry one strong idea, argument, lens, or world. That can be history, science, memoir, philosophy, culture, economics, creativity, nature writing, or fiction with a powerful central frame.",
     },
   },
 ];
@@ -1386,11 +1413,15 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(hasSuggestions);
   const [shuffling, setShuffling] = useState(false);
+  const [dismissedSuggestions, setDismissedSuggestions] = useState<string[]>([]);
 
   useEffect(() => {
     if (!hasSuggestions) return;
     let cancelled = false;
-    fetchSuggestions(pillar!).then((s) => {
+    const dismissed = readDismissedSuggestions(pillar!);
+    setDismissedSuggestions(dismissed);
+    setSuggestionsLoading(true);
+    fetchSuggestions(pillar!, dismissed).then((s) => {
       if (!cancelled) { setSuggestions(s); setSuggestionsLoading(false); }
     });
     return () => { cancelled = true; };
@@ -1398,9 +1429,23 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
 
   async function handleShuffle() {
     setShuffling(true);
-    const s = await fetchSuggestions(pillar!);
+    const dismissed = readDismissedSuggestions(pillar!);
+    setDismissedSuggestions(dismissed);
+    const s = await fetchSuggestions(pillar!, dismissed);
     setSuggestions(s);
     setShuffling(false);
+  }
+
+  function handleDismissSuggestion(suggestion: string) {
+    if (!pillar) return;
+    const normalized = normalizeSuggestion(suggestion);
+    const current = readDismissedSuggestions(pillar);
+    const next = current.some((item) => normalizeSuggestion(item) === normalized)
+      ? current
+      : [...current, suggestion];
+    writeDismissedSuggestions(pillar, next);
+    setDismissedSuggestions(next);
+    setSuggestions((items) => items.filter((item) => normalizeSuggestion(item) !== normalized));
   }
 
   const videoSrc = pillar ? PILLAR_VIDEOS[pillar] ?? null : null;
@@ -1535,16 +1580,39 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
                       />
                     ))
                   : suggestions.map((s) => (
-                      <button
+                      <span
                         key={s}
-                        onClick={() => onReady(s, true)}
-                        className="text-xs px-3 py-1.5 rounded-full touch-manipulation transition-all active:scale-95"
-                        style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.5)" }}
+                        className="inline-flex items-center rounded-full overflow-hidden"
+                        style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}
                       >
-                        {s}
-                      </button>
+                        <button
+                          onClick={() => onReady(s, true)}
+                          className="text-xs pl-3 pr-2 py-1.5 touch-manipulation transition-all active:scale-95"
+                          style={{ color: "rgba(255,255,255,0.5)" }}
+                        >
+                          {s}
+                        </button>
+                        <button
+                          onClick={() => handleDismissSuggestion(s)}
+                          className="w-7 self-stretch flex items-center justify-center text-xs touch-manipulation active:bg-white/[0.06]"
+                          style={{ color: "rgba(255,255,255,0.32)", borderLeft: "1px solid rgba(255,255,255,0.07)" }}
+                          aria-label={`Dismiss ${s}`}
+                        >
+                          ×
+                        </button>
+                      </span>
                     ))
                 }
+                {!suggestionsLoading && suggestions.length === 0 && dismissedSuggestions.length > 0 && (
+                  <button
+                    onClick={handleShuffle}
+                    disabled={shuffling}
+                    className="text-xs px-3 py-1.5 rounded-full touch-manipulation transition-all active:scale-95 disabled:opacity-40"
+                    style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.45)" }}
+                  >
+                    Shuffle for more
+                  </button>
+                )}
               </div>
             </div>
           </RevealBlock>

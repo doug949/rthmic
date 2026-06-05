@@ -80,29 +80,144 @@ const CHALLENGE_STARTERS: Record<string, string[]> = {
   ],
 };
 
-function sampleStarters(pillar: string, past: string[]) {
-  const starters = CHALLENGE_STARTERS[pillar];
-  if (!starters) return null;
-  const pastSet = new Set(past.map((title) => title.toLowerCase()));
-  const available = starters.filter((starter) => !pastSet.has(starter.toLowerCase()));
-  const pool = available.length >= 6 ? available : starters;
-  return [...pool].sort(() => Math.random() - 0.5).slice(0, 6);
+const BOOK_STARTERS = [
+  "The Warmth of Other Suns",
+  "The Immortal Life of Henrietta Lacks",
+  "The Emperor of All Maladies",
+  "Braiding Sweetgrass",
+  "The Sixth Extinction",
+  "An Immense World",
+  "Entangled Life",
+  "Other Minds",
+  "The Hidden Life of Trees",
+  "Silent Spring",
+  "Cosmos",
+  "The Information",
+  "The Order of Time",
+  "A Brief History of Time",
+  "The Selfish Gene",
+  "The Gene",
+  "Godel, Escher, Bach",
+  "The Dawn of Everything",
+  "The Silk Roads",
+  "SPQR",
+  "King Leopold's Ghost",
+  "The Wretched of the Earth",
+  "Orientalism",
+  "The Right Stuff",
+  "The Making of the Atomic Bomb",
+  "The Devil in the White City",
+  "Say Nothing",
+  "The Jakarta Method",
+  "The Big Short",
+  "Debt",
+  "Poor Economics",
+  "Capital in the Twenty-First Century",
+  "The Shock Doctrine",
+  "The Righteous Mind",
+  "Manufacturing Consent",
+  "The Man Who Mistook His Wife for a Hat",
+  "The Undoing Project",
+  "Stumbling on Happiness",
+  "Flow",
+  "Influence",
+  "Man's Search for Meaning",
+  "Meditations",
+  "The Myth of Sisyphus",
+  "Discipline and Punish",
+  "Thinking in Systems",
+  "Ways of Seeing",
+  "The Creative Act",
+  "Bird by Bird",
+  "A Swim in a Pond in the Rain",
+  "How Fiction Works",
+  "The Art of Travel",
+  "Educated",
+  "Born a Crime",
+  "The Year of Magical Thinking",
+  "H Is for Hawk",
+  "Just Kids",
+  "Kitchen Confidential",
+  "The Argonauts",
+  "The Hare with Amber Eyes",
+  "The Lonely City",
+  "A Room of One's Own",
+  "Why We Sleep",
+  "The Body Keeps the Score",
+  "The Overstory",
+  "Zen and the Art of Motorcycle Maintenance",
+  "The Hero with a Thousand Faces",
+  "Mythos",
+  "The Fire Next Time",
+  "Notes of a Native Son",
+  "Trick Mirror",
+  "The Age of Surveillance Capitalism",
+  "Four Thousand Weeks",
+  "Range",
+  "Antifragile",
+  "Deep Work",
+  "Sapiens",
+  "Thinking, Fast and Slow",
+  "Atomic Habits",
+];
+
+function normalizeSuggestion(value: string) {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
-function buildPrompt(pillar: string, past: string[]): string {
+function uniqueSuggestions(items: string[]) {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const normalized = normalizeSuggestion(item);
+    if (!normalized || seen.has(normalized)) return false;
+    seen.add(normalized);
+    return true;
+  });
+}
+
+function parseDismissed(value: string | null) {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    if (Array.isArray(parsed)) return parsed.filter((item): item is string => typeof item === "string");
+  } catch {
+    return value.split(",");
+  }
+  return [];
+}
+
+function takeFresh(pool: string[], blocked: Set<string>, count = 6) {
+  const available = uniqueSuggestions(pool).filter((item) => !blocked.has(normalizeSuggestion(item)));
+  return available.sort(() => Math.random() - 0.5).slice(0, count);
+}
+
+function sampleStarters(pillar: string, past: string[], dismissed: string[]) {
+  const starters = CHALLENGE_STARTERS[pillar];
+  if (!starters) return null;
+  const blocked = new Set([...past, ...dismissed].map(normalizeSuggestion));
+  return takeFresh(starters, blocked);
+}
+
+function buildPrompt(pillar: string, past: string[], dismissed: string[]): string {
   const hasPast = past.length > 0;
   const pastList = hasPast ? past.map((t) => `- ${t}`).join("\n") : "";
+  const dismissedList = dismissed.length ? dismissed.map((t) => `- ${t}`).join("\n") : "";
+  const dismissedInstruction = dismissed.length
+    ? `\nNever suggest these dismissed items again:\n${dismissedList}\n`
+    : "";
 
   if (pillar === "booksummary") {
     return hasPast
       ? `You are suggesting books for someone who turns book summaries into personalised music Rthms.
 They have already made Rthms from these books:
 ${pastList}
+${dismissedInstruction}
 
-Suggest 6 books that would make great Rthms next. Be guided by their taste — similar themes, genres, or authors — but do not repeat any book they have already done. Vary the suggestions across non-fiction, philosophy, psychology, business, science, and memoir.
+Suggest 6 books that would make great Rthms next. Be guided by their taste, but do not repeat any book they have already done or dismissed. Vary widely across history, science, biography, memoir, philosophy, culture, politics, nature writing, creativity, economics, literary criticism, and big-idea fiction. Avoid letting self-help dominate.
 
 Return ONLY a valid JSON array of 6 book titles. No explanation, no markdown, no extra text.`
-      : `Suggest 6 books that would make great personalised music Rthms. Include a varied mix: non-fiction, philosophy, psychology, business, science, memoir. Popular and accessible, not too obscure.
+      : `Suggest 6 books that would make great personalised music Rthms.${dismissedInstruction}
+Include a varied mix across history, science, biography, memoir, philosophy, culture, politics, nature writing, creativity, economics, literary criticism, and big-idea fiction. Popular and accessible, not too obscure. Avoid letting self-help dominate.
 
 Return ONLY a valid JSON array of 6 book titles. No explanation, no markdown, no extra text.`;
   }
@@ -112,11 +227,13 @@ Return ONLY a valid JSON array of 6 book titles. No explanation, no markdown, no
       ? `You are suggesting concepts for someone who turns concept explanations into personalised music Rthms.
 They have already made Rthms explaining these concepts:
 ${pastList}
+${dismissedInstruction}
 
 Suggest 6 fascinating concepts to explain next. Be guided by their intellectual interests — adjacent ideas, related fields — but do not repeat anything they have already covered. Keep concepts crisp and nameable (2–5 words max each).
 
 Return ONLY a valid JSON array of 6 concept names. No explanation, no markdown, no extra text.`
       : `Suggest 6 fascinating concepts that would make great personalised music Rthms. Mix mental models, science, psychology, economics, and philosophy. Keep each concept crisp and nameable (2–5 words max).
+${dismissedInstruction}
 
 Return ONLY a valid JSON array of 6 concept names. No explanation, no markdown, no extra text.`;
   }
@@ -147,6 +264,7 @@ Return ONLY a valid JSON array of 6 concept names. No explanation, no markdown, 
 This pillar is about ${brief}.
 The user has already made these Rthms:
 ${pastList}
+${dismissedInstruction}
 
 Suggest 6 concise starting points they might want to make next. Avoid repeats. Make them practical, specific, and immediately speakable. Keep each item under 8 words.${guidance}
 
@@ -154,6 +272,7 @@ Return ONLY a valid JSON array of 6 strings. No explanation, no markdown, no ext
     : `Suggest 6 concise starting points for the ${pillar} pillar in RTHMIC.
 This pillar is about ${brief}.
 Make them practical, specific, and immediately speakable. Keep each item under 8 words.${guidance}
+${dismissedInstruction}
 
 Return ONLY a valid JSON array of 6 strings. No explanation, no markdown, no extra text.`;
 }
@@ -168,25 +287,28 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Invalid pillar" }, { status: 400 });
   }
 
+  const dismissed = parseDismissed(req.nextUrl.searchParams.get("dismissed")).slice(0, 100);
+  const blocked = new Set(dismissed.map(normalizeSuggestion));
   const past = await getPastTitles(uid, pillar);
-  const curated = sampleStarters(pillar, past);
+  past.forEach((title) => blocked.add(normalizeSuggestion(title)));
+
+  const curated = sampleStarters(pillar, past, dismissed);
   if (curated) {
     return NextResponse.json({ suggestions: curated }, { headers: { "Cache-Control": "no-store" } });
   }
 
-  const prompt = buildPrompt(pillar, past);
-
-  const anthropic = new Anthropic();
-  const msg = await anthropic.messages.create({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 256,
-    messages: [{ role: "user", content: prompt }],
-  });
-
-  const text = msg.content.find((b) => b.type === "text")?.text ?? "[]";
+  const prompt = buildPrompt(pillar, past, dismissed);
 
   let suggestions: string[] = [];
   try {
+    const anthropic = new Anthropic();
+    const msg = await anthropic.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 256,
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    const text = msg.content.find((b) => b.type === "text")?.text ?? "[]";
     const start = text.indexOf("[");
     const end = text.lastIndexOf("]");
     if (start !== -1 && end > start) {
@@ -196,10 +318,14 @@ export async function GET(req: NextRequest) {
     suggestions = [];
   }
 
+  suggestions = uniqueSuggestions(suggestions)
+    .filter((item) => !blocked.has(normalizeSuggestion(item)))
+    .slice(0, 6);
+
   // Fallback: never return empty
-  if (!suggestions.length) {
+  if (suggestions.length < 6) {
     const fallback: Record<string, string[]> = {
-      booksummary: ["Atomic Habits", "Thinking, Fast and Slow", "Sapiens", "Deep Work", "Antifragile", "Range"],
+      booksummary: BOOK_STARTERS,
       explain: ["Compound interest", "Cognitive dissonance", "First principles thinking", "The Pareto principle", "Neuroplasticity", "Occam's razor"],
       mindset: CHALLENGE_STARTERS.mindset.slice(0, 6),
       menus: ["Morning menu", "Airport packing menu", "End of workday", "Before bed", "Leaving the house", "Room reset"],
@@ -211,7 +337,10 @@ export async function GET(req: NextRequest) {
       bridge: ["Encourage a friend", "Thank a collaborator", "Repair a moment", "Celebrate someone", "Explain how you feel", "Send reassurance"],
       invite: ["Invite a founder", "Invite a coach", "Invite a musician", "Invite a teacher", "Invite a friend", "Invite an early tester"],
     };
-    suggestions = fallback[pillar] ?? ["Clear the surface", "Start the next thing", "Find the simple path", "Reset the room", "Make it concrete", "Move one step"];
+    const fillers = takeFresh(fallback[pillar] ?? ["Clear the surface", "Start the next thing", "Find the simple path", "Reset the room", "Make it concrete", "Move one step"], blocked, 6);
+    suggestions = uniqueSuggestions([...suggestions, ...fillers])
+      .filter((item) => !blocked.has(normalizeSuggestion(item)))
+      .slice(0, 6);
   }
 
   return NextResponse.json({ suggestions }, { headers: { "Cache-Control": "no-store" } });
