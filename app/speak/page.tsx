@@ -1898,10 +1898,9 @@ function IdleView({ onRecord, errorMsg, selectedPillar, quickMode }: { onRecord:
   const idleSubtitle = quickMode ? "RTHMIC will suggest the right category." : (selectedPillar && PILLAR_SUBTITLE[selectedPillar]) ?? "Two Rthms will be built for you.";
 
   return (
-    <section className="relative flex-1 flex flex-col items-center justify-center pb-24 gap-10 overflow-hidden">
-      <PillarArtworkBackdrop pillar={quickMode ? null : selectedPillar} />
+    <section className="flex-1 flex flex-col items-center justify-center pb-24 gap-10">
       <RevealBlock delay={0}>
-        <div className="relative z-10 text-center">
+        <div className="text-center">
           <p className="text-[10px] text-white/35 uppercase tracking-[0.3em] mb-2">Tap to</p>
           <h2 className="text-2xl font-light tracking-wide text-white leading-snug" style={{ fontFamily: "var(--font-display)" }}>{idleHeading}</h2>
           <p className="text-sm text-white/50 mt-2">{idleSubtitle}</p>
@@ -1909,7 +1908,7 @@ function IdleView({ onRecord, errorMsg, selectedPillar, quickMode }: { onRecord:
       </RevealBlock>
 
       <RevealBlock delay={60}>
-        <div className="relative z-10 flex items-center justify-center">
+        <div className="relative flex items-center justify-center">
           <style>{`
             @keyframes rim-spin {
               from { transform: rotate(0deg); }
@@ -1943,11 +1942,11 @@ function IdleView({ onRecord, errorMsg, selectedPillar, quickMode }: { onRecord:
       </RevealBlock>
 
       {micRequesting && (
-        <p className="relative z-10 text-xs text-white/35 tracking-wide animate-pulse">Requesting microphone…</p>
+        <p className="text-xs text-white/35 tracking-wide animate-pulse">Requesting microphone…</p>
       )}
 
       {errorMsg && (
-        <p className="relative z-10 text-xs text-white/50 text-center max-w-xs">{errorMsg}</p>
+        <p className="text-xs text-white/50 text-center max-w-xs">{errorMsg}</p>
       )}
     </section>
   );
@@ -1971,16 +1970,15 @@ function RecordingView({
   const heading = quickMode ? "Describe the situation" : (selectedPillar && PILLAR_PROMPT[selectedPillar]) ?? "Speak freely";
   return (
     <section
-      className="relative flex-1 flex flex-col items-center justify-center pb-24 gap-10 overflow-hidden"
+      className="flex-1 flex flex-col items-center justify-center pb-24 gap-10"
       onClick={onStop}
     >
-      <PillarArtworkBackdrop pillar={quickMode ? null : selectedPillar} />
-      <div className="relative z-10 text-center pointer-events-none">
+      <div className="text-center pointer-events-none">
         <h2 className="text-2xl font-light tracking-wide text-white" style={{ fontFamily: "var(--font-display)" }}>{heading}</h2>
         <p className="text-sm text-white/50 mt-2">Tap to stop</p>
       </div>
 
-      <div className="relative z-10 flex items-center justify-center pointer-events-none">
+      <div className="relative flex items-center justify-center pointer-events-none">
         <span
           className="absolute w-48 h-48 rounded-full animate-ping"
           style={{ animationDuration: "2.4s", border: "1px solid rgba(201,165,90,0.12)" }}
@@ -2060,10 +2058,9 @@ function UnderstandingView({ pillar }: { pillar?: string | null }) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <section className="relative flex-1 flex flex-col items-center justify-center pb-24 gap-8 overflow-hidden">
-      <PillarArtworkBackdrop pillar={pillar} />
+    <section className="flex-1 flex flex-col items-center justify-center pb-24 gap-8">
       <RevealBlock delay={0}>
-        <div className="relative z-10 flex flex-col items-center gap-8 w-full">
+        <div className="flex flex-col items-center gap-8 w-full">
           <SpectrumVisualiser color={pillarColor} />
           <div className="text-center flex flex-col items-center gap-3 max-w-xs">
             <h2 className="text-xl font-light tracking-wide text-white" style={{ fontFamily: "var(--font-display)" }}>{copy.heading}</h2>
