@@ -9,7 +9,6 @@ import {
   PREVIOUS_ROUTE_KEY,
   RELOAD_REASON_KEY,
   currentClientRoute,
-  getDiagnosticSessionId,
   persistCurrentRoute,
   readPersistedRouteState,
   readRouteStack,
@@ -52,7 +51,6 @@ export default function RoutePersistence() {
     const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
     const wasReload = nav?.type === "reload";
     const route = currentRoute();
-    const sessionId = getDiagnosticSessionId();
     const previousRoute = bestRouteToRestore(route);
     const reason = safeGetSessionItem(RELOAD_REASON_KEY);
     const navigationIntent = safeGetSessionItem(NAV_INTENT_KEY);
@@ -84,23 +82,6 @@ export default function RoutePersistence() {
       const alreadyReported = safeGetSessionItem(RELOAD_REPORTED_KEY);
       if (alreadyReported !== previousRoute) {
         safeSetSessionItem(RELOAD_REPORTED_KEY, previousRoute);
-        const transcript = [
-          "[App diagnostic] Unexpected reload detected.",
-          `Current route after reload: ${route}`,
-          `Previous route before reload: ${previousRoute ?? "unknown"}`,
-          `Stored reload reason: ${reason ?? "unknown"}`,
-          `Navigation type: ${nav?.type ?? "unknown"}`,
-          `Will restore route: ${shouldRestore ? "yes" : "no"}`,
-          `Navigation intent: ${navigationIntent ?? "none"}`,
-          `Session: ${sessionId}`,
-          `User agent: ${navigator.userAgent}`,
-        ].join("\n");
-        fetch("/api/feedback", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ transcript }),
-          keepalive: true,
-        }).catch(() => {});
       }
     }
 

@@ -14,6 +14,10 @@ function codexNotesKey(uid: string) {
   return `codex-notes:${uid}`;
 }
 
+function isAppDiagnostic(transcript: string) {
+  return transcript.trim().startsWith("[App diagnostic]");
+}
+
 async function getClient() {
   const client = createClient({ url: process.env.REDIS_URL });
   await client.connect();
@@ -53,7 +57,7 @@ export async function POST(req: NextRequest) {
     try {
       await client.lPush(REDIS_KEY, JSON.stringify(entry));
       await client.lTrim(REDIS_KEY, 0, MAX_ENTRIES - 1);
-      if (uid !== "anonymous") {
+      if (uid !== "anonymous" && !isAppDiagnostic(entry.transcript)) {
         const rawNotes = await client.get(codexNotesKey(uid));
         const currentNotes = rawNotes ? JSON.parse(rawNotes) as unknown[] : [];
         const note = {

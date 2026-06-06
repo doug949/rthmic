@@ -20,6 +20,10 @@ function notesKey(uid: string) {
   return `codex-notes:${uid}`;
 }
 
+function isAppDiagnosticNote(note: CodexNote) {
+  return note.text.trim().startsWith("[App diagnostic]");
+}
+
 async function withRedis<T>(
   fn: (client: ReturnType<typeof createClient>) => Promise<T>
 ): Promise<T> {
@@ -40,7 +44,12 @@ export async function GET(request: NextRequest) {
   try {
     const notes = await withRedis(async (client) => {
       const raw = await client.get(notesKey(uid));
-      return raw ? JSON.parse(raw) as CodexNote[] : [];
+      const current = raw ? JSON.parse(raw) as CodexNote[] : [];
+      const visible = current.filter((note) => !isAppDiagnosticNote(note));
+      if (visible.length !== current.length) {
+        await client.set(notesKey(uid), JSON.stringify(visible));
+      }
+      return visible;
     });
     return NextResponse.json({ notes });
   } catch (err) {
