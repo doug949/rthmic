@@ -14,6 +14,10 @@ export default function StudioPage() {
   const [checked, setChecked] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
   const [linkContext, setLinkContext] = useState("");
+  const [photoContext, setPhotoContext] = useState("");
+  const [photoName, setPhotoName] = useState("");
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoError, setPhotoError] = useState("");
 
   useEffect(() => {
     const match = document.cookie.match(/(?:^|;\s*)rthmic_code=([^;]+)/);
@@ -67,6 +71,32 @@ export default function StudioPage() {
       "Do not pretend to have read page details that are not in the prompt. Use the URL and user context honestly.",
     ].join(" ");
     router.push(`/speak?pillar=explain&experiment=link-song&autoText=1&seed=${encodeURIComponent(seed)}`);
+  };
+
+  const startPhotoRthm = async (file: File | null) => {
+    if (!file || photoBusy) return;
+    setPhotoBusy(true);
+    setPhotoError("");
+    setPhotoName(file.name || "Photo");
+
+    try {
+      const image = await resizePhotoForPrompt(file);
+      const form = new FormData();
+      form.append("image", image, "photo.jpg");
+      const context = photoContext.trim();
+      if (context) form.append("context", context);
+
+      const res = await fetch("/api/photo-rthm", { method: "POST", body: form });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Could not interpret photo");
+
+      const seed = typeof data.seed === "string" ? data.seed : "";
+      if (!seed) throw new Error("Could not interpret photo");
+      router.push(`/speak?pillar=explain&experiment=photo-song&autoText=1&seed=${encodeURIComponent(seed)}`);
+    } catch (err) {
+      setPhotoError(err instanceof Error ? err.message : "Could not interpret photo");
+      setPhotoBusy(false);
+    }
   };
 
   return (
@@ -135,6 +165,52 @@ export default function StudioPage() {
               </div>
             </div>
           </div>
+          <div className="rounded-2xl border px-5 py-4" style={{ background: "rgba(255,255,255,0.045)", borderColor: "rgba(255,255,255,0.10)" }}>
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "rgba(139,92,246,0.16)", color: "rgb(167,139,250)" }}>
+                ◉
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-semibold text-white/78">Photograph to Rthm</p>
+                  <span className="text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.32)" }}>Experiment</span>
+                </div>
+                <p className="text-xs text-white/40 leading-relaxed mt-1">
+                  Take or choose a photo, then make a Rthm about what to notice, remember, question, or feel.
+                </p>
+                <div className="mt-3 flex flex-col gap-2">
+                  <textarea
+                    value={photoContext}
+                    onChange={(event) => setPhotoContext(event.target.value)}
+                    placeholder="Optional context: property viewing, menu choice, object memory, room layout, travel moment..."
+                    className="min-h-20 w-full resize-none rounded-xl border bg-white/[0.035] px-3 py-3 text-sm text-white/76 outline-none placeholder:text-white/24"
+                    style={{ borderColor: "rgba(255,255,255,0.10)" }}
+                    disabled={photoBusy}
+                  />
+                  <label
+                    className="w-full rounded-xl px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-widest transition-all active:scale-[0.98]"
+                    style={{ background: "rgba(139,92,246,0.14)", border: "1px solid rgba(139,92,246,0.32)", color: "rgb(190,170,250)", opacity: photoBusy ? 0.55 : 1 }}
+                  >
+                    {photoBusy ? "Reading photo..." : "Take or choose photo"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="hidden"
+                      disabled={photoBusy}
+                      onChange={(event) => {
+                        const file = event.target.files?.[0] ?? null;
+                        event.target.value = "";
+                        startPhotoRthm(file);
+                      }}
+                    />
+                  </label>
+                  {photoName && <p className="text-[11px] text-white/28 truncate">{photoName}</p>}
+                  {photoError && <p className="text-xs text-red-300/70 leading-relaxed">{photoError}</p>}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <StudioAction title="Export Rthm" detail="Prepare a track for use in a video, deck, page, workshop, or client context." status="Next" />
@@ -144,6 +220,38 @@ export default function StudioPage() {
       </section>
     </main>
   );
+}
+
+function resizePhotoForPrompt(file: File): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const maxSide = 1400;
+      const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+      const width = Math.max(1, Math.round(img.width * scale));
+      const height = Math.max(1, Math.round(img.height * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        reject(new Error("Could not prepare photo"));
+        return;
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob((blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error("Could not prepare photo"));
+      }, "image/jpeg", 0.78);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Could not open photo"));
+    };
+    img.src = url;
+  });
 }
 
 function ExperimentAction({ title, detail, status, onClick }: { title: string; detail: string; status: string; onClick: () => void }) {

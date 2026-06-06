@@ -207,7 +207,7 @@ interface UnderstandResult {
   style: StyleChoice;
 }
 
-type ExperimentalCreateId = "walking-tour" | "link-song";
+type ExperimentalCreateId = "walking-tour" | "link-song" | "photo-song";
 
 const EXPERIMENTS: Record<ExperimentalCreateId, {
   label: string;
@@ -236,10 +236,19 @@ const EXPERIMENTS: Record<ExperimentalCreateId, {
     idleHeading: "Describe the link",
     idleSubtitle: "RTHMIC will turn the linked thing into a useful pre-listen.",
   },
+  "photo-song": {
+    label: "Photo to Rthm",
+    badge: "Experimental",
+    headline: "What should the Rthm help you notice in the image?",
+    subheadline: "Add any missing context: where it was taken, why it matters, or what you want to remember.",
+    footnote: "For now the photo is interpreted once and discarded. The generated Rthm uses the visual description plus your context.",
+    idleHeading: "Add photo context",
+    idleSubtitle: "RTHMIC will turn the photographed thing into a useful Rthm.",
+  },
 };
 
 function isExperiment(value: string | null): value is ExperimentalCreateId {
-  return value === "walking-tour" || value === "link-song";
+  return value === "walking-tour" || value === "link-song" || value === "photo-song";
 }
 
 export default function SpeakPage() {
