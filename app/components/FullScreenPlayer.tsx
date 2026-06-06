@@ -42,7 +42,7 @@ export default function FullScreenPlayer() {
   const [tagInput, setTagInput]       = useState("");
   const [recreateOpen, setRecreateOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
-  const [sideFlipping, setSideFlipping] = useState(false);
+  const [sideFlipPhase, setSideFlipPhase] = useState<"idle" | "out" | "in">("idle");
   const offlineUrl = rhythm ? `/api/proxy-audio?id=${encodeURIComponent(rhythm.id)}` : undefined;
   const { isCached, cacheTrack, caching } = useOfflineAudio(offlineUrl);
 
@@ -203,7 +203,7 @@ export default function FullScreenPlayer() {
 
   const handleSwapSide = useCallback(() => {
     if (!alternate) return;
-    setSideFlipping(true);
+    setSideFlipPhase("out");
     window.setTimeout(() => {
       handlePlayUrl(
         alternate.id,
@@ -211,7 +211,8 @@ export default function FullScreenPlayer() {
         alternate.title,
         { rhythmId: alternate.id, sunoTaskId: alternate.sunoTaskId }
       );
-      window.setTimeout(() => setSideFlipping(false), 180);
+      setSideFlipPhase("in");
+      window.setTimeout(() => setSideFlipPhase("idle"), 220);
     }, 180);
   }, [alternate, handlePlayUrl]);
 
@@ -319,7 +320,7 @@ export default function FullScreenPlayer() {
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex flex-col overflow-hidden ${sideFlipping ? "rthmic-side-flip-full" : ""}`}
+      className={`fixed inset-0 z-50 flex flex-col overflow-hidden ${sideFlipPhase === "out" ? "rthmic-side-flip-full-out" : sideFlipPhase === "in" ? "rthmic-side-flip-full-in" : ""}`}
       style={{ background: theme.bg }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}

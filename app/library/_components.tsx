@@ -95,7 +95,7 @@ export function RhythmRow({
   const [noteEditOpen, setNoteEditOpen] = useState(false);
   const [noteInput, setNoteInput] = useState(rhythm.note ?? "");
   const [moreOpen, setMoreOpen] = useState(false);
-  const [sideFlipping, setSideFlipping] = useState(false);
+  const [sideFlipPhase, setSideFlipPhase] = useState<"idle" | "out" | "in">("idle");
 
   const tags = rhythm.tags ?? [];
   const preferredSide = sidePreference === "current";
@@ -117,10 +117,11 @@ export function RhythmRow({
 
   const handleSwapSide = () => {
     if (!onSwapSide) return;
-    setSideFlipping(true);
+    setSideFlipPhase("out");
     window.setTimeout(() => {
       onSwapSide();
-      window.setTimeout(() => setSideFlipping(false), 180);
+      setSideFlipPhase("in");
+      window.setTimeout(() => setSideFlipPhase("idle"), 220);
     }, 180);
   };
 
@@ -132,7 +133,7 @@ export function RhythmRow({
 
   return (
     <div
-      className={`rounded-2xl border transition-all duration-200 ${dimmed ? "opacity-50" : ""} ${sideFlipping ? "rthmic-side-flip" : ""}`}
+      className={`rounded-2xl border transition-all duration-200 ${dimmed ? "opacity-50" : ""} ${sideFlipPhase === "out" ? "rthmic-side-flip-out" : sideFlipPhase === "in" ? "rthmic-side-flip-in" : ""}`}
       style={
         favourite
           ? { background: playing ? "rgba(201,165,90,0.07)" : "rgba(201,165,90,0.03)", borderColor: playing ? "rgba(201,165,90,0.35)" : "rgba(201,165,90,0.15)" }

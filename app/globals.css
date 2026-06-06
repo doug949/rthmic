@@ -47,26 +47,41 @@
   from { opacity: 0; transform: translateY(52px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-@keyframes rthmic-side-flip {
-  0%   { transform: perspective(900px) rotateY(0deg) scale(1); }
-  45%  { transform: perspective(900px) rotateY(88deg) scale(0.985); }
-  55%  { transform: perspective(900px) rotateY(92deg) scale(0.985); }
-  100% { transform: perspective(900px) rotateY(180deg) scale(1); }
+@keyframes rthmic-side-flip-out {
+  0%   { transform: perspective(900px) rotateY(0deg) scale(1); opacity: 1; }
+  100% { transform: perspective(900px) rotateY(88deg) scale(0.985); opacity: 0.78; }
 }
-.rthmic-side-flip {
-  animation: rthmic-side-flip 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
+@keyframes rthmic-side-flip-in {
+  0%   { transform: perspective(900px) rotateY(-88deg) scale(0.985); opacity: 0.78; }
+  100% { transform: perspective(900px) rotateY(0deg) scale(1); opacity: 1; }
+}
+.rthmic-side-flip-out {
+  animation: rthmic-side-flip-out 180ms cubic-bezier(0.4, 0, 0.7, 0.2) both;
   transform-style: preserve-3d;
   backface-visibility: hidden;
 }
-.rthmic-side-flip-full {
-  animation: rthmic-side-flip 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
+.rthmic-side-flip-in {
+  animation: rthmic-side-flip-in 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+}
+.rthmic-side-flip-full-out {
+  animation: rthmic-side-flip-out 180ms cubic-bezier(0.4, 0, 0.7, 0.2) both;
+  transform-origin: center center;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+}
+.rthmic-side-flip-full-in {
+  animation: rthmic-side-flip-in 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
   transform-origin: center center;
   transform-style: preserve-3d;
   backface-visibility: hidden;
 }
 @media (prefers-reduced-motion: reduce) {
-  .rthmic-side-flip,
-  .rthmic-side-flip-full {
+  .rthmic-side-flip-out,
+  .rthmic-side-flip-in,
+  .rthmic-side-flip-full-out,
+  .rthmic-side-flip-full-in {
     animation: none;
   }
 }
