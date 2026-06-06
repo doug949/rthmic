@@ -1,12 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppHeader } from "@/app/components/AppHeader";
 import { RevealBlock } from "@/app/components/RevealBlock";
 import { LockIcon } from "@/app/components/HomeTileIcons";
 
 const STUDIO_CODE = "doug2026";
+
+const PHOTO_FOCUS_OPTIONS = [
+  { id: "place-history", label: "History", detail: "What this place or object might be connected to." },
+  { id: "surroundings", label: "Surroundings", detail: "What the area, setting, or nearby context may imply." },
+  { id: "sun-aspect", label: "Sun / aspect", detail: "Light, direction, time, and property-viewing clues." },
+  { id: "property", label: "Property", detail: "Useful things to notice before a viewing." },
+  { id: "memory", label: "Memory", detail: "What to preserve emotionally or personally." },
+  { id: "questions", label: "Questions", detail: "What to investigate or ask next." },
+] as const;
 
 export default function StudioPage() {
   const router = useRouter();
@@ -18,10 +27,15 @@ export default function StudioPage() {
   const [walkError, setWalkError] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
   const [linkContext, setLinkContext] = useState("");
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoContext, setPhotoContext] = useState("");
+  const [photoFocus, setPhotoFocus] = useState<string[]>(["surroundings", "questions"]);
   const [photoName, setPhotoName] = useState("");
   const [photoBusy, setPhotoBusy] = useState(false);
   const [photoError, setPhotoError] = useState("");
+  const [photoPurposeRecording, setPhotoPurposeRecording] = useState(false);
+  const photoRecorderRef = useRef<MediaRecorder | null>(null);
+  const photoChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     const match = document.cookie.match(/(?:^|;\s*)rthmic_code=([^;]+)/);
@@ -101,18 +115,90 @@ export default function StudioPage() {
     router.push(`/speak?pillar=explain&experiment=link-song&autoText=1&seed=${encodeURIComponent(seed)}`);
   };
 
-  const startPhotoRthm = async (file: File | null) => {
-    if (!file || photoBusy) return;
-    setPhotoBusy(true);
+  const togglePhotoFocus = (id: string) => {
+    setPhotoFocus((current) =>
+      current.includes(id)
+        ? current.filter((item) => item !== id)
+        : [...current, id]
+    );
+  };
+
+  const handlePhotoFile = (file: File | null) => {
     setPhotoError("");
-    setPhotoName(file.name || "Photo");
+    setPhotoFile(file);
+    setPhotoName(file?.name || "");
+  };
+
+  const transcribePhotoPurpose = async (audio: Blob) => {
+    try {
+      const form = new FormData();
+      const ext = audio.type.includes("mp4") ? "mp4" : "webm";
+      form.append("audio", audio, `purpose.${ext}`);
+      const res = await fetch("/api/transcribe", { method: "POST", body: form });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Could not transcribe purpose");
+      const transcript = typeof data.transcript === "string" ? data.transcript.trim() : "";
+      if (transcript) {
+        setPhotoContext((current) => [current.trim(), transcript].filter(Boolean).join("\n"));
+      }
+    } catch (err) {
+      setPhotoError(err instanceof Error ? err.message : "Could not transcribe purpose");
+    }
+  };
+
+  const togglePhotoPurposeRecording = async () => {
+    if (photoPurposeRecording) {
+      const recorder = photoRecorderRef.current;
+      if (recorder && recorder.state === "recording") recorder.stop();
+      return;
+    }
 
     try {
-      const image = await resizePhotoForPrompt(file);
+      setPhotoError("");
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = MediaRecorder.isTypeSupported("audio/mp4")
+        ? "audio/mp4"
+        : MediaRecorder.isTypeSupported("audio/webm")
+          ? "audio/webm"
+          : "";
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType, audioBitsPerSecond: 32000 } : { audioBitsPerSecond: 32000 });
+      photoChunksRef.current = [];
+      photoRecorderRef.current = recorder;
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) photoChunksRef.current.push(event.data);
+      };
+      recorder.onstop = () => {
+        stream.getTracks().forEach((track) => track.stop());
+        setPhotoPurposeRecording(false);
+        const blob = new Blob(photoChunksRef.current, { type: mimeType || "audio/webm" });
+        photoChunksRef.current = [];
+        if (blob.size > 0) transcribePhotoPurpose(blob);
+      };
+      recorder.start();
+      setPhotoPurposeRecording(true);
+    } catch {
+      setPhotoPurposeRecording(false);
+      setPhotoError("Microphone unavailable. Type the purpose instead.");
+    }
+  };
+
+  const startPhotoRthm = async () => {
+    if (!photoFile || photoBusy) return;
+    setPhotoBusy(true);
+    setPhotoError("");
+
+    try {
+      const image = await resizePhotoForPrompt(photoFile);
       const form = new FormData();
       form.append("image", image, "photo.jpg");
+      form.append("metadataImage", photoFile, photoFile.name || "original-photo");
       const context = photoContext.trim();
       if (context) form.append("context", context);
+      form.append("purpose", context);
+      form.append("focusAreas", PHOTO_FOCUS_OPTIONS
+        .filter((option) => photoFocus.includes(option.id))
+        .map((option) => `${option.label}: ${option.detail}`)
+        .join("\n"));
 
       const res = await fetch("/api/photo-rthm", { method: "POST", body: form });
       const data = await res.json().catch(() => ({}));
@@ -250,22 +336,56 @@ export default function StudioPage() {
                   <span className="text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.32)" }}>Experiment</span>
                 </div>
                 <p className="text-xs text-white/40 leading-relaxed mt-1">
-                  Take or choose a photo, then make a Rthm about what to notice, remember, question, or feel.
+                  Take or choose a photo, choose what you want to learn from it, then create when ready.
                 </p>
                 <div className="mt-3 flex flex-col gap-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    {PHOTO_FOCUS_OPTIONS.map((option) => {
+                      const active = photoFocus.includes(option.id);
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() => togglePhotoFocus(option.id)}
+                          disabled={photoBusy}
+                          className="rounded-xl border px-3 py-2 text-left transition-all active:scale-[0.98] disabled:opacity-40"
+                          style={{
+                            background: active ? "rgba(139,92,246,0.16)" : "rgba(255,255,255,0.035)",
+                            borderColor: active ? "rgba(167,139,250,0.36)" : "rgba(255,255,255,0.10)",
+                          }}
+                        >
+                          <span className="block text-[10px] uppercase tracking-widest" style={{ color: active ? "rgb(190,170,250)" : "rgba(255,255,255,0.46)" }}>{option.label}</span>
+                          <span className="mt-1 block text-[10px] leading-snug text-white/30">{option.detail}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                   <textarea
                     value={photoContext}
                     onChange={(event) => setPhotoContext(event.target.value)}
-                    placeholder="Optional context: property viewing, menu choice, object memory, room layout, travel moment..."
+                    placeholder="Purpose or context: house for sale, old wall, room layout, travel moment, what you want the Rthm to help you learn..."
                     className="min-h-20 w-full resize-none rounded-xl border bg-white/[0.035] px-3 py-3 text-sm text-white/76 outline-none placeholder:text-white/24"
                     style={{ borderColor: "rgba(255,255,255,0.10)" }}
                     disabled={photoBusy}
                   />
+                  <button
+                    type="button"
+                    onClick={togglePhotoPurposeRecording}
+                    disabled={photoBusy}
+                    className="w-full rounded-xl px-4 py-3 text-[11px] font-semibold uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-35"
+                    style={{
+                      background: photoPurposeRecording ? "rgba(248,113,113,0.10)" : "rgba(255,255,255,0.045)",
+                      border: photoPurposeRecording ? "1px solid rgba(248,113,113,0.30)" : "1px solid rgba(255,255,255,0.10)",
+                      color: photoPurposeRecording ? "rgba(252,165,165,0.86)" : "rgba(255,255,255,0.58)",
+                    }}
+                  >
+                    {photoPurposeRecording ? "Stop speaking" : "Speak purpose"}
+                  </button>
                   <label
                     className="w-full rounded-xl px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-widest transition-all active:scale-[0.98]"
                     style={{ background: "rgba(139,92,246,0.14)", border: "1px solid rgba(139,92,246,0.32)", color: "rgb(190,170,250)", opacity: photoBusy ? 0.55 : 1 }}
                   >
-                    {photoBusy ? "Reading photo..." : "Take or choose photo"}
+                    {photoFile ? "Change photo" : "Take or choose photo"}
                     <input
                       type="file"
                       accept="image/*"
@@ -275,11 +395,20 @@ export default function StudioPage() {
                       onChange={(event) => {
                         const file = event.target.files?.[0] ?? null;
                         event.target.value = "";
-                        startPhotoRthm(file);
+                        handlePhotoFile(file);
                       }}
                     />
                   </label>
                   {photoName && <p className="text-[11px] text-white/28 truncate">{photoName}</p>}
+                  <button
+                    type="button"
+                    onClick={startPhotoRthm}
+                    disabled={!photoFile || photoBusy}
+                    className="w-full rounded-xl px-4 py-3 text-[11px] font-semibold uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-35"
+                    style={{ background: "rgba(139,92,246,0.20)", border: "1px solid rgba(167,139,250,0.42)", color: "rgb(210,196,255)" }}
+                  >
+                    {photoBusy ? "Reading photo..." : "Create Rthm"}
+                  </button>
                   {photoError && <p className="text-xs text-red-300/70 leading-relaxed">{photoError}</p>}
                 </div>
               </div>
