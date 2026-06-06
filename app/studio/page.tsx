@@ -475,24 +475,43 @@ export default function StudioPage() {
                   >
                     {photoPurposeRecording ? "Stop speaking" : "Speak purpose"}
                   </button>
-                  <label
-                    className="w-full rounded-xl px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-widest transition-all active:scale-[0.98]"
-                    style={{ background: "rgba(139,92,246,0.14)", border: "1px solid rgba(139,92,246,0.32)", color: "rgb(190,170,250)", opacity: photoBusy ? 0.55 : 1 }}
-                  >
-                    {photoFile ? "Change photo" : "Take or choose photo"}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      className="hidden"
-                      disabled={photoBusy}
-                      onChange={(event) => {
-                        const file = event.target.files?.[0] ?? null;
-                        event.target.value = "";
-                        handlePhotoFile(file);
-                      }}
-                    />
-                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label
+                      className="w-full rounded-xl px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-widest transition-all active:scale-[0.98]"
+                      style={{ background: "rgba(139,92,246,0.14)", border: "1px solid rgba(139,92,246,0.32)", color: "rgb(190,170,250)", opacity: photoBusy ? 0.55 : 1 }}
+                    >
+                      Take photo
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        className="hidden"
+                        disabled={photoBusy}
+                        onChange={(event) => {
+                          const file = event.target.files?.[0] ?? null;
+                          event.target.value = "";
+                          handlePhotoFile(file);
+                        }}
+                      />
+                    </label>
+                    <label
+                      className="w-full rounded-xl px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-widest transition-all active:scale-[0.98]"
+                      style={{ background: "rgba(255,255,255,0.045)", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.62)", opacity: photoBusy ? 0.55 : 1 }}
+                    >
+                      Choose photo
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={photoBusy}
+                        onChange={(event) => {
+                          const file = event.target.files?.[0] ?? null;
+                          event.target.value = "";
+                          handlePhotoFile(file);
+                        }}
+                      />
+                    </label>
+                  </div>
                   {photoName && <p className="text-[11px] text-white/28 truncate">{photoName}</p>}
                   <button
                     type="button"
