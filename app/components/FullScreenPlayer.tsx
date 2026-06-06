@@ -43,6 +43,7 @@ export default function FullScreenPlayer() {
   const [recreateOpen, setRecreateOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [sideFlipPhase, setSideFlipPhase] = useState<"idle" | "out" | "in">("idle");
+  const [actionPending, setActionPending] = useState(false);
   const offlineUrl = rhythm ? `/api/proxy-audio?id=${encodeURIComponent(rhythm.id)}` : undefined;
   const { isCached, cacheTrack, caching } = useOfflineAudio(offlineUrl);
 
@@ -97,6 +98,7 @@ export default function FullScreenPlayer() {
     setTagInput("");
     setConfirmRemove(false);
     setRecreateOpen(false);
+    setActionPending(false);
   }, [currentTrackId]);
 
   // ── On-demand timed lyrics fetch ─────────────────────────────────────────
@@ -144,32 +146,65 @@ export default function FullScreenPlayer() {
   // ── Library mutations ─────────────────────────────────────────────────────
   const mutate = useCallback(
     async (body: Record<string, unknown>) => {
+      setActionPending(true);
+      const optimisticId = typeof body.id === "string" ? body.id : currentTrackId;
+      if (body.action === "update" && optimisticId) {
+        const patch = { ...body };
+        delete patch.action;
+        delete patch.id;
+        setRhythm((r) => (r && r.id === optimisticId ? { ...r, ...patch } as SavedRhythm : r));
+      }
+      if (body.action === "remove" && optimisticId) {
+        setRhythm((r) => (r && r.id === optimisticId ? { ...r, status: "deleted", deletedAt: Date.now() } : r));
+      }
+      if (body.action === "preferSide" && optimisticId) {
+        setRhythm((r) => (r ? { ...r, preferredSideId: optimisticId } : r));
+        setLibraryRhythms((prev) => prev.map((r) => {
+          if (r.id === optimisticId || r.id === rhythm?.alternateId || r.alternateId === optimisticId || (!!rhythm?.pairId && r.pairId === rhythm.pairId)) {
+            return { ...r, preferredSideId: optimisticId };
+          }
+          return r;
+        }));
+      }
       if (sourceMenuSlug && body.action === "preferSide") {
-        await fetch("/api/menu", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ slug: sourceMenuSlug, ...body }),
-        });
-        const data = await fetch(`/api/menu?slug=${encodeURIComponent(sourceMenuSlug)}`).then((r) => r.json());
-        const menuRhythms = (data.songs ?? []) as SavedRhythm[];
-        setLibraryRhythms(menuRhythms);
-        setRhythm(menuRhythms.find((r) => r.id === currentTrackId) ?? null);
+        try {
+          const res = await fetch("/api/menu", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ slug: sourceMenuSlug, ...body }),
+          });
+          if (!res.ok) throw new Error("menu mutation failed");
+          const data = await fetch(`/api/menu?slug=${encodeURIComponent(sourceMenuSlug)}`).then((r) => r.json());
+          const menuRhythms = (data.songs ?? []) as SavedRhythm[];
+          setLibraryRhythms(menuRhythms);
+          setRhythm(menuRhythms.find((r) => r.id === currentTrackId) ?? null);
+        } finally {
+          setActionPending(false);
+        }
         return;
       }
-      await fetch("/api/library", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      // Re-fetch to get updated state
-      const data = await fetch("/api/library").then((r) => r.json());
-      setRhythm(
-        (data.rhythms ?? []).find((r: SavedRhythm) => r.id === currentTrackId) ?? null
-      );
-      // Notify list pages so they re-fetch and show fresh data (e.g. new tags)
-      window.dispatchEvent(new CustomEvent("library-mutated"));
+      try {
+        const res = await fetch("/api/library", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error("library mutation failed");
+        // Re-fetch to get updated state
+        const data = await fetch("/api/library").then((r) => r.json());
+        setRhythm(
+          (data.rhythms ?? []).find((r: SavedRhythm) => r.id === currentTrackId) ?? null
+        );
+        // Notify list pages so they re-fetch and show fresh data (e.g. new tags)
+        window.dispatchEvent(new CustomEvent("library-mutated"));
+      } catch {
+        const data = await fetch("/api/library").then((r) => r.json()).catch(() => null);
+        if (data) setRhythm((data.rhythms ?? []).find((r: SavedRhythm) => r.id === currentTrackId) ?? null);
+      } finally {
+        setActionPending(false);
+      }
     },
-    [currentTrackId, sourceMenuSlug]
+    [currentTrackId, rhythm?.alternateId, rhythm?.pairId, sourceMenuSlug]
   );
 
   const tags = rhythm?.tags ?? [];
@@ -217,16 +252,16 @@ export default function FullScreenPlayer() {
   }, [alternate, handlePlayUrl]);
 
   const handlePreferSide = useCallback(() => {
-    if (!rhythm) return;
+    if (!rhythm || actionPending) return;
     mutate({ action: "preferSide", id: rhythm.id });
-  }, [mutate, rhythm]);
+  }, [actionPending, mutate, rhythm]);
 
-  const handleGraduate   = () => rhythm && mutate({ action: "update", id: rhythm.id, status: "favourite" });
-  const handleUngraduate = () => rhythm && mutate({ action: "update", id: rhythm.id, status: "active" });
+  const handleGraduate   = () => rhythm && !actionPending && mutate({ action: "update", id: rhythm.id, status: "favourite" });
+  const handleUngraduate = () => rhythm && !actionPending && mutate({ action: "update", id: rhythm.id, status: "active" });
   const handleArchive    = () =>
-    rhythm && mutate({ action: "update", id: rhythm.id, status: rhythm.status === "archived" ? "active" : "archived" });
+    rhythm && !actionPending && mutate({ action: "update", id: rhythm.id, status: rhythm.status === "archived" ? "active" : "archived" });
   const handleRemove = () => {
-    if (!rhythm) return;
+    if (!rhythm || actionPending) return;
     if (confirmRemove) {
       mutate({ action: "remove", id: rhythm.id });
       stop();
@@ -367,7 +402,7 @@ export default function FullScreenPlayer() {
           </span>
           <button
             onClick={handlePreferSide}
-            disabled={isPreferredSide}
+            disabled={isPreferredSide || actionPending}
             className="text-[10px] uppercase tracking-widest rounded-full px-3 py-1.5 touch-manipulation active:scale-[0.98] transition-transform disabled:opacity-55"
             style={{
               background: isPreferredSide
@@ -516,10 +551,10 @@ export default function FullScreenPlayer() {
           <div className="flex border rounded-2xl overflow-hidden" style={{ borderColor: theme.actionBorder, background: theme.actionBg }}>
             <ActionBtn onClick={handleShare} icon="↗" label={shareToast ? "Copied!" : "Share"} active={shareToast} gold={isFavourite} />
             {(rhythm.status === "active" || rhythm.status === "new") && (
-              <ActionBtn onClick={handleGraduate} icon="☆" label="Add to Favs" />
+              <ActionBtn onClick={handleGraduate} icon="☆" label={actionPending ? "Adding…" : "Add to Favs"} disabled={actionPending} />
             )}
             {rhythm.status === "favourite" && (
-              <ActionBtn onClick={handleUngraduate} icon="★" label="Unfavourite" gold />
+              <ActionBtn onClick={handleUngraduate} icon="★" label={actionPending ? "Saving…" : "Unfavourite"} gold disabled={actionPending} />
             )}
             <ActionBtn onClick={() => setMoreOpen(true)} icon="···" label="More" gold={isFavourite} />
           </div>
@@ -796,20 +831,21 @@ function SeekBar({ currentTime, duration, onSeek, gold }: { currentTime: number;
 // ─── Action button ────────────────────────────────────────────────────────────
 
 function ActionBtn({
-  onClick, icon, label, sublabel, danger, confirming, active, gold,
+  onClick, icon, label, sublabel, danger, confirming, active, gold, disabled,
 }: {
   onClick: () => void; icon: string; label: string; sublabel?: string;
-  danger?: boolean; confirming?: boolean; active?: boolean; gold?: boolean;
+  danger?: boolean; confirming?: boolean; active?: boolean; gold?: boolean; disabled?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
+      disabled={disabled}
       className={`flex-1 flex flex-col items-center gap-1 py-3.5 touch-manipulation transition-colors
         ${confirming ? "text-red-400/90"
           : danger   ? "text-white/40 hover:text-red-400/80"
           : gold     ? ""
           : active   ? "text-white/80"
-          : "text-white/50 hover:text-white/70"}`}
+          : "text-white/50 hover:text-white/70"} disabled:opacity-55 disabled:pointer-events-none`}
       style={gold ? { color: "rgba(201,165,90,0.75)" } : undefined}
     >
       <span className="text-base leading-none">{icon}</span>

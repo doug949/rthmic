@@ -43,6 +43,7 @@ export function RhythmRow({
   onSwapSide,
   sidePreference = "none",
   onPreferSide,
+  actionPending,
 }: {
   rhythm: SavedRhythm;
   playing: boolean;
@@ -72,6 +73,7 @@ export function RhythmRow({
   onSwapSide?: () => void;
   sidePreference?: SidePreferenceState;
   onPreferSide?: () => void;
+  actionPending?: boolean;
 }) {
   // colour theme — priority: favourite > isNew > default
   const P = isNew && !favourite ? {
@@ -203,7 +205,7 @@ export function RhythmRow({
             {onPreferSide && (
               <button
                 onClick={onPreferSide}
-                disabled={preferredSide}
+                disabled={preferredSide || actionPending}
                 className="text-[10px] uppercase tracking-widest rounded-full px-3 py-1.5 touch-manipulation active:scale-[0.98] transition-transform disabled:opacity-55"
                 style={{
                   background: preferredSide
@@ -320,13 +322,13 @@ export function RhythmRow({
       <div className="flex" style={{ borderTop: `1px solid ${favourite ? "rgba(201,165,90,0.12)" : P ? P.divider : "rgba(255,255,255,0.06)"}` }}>
         <SmallBtn onClick={onShare} label={shareToast ? "Copied!" : "Share"} sublabel={shareToast ? "Link ready" : "Send link"} icon="↗" active={shareToast} gold={favourite} purple={!!P} />
         {isNew && onMarkListened && (
-          <SmallBtn onClick={onMarkListened} label="Listened" sublabel="Move to My Rthms" icon="✓" purple />
+          <SmallBtn onClick={onMarkListened} label={actionPending ? "Moving…" : "Listened"} sublabel="Move to My Rthms" icon="✓" purple disabled={actionPending} />
         )}
         {onGraduate && (
-          <SmallBtn onClick={onGraduate} label="Add to Favs" icon="☆" purple={!!P} />
+          <SmallBtn onClick={onGraduate} label={actionPending ? "Adding…" : "Add to Favs"} icon="☆" purple={!!P} disabled={actionPending} />
         )}
         {onUngraduate && (
-          <SmallBtn onClick={onUngraduate} label="Unfavourite" icon="★" gold />
+          <SmallBtn onClick={onUngraduate} label={actionPending ? "Saving…" : "Unfavourite"} icon="★" gold disabled={actionPending} />
         )}
         <SmallBtn onClick={() => setMoreOpen(true)} label="More" icon="···" gold={favourite} purple={!!P} />
       </div>
@@ -581,19 +583,20 @@ export function MoreSheet({ title, onClose, items }: { title: string; onClose: (
 
 // ─── SmallBtn ─────────────────────────────────────────────────────────────────
 
-export function SmallBtn({ onClick, label, sublabel, icon, danger, confirming, active, gold, purple }: {
+export function SmallBtn({ onClick, label, sublabel, icon, danger, confirming, active, gold, purple, disabled }: {
   onClick: () => void; label: string; sublabel?: string; icon: string;
-  danger?: boolean; confirming?: boolean; active?: boolean; gold?: boolean; purple?: boolean;
+  danger?: boolean; confirming?: boolean; active?: boolean; gold?: boolean; purple?: boolean; disabled?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
+      disabled={disabled}
       className={`flex-1 flex flex-col items-center gap-1 py-3 touch-manipulation transition-colors
         ${confirming ? "text-red-400/90"
           : danger ? "text-white/45 hover:text-red-400/80"
           : gold || purple ? ""
           : active ? "text-white/80"
-          : "text-white/55 hover:text-white/75"}`}
+          : "text-white/55 hover:text-white/75"} disabled:opacity-55 disabled:pointer-events-none`}
       style={gold ? { color: "rgba(201,165,90,0.75)" } : purple ? { color: "rgba(167,139,250,0.75)" } : undefined}
     >
       <span className="text-base leading-none">{icon}</span>

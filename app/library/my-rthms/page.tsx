@@ -97,6 +97,7 @@ export default function MyRthmsPage() {
   const [confirmBatchDelete, setConfirmBatchDelete] = useState(false);
   const [autoTagging, setAutoTagging] = useState(false);
   const [autoTagMessage, setAutoTagMessage] = useState<string | null>(null);
+  const [pendingMutationIds, setPendingMutationIds] = useState<Set<string>>(new Set());
 
   const { currentTrackId, isPlaying, currentTime, duration, handlePlayUrl } = useAudio();
   const { startGeneration } = useGeneration();
@@ -161,15 +162,32 @@ export default function MyRthmsPage() {
     };
   }, [fetchLibrary, fetchQueueJobs]);
 
-  const mutate = useCallback(async (body: Record<string, unknown>) => {
-    await fetch("/api/library", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+  const markPending = useCallback((ids: string[], pending: boolean) => {
+    if (ids.length === 0) return;
+    setPendingMutationIds((prev) => {
+      const next = new Set(prev);
+      ids.forEach((id) => pending ? next.add(id) : next.delete(id));
+      return next;
     });
-    fetchLibrary();
-    window.dispatchEvent(new CustomEvent("library-mutated"));
-  }, [fetchLibrary]);
+  }, []);
+
+  const mutate = useCallback(async (body: Record<string, unknown>, pendingIds: string[] = typeof body.id === "string" ? [body.id] : []) => {
+    markPending(pendingIds, true);
+    try {
+      const res = await fetch("/api/library", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error("library mutation failed");
+      fetchLibrary();
+      window.dispatchEvent(new CustomEvent("library-mutated"));
+    } catch {
+      fetchLibrary();
+    } finally {
+      markPending(pendingIds, false);
+    }
+  }, [fetchLibrary, markPending]);
 
   const updateRhythmLocal = useCallback((id: string, patch: Partial<SavedRhythm>) => {
     setRhythms((prev) => prev.map((r) => r.id === id ? { ...r, ...patch } : r));
@@ -190,6 +208,7 @@ export default function MyRthmsPage() {
 
   const handleRemove = (id: string) => {
     if (confirmRemoveId === id) {
+      updateRhythmLocal(id, { status: "deleted", deletedAt: Date.now() });
       mutate({ action: "remove", id });
       setConfirmRemoveId(null);
     } else {
@@ -209,8 +228,9 @@ export default function MyRthmsPage() {
       r.id === rhythm.alternateId ||
       (rhythm.pairId && r.pairId === rhythm.pairId && r.id !== rhythm.id)
     );
-    updateRhythm(rhythm.id, { status: "active" });
-    if (alternate?.status === "new") updateRhythm(alternate.id, { status: "active" });
+    const ids = alternate?.status === "new" ? [rhythm.id, alternate.id] : [rhythm.id];
+    ids.forEach((id) => updateRhythmLocal(id, { status: "active" }));
+    mutate({ action: "update", id: rhythm.id, status: "active" }, ids);
   };
 
   const handleUngraduate = (id: string) =>
@@ -222,8 +242,19 @@ export default function MyRthmsPage() {
   const handleNote = (id: string, note: string) =>
     updateRhythm(id, { note });
 
-  const handlePreferSide = (id: string) =>
-    mutate({ action: "preferSide", id });
+  const handlePreferSide = (id: string) => {
+    const target = rhythms.find((r) => r.id === id);
+    const ids = rhythms
+      .filter((r) =>
+        r.id === id ||
+        (!!target?.pairId && r.pairId === target.pairId) ||
+        r.id === target?.alternateId ||
+        r.alternateId === id
+      )
+      .map((r) => r.id);
+    setRhythms((prev) => prev.map((r) => ids.includes(r.id) ? { ...r, preferredSideId: id } : r));
+    mutate({ action: "preferSide", id }, ids);
+  };
 
   const handleRestore = (id: string) =>
     updateRhythm(id, { status: "active" });
@@ -483,6 +514,7 @@ export default function MyRthmsPage() {
                       onShare={() => handleShare(rhythm)}
                       onTag={(tags) => handleTag(rhythm.id, tags)}
                       onNote={(note) => handleNote(rhythm.id, note)}
+                      actionPending={pendingMutationIds.has(rhythm.id)}
                       confirmingRemove={confirmRemoveId === rhythm.id}
                       shareToast={shareToastId === rhythm.id}
                       sideLabel={alternate ? sideLabelFor(rhythm) : undefined}
@@ -635,6 +667,7 @@ export default function MyRthmsPage() {
                             onShare={() => handleShare(rhythm)}
                             onTag={(tags) => handleTag(rhythm.id, tags)}
                             onNote={(note) => handleNote(rhythm.id, note)}
+                            actionPending={pendingMutationIds.has(rhythm.id)}
                             confirmingRemove={confirmRemoveId === rhythm.id}
                             shareToast={shareToastId === rhythm.id}
                             sideLabel={alternate ? sideLabelFor(rhythm) : undefined}
