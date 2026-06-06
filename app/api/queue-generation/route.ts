@@ -55,7 +55,7 @@ async function startSunoJob(job: QueueJob): Promise<{ taskId: string | null; err
         customMode: true,
         instrumental: false,
         model: "V5",
-        prompt: job.lyrics,
+        prompt: toSunoPronunciation(job.lyrics),
         style: job.genre,
         title: job.title,
         callBackUrl: `${APP_URL}/api/suno-webhook`,
@@ -99,6 +99,8 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
   const rawLyrics = typeof body.lyrics === "string" ? body.lyrics : "";
+  const transcript = typeof body.transcript === "string" ? body.transcript.trim() : "";
+  const stateSummary = body.stateSummary && typeof body.stateSummary === "object" ? body.stateSummary : undefined;
   const style = (body.style as StyleChoice) ?? "B";
   const rawGenre = typeof body.genre === "string" && body.genre.trim() ? body.genre.trim() : "Indie Electronic";
   const pillar = body.pillar as PillarType;
@@ -119,11 +121,13 @@ export async function POST(req: NextRequest) {
   const rthmixUnlock = typeof body.rthmixUnlock === "string" ? body.rthmixUnlock : undefined;
   const rthmixAlbumArtPrompt = typeof body.rthmixAlbumArtPrompt === "string" ? body.rthmixAlbumArtPrompt : undefined;
 
-  if (!rawLyrics.trim()) return NextResponse.json({ error: "lyrics required" }, { status: 400 });
+  if (!rawLyrics.trim() && !transcript) {
+    return NextResponse.json({ error: "lyrics or transcript required" }, { status: 400 });
+  }
 
   const vocalist = await getVocalistPref(uid);
   const genre = applyVocalistPreference(rawGenre, vocalist);
-  const lyrics = toSunoPronunciation(rawLyrics.slice(0, SUNO_CHAR_LIMIT));
+  const lyrics = rawLyrics.slice(0, SUNO_CHAR_LIMIT);
   const builtStyle = buildSunoStyle(genre);
 
   const jobId = crypto.randomUUID();
@@ -135,6 +139,8 @@ export async function POST(req: NextRequest) {
     title,
     style,
     lyrics,
+    transcript,
+    stateSummary,
     genre: builtStyle,
     note,
     menuSlug,
@@ -158,6 +164,11 @@ export async function POST(req: NextRequest) {
     const generating = await countGenerating(client, uid);
     if (generating >= MAX_CONCURRENT) {
       console.log(`[queue] ${uid} at cap (${generating}), job ${jobId} stays pending`);
+      return;
+    }
+
+    if (!job.lyrics.trim()) {
+      console.log(`[queue] job ${jobId} needs lyrics, cron will write before Suno start`);
       return;
     }
 

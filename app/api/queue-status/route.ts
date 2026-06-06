@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     let active = 0;
     for (const jobId of jobIds) {
       const job = await getJob(client, jobId);
-      if (job && (job.status === "pending" || job.status === "generating")) active++;
+      if (job && (job.status === "pending" || job.status === "writing" || job.status === "generating")) active++;
     }
     return NextResponse.json({ active }, { headers: { "Cache-Control": "no-store" } });
   });

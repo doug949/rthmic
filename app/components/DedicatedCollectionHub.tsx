@@ -12,7 +12,7 @@ interface QueueJob {
   jobId: string;
   title: string;
   pillar: string;
-  status: "pending" | "generating";
+  status: "pending" | "writing" | "generating";
 }
 
 interface DedicatedCollectionHubProps {
@@ -184,4 +184,3 @@ export function DedicatedCollectionHub({
     </main>
   );
 }
-

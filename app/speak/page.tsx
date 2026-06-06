@@ -611,6 +611,7 @@ export default function SpeakPage() {
 
       const data: UnderstandResult = await res.json();
       if (pillar) data.pillar = normalisePillar(pillar);
+      allTranscriptsRef.current = [text];
       setUnderstandResult(data);
       saveInterpretationDraft(data);
       const skipConfirmText = shouldSkipConfirmation(pillar);
@@ -636,6 +637,7 @@ export default function SpeakPage() {
       : understandResult.title;
     const title = rawTitle.length > 80 ? rawTitle.slice(0, 77) + "…" : rawTitle;
     const note = buildPurposeNote(understandResult.stateSummary.intent);
+    const transcriptForLyrics = allTranscriptsRef.current.join(" ").trim() || understandResult.transcript;
 
     try {
       const res = await fetch("/api/queue-generation", {
@@ -643,6 +645,8 @@ export default function SpeakPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           lyrics: understandResult.lyrics,
+          transcript: transcriptForLyrics,
+          stateSummary: understandResult.stateSummary,
           style: understandResult.style,
           title,
           pillar: finalPillar,

@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { transcribe } from "@/app/services/transcriptionService";
-import { interpret } from "@/app/services/llmService";
+import { interpretBrief } from "@/app/services/llmService";
 import { normalisePillar } from "@/app/types/pipeline";
 import type { PillarType } from "@/app/types/pipeline";
 
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
       ? normalisePillar(selectedPillarSlug)
       : undefined;
 
-    const result = await interpret(fullTranscript, overridePillar);
+    const result = await interpretBrief(fullTranscript, overridePillar);
 
     // Hard-pin: if the user explicitly chose a pillar, it cannot be overridden
     // by anything the LLM returns — enforce at the API boundary as a final guarantee.
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
       pillar: finalPillar,
       stateSummary: result.stateSummary,
       title: result.title,
-      lyrics: result.lyrics,
+      lyrics: "",
       style: result.style,
     });
   } catch (err) {

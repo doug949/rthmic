@@ -1,18 +1,20 @@
 // Shared Redis queue helpers used by /api/queue-generation, /api/process-queue, /api/queue-status
 
 import type { StyleChoice } from "@/app/services/llmService";
-import type { PillarType } from "@/app/types/pipeline";
+import type { PillarType, StateSummary } from "@/app/types/pipeline";
 import { withRedis, type RedisClient } from "@/app/lib/redis";
 
 export interface QueueJob {
   jobId: string;
   userId: string;
-  status: "pending" | "generating" | "done" | "failed";
+  status: "pending" | "writing" | "generating" | "done" | "failed";
   failureReason?: string;
   pillar: PillarType;
   title: string;
   style: StyleChoice;
   lyrics: string;
+  transcript?: string;
+  stateSummary?: StateSummary;
   genre: string;
   note?: string;
   menuSlug?: string;
@@ -109,7 +111,7 @@ export async function getQueueStats(
   for (const jobId of jobIds) {
     const job = await getJob(client, jobId);
     if (!job) continue;
-    if (job.status === "pending") pending++;
+    if (job.status === "pending" || job.status === "writing") pending++;
     if (job.status === "generating") generating++;
   }
   return { pending, generating };

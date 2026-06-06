@@ -15,6 +15,8 @@ import type { QueueJob } from "@/app/lib/queueLib";
 import type { Song } from "@/app/types/pipeline";
 import { saveCompletedSongs } from "@/app/lib/generationCompletion";
 import { extractSunoTaskId, isSunoCreditError, sunoStartError } from "@/app/lib/sunoResponse";
+import { toSunoPronunciation } from "@/app/lib/sunoLyrics";
+import { writeLyricsFromBrief } from "@/app/services/llmService";
 
 export const maxDuration = 60;
 
@@ -105,6 +107,34 @@ async function startJob(
   client: ReturnType<typeof createClient>,
   job: QueueJob
 ): Promise<void> {
+  if (!job.lyrics?.trim()) {
+    if (!job.transcript || !job.stateSummary) {
+      job.status = "failed";
+      job.failureReason = "Missing lyrics and interpretation brief";
+      await updateJob(client, job);
+      return;
+    }
+
+    try {
+      console.log(`[queue] writing lyrics for job ${job.jobId}`);
+      job.status = "writing";
+      await updateJob(client, job);
+      job.lyrics = await writeLyricsFromBrief({
+        transcript: job.transcript,
+        pillar: job.pillar,
+        title: job.title,
+        stateSummary: job.stateSummary,
+      });
+      await updateJob(client, job);
+    } catch (err) {
+      console.error(`[queue] lyric writing failed for ${job.jobId}:`, err);
+      job.status = "failed";
+      job.failureReason = err instanceof Error ? err.message : "Lyric writing failed";
+      await updateJob(client, job);
+      return;
+    }
+  }
+
   const res = await fetch(`${SUNO_BASE}/generate`, {
     method: "POST",
     headers: {
@@ -115,7 +145,7 @@ async function startJob(
       customMode: true,
       instrumental: false,
       model: "V5",
-      prompt: job.lyrics,
+      prompt: toSunoPronunciation(job.lyrics),
       style: job.genre,
       title: job.title,
       callBackUrl: `${APP_URL}/api/suno-webhook`,
@@ -195,6 +225,12 @@ async function processUserQueue(
     if (j?.status === "generating") generating++;
   }
 
+  for (const job of jobs.filter((j) => j.status === "writing" && Date.now() - j.updatedAt > MAX_AGE_MS)) {
+    console.warn(`[queue] resetting stale lyric-writing job ${job.jobId}`);
+    job.status = "pending";
+    await updateJob(client, job);
+  }
+
   for (const job of jobs.filter((j) => j.status === "pending")) {
     if (generating >= MAX_CONCURRENT) break;
     await startJob(client, job);
@@ -207,7 +243,7 @@ async function processUserQueue(
   let anyActive = false;
   for (const jobId of remaining) {
     const j = await getJob(client, jobId);
-    if (j && (j.status === "pending" || j.status === "generating")) { anyActive = true; break; }
+    if (j && (j.status === "pending" || j.status === "writing" || j.status === "generating")) { anyActive = true; break; }
   }
   if (!anyActive) {
     await client.sRem(USERS_KEY, userId);

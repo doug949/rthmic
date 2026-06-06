@@ -24,6 +24,13 @@ export interface LLMResult {
   style: StyleChoice;
 }
 
+export interface LLMBriefResult {
+  pillar: PillarType;
+  stateSummary: StateSummary;
+  title: string;
+  style: StyleChoice;
+}
+
 function delay(ms: number) {
   return new Promise((res) => setTimeout(res, ms));
 }
@@ -90,6 +97,48 @@ Return a JSON object with this exact shape:
   },
   "lyrics": "full song lyrics with [VERSE]/[CHORUS]/[BRIDGE] structure, including a clear conclusive ending section"
 }`;
+}
+
+function buildBriefSystemPrompt(pillar: PillarType, template: string, masterContext?: string): string {
+  const masterSection = masterContext
+    ? `\nSYSTEM:\n${masterContext}\n`
+    : "";
+
+  return `You are RTHMIC's fast interpretation engine. Understand the user's spoken intent quickly. Do not write lyrics yet.
+${masterSection}
+PILLAR: ${pillar}
+
+${template}
+
+Choose the style that best serves what they need:
+- "A" for activation, breaking inertia, forward momentum, decisive action.
+- "B" for calm focus, organising thoughts, emotional grounding, steady momentum.
+
+Return a JSON object with this exact shape:
+{
+  "pillar": "${pillar}",
+  "style": "A",
+  "title": "3-5 word song title",
+  "stateSummary": {
+    "state": "one sentence describing the person's current psychological state — write in second person",
+    "intent": "one sentence describing what they want to accomplish — write in second person",
+    "friction": "one sentence describing the specific block or resistance — write in second person"
+  }
+}`;
+}
+
+function buildLyricsSystemPrompt(pillar: PillarType, template: string, masterContext?: string): string {
+  const masterSection = masterContext
+    ? `\nSYSTEM:\n${masterContext}\n`
+    : "";
+
+  return `${LYRICS_SPEC}
+${masterSection}
+PILLAR: ${pillar}
+
+${template}
+
+Write only the final song lyrics with [VERSE] / [CHORUS] / [BRIDGE] labels. Do not return JSON.`;
 }
 
 // Style defaults per pillar (used in mock mode)
@@ -760,6 +809,25 @@ function extractJson(text: string): LLMResult {
   throw new Error("Could not extract JSON from LLM response");
 }
 
+function extractBriefJson(text: string): LLMBriefResult {
+  const fenceStripped = text
+    .replace(/```json\s*/gi, "")
+    .replace(/```\s*/g, "")
+    .trim();
+
+  try {
+    return JSON.parse(sanitizeJsonStrings(fenceStripped)) as LLMBriefResult;
+  } catch {
+    const start = text.indexOf("{");
+    const end = text.lastIndexOf("}");
+    if (start !== -1 && end > start) {
+      return JSON.parse(sanitizeJsonStrings(text.slice(start, end + 1))) as LLMBriefResult;
+    }
+  }
+
+  throw new Error("Could not extract brief JSON from LLM response");
+}
+
 // ─── Invite: spelled-name normalisation ──────────────────────────────────────
 //
 // Users often spell out recipient names when speaking (e.g. "K-A-T-H" or "K A T H").
@@ -833,6 +901,44 @@ function buildUserPrompt(pillar: PillarType, transcript: string): string {
   return base;
 }
 
+function buildLyricsUserPrompt(
+  pillar: PillarType,
+  transcript: string,
+  title: string,
+  stateSummary: StateSummary
+): string {
+  const base = `Song title: ${title}
+
+State summary:
+- State: ${stateSummary.state}
+- Intent: ${stateSummary.intent}
+- Friction: ${stateSummary.friction}
+
+Original spoken transcript:
+"${transcript}"
+
+The pillar is already determined: ${pillar}. Write the complete RTHMIC lyrics now.`;
+
+  if (pillar === "Journal") {
+    const dateStr = formatJournalDate();
+    return `${base}\n\nToday's date: ${dateStr}. The song title MUST use this date (e.g. "${dateStr}" or "${dateStr.split(",")[0]} Morning, ${dateStr.split(", ")[1]}"). Do not use a poetic title instead.`;
+  }
+
+  if (pillar === "Bridge") {
+    return `${base}\n\nCRITICAL BRIDGE RULES:\n1. TONE FIRST - identify the intended tone from the transcript (e.g. playful, sincere, celebratory, romantic, professional, cheeky, encouraging). Reflect that tone from the very first line. Do not warm up to it.\n2. ADDRESS THE RECEIVER - "you" in this song always means the receiver(s), never the sender. The receiver's name MUST appear naturally within the first 4 lines of verse 1, embedded in the lyric.\n3. SENDER AS MESSENGER - the vocalist speaks on behalf of the sender. Use the sender's name naturally in the lyrics where appropriate.\n4. MULTIPLE RECEIVERS - if multiple people are named as receivers, address them all.\n5. SPECIFICITY OVER SENTIMENT - mine the transcript for names, shared memories, in-jokes, habits, locations, events, personality traits. Weave them into every verse. Generic sentiment ("words can't express", "you mean so much") is a failure - replace with specifics.\n6. THE LISTENER'S TEST - the receiver must feel "this was made specifically for me."`;
+  }
+
+  if (pillar === "Invite") {
+    return `${base}\n\nCRITICAL INVITE RULES:\n1. THIS IS AN INVITATION, NOT A MINDSET RTHM - the song must explicitly invite the named recipient to try RTHMIC.\n2. ADDRESS THE RECIPIENT DIRECTLY - "you" means the recipient. The recipient's name MUST appear naturally within the first 4 lines if a name is provided.\n3. EXPLAIN RTHMIC THROUGH EXPERIENCE - make clear that the track itself was made with RTHMIC, from someone's spoken intent to invite them.\n4. SPEAK TO THEIR WORLD - use details from the transcript about how this person thinks, works, struggles, or creates. The song should feel aimed at them, not a generic beta pitch.\n5. HONEST RESPONSE - ask them for real feedback: what worked, what didn't, what felt strange, what surprised them.\n6. NEVER CLASSIFY AS MINDSET - keep the song plainly an Invite.`;
+  }
+
+  if (pillar === "BookSummary") {
+    return `${base}\n\nThe song title should follow this format: [Poetic Song Name] - Summary of "[Book Title]" by [Author Name]. If the existing title is missing the book attribution, infer it from the transcript and include the attribution in the lyric context. IMPORTANT: The author's name MUST appear naturally in the first verse - embedded as part of the lyric, not a label. Use a phrase like "[Author] argues that...", "[Author] shows that...", or "As [Author] puts it...". This gives the author credit and grounds the song in the source.`;
+  }
+
+  return base;
+}
+
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export async function interpret(rawTranscript: string, overridePillar?: PillarType): Promise<LLMResult> {
@@ -893,4 +999,91 @@ export async function interpret(rawTranscript: string, overridePillar?: PillarTy
   if (parsed.lyrics) parsed.lyrics = fromSunoPronunciation(parsed.lyrics);
 
   return parsed;
+}
+
+export async function interpretBrief(rawTranscript: string, overridePillar?: PillarType): Promise<LLMBriefResult> {
+  const pillar = overridePillar ?? detectPillar(rawTranscript);
+  const transcript = (pillar === "Invite" || pillar === "Bridge") ? reconstructSpelledNames(rawTranscript) : rawTranscript;
+
+  if (USE_MOCK) {
+    await delay(500 + Math.random() * 300);
+    return {
+      pillar,
+      style: PILLAR_STYLE_DEFAULTS[pillar],
+      title: MOCK_OUTPUTS[pillar].title,
+      stateSummary: MOCK_OUTPUTS[pillar].stateSummary,
+    };
+  }
+
+  const client = new Anthropic();
+  const template = loadTemplate(pillar);
+  const master = loadMaster();
+
+  const message = await client.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 1200,
+    system: buildBriefSystemPrompt(pillar, template, master),
+    messages: [
+      {
+        role: "user",
+        content: `User's spoken state:\n"${transcript}"\n\nThe pillar is already determined: ${pillar}. Return only the brief JSON. Do not write lyrics.`,
+      },
+    ],
+  });
+
+  const textBlock = message.content.find((b) => b.type === "text");
+  if (!textBlock || textBlock.type !== "text") {
+    throw new Error("LLM returned no text content");
+  }
+
+  const parsed = extractBriefJson(textBlock.text);
+  parsed.pillar = pillar;
+  parsed.style = parsed.style === "A" ? "A" : "B";
+  return parsed;
+}
+
+export async function writeLyricsFromBrief({
+  transcript,
+  pillar,
+  title,
+  stateSummary,
+}: {
+  transcript: string;
+  pillar: PillarType;
+  title: string;
+  stateSummary: StateSummary;
+}): Promise<string> {
+  if (USE_MOCK) {
+    await delay(1000 + Math.random() * 500);
+    return MOCK_OUTPUTS[pillar].lyrics;
+  }
+
+  const client = new Anthropic();
+  const template = loadTemplate(pillar);
+  const master = loadMaster();
+
+  const message = await client.messages.create({
+    model: "claude-sonnet-4-6",
+    max_tokens: 8000,
+    system: [
+      {
+        type: "text",
+        text: buildLyricsSystemPrompt(pillar, template, master),
+        cache_control: { type: "ephemeral" },
+      },
+    ],
+    messages: [
+      {
+        role: "user",
+        content: buildLyricsUserPrompt(pillar, transcript, title, stateSummary),
+      },
+    ],
+  });
+
+  const textBlock = message.content.find((b) => b.type === "text");
+  if (!textBlock || textBlock.type !== "text") {
+    throw new Error("LLM returned no lyrics");
+  }
+
+  return fromSunoPronunciation(textBlock.text.trim());
 }

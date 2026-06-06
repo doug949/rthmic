@@ -21,7 +21,8 @@ interface QueueJob {
   jobId: string;
   title: string;
   pillar: string;
-  status: "pending" | "generating" | "failed";
+  status: "pending" | "writing" | "generating" | "failed";
+  statusDetail?: string;
   failureReason?: string;
 }
 
@@ -147,7 +148,7 @@ const [clearingQueue, setClearingQueue]     = useState(false);
                 <div className="flex-1 min-w-0">
                   <p className="text-sm truncate" style={{ color: job.status === "failed" ? "rgba(248,113,113,0.78)" : job.status === "generating" ? "rgb(167,139,250)" : "rgba(255,255,255,0.6)" }}>{job.title}</p>
                   <p className="text-[10px] uppercase tracking-wider mt-0.5" style={{ color: job.status === "failed" ? "rgba(248,113,113,0.58)" : job.status === "generating" ? "rgb(139,92,246)" : "rgba(255,255,255,0.25)" }}>
-                    {job.status === "failed" ? `Failed · ${displayGenerationFailure(job.failureReason)}` : job.status === "generating" ? "Generating…" : "Queued"} · {job.pillar}
+                    {job.status === "failed" ? `Failed · ${displayGenerationFailure(job.failureReason)}` : job.status === "generating" ? "Generating..." : job.statusDetail ?? "Queued"} · {job.pillar}
                   </p>
                 </div>
                 {job.status === "failed" && (
