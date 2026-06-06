@@ -32,7 +32,8 @@ function isRestorableRoute(route: string | null | undefined): route is string {
 }
 
 function isAutoRestoreRoute(route: string): boolean {
-  return route === "/speak" || route.startsWith("/speak?");
+  if (route === "/" || route.startsWith("/login") || route.startsWith("/r/")) return false;
+  return true;
 }
 
 function bestRouteToRestore(routeAfterReload: string): string | null {
@@ -56,6 +57,11 @@ export default function RoutePersistence() {
     const navigationIntent = safeGetSessionItem(NAV_INTENT_KEY);
     const restoreAttemptId = previousRoute ? `${previousRoute} -> ${route}` : null;
     const previousAttempt = safeGetSessionItem(RESTORE_ATTEMPT_KEY);
+    const reloadKind = navigationIntent
+      ? "navigation"
+      : reason === "user-clicked-update"
+        ? "app-update"
+        : "browser-or-runtime";
     const shouldRestore = !!(
       wasReload &&
       reason !== "user-clicked-update" &&
@@ -68,6 +74,7 @@ export default function RoutePersistence() {
 
     if (wasReload) {
       recordDiagnosticEvent("reload", {
+        reloadKind,
         previousRoute,
         reason,
         navigationType: nav?.type ?? "unknown",
