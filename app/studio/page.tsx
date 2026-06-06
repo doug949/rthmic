@@ -17,13 +17,27 @@ const PHOTO_FOCUS_OPTIONS = [
   { id: "questions", label: "Questions", detail: "What to investigate or ask next." },
 ] as const;
 
+const WALK_FOCUS_OPTIONS = [
+  { id: "walking-tour", label: "Walking tour", detail: "A paced companion for moving through the place." },
+  { id: "standing-history", label: "History here", detail: "What this spot may connect to historically." },
+  { id: "architecture", label: "Architecture", detail: "Materials, form, age, and design clues." },
+  { id: "nature", label: "Nature", detail: "Landscape, plants, water, light, and season." },
+  { id: "food-drink", label: "Food / drink", detail: "Where to pause, eat, drink, or people-watch." },
+  { id: "property", label: "Property", detail: "Viewing clues, aspect, access, and tradeoffs." },
+  { id: "sensory", label: "Sensory walk", detail: "Sound, texture, rhythm, atmosphere, mood." },
+  { id: "questions", label: "Questions", detail: "What to look up, ask, or investigate next." },
+] as const;
+
 export default function StudioPage() {
   const router = useRouter();
   const [allowed, setAllowed] = useState(false);
   const [checked, setChecked] = useState(false);
   const [walkUrl, setWalkUrl] = useState("");
   const [walkContext, setWalkContext] = useState("");
+  const [walkFocus, setWalkFocus] = useState<string[]>(["walking-tour", "questions"]);
+  const [walkLocation, setWalkLocation] = useState<{ latitude: number; longitude: number; accuracy?: number } | null>(null);
   const [walkBusy, setWalkBusy] = useState(false);
+  const [walkLocationBusy, setWalkLocationBusy] = useState(false);
   const [walkError, setWalkError] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
   const [linkContext, setLinkContext] = useState("");
@@ -66,9 +80,46 @@ export default function StudioPage() {
     );
   }
 
+  const toggleWalkFocus = (id: string) => {
+    setWalkFocus((current) =>
+      current.includes(id)
+        ? current.filter((item) => item !== id)
+        : [...current, id]
+    );
+  };
+
+  const requestWalkLocation = () => {
+    if (!navigator.geolocation || walkLocationBusy) {
+      setWalkError("Current location is not available in this browser.");
+      return;
+    }
+    setWalkError("");
+    setWalkLocationBusy(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setWalkLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+        });
+        setWalkLocationBusy(false);
+      },
+      () => {
+        setWalkError("Could not get current location. You can paste a Google Maps link instead.");
+        setWalkLocationBusy(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  };
+
+  const walkFocusText = () => WALK_FOCUS_OPTIONS
+    .filter((option) => walkFocus.includes(option.id))
+    .map((option) => `${option.label}: ${option.detail}`)
+    .join("\n");
+
   const startWalkingTour = async () => {
     const url = walkUrl.trim();
-    if (!url || walkBusy) return;
+    if ((!url && !walkLocation) || walkBusy) return;
     setWalkBusy(true);
     setWalkError("");
 
@@ -76,7 +127,12 @@ export default function StudioPage() {
       const res = await fetch("/api/walking-tour-link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, context: walkContext.trim() }),
+        body: JSON.stringify({
+          url,
+          context: walkContext.trim(),
+          location: walkLocation,
+          focusAreas: walkFocusText(),
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "Could not read Google Maps link");
@@ -93,10 +149,12 @@ export default function StudioPage() {
     const seed = [
       "Developer experiment: Walking Tour from spoken input.",
       "The user will describe where they are walking through to learn about the place.",
+      walkLocation ? `Current location coordinates: ${walkLocation.latitude.toFixed(6)}, ${walkLocation.longitude.toFixed(6)}${walkLocation.accuracy ? `, accuracy about ${Math.round(walkLocation.accuracy)} metres` : ""}.` : "",
+      walkFocus.length ? `Selected tour purpose:\n${walkFocusText()}` : "",
       "Create a Rthm that works as an audio walking-tour companion, paced for someone walking, looking around, and making sense of the place.",
       "Use the user's spoken details honestly: the place, route, mood, stops, atmosphere, what to notice, what to question, and what to remember.",
       "Do not invent landmarks, history, businesses, or facts that were not provided.",
-    ].join(" ");
+    ].filter(Boolean).join(" ");
     router.push(`/speak?pillar=explain&experiment=walking-tour&seed=${encodeURIComponent(seed)}`);
   };
 
@@ -243,9 +301,30 @@ export default function StudioPage() {
                   <span className="text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.34)" }}>Experiment</span>
                 </div>
                 <p className="text-xs text-white/43 leading-relaxed mt-1">
-                  Paste a Google Maps place, route, or dropped-pin link, or speak where you are walking.
+                  Paste a Google Maps link, use your current location, or speak where you are walking.
                 </p>
                 <div className="mt-3 flex flex-col gap-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    {WALK_FOCUS_OPTIONS.map((option) => {
+                      const active = walkFocus.includes(option.id);
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() => toggleWalkFocus(option.id)}
+                          disabled={walkBusy || walkLocationBusy}
+                          className="rounded-xl border px-3 py-2 text-left transition-all active:scale-[0.98] disabled:opacity-40"
+                          style={{
+                            background: active ? "rgba(139,92,246,0.16)" : "rgba(255,255,255,0.035)",
+                            borderColor: active ? "rgba(167,139,250,0.36)" : "rgba(255,255,255,0.10)",
+                          }}
+                        >
+                          <span className="block text-[10px] uppercase tracking-widest" style={{ color: active ? "rgb(190,170,250)" : "rgba(255,255,255,0.46)" }}>{option.label}</span>
+                          <span className="mt-1 block text-[10px] leading-snug text-white/30">{option.detail}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                   <input
                     value={walkUrl}
                     onChange={(event) => setWalkUrl(event.target.value)}
@@ -255,21 +334,36 @@ export default function StudioPage() {
                     inputMode="url"
                     disabled={walkBusy}
                   />
+                  <button
+                    type="button"
+                    onClick={requestWalkLocation}
+                    disabled={walkBusy || walkLocationBusy}
+                    className="w-full rounded-xl px-4 py-3 text-[11px] font-semibold uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-35"
+                    style={{ background: "rgba(255,255,255,0.045)", border: "1px solid rgba(255,255,255,0.10)", color: walkLocation ? "rgb(190,170,250)" : "rgba(255,255,255,0.58)" }}
+                  >
+                    {walkLocationBusy ? "Getting location..." : walkLocation ? "Current location added" : "Use current location"}
+                  </button>
+                  {walkLocation && (
+                    <p className="text-[11px] text-white/28 leading-relaxed">
+                      {walkLocation.latitude.toFixed(5)}, {walkLocation.longitude.toFixed(5)}
+                      {walkLocation.accuracy ? ` · about ${Math.round(walkLocation.accuracy)}m accuracy` : ""}
+                    </p>
+                  )}
                   <textarea
                     value={walkContext}
                     onChange={(event) => setWalkContext(event.target.value)}
-                    placeholder="Optional context: property viewing, gallery route, neighbourhood walk, what to notice..."
+                    placeholder="Optional context: what you want to learn, where you're heading, what you can see, property viewing, history, food stop, questions..."
                     className="min-h-20 w-full resize-none rounded-xl border bg-white/[0.035] px-3 py-3 text-sm text-white/76 outline-none placeholder:text-white/24"
                     style={{ borderColor: "rgba(255,255,255,0.10)" }}
                     disabled={walkBusy}
                   />
                   <button
                     onClick={startWalkingTour}
-                    disabled={!walkUrl.trim() || walkBusy}
+                    disabled={(!walkUrl.trim() && !walkLocation) || walkBusy}
                     className="w-full rounded-xl px-4 py-3 text-[11px] font-semibold uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-35"
                     style={{ background: "rgba(139,92,246,0.14)", border: "1px solid rgba(139,92,246,0.32)", color: "rgb(190,170,250)" }}
                   >
-                    {walkBusy ? "Reading map..." : "Create walking tour"}
+                    {walkBusy ? "Preparing tour..." : "Create from map/location"}
                   </button>
                   <button
                     onClick={startSpokenWalkingTour}

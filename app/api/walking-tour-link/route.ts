@@ -10,6 +10,12 @@ const GOOGLE_MAPS_HOSTS = new Set([
   "goo.gl",
 ]);
 
+interface WalkLocation {
+  latitude?: number;
+  longitude?: number;
+  accuracy?: number;
+}
+
 function isGoogleMapsUrl(value: string): boolean {
   try {
     const url = new URL(value);
@@ -89,30 +95,43 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const rawUrl = typeof body.url === "string" ? body.url.trim() : "";
     const context = typeof body.context === "string" ? body.context.trim() : "";
+    const focusAreas = typeof body.focusAreas === "string" ? body.focusAreas.trim() : "";
+    const location = body.location && typeof body.location === "object" ? body.location as WalkLocation : undefined;
+    const hasLocation = typeof location?.latitude === "number" && typeof location?.longitude === "number";
 
-    if (!rawUrl) return NextResponse.json({ error: "Google Maps link required" }, { status: 400 });
-    if (!isGoogleMapsUrl(rawUrl)) {
+    if (!rawUrl && !hasLocation) {
+      return NextResponse.json({ error: "Google Maps link or current location required" }, { status: 400 });
+    }
+    if (rawUrl && !isGoogleMapsUrl(rawUrl)) {
       return NextResponse.json({ error: "Please use a Google Maps link" }, { status: 400 });
     }
 
-    const resolvedUrl = await resolveGoogleMapsUrl(rawUrl);
-    const parsed = new URL(resolvedUrl);
-    const label = extractMapLabel(parsed);
-    const coordinates = extractCoordinates(parsed);
+    const resolvedUrl = rawUrl ? await resolveGoogleMapsUrl(rawUrl) : "";
+    const parsed = resolvedUrl ? new URL(resolvedUrl) : null;
+    const label = parsed ? extractMapLabel(parsed) : null;
+    const coordinates = parsed ? extractCoordinates(parsed) : null;
+    const currentCoordinates = hasLocation ? `${location!.latitude!.toFixed(6)}, ${location!.longitude!.toFixed(6)}` : "";
+    const currentMapsLink = hasLocation ? `https://www.google.com/maps?q=${location!.latitude},${location!.longitude}` : "";
 
     const seed = [
-      "Developer experiment: Walking Tour from Google Maps.",
-      `Google Maps link: ${rawUrl}`,
-      resolvedUrl !== rawUrl ? `Resolved link: ${resolvedUrl}` : "",
+      hasLocation && !rawUrl ? "Developer experiment: Walking Tour from current location." : "Developer experiment: Walking Tour from Google Maps/current location.",
+      rawUrl ? `Google Maps link: ${rawUrl}` : "",
+      resolvedUrl && resolvedUrl !== rawUrl ? `Resolved link: ${resolvedUrl}` : "",
       label ? `Map label or route: ${label}` : "",
       coordinates ? `Map coordinates: ${coordinates}` : "",
+      currentCoordinates ? `Current location coordinates: ${currentCoordinates}` : "",
+      currentMapsLink ? `Current location map link: ${currentMapsLink}` : "",
+      hasLocation && location?.accuracy ? `Current location accuracy: about ${Math.round(location.accuracy)} metres.` : "",
+      focusAreas ? `Selected tour purpose:\n${focusAreas}` : "",
       context ? `User context: ${context}` : "User context: Create a useful walking-tour companion for this place or route.",
-      "Create a Rthm that works as an audio walking-tour companion. It should be paced for someone walking, looking around, and making sense of the place.",
-      "Use only details that come from the map label, coordinates, URL, and user context. Do not invent landmarks, history, businesses, or facts that were not provided.",
+      "Create a Rthm that works as an audio companion for a person in or near this place. It should be paced for someone standing, walking, looking around, and making sense of the place.",
+      "If the user selected history, architecture, nature, food/drink, property, sensory walk, or questions, shape the Rthm around that purpose.",
+      "Use only details that come from the map label, coordinates, URL, current location, selected purpose, and user context. Do not invent landmarks, history, businesses, or facts that were not provided.",
+      "If exact local facts would need research, frame them as things to look up, notice, or ask, not as claims.",
       "Make it practical: what to notice, where to slow down, what questions to carry, what tradeoffs or atmosphere to remember, and how to stay present while moving.",
     ].filter(Boolean).join(" ");
 
-    return NextResponse.json({ seed, resolvedUrl, label, coordinates });
+    return NextResponse.json({ seed, resolvedUrl, label, coordinates: coordinates ?? currentCoordinates });
   } catch (err) {
     console.error("Walking tour link error:", err);
     return NextResponse.json(
