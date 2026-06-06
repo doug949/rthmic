@@ -221,10 +221,10 @@ const EXPERIMENTS: Record<ExperimentalCreateId, {
   "walking-tour": {
     label: "Walking Tour",
     badge: "Experimental",
-    headline: "Where is the walk, and what should the Rthm notice?",
-    subheadline: "Speak the place, route, mood, stops, and what the listener should be ready to see.",
+    headline: "Tell me about where you are walking through to learn about the place.",
+    subheadline: "Name the place, route, mood, stops, atmosphere, and what the listener should notice while walking.",
     footnote: "This starts as a Developer experiment. If it earns a place in Create, it can be promoted into the main category list later.",
-    idleHeading: "Describe the walk",
+    idleHeading: "Tell me about where you are walking through to learn about the place",
     idleSubtitle: "RTHMIC will turn the route into a guided walking-tour Rthm.",
   },
   "link-song": {

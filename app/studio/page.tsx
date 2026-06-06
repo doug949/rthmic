@@ -75,6 +75,17 @@ export default function StudioPage() {
     }
   };
 
+  const startSpokenWalkingTour = () => {
+    const seed = [
+      "Developer experiment: Walking Tour from spoken input.",
+      "The user will describe where they are walking through to learn about the place.",
+      "Create a Rthm that works as an audio walking-tour companion, paced for someone walking, looking around, and making sense of the place.",
+      "Use the user's spoken details honestly: the place, route, mood, stops, atmosphere, what to notice, what to question, and what to remember.",
+      "Do not invent landmarks, history, businesses, or facts that were not provided.",
+    ].join(" ");
+    router.push(`/speak?pillar=explain&experiment=walking-tour&seed=${encodeURIComponent(seed)}`);
+  };
+
   const startLinkRthm = () => {
     const url = linkUrl.trim();
     if (!url) return;
@@ -146,7 +157,7 @@ export default function StudioPage() {
                   <span className="text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.34)" }}>Experiment</span>
                 </div>
                 <p className="text-xs text-white/43 leading-relaxed mt-1">
-                  Paste a Google Maps place, route, or dropped-pin link and turn it into an audio walking companion.
+                  Paste a Google Maps place, route, or dropped-pin link, or speak where you are walking.
                 </p>
                 <div className="mt-3 flex flex-col gap-2">
                   <input
@@ -173,6 +184,14 @@ export default function StudioPage() {
                     style={{ background: "rgba(139,92,246,0.14)", border: "1px solid rgba(139,92,246,0.32)", color: "rgb(190,170,250)" }}
                   >
                     {walkBusy ? "Reading map..." : "Create walking tour"}
+                  </button>
+                  <button
+                    onClick={startSpokenWalkingTour}
+                    disabled={walkBusy}
+                    className="w-full rounded-xl px-4 py-3 text-[11px] font-semibold uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-35"
+                    style={{ background: "rgba(255,255,255,0.045)", border: "1px solid rgba(255,255,255,0.10)", color: "rgba(255,255,255,0.58)" }}
+                  >
+                    Speak walking tour
                   </button>
                   {walkError && <p className="text-xs text-red-300/70 leading-relaxed">{walkError}</p>}
                 </div>
