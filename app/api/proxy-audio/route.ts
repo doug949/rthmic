@@ -82,6 +82,11 @@ function isEmptyAudioResponse(response: Response): boolean {
   return response.headers.get("Content-Length") === "0";
 }
 
+function proxyFailureStatus(upstream: Response | null): number {
+  if (upstream?.status === 404 || upstream?.status === 410) return 404;
+  return 502;
+}
+
 async function fetchAudio(url: string | undefined, headers: Record<string, string>): Promise<Response | null> {
   if (!url) return null;
 
@@ -159,7 +164,8 @@ export async function GET(request: NextRequest) {
   }
 
   if (!upstream || (!upstream.ok && upstream.status !== 206) || isEmptyAudioResponse(upstream)) {
-    return new NextResponse("Audio fetch failed", { status: 502 });
+    const status = proxyFailureStatus(upstream);
+    return new NextResponse(status === 404 ? "Audio no longer available" : "Audio fetch failed", { status });
   }
 
   if (!upstream.body) {
