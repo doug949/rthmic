@@ -207,6 +207,41 @@ interface UnderstandResult {
   style: StyleChoice;
 }
 
+type ExperimentalCreateId = "walking-tour" | "link-song";
+
+const EXPERIMENTS: Record<ExperimentalCreateId, {
+  label: string;
+  badge: string;
+  headline: string;
+  subheadline: string;
+  footnote: string;
+  idleHeading: string;
+  idleSubtitle: string;
+}> = {
+  "walking-tour": {
+    label: "Walking Tour",
+    badge: "Experimental",
+    headline: "Where is the walk, and what should the Rthm notice?",
+    subheadline: "Speak the place, route, mood, stops, and what the listener should be ready to see.",
+    footnote: "This starts as a Developer experiment. If it earns a place in Create, it can be promoted into the main category list later.",
+    idleHeading: "Describe the walk",
+    idleSubtitle: "RTHMIC will turn the route into a guided walking-tour Rthm.",
+  },
+  "link-song": {
+    label: "Link to Rthm",
+    badge: "Experimental",
+    headline: "Paste a link, then make the page useful as a Rthm.",
+    subheadline: "Useful for property listings, articles, videos, venue pages, or anything you want to absorb before you go.",
+    footnote: "For now RTHMIC uses the link plus your context as the prompt. Full page-reading can be added once the format proves itself.",
+    idleHeading: "Describe the link",
+    idleSubtitle: "RTHMIC will turn the linked thing into a useful pre-listen.",
+  },
+};
+
+function isExperiment(value: string | null): value is ExperimentalCreateId {
+  return value === "walking-tour" || value === "link-song";
+}
+
 export default function SpeakPage() {
   const router = useRouter();
   const { setActivePillar } = usePillarTheme();
@@ -241,6 +276,7 @@ export default function SpeakPage() {
   const [genDurationMs, setGenDurationMs] = useState<number | null>(null);
   const [wasAutoStopped, setWasAutoStopped] = useState(false);
   const [quickMode, setQuickMode] = useState(false);
+  const [experiment, setExperiment] = useState<ExperimentalCreateId | null>(null);
 
   // Ref mirror of selectedPillar — updated synchronously so stale closures
   // (recorder.onstop, memoised callbacks) always read the live value.
@@ -819,13 +855,21 @@ export default function SpeakPage() {
     const menuSlugParam = params.get("menuSlug");
     const menuTitleParam = params.get("menuTitle");
     const quickParam = params.get("quick");
+    const experimentParam = params.get("experiment");
+    const autoTextParam = params.get("autoText");
+    const nextExperiment = isExperiment(experimentParam) ? experimentParam : null;
     menuSlugRef.current = menuSlugParam ?? null;
     menuTitleRef.current = menuTitleParam ?? null;
+    setExperiment(nextExperiment);
     if (pillarParam) {
       setQuickMode(false);
       seedRef.current = seedParam ?? null;
       setSelectedPillar(pillarParam);
       setIsDedication(pillarParam === "bridge" || pillarParam === "invite");
+      if (autoTextParam === "1" && seedParam) {
+        runWithText(seedParam);
+        return;
+      }
       setPhase("priming");
     } else if (quickParam === "1") {
       setQuickMode(true);
@@ -955,7 +999,7 @@ export default function SpeakPage() {
             />
           )}
           {phase === "priming" && (
-            <PrimingView pillar={selectedPillar} onReady={(seed, skipSpeak) => {
+            <PrimingView pillar={selectedPillar} experiment={experiment} onReady={(seed, skipSpeak) => {
               if (skipSpeak && seed) {
                 runWithText(seed);
               } else {
@@ -965,7 +1009,7 @@ export default function SpeakPage() {
             }} />
           )}
           {phase === "idle" && (
-            <IdleView onRecord={startRecording} errorMsg={errorMsg} selectedPillar={selectedPillar} quickMode={quickMode} />
+            <IdleView onRecord={startRecording} errorMsg={errorMsg} selectedPillar={selectedPillar} quickMode={quickMode} experiment={experiment} />
           )}
           {phase === "recording" && (
             <RecordingView orbRef={orbRef} onStop={stopRecording} seconds={recordingSeconds} maxSeconds={MAX_RECORDING_SECONDS} selectedPillar={selectedPillar} quickMode={quickMode} />
@@ -1467,10 +1511,11 @@ function HlsVideo({ src, className, style, controls = true, autoPlay = false, on
   );
 }
 
-function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (seed?: string, skipSpeak?: boolean) => void }) {
+function PrimingView({ pillar, experiment, onReady }: { pillar: string | null; experiment?: ExperimentalCreateId | null; onReady: (seed?: string, skipSpeak?: boolean) => void }) {
   const pillarDef = PILLARS.find((p) => p.slug === pillar)
     ?? (pillar === "bridge" ? BRIDGE_PILLAR : null)
     ?? (pillar === "invite" ? INVITE_PILLAR : null);
+  const experimentDef = experiment ? EXPERIMENTS[experiment] : null;
   const p = pillarDef?.priming;
   const instructions = p?.instructions ?? [
     "Speak about your challenge — your hopes, what you think is stopping you, or what you want to learn.",
@@ -1574,13 +1619,13 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
       <div className="relative z-10 flex-1 overflow-y-auto flex flex-col gap-4 pt-1 pb-4">
 
         {/* Pillar badge */}
-        {pillarDef && (
+        {(pillarDef || experimentDef) && (
           <RevealBlock delay={0}>
             <span
               className="text-[10px] px-2.5 py-1 rounded-full uppercase tracking-widest font-medium"
               style={{ background: "rgba(201,165,90,0.12)", color: "#c9a55a", border: "1px solid rgba(201,165,90,0.25)" }}
             >
-              {pillarDef.label}
+              {experimentDef ? `${experimentDef.badge} / ${experimentDef.label}` : pillarDef?.label}
             </span>
           </RevealBlock>
         )}
@@ -1591,12 +1636,12 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
           </RevealBlock>
           <RevealBlock delay={60}>
             <h2 className="text-2xl font-light text-white leading-snug" style={{ fontFamily: "var(--font-display)" }}>
-              {p?.headline ?? "Take your time."}
+              {experimentDef?.headline ?? p?.headline ?? "Take your time."}
             </h2>
           </RevealBlock>
           <RevealBlock delay={100}>
             <p className="text-base text-white/60 leading-relaxed">
-              {p?.subheadline ?? "Say what matters in ordinary words. Rthmic will shape it from there."}
+              {experimentDef?.subheadline ?? p?.subheadline ?? "Say what matters in ordinary words. Rthmic will shape it from there."}
             </p>
           </RevealBlock>
         </div>
@@ -1695,7 +1740,7 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
 
         <RevealBlock delay={180 + instructions.length * 45 + (hasSuggestions ? 45 : 0)}>
           <p className="text-xs text-white/40 leading-relaxed border-t border-white/[0.06] pt-4">
-            {p?.footnote ?? "Most people speak for 1–3 minutes. After 5 minutes Rthmic will capture what you've said — you'll have the option to add more if it feels right."}
+            {experimentDef?.footnote ?? p?.footnote ?? "Most people speak for 1–3 minutes. After 5 minutes Rthmic will capture what you've said — you'll have the option to add more if it feels right."}
           </p>
         </RevealBlock>
       </div>
@@ -1716,11 +1761,12 @@ function PrimingView({ pillar, onReady }: { pillar: string | null; onReady: (see
 
 // ─── Idle ─────────────────────────────────────────────────────────────────────
 
-function IdleView({ onRecord, errorMsg, selectedPillar, quickMode }: { onRecord: () => void; errorMsg: string; selectedPillar: string | null; quickMode?: boolean }) {
+function IdleView({ onRecord, errorMsg, selectedPillar, quickMode, experiment }: { onRecord: () => void; errorMsg: string; selectedPillar: string | null; quickMode?: boolean; experiment?: ExperimentalCreateId | null }) {
   const [micRequesting, setMicRequesting] = useState(false);
+  const experimentDef = experiment ? EXPERIMENTS[experiment] : null;
 
-  const idleHeading  = quickMode ? "What is happening right now?" : (selectedPillar && PILLAR_PROMPT[selectedPillar])   ?? "Speak freely";
-  const idleSubtitle = quickMode ? "RTHMIC will suggest the right category." : (selectedPillar && PILLAR_SUBTITLE[selectedPillar]) ?? "Two Rthms will be built for you.";
+  const idleHeading  = experimentDef?.idleHeading ?? (quickMode ? "What is happening right now?" : (selectedPillar && PILLAR_PROMPT[selectedPillar])   ?? "Speak freely");
+  const idleSubtitle = experimentDef?.idleSubtitle ?? (quickMode ? "RTHMIC will suggest the right category." : (selectedPillar && PILLAR_SUBTITLE[selectedPillar]) ?? "Two Rthms will be built for you.");
 
   return (
     <section className="flex-1 flex flex-col items-center justify-center pb-24 gap-10">
