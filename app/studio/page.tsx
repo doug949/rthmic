@@ -17,6 +17,8 @@ const PHOTO_FOCUS_OPTIONS = [
   { id: "questions", label: "Questions", detail: "What to investigate or ask next." },
 ] as const;
 
+const PHOTO_METADATA_SLICE_BYTES = 768 * 1024;
+
 const WALK_FOCUS_OPTIONS = [
   { id: "walking-tour", label: "Walking tour", detail: "A paced companion for moving through the place." },
   { id: "standing-history", label: "History here", detail: "What this spot may connect to historically." },
@@ -249,7 +251,11 @@ export default function StudioPage() {
       const image = await resizePhotoForPrompt(photoFile);
       const form = new FormData();
       form.append("image", image, "photo.jpg");
-      form.append("metadataImage", photoFile, photoFile.name || "original-photo");
+      form.append(
+        "metadataImage",
+        photoFile.slice(0, PHOTO_METADATA_SLICE_BYTES, photoFile.type || "application/octet-stream"),
+        photoFile.name || "original-photo"
+      );
       const context = photoContext.trim();
       if (context) form.append("context", context);
       form.append("purpose", context);

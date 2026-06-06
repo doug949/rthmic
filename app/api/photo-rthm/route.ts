@@ -4,7 +4,7 @@ import Anthropic from "@anthropic-ai/sdk";
 export const maxDuration = 45;
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-const MAX_METADATA_IMAGE_BYTES = 25 * 1024 * 1024;
+const MAX_METADATA_IMAGE_BYTES = 768 * 1024;
 
 interface ExifMetadata {
   capturedAt?: string;
