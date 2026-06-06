@@ -27,6 +27,7 @@ export default function ServiceWorkerRegistration() {
   const [serverBuild, setServerBuild] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
   const updatingRef = useRef(false);
+  const loggedUpdateRef = useRef<string | null>(null);
   const currentBuild = process.env.NEXT_PUBLIC_RTHMIC_BUILD ?? "dev";
 
   const appUpdateAvailable = !!serverBuild && serverBuild !== currentBuild;
@@ -38,7 +39,11 @@ export default function ServiceWorkerRegistration() {
         if (!res.ok) return;
         const data = await res.json() as { build?: string };
         if (data.build && data.build !== currentBuild) {
-          recordDiagnosticEvent("app-update-available", { currentBuild, serverBuild: data.build });
+          const updateKey = `${currentBuild}->${data.build}`;
+          if (loggedUpdateRef.current !== updateKey) {
+            loggedUpdateRef.current = updateKey;
+            recordDiagnosticEvent("app-update-available", { currentBuild, serverBuild: data.build });
+          }
           setServerBuild(data.build);
         }
       } catch {
