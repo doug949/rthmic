@@ -105,6 +105,10 @@ export async function POST(req: NextRequest) {
   const pillar = body.pillar as PillarType;
   const title = typeof body.title === "string" ? body.title.slice(0, 80) : "RTHM";
   const note = typeof body.note === "string" ? body.note : undefined;
+  const experiment = typeof body.experiment === "string" ? body.experiment : undefined;
+  const tagHints = Array.isArray(body.tagHints)
+    ? body.tagHints.filter((tag: unknown) => typeof tag === "string")
+    : undefined;
   const menuSlug = typeof body.menuSlug === "string" ? body.menuSlug : undefined;
   const rthmixId = typeof body.rthmixId === "string" ? body.rthmixId : undefined;
   const rthmixTitle = typeof body.rthmixTitle === "string" ? body.rthmixTitle : undefined;
@@ -142,6 +146,8 @@ export async function POST(req: NextRequest) {
     stateSummary,
     genre: builtStyle,
     note,
+    experiment,
+    tagHints,
     menuSlug,
     rthmixId,
     rthmixTitle,

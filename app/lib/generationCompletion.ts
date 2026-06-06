@@ -1,7 +1,7 @@
 import { createClient } from "redis";
 import type { SavedRhythm } from "@/app/types/library";
 import type { PillarType, Song, TimedWord } from "@/app/types/pipeline";
-import { tagsForSavedRhythm } from "@/app/lib/autoTags";
+import { normalizeTags, tagsForSavedRhythm } from "@/app/lib/autoTags";
 import type { RedisClient } from "@/app/lib/redis";
 import {
   libraryKey,
@@ -22,6 +22,8 @@ interface SaveCompletedSongsParams {
   lyrics: string;
   songs: Song[];
   note?: string;
+  experiment?: string;
+  tagHints?: string[];
   menuSlug?: string;
   rthmixId?: string;
   rthmixTitle?: string;
@@ -82,6 +84,8 @@ export async function saveCompletedSongs({
   lyrics,
   songs,
   note,
+  experiment,
+  tagHints,
   menuSlug,
   rthmixId,
   rthmixTitle,
@@ -135,7 +139,11 @@ export async function saveCompletedSongs({
       ...(rthmixAlbumArtPrompt ? { rthmixAlbumArtPrompt } : {}),
     };
 
-    if (!menuSlug) rhythm.tags = tagsForSavedRhythm(rhythm);
+    if (!menuSlug) {
+      rhythm.tags = tagHints?.length
+        ? normalizeTags(tagHints)
+        : tagsForSavedRhythm(rhythm);
+    }
     rhythms.push(rhythm);
 
     if (song.sunoClipId && song.sunoTaskId) {

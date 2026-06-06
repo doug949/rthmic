@@ -251,6 +251,28 @@ function isExperiment(value: string | null): value is ExperimentalCreateId {
   return value === "walking-tour" || value === "link-song" || value === "photo-song";
 }
 
+function cleanTagHint(tag: string): string {
+  return tag.trim().toLowerCase().replace(/[^a-z0-9 +#-]/g, "").replace(/\s+/g, " ").slice(0, 32).trim();
+}
+
+function parseTagHints(value: string | null): string[] {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map(cleanTagHint)
+    .filter(Boolean)
+    .slice(0, 8);
+}
+
+function experimentTagHints(experiment: ExperimentalCreateId | null, explicit: string[]): string[] {
+  const base =
+    experiment === "photo-song" ? ["photograph", "specific place", "visual memory"] :
+    experiment === "walking-tour" ? ["walking tour", "current location", "local context"] :
+    experiment === "link-song" ? ["link", "pre-listen"] :
+    [];
+  return [...base, ...explicit];
+}
+
 export default function SpeakPage() {
   const router = useRouter();
   const { setActivePillar } = usePillarTheme();
@@ -278,6 +300,8 @@ export default function SpeakPage() {
   const seedRef = useRef<string | null>(null);
   const menuSlugRef = useRef<string | null>(null);
   const menuTitleRef = useRef<string | null>(null);
+  const experimentRef = useRef<ExperimentalCreateId | null>(null);
+  const tagHintsRef = useRef<string[]>([]);
   const draftLoadedRef = useRef(false);
 
   // Track how long generation took so ResultsView can display "Generated in X"
@@ -661,6 +685,8 @@ export default function SpeakPage() {
           pillar: finalPillar,
           genre,
           menuSlug: menuSlugRef.current ?? undefined,
+          experiment: experimentRef.current ?? undefined,
+          tagHints: experimentTagHints(experimentRef.current, tagHintsRef.current),
           note,
         }),
       });
@@ -870,9 +896,12 @@ export default function SpeakPage() {
     const quickParam = params.get("quick");
     const experimentParam = params.get("experiment");
     const autoTextParam = params.get("autoText");
+    const tagHintsParam = params.get("tagHints");
     const nextExperiment = isExperiment(experimentParam) ? experimentParam : null;
     menuSlugRef.current = menuSlugParam ?? null;
     menuTitleRef.current = menuTitleParam ?? null;
+    experimentRef.current = nextExperiment;
+    tagHintsRef.current = parseTagHints(tagHintsParam);
     setExperiment(nextExperiment);
     if (pillarParam) {
       setQuickMode(false);

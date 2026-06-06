@@ -160,6 +160,8 @@ export async function POST(req: NextRequest) {
         lyrics: job.lyrics,
         songs,
         note: job.note,
+        experiment: job.experiment,
+        tagHints: job.tagHints,
         menuSlug: job.menuSlug,
         rthmixId: job.rthmixId,
         rthmixTitle: job.rthmixTitle,

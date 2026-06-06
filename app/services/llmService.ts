@@ -898,6 +898,10 @@ function buildUserPrompt(pillar: PillarType, transcript: string): string {
     return `${base}\n\nThe song title MUST follow this exact format: [Poetic Song Name] — Summary of "[Book Title]" by [Author Name]. Generate a short evocative song name (3–5 words) first, then append the book attribution. Extract the book title and author from the user's transcript. Example: "Tiny Things, Big Change — Summary of \\"Atomic Habits\\" by James Clear". Do not omit the attribution.\n\nIMPORTANT: The author's name MUST appear naturally in the first verse — embedded as part of the lyric, not a label. Use a phrase like "[Author] argues that…", "[Author] shows that…", or "As [Author] puts it…". This gives the author credit and grounds the song in the source.`;
   }
 
+  if (/Developer experiment:\s*(Photograph to Rthm|Walking Tour)/i.test(transcript)) {
+    return `${base}\n\nCRITICAL EXPERIMENT RULES:\n1. Keep the title, state summary, and intent anchored to the exact photographed subject or exact walking location described.\n2. Do not generalise a specific wall, building, property, street, route, or place into a generic song about that type of thing.\n3. Do not invent history, landmarks, ownership, surroundings, or business/finance context. If details are uncertain, frame them as questions or things to look up.\n4. If coordinates, EXIF, map label, capture time, user context, or visible visual clues are present, preserve those specifics in the brief.`;
+  }
+
   return base;
 }
 
@@ -934,6 +938,10 @@ The pillar is already determined: ${pillar}. Write the complete RTHMIC lyrics no
 
   if (pillar === "BookSummary") {
     return `${base}\n\nThe song title should follow this format: [Poetic Song Name] - Summary of "[Book Title]" by [Author Name]. If the existing title is missing the book attribution, infer it from the transcript and include the attribution in the lyric context. IMPORTANT: The author's name MUST appear naturally in the first verse - embedded as part of the lyric, not a label. Use a phrase like "[Author] argues that...", "[Author] shows that...", or "As [Author] puts it...". This gives the author credit and grounds the song in the source.`;
+  }
+
+  if (/Developer experiment:\s*(Photograph to Rthm|Walking Tour)/i.test(transcript)) {
+    return `${base}\n\nCRITICAL EXPERIMENT RULES:\n1. SPECIFIC SUBJECT FIRST - write about the exact photographed place/object or the exact walking location described in the transcript, not a generic version of it.\n2. TRUTH BOUNDARIES - only state facts provided by the user, image brief, map link, coordinates, EXIF metadata, or visible description. If a historical or location detail is uncertain, frame it as something to notice, ask, or look up.\n3. LOCATION ANCHOR - when coordinates, map labels, capture time, user context, or specific visual details are present, weave those details naturally into the lyric.\n4. NO CATEGORY DRIFT - do not turn property, walls, buildings, streets, or walks into generic finance/business songs unless money or business is explicitly the point.\n5. USEFULNESS - make the song help the listener see this place more clearly: what to notice, what questions to carry, what tradeoffs or clues matter.`;
   }
 
   return base;
@@ -1026,7 +1034,7 @@ export async function interpretBrief(rawTranscript: string, overridePillar?: Pil
     messages: [
       {
         role: "user",
-        content: `User's spoken state:\n"${transcript}"\n\nThe pillar is already determined: ${pillar}. Return only the brief JSON. Do not write lyrics.`,
+        content: `User's spoken state:\n"${transcript}"\n\nThe pillar is already determined: ${pillar}. Return only the brief JSON. Do not write lyrics.${/Developer experiment:\s*(Photograph to Rthm|Walking Tour)/i.test(transcript) ? "\n\nFor this developer experiment, keep the title and brief anchored to the exact photographed subject or walking location. Do not generalise it into a generic theme, and do not invent history, landmarks, ownership, surroundings, business, or finance context. Preserve coordinates, EXIF, map label, user context, and visible clues when present." : ""}`,
       },
     ],
   });

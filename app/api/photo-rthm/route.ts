@@ -96,6 +96,38 @@ function stringValue(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
+function cleanTagHint(tag: string): string {
+  return tag
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9 +#-]/g, "")
+    .replace(/\s+/g, " ")
+    .slice(0, 32)
+    .trim();
+}
+
+function parseVisionJson(text: string): { prompt: string; tagHints: string[] } {
+  try {
+    const trimmed = text.trim();
+    const jsonText = trimmed.startsWith("{")
+      ? trimmed
+      : trimmed.match(/\{[\s\S]*\}/)?.[0] ?? "";
+    const parsed = JSON.parse(jsonText) as { prompt?: unknown; tagHints?: unknown };
+    const prompt = typeof parsed.prompt === "string" ? parsed.prompt.trim() : "";
+    const tagHints = Array.isArray(parsed.tagHints)
+      ? parsed.tagHints
+          .filter((tag): tag is string => typeof tag === "string")
+          .map(cleanTagHint)
+          .filter(Boolean)
+          .slice(0, 8)
+      : [];
+    if (prompt) return { prompt, tagHints };
+  } catch {
+    // Fall through to plain-text handling below.
+  }
+  return { prompt: text.trim(), tagHints: [] };
+}
+
 function dmsToDecimal(value: unknown, ref: unknown): number | undefined {
   if (!Array.isArray(value) || value.length < 3) return undefined;
   const degrees = numberValue(value[0]);
@@ -277,15 +309,23 @@ export async function POST(req: NextRequest) {
     const message = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 1200,
-      system: `You turn a user's photo and any available EXIF metadata into a concise RTHMIC creation prompt.
+      system: `You turn a user's photo and any available EXIF metadata into a concise RTHMIC creation brief.
 
-Do not write song lyrics. Describe what is visible, infer the likely useful angle carefully, and shape it into a prompt that can become a practical Explain-style Rthm.
+Do not write song lyrics. Describe what is visible, infer the likely useful angle carefully, and shape it into a prompt that can become a practical Understanding-style Rthm.
 
 If the image appears to show a place, object, meal, room, product, document, view, property, artwork, sign, or scene, focus on what the listener should notice, remember, question, appreciate, or do next.
 
 Use EXIF metadata when available. GPS, capture time, focal length, and camera direction can support useful context such as place, aspect, sun/path clues, surrounding area questions, historical curiosity, or property-viewing prompts.
 
-Important: distinguish what is known from the image/metadata from what should be looked up or investigated later. Never invent private facts, exact history, surroundings, ownership, listing details, or landmark claims that are not visible, present in EXIF, or provided by the user.`,
+Important: this must be about the exact photographed subject, not a generic example of its type. If the image shows a medieval wall, old stonework, a specific building, a room, or a property, refer to this wall/place/room/property and anchor it to any known location/context from EXIF or the user. If no precise location is known, say that clearly and use questions/investigation cues instead of invented facts.
+
+Distinguish what is known from the image/metadata from what should be looked up or investigated later. Never invent private facts, exact history, surroundings, ownership, listing details, or landmark claims that are not visible, present in EXIF, or provided by the user.
+
+Return strict JSON only:
+{
+  "prompt": "compact RTHMIC creation brief under 220 words",
+  "tagHints": ["3-8 lowercase tags that describe the actual subject, not broad business categories"]
+}`,
       messages: [
         {
           role: "user",
@@ -307,14 +347,17 @@ Selected learning focus: ${focusAreas || "No selected focus areas."}
 EXIF metadata:
 ${exifSummary(metadata)}
 
-Return a single compact prompt for RTHMIC. Include:
+Return JSON for RTHMIC. In prompt include:
 - What the photo appears to show.
 - Why it might matter.
 - What the Rthm should help the listener notice, learn, question, or remember based on the selected focus/purpose.
 - Any useful metadata-derived clues, clearly framed as clues.
 - Any useful questions or tradeoffs.
 
-Keep it under 220 words.`,
+For tagHints:
+- Prefer concrete visual/place tags such as "stone wall", "architecture", "local history", "property", "sun aspect", "photograph".
+- Do not use "finance" unless the image or user context is explicitly about money, tax, banking, investing, or budgets.
+- Do not use "business" unless the image or user context is explicitly about a company or commercial task.`,
             },
           ],
         },
@@ -326,13 +369,18 @@ Keep it under 220 words.`,
       return NextResponse.json({ error: "Could not interpret photo" }, { status: 500 });
     }
 
+    const parsed = parseVisionJson(textBlock.text);
+    if (!parsed.prompt) {
+      return NextResponse.json({ error: "Could not interpret photo" }, { status: 500 });
+    }
+
     const seed = [
       "Developer experiment: Photograph to Rthm.",
-      textBlock.text.trim(),
-      "Make the Rthm clear, specific, and useful. Do not mention that an AI vision model described the image.",
+      parsed.prompt,
+      "Make the Rthm clear, specific, and useful. Keep it anchored to the exact photographed subject and any known location/context. Do not mention that an AI vision model described the image.",
     ].join(" ");
 
-    return NextResponse.json({ seed });
+    return NextResponse.json({ seed, tagHints: ["photograph", "visual memory", ...parsed.tagHints] });
   } catch (err) {
     console.error("Photo Rthm error:", err);
     return NextResponse.json(

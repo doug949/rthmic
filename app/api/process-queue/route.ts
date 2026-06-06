@@ -78,6 +78,8 @@ async function pollJob(
     lyrics: job.lyrics,
     songs: pollData.songs,
     note: job.note,
+    experiment: job.experiment,
+    tagHints: job.tagHints,
     menuSlug: job.menuSlug,
     rthmixId: job.rthmixId,
     rthmixTitle: job.rthmixTitle,

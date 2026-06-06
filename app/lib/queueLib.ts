@@ -17,6 +17,8 @@ export interface QueueJob {
   stateSummary?: StateSummary;
   genre: string;
   note?: string;
+  experiment?: string;
+  tagHints?: string[];
   menuSlug?: string;
   rthmixId?: string;
   rthmixTitle?: string;

@@ -30,6 +30,10 @@ const WALK_FOCUS_OPTIONS = [
   { id: "questions", label: "Questions", detail: "What to look up, ask, or investigate next." },
 ] as const;
 
+function tagHintsParam(tags: string[]): string {
+  return encodeURIComponent(tags.filter(Boolean).join(","));
+}
+
 export default function StudioPage() {
   const router = useRouter();
   const [allowed, setAllowed] = useState(false);
@@ -140,7 +144,8 @@ export default function StudioPage() {
       if (!res.ok) throw new Error(data.error ?? "Could not read Google Maps link");
       const seed = typeof data.seed === "string" ? data.seed : "";
       if (!seed) throw new Error("Could not read Google Maps link");
-      router.push(`/speak?pillar=explain&experiment=walking-tour&autoText=1&seed=${encodeURIComponent(seed)}`);
+      const tags = tagHintsParam(["walking tour", "current location", "local history", "place"]);
+      router.push(`/speak?pillar=understanding&experiment=walking-tour&autoText=1&tagHints=${tags}&seed=${encodeURIComponent(seed)}`);
     } catch (err) {
       setWalkError(err instanceof Error ? err.message : "Could not read Google Maps link");
       setWalkBusy(false);
@@ -157,7 +162,8 @@ export default function StudioPage() {
       "Use the user's spoken details honestly: the place, route, mood, stops, atmosphere, what to notice, what to question, and what to remember.",
       "Do not invent landmarks, history, businesses, or facts that were not provided.",
     ].filter(Boolean).join(" ");
-    router.push(`/speak?pillar=explain&experiment=walking-tour&seed=${encodeURIComponent(seed)}`);
+    const tags = tagHintsParam(["walking tour", "current location", "local history", "place"]);
+    router.push(`/speak?pillar=understanding&experiment=walking-tour&tagHints=${tags}&seed=${encodeURIComponent(seed)}`);
   };
 
   const startLinkRthm = () => {
@@ -270,7 +276,8 @@ export default function StudioPage() {
 
       const seed = typeof data.seed === "string" ? data.seed : "";
       if (!seed) throw new Error("Could not interpret photo");
-      router.push(`/speak?pillar=explain&experiment=photo-song&autoText=1&seed=${encodeURIComponent(seed)}`);
+      const tags = tagHintsParam(Array.isArray(data.tagHints) ? data.tagHints : ["photograph", "visual memory"]);
+      router.push(`/speak?pillar=understanding&experiment=photo-song&autoText=1&tagHints=${tags}&seed=${encodeURIComponent(seed)}`);
     } catch (err) {
       setPhotoError(err instanceof Error ? err.message : "Could not interpret photo");
       setPhotoBusy(false);
