@@ -40,9 +40,28 @@ const ALLOWED_ARTIST_REFERENCE_STYLES = [
   "Hamilton-style Broadway hip-hop in the zone of Lin-Manuel Miranda and clipping",
 ];
 
+function pinKnownStyleRules(style: string): string {
+  const isNordicNight =
+    /\bnordic night\b/i.test(style) ||
+    (/very slow scandinavian ambient electronic/i.test(style) && /soft nordic/i.test(style));
+  if (!isNordicNight) return style;
+
+  const prompt = style.includes("|") ? style.split("|").slice(1).join("|") : style;
+  const withoutConflictingVoice = prompt
+    .replace(/\bfemale\s+(vocal|voice|vocalist|singer)\b/gi, "")
+    .replace(/\bwoman\s+(vocal|voice|vocalist|singer)\b/gi, "")
+    .replace(/\bwomen\s+(vocal|voice|vocalist|singer)\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
+  return `Nordic Night, male vocalist only, no female vocal, soft Nordic male vocal, ${withoutConflictingVoice}`;
+}
+
 export function sanitizeSunoStyle(style: string): string {
-  if (ALLOWED_ARTIST_REFERENCE_STYLES.some((allowed) => style.includes(allowed))) {
-    return style
+  const pinnedStyle = pinKnownStyleRules(style);
+
+  if (ALLOWED_ARTIST_REFERENCE_STYLES.some((allowed) => pinnedStyle.includes(allowed))) {
+    return pinnedStyle
       .replace(/\.\s*/g, ", ")
       .replace(/,\s*fade out ending,\s*resolving outro/gi, "")
       .replace(/,\s*,+/g, ",")
@@ -52,7 +71,7 @@ export function sanitizeSunoStyle(style: string): string {
       .replace(/^[,.\s]+|[,.\s]+$/g, "");
   }
 
-  let cleaned = style;
+  let cleaned = pinnedStyle;
 
   for (const pattern of ARTIST_REFERENCE_PATTERNS) {
     cleaned = cleaned.replace(pattern, "");
