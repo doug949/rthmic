@@ -12,6 +12,10 @@ export default function StudioPage() {
   const router = useRouter();
   const [allowed, setAllowed] = useState(false);
   const [checked, setChecked] = useState(false);
+  const [walkUrl, setWalkUrl] = useState("");
+  const [walkContext, setWalkContext] = useState("");
+  const [walkBusy, setWalkBusy] = useState(false);
+  const [walkError, setWalkError] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
   const [linkContext, setLinkContext] = useState("");
   const [photoContext, setPhotoContext] = useState("");
@@ -48,14 +52,27 @@ export default function StudioPage() {
     );
   }
 
-  const startWalkingTour = () => {
-    const seed = [
-      "Developer experiment: Walking Tour.",
-      "Create a Rthm that works like an audio walking-tour companion.",
-      "The user will describe the place, route, stops, atmosphere, observations, and what the listener should notice while walking.",
-      "Make it practical, location-aware, and paced for movement.",
-    ].join(" ");
-    router.push(`/speak?pillar=explain&experiment=walking-tour&seed=${encodeURIComponent(seed)}`);
+  const startWalkingTour = async () => {
+    const url = walkUrl.trim();
+    if (!url || walkBusy) return;
+    setWalkBusy(true);
+    setWalkError("");
+
+    try {
+      const res = await fetch("/api/walking-tour-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url, context: walkContext.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Could not read Google Maps link");
+      const seed = typeof data.seed === "string" ? data.seed : "";
+      if (!seed) throw new Error("Could not read Google Maps link");
+      router.push(`/speak?pillar=explain&experiment=walking-tour&autoText=1&seed=${encodeURIComponent(seed)}`);
+    } catch (err) {
+      setWalkError(err instanceof Error ? err.message : "Could not read Google Maps link");
+      setWalkBusy(false);
+    }
   };
 
   const startLinkRthm = () => {
@@ -118,12 +135,50 @@ export default function StudioPage() {
 
         <div className="flex flex-col gap-3">
           <p className="px-1 text-[10px] uppercase tracking-[0.3em]" style={{ color: "rgba(167,139,250,0.72)" }}>Experimental categories</p>
-          <ExperimentAction
-            title="Walking Tour"
-            detail="Prototype a Rthm that acts like a walking companion for a place, route, gallery, neighbourhood, or property viewing."
-            status="Experiment"
-            onClick={startWalkingTour}
-          />
+          <div className="rounded-2xl border px-5 py-4" style={{ background: "rgba(139,92,246,0.08)", borderColor: "rgba(139,92,246,0.24)" }}>
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "rgba(139,92,246,0.16)", color: "rgb(167,139,250)" }}>
+                ⌖
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-semibold text-white/82">Walking Tour</p>
+                  <span className="text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.34)" }}>Experiment</span>
+                </div>
+                <p className="text-xs text-white/43 leading-relaxed mt-1">
+                  Paste a Google Maps place, route, or dropped-pin link and turn it into an audio walking companion.
+                </p>
+                <div className="mt-3 flex flex-col gap-2">
+                  <input
+                    value={walkUrl}
+                    onChange={(event) => setWalkUrl(event.target.value)}
+                    placeholder="Paste Google Maps link"
+                    className="w-full rounded-xl border bg-white/[0.035] px-3 py-3 text-sm text-white/76 outline-none placeholder:text-white/24"
+                    style={{ borderColor: "rgba(255,255,255,0.10)" }}
+                    inputMode="url"
+                    disabled={walkBusy}
+                  />
+                  <textarea
+                    value={walkContext}
+                    onChange={(event) => setWalkContext(event.target.value)}
+                    placeholder="Optional context: property viewing, gallery route, neighbourhood walk, what to notice..."
+                    className="min-h-20 w-full resize-none rounded-xl border bg-white/[0.035] px-3 py-3 text-sm text-white/76 outline-none placeholder:text-white/24"
+                    style={{ borderColor: "rgba(255,255,255,0.10)" }}
+                    disabled={walkBusy}
+                  />
+                  <button
+                    onClick={startWalkingTour}
+                    disabled={!walkUrl.trim() || walkBusy}
+                    className="w-full rounded-xl px-4 py-3 text-[11px] font-semibold uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-35"
+                    style={{ background: "rgba(139,92,246,0.14)", border: "1px solid rgba(139,92,246,0.32)", color: "rgb(190,170,250)" }}
+                  >
+                    {walkBusy ? "Reading map..." : "Create walking tour"}
+                  </button>
+                  {walkError && <p className="text-xs text-red-300/70 leading-relaxed">{walkError}</p>}
+                </div>
+              </div>
+            </div>
+          </div>
           <div className="rounded-2xl border px-5 py-4" style={{ background: "rgba(255,255,255,0.045)", borderColor: "rgba(255,255,255,0.10)" }}>
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "rgba(139,92,246,0.16)", color: "rgb(167,139,250)" }}>
@@ -252,29 +307,6 @@ function resizePhotoForPrompt(file: File): Promise<Blob> {
     };
     img.src = url;
   });
-}
-
-function ExperimentAction({ title, detail, status, onClick }: { title: string; detail: string; status: string; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className="rounded-2xl border px-5 py-4 text-left transition-all active:scale-[0.985] touch-manipulation"
-      style={{ background: "rgba(139,92,246,0.08)", borderColor: "rgba(139,92,246,0.24)" }}
-    >
-      <div className="flex items-start gap-3">
-        <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "rgba(139,92,246,0.16)", color: "rgb(167,139,250)" }}>
-          +
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="text-sm font-semibold text-white/82">{title}</p>
-            <span className="text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.34)" }}>{status}</span>
-          </div>
-          <p className="text-xs text-white/43 leading-relaxed mt-1">{detail}</p>
-        </div>
-      </div>
-    </button>
-  );
 }
 
 function StudioAction({ title, detail, status }: { title: string; detail: string; status: string }) {
