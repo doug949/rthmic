@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { buildLocationFacts, parseCoordinatePair } from "@/app/lib/locationFacts";
 
 export const maxDuration = 20;
 
@@ -112,6 +113,8 @@ export async function POST(req: NextRequest) {
     const coordinates = parsed ? extractCoordinates(parsed) : null;
     const currentCoordinates = hasLocation ? `${location!.latitude!.toFixed(6)}, ${location!.longitude!.toFixed(6)}` : "";
     const currentMapsLink = hasLocation ? `https://www.google.com/maps?q=${location!.latitude},${location!.longitude}` : "";
+    const factCoordinates = parseCoordinatePair(coordinates) ?? (hasLocation ? { latitude: location!.latitude!, longitude: location!.longitude! } : null);
+    const locationFacts = await buildLocationFacts(factCoordinates);
 
     const seed = [
       hasLocation && !rawUrl ? "Developer experiment: Walking Tour from current location." : "Developer experiment: Walking Tour from Google Maps/current location.",
@@ -122,12 +125,13 @@ export async function POST(req: NextRequest) {
       currentCoordinates ? `Current location coordinates: ${currentCoordinates}` : "",
       currentMapsLink ? `Current location map link: ${currentMapsLink}` : "",
       hasLocation && location?.accuracy ? `Current location accuracy: about ${Math.round(location.accuracy)} metres.` : "",
+      locationFacts ? `Local facts from geodata:\n${locationFacts}` : "",
       focusAreas ? `Selected tour purpose:\n${focusAreas}` : "",
       context ? `User context: ${context}` : "User context: Create a useful walking-tour companion for this place or route.",
       "Create a Rthm that works as an audio companion for a person in or near this place. It should be paced for someone standing, walking, looking around, and making sense of the place.",
       "If the user selected history, architecture, nature, food/drink, property, sensory walk, or questions, shape the Rthm around that purpose.",
-      "Use only details that come from the map label, coordinates, URL, current location, selected purpose, and user context. Do not invent landmarks, history, businesses, or facts that were not provided.",
-      "If exact local facts would need research, frame them as things to look up, notice, or ask, not as claims.",
+      "Use details that come from the map label, coordinates, URL, current location, local facts, selected purpose, and user context. Give priority to named nearby places, dated facts, and famous nearby landmarks from the local facts.",
+      "Avoid generic possibility lines such as 'if there is a pub on the corner'. If local facts name a pub, landmark, building, street, or historic place, use the name and supplied facts. If local facts do not supply a claim, do not invent it.",
       "Make it practical: what to notice, where to slow down, what questions to carry, what tradeoffs or atmosphere to remember, and how to stay present while moving.",
     ].filter(Boolean).join(" ");
 

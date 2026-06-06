@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { buildLocationFacts } from "@/app/lib/locationFacts";
 
 export const maxDuration = 45;
 
@@ -302,6 +303,11 @@ export async function POST(req: NextRequest) {
     if (metadataImage instanceof Blob && metadataImage.size <= MAX_METADATA_IMAGE_BYTES) {
       metadata = parseExif(await metadataImage.arrayBuffer());
     }
+    const locationFacts = await buildLocationFacts(
+      metadata?.gps?.latitude !== undefined && metadata.gps.longitude !== undefined
+        ? { latitude: metadata.gps.latitude, longitude: metadata.gps.longitude }
+        : null
+    );
 
     const base64 = Buffer.from(await image.arrayBuffer()).toString("base64");
     const client = new Anthropic();
@@ -319,7 +325,7 @@ Use EXIF metadata when available. GPS, capture time, focal length, and camera di
 
 Important: this must be about the exact photographed subject, not a generic example of its type. If the image shows a medieval wall, old stonework, a specific building, a room, or a property, refer to this wall/place/room/property and anchor it to any known location/context from EXIF or the user. If no precise location is known, say that clearly and use questions/investigation cues instead of invented facts.
 
-Distinguish what is known from the image/metadata from what should be looked up or investigated later. Never invent private facts, exact history, surroundings, ownership, listing details, or landmark claims that are not visible, present in EXIF, or provided by the user.
+Use the supplied local facts when available. Prefer named nearby places, named landmarks, dated facts, and source-backed details over vague possibility language. Never write "if there is..." or "there may be..." when a supplied local fact names the actual place. Distinguish what is known from the image/metadata/local facts from what is not known. Never invent private facts, exact history, surroundings, ownership, listing details, or landmark claims that are not visible, present in EXIF, supplied by local facts, or provided by the user.
 
 Return strict JSON only:
 {
@@ -347,12 +353,16 @@ Selected learning focus: ${focusAreas || "No selected focus areas."}
 EXIF metadata:
 ${exifSummary(metadata)}
 
+Local facts from geodata:
+${locationFacts || "No geodata-based local facts were available."}
+
 Return JSON for RTHMIC. In prompt include:
 - What the photo appears to show.
 - Why it might matter.
 - What the Rthm should help the listener notice, learn, question, or remember based on the selected focus/purpose.
-- Any useful metadata-derived clues, clearly framed as clues.
-- Any useful questions or tradeoffs.
+- Any useful metadata-derived or geodata-derived facts, clearly separated from visual observations.
+- Named nearby places or famous nearby facts when supplied.
+- Useful questions or tradeoffs only after the known facts have been used.
 
 For tagHints:
 - Prefer concrete visual/place tags such as "stone wall", "architecture", "local history", "property", "sun aspect", "photograph".
