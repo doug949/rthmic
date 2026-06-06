@@ -4,7 +4,7 @@
 
 import { tracks } from "@/app/data/tracks";
 import type { Song, PillarType } from "@/app/types/pipeline";
-import { toSunoPronunciation } from "@/app/lib/sunoLyrics";
+import { prepareSunoPrompt } from "@/app/lib/sunoLyrics";
 import { extractSunoTaskId, sunoStartError } from "@/app/lib/sunoResponse";
 import { buildSunoStyle } from "@/app/lib/sunoStyle";
 
@@ -104,7 +104,7 @@ export async function generateSongs(lyrics: string, pillar: PillarType): Promise
       customMode: true,
       instrumental: false,
       model: "V5",
-      prompt: toSunoPronunciation(lyrics),   // phonetic substitution for branded spellings
+      prompt: prepareSunoPrompt(lyrics),   // phonetic substitution plus Suno limit guard
       style: buildSunoStyle(PILLAR_STYLES[pillar]), // genre/mood tags
       title: `RTHM — ${pillar}`,
       callBackUrl: "https://rthmic.app/api/suno-webhook", // required by sunoapi.org; we use polling

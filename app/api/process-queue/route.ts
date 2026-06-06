@@ -15,7 +15,7 @@ import type { QueueJob } from "@/app/lib/queueLib";
 import type { Song } from "@/app/types/pipeline";
 import { saveCompletedSongs } from "@/app/lib/generationCompletion";
 import { extractSunoTaskId, isSunoCreditError, sunoStartError } from "@/app/lib/sunoResponse";
-import { toSunoPronunciation } from "@/app/lib/sunoLyrics";
+import { prepareSunoPrompt, trimToSunoLimit } from "@/app/lib/sunoLyrics";
 import { writeLyricsFromBrief } from "@/app/services/llmService";
 
 export const maxDuration = 60;
@@ -119,12 +119,12 @@ async function startJob(
       console.log(`[queue] writing lyrics for job ${job.jobId}`);
       job.status = "writing";
       await updateJob(client, job);
-      job.lyrics = await writeLyricsFromBrief({
+      job.lyrics = trimToSunoLimit(await writeLyricsFromBrief({
         transcript: job.transcript,
         pillar: job.pillar,
         title: job.title,
         stateSummary: job.stateSummary,
-      });
+      }));
       await updateJob(client, job);
     } catch (err) {
       console.error(`[queue] lyric writing failed for ${job.jobId}:`, err);
@@ -145,7 +145,7 @@ async function startJob(
       customMode: true,
       instrumental: false,
       model: "V5",
-      prompt: toSunoPronunciation(job.lyrics),
+      prompt: prepareSunoPrompt(job.lyrics),
       style: job.genre,
       title: job.title,
       callBackUrl: `${APP_URL}/api/suno-webhook`,

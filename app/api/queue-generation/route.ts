@@ -8,7 +8,7 @@ import { withRedisQueue, getUserJobIds, getJob, pushJob, updateJob, indexTaskId 
 import type { QueueJob } from "@/app/lib/queueLib";
 import { requireUserId } from "@/app/lib/auth";
 import { REDIS_AVAILABLE, withRedis, type RedisClient } from "@/app/lib/redis";
-import { toSunoPronunciation } from "@/app/lib/sunoLyrics";
+import { prepareSunoPrompt, trimToSunoLimit } from "@/app/lib/sunoLyrics";
 import { extractSunoTaskId, isSunoCreditError, sunoStartError } from "@/app/lib/sunoResponse";
 import { applyVocalistPreference, buildSunoStyle } from "@/app/lib/sunoStyle";
 import type { StyleChoice } from "@/app/services/llmService";
@@ -17,7 +17,6 @@ import type { PillarType } from "@/app/types/pipeline";
 export const maxDuration = 30;
 
 const MAX_CONCURRENT = 5;
-const SUNO_CHAR_LIMIT = 5000;
 const SUNO_BASE = "https://api.sunoapi.org/api/v1";
 const APP_URL = "https://rthmic.app";
 
@@ -55,7 +54,7 @@ async function startSunoJob(job: QueueJob): Promise<{ taskId: string | null; err
         customMode: true,
         instrumental: false,
         model: "V5",
-        prompt: toSunoPronunciation(job.lyrics),
+        prompt: prepareSunoPrompt(job.lyrics),
         style: job.genre,
         title: job.title,
         callBackUrl: `${APP_URL}/api/suno-webhook`,
@@ -127,7 +126,7 @@ export async function POST(req: NextRequest) {
 
   const vocalist = await getVocalistPref(uid);
   const genre = applyVocalistPreference(rawGenre, vocalist);
-  const lyrics = rawLyrics.slice(0, SUNO_CHAR_LIMIT);
+  const lyrics = trimToSunoLimit(rawLyrics);
   const builtStyle = buildSunoStyle(genre);
 
   const jobId = crypto.randomUUID();

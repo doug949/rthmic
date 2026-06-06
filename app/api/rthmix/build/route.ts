@@ -4,7 +4,7 @@ import { requireUserId } from "@/app/lib/auth";
 import { REDIS_AVAILABLE, withRedis, type RedisClient } from "@/app/lib/redis";
 import { withRedisQueue, getUserJobIds, getJob, pushJob, updateJob, indexTaskId } from "@/app/lib/queueLib";
 import type { QueueJob } from "@/app/lib/queueLib";
-import { toSunoPronunciation } from "@/app/lib/sunoLyrics";
+import { prepareSunoPrompt, trimToSunoLimit } from "@/app/lib/sunoLyrics";
 import { extractSunoTaskId, sunoStartError } from "@/app/lib/sunoResponse";
 import { buildSunoStyle } from "@/app/lib/sunoStyle";
 import type { PillarType } from "@/app/types/pipeline";
@@ -15,7 +15,6 @@ export const maxDuration = 60;
 const MAX_CONCURRENT = 5;
 const SUNO_BASE = "https://api.sunoapi.org/api/v1";
 const APP_URL = "https://rthmic.app";
-const SUNO_CHAR_LIMIT = 5000;
 
 interface RthmixTrackPlan {
   number: string;
@@ -80,7 +79,7 @@ function sanitisePlan(raw: RthmixPlan, topic: string): RthmixPlan {
       role: trackRole(index, tracks.length),
       unlock: (typeof track.unlock === "string" && track.unlock.trim() ? track.unlock.trim() : "One clear unlock").slice(0, 180),
       buildsFrom: (typeof track.buildsFrom === "string" ? track.buildsFrom : "").slice(0, 220),
-      lyrics: (typeof track.lyrics === "string" ? track.lyrics : "").slice(0, SUNO_CHAR_LIMIT),
+      lyrics: trimToSunoLimit(typeof track.lyrics === "string" ? track.lyrics : ""),
     })).filter((track) => track.lyrics.trim().length > 0),
   };
 }
@@ -165,7 +164,7 @@ async function startSunoJob(job: QueueJob): Promise<string | null> {
         customMode: true,
         instrumental: false,
         model: "V5",
-        prompt: job.lyrics,
+        prompt: prepareSunoPrompt(job.lyrics),
         style: job.genre,
         title: job.title,
         callBackUrl: `${APP_URL}/api/suno-webhook`,
@@ -218,7 +217,7 @@ export async function POST(req: NextRequest) {
       pillar,
       title: track.title,
       style,
-      lyrics: toSunoPronunciation(track.lyrics),
+      lyrics: trimToSunoLimit(track.lyrics),
       genre: baseGenre,
       note: `Rthmix: ${plan.title}. Track ${track.number}: ${track.unlock}${track.buildsFrom ? ` Builds from: ${track.buildsFrom}` : ""}`,
       rthmixId: plan.rthmixId,

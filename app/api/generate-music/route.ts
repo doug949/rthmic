@@ -5,12 +5,10 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { generateSongs } from "@/app/services/musicService";
+import { trimToSunoLimit } from "@/app/lib/sunoLyrics";
 import type { PillarType } from "@/app/types/pipeline";
 
 export const maxDuration = 240; // Suno can take 80-180s; poll window is 200s
-
-// Suno's hard character limit for the prompt field
-const SUNO_CHAR_LIMIT = 5000;
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,8 +23,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "pillar required" }, { status: 400 });
     }
 
-    // Enforce Suno's 5000-character limit
-    const safeLyrics = lyrics.slice(0, SUNO_CHAR_LIMIT);
+    const safeLyrics = trimToSunoLimit(lyrics);
 
     const songs = await generateSongs(safeLyrics, pillar);
     return NextResponse.json({ songs });

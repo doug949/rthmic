@@ -4,7 +4,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import type { StyleChoice } from "@/app/services/llmService";
-import { toSunoPronunciation } from "@/app/lib/sunoLyrics";
+import { prepareSunoPrompt } from "@/app/lib/sunoLyrics";
 import { extractSunoTaskId, sunoStartError } from "@/app/lib/sunoResponse";
 import { applyVocalistPreference, buildSunoStyle } from "@/app/lib/sunoStyle";
 
@@ -28,8 +28,6 @@ async function getVocalistPref(req: NextRequest): Promise<"male" | "female" | "n
     } finally { await client.disconnect(); }
   } catch { return "none"; }
 }
-const SUNO_CHAR_LIMIT = 5000;
-
 function buildMusicStyle(_style: StyleChoice, genre: string): string {
   return buildSunoStyle(genre);
 }
@@ -43,9 +41,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const lyrics = toSunoPronunciation(
-      typeof body.lyrics === "string" ? body.lyrics.slice(0, SUNO_CHAR_LIMIT) : ""
-    );
+    const lyrics = prepareSunoPrompt(typeof body.lyrics === "string" ? body.lyrics : "");
     const style = (body.style as StyleChoice) ?? "B";
     const rawGenre = typeof body.genre === "string" && body.genre.trim() ? body.genre.trim() : "Indie Electronic";
     const vocalist = await getVocalistPref(req);

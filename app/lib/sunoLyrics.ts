@@ -27,12 +27,28 @@ const PRONUNCIATION_MAP: [RegExp, string][] = [
   [/\brthm\b/g,    "rith-um"],
 ];
 
+export const SUNO_CUSTOM_MODE_CHAR_LIMIT = 5000;
+
+export function trimToSunoLimit(text: string, limit = SUNO_CUSTOM_MODE_CHAR_LIMIT): string {
+  if (text.length <= limit) return text;
+
+  const slice = text.slice(0, limit);
+  const lastSection = slice.lastIndexOf("\n[");
+  const lastLine = slice.lastIndexOf("\n");
+  const cutAt = lastSection > limit * 0.72 ? lastSection : lastLine;
+  return (cutAt > limit * 0.6 ? slice.slice(0, cutAt) : slice).trim();
+}
+
 export function toSunoPronunciation(lyrics: string): string {
   let result = lyrics;
   for (const [pattern, replacement] of PRONUNCIATION_MAP) {
     result = result.replace(pattern, replacement);
   }
   return result;
+}
+
+export function prepareSunoPrompt(lyrics: string): string {
+  return trimToSunoLimit(toSunoPronunciation(trimToSunoLimit(lyrics)));
 }
 
 // Reverse: restore branded spellings in LLM output that may contain phonetic forms.
