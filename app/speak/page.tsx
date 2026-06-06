@@ -16,6 +16,7 @@ import { RevealBlock } from "@/app/components/RevealBlock";
 import { QueuePill } from "@/app/components/QueuePill";
 import { useQueueStatus } from "@/app/hooks/useQueueStatus";
 import { MicIcon as HeaderMicIcon } from "@/app/components/HomeTileIcons";
+import { clearInterpretationDraft, readInterpretationDraft, saveInterpretationDraft } from "@/app/lib/interpretationDraft";
 
 type Phase = "module" | "priming" | "idle" | "recording" | "understanding" | "confirming" | "genre" | "queued";
 
@@ -163,6 +164,7 @@ const PILLAR_PROMPT: Record<string, string> = {
   epiphany:    "Speak the idea",
   explain:     "Speak what you want to make sense of",
   booksummary: "Name the book",
+  sleep:       "Speak what needs to settle",
   bridge:      "Speak for them",
   invite:      "Speak about them",
 };
@@ -177,6 +179,7 @@ const PILLAR_COLOR: Record<string, string> = {
   epiphany:    "230,190,60",   // bright gold
   explain:     "100,170,230",  // sky blue
   booksummary: "210,130,80",   // amber-orange
+  sleep:       "130,150,220",   // night blue
 };
 const DEFAULT_COLOR = "201,165,90";
 
@@ -190,6 +193,7 @@ const PILLAR_SUBTITLE: Record<string, string> = {
   epiphany:    "Rthmic will hold the idea.",
   explain:     "Rthmic will make it click.",
   booksummary: "Rthmic will carry the idea.",
+  sleep:       "Rthmic will help it soften.",
   bridge:      "Rthmic will reach them.",
   invite:      "Rthmic will bring them in.",
 };
@@ -230,6 +234,7 @@ export default function SpeakPage() {
   const seedRef = useRef<string | null>(null);
   const menuSlugRef = useRef<string | null>(null);
   const menuTitleRef = useRef<string | null>(null);
+  const draftLoadedRef = useRef(false);
 
   // Track how long generation took so ResultsView can display "Generated in X"
   const genStartedAtRef = useRef<number | null>(null);
@@ -537,6 +542,7 @@ export default function SpeakPage() {
       }
       allTranscriptsRef.current.push(data.transcript);
       setUnderstandResult(data);
+      saveInterpretationDraft(data);
       // Certain flows go straight from understanding to style.
       const skipConfirm = shouldSkipConfirmation(pillarAtRecordTime);
       setPhase(skipConfirm ? "genre" : "confirming");
@@ -570,6 +576,7 @@ export default function SpeakPage() {
       const data: UnderstandResult = await res.json();
       if (pillar) data.pillar = normalisePillar(pillar);
       setUnderstandResult(data);
+      saveInterpretationDraft(data);
       const skipConfirmText = shouldSkipConfirmation(pillar);
       setPhase(skipConfirmText ? "genre" : "confirming");
     } catch (e) {
@@ -616,6 +623,7 @@ export default function SpeakPage() {
       refreshQueueStatus();
       setPhase("queued");
       setUnderstandResult(null);
+      clearInterpretationDraft();
       allTranscriptsRef.current = [];
       setTimeout(() => navigateTo("/library", router), 1200);
     } catch (err) {
@@ -681,6 +689,7 @@ export default function SpeakPage() {
     setPhase("module");
     setSelectedPillar(null);
     setUnderstandResult(null);
+    clearInterpretationDraft();
     setErrorMsg("");
     setWasAutoStopped(false);
     setSongStatus({});
@@ -688,15 +697,25 @@ export default function SpeakPage() {
     allTranscriptsRef.current = [];
   }, [clearRecordingTimers, stopAudio, clearGeneration]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (draftLoadedRef.current) return;
+    if (typeof window === "undefined") return;
+    if (!window.location.search.includes("draft=1")) return;
+    const draft = readInterpretationDraft();
+    if (!draft) return;
+    draftLoadedRef.current = true;
+    setUnderstandResult(draft);
+    setSelectedPillar(draft.pillar.toLowerCase());
+    setIsDedication(draft.pillar === "Bridge" || draft.pillar === "Invite");
+    setPhase("genre");
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ─── Back navigation ──────────────────────────────────────────────────────
   //
   // Context-aware: always goes exactly one step back in the flow.
   // Never jumps straight to Home from mid-flow.
 
   const handleBack = useCallback(() => {
-    // During transcription — block back (async in flight, can't cancel)
-    if (phase === "understanding") return;
-
     // During active music generation — block back
     if (genPhase === "generating") return;
 
@@ -730,6 +749,9 @@ export default function SpeakPage() {
         setPhase("idle");
         break;
       }
+      case "understanding":
+        navigateTo("/", router);
+        break;
       case "confirming":
         goToPhase("idle");
         break;
@@ -783,6 +805,8 @@ export default function SpeakPage() {
   // the user may be returning from navigation to see their results.
   useEffect(() => {
     if (genPhase === "ready" || genPhase === "generating") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("draft") === "1" && readInterpretationDraft()) return;
     clearGeneration();
     setUnderstandResult(null);
     setErrorMsg("");
@@ -790,7 +814,6 @@ export default function SpeakPage() {
     allTranscriptsRef.current = [];
 
     // Read ?pillar=, ?seed=, ?menuSlug=, ?menuTitle= from URL (e.g. from the Structure page)
-    const params = new URLSearchParams(window.location.search);
     const pillarParam = params.get("pillar");
     const seedParam = params.get("seed");
     const menuSlugParam = params.get("menuSlug");
@@ -845,7 +868,7 @@ export default function SpeakPage() {
         title="Create"
         titleIcon={<HeaderMicIcon />}
         onBack={
-          phase === "understanding" || genPhase === "generating"
+          genPhase === "generating"
             ? null       // disabled during async operations
             : handleBack // context-aware for all other states
         }
@@ -1140,13 +1163,31 @@ const PILLARS: PillarDefinition[] = [
       footnote: "Works best with books that carry one strong idea, argument, lens, or world. That can be history, science, memoir, philosophy, culture, economics, creativity, nature writing, or fiction with a powerful central frame.",
     },
   },
+  {
+    slug: "sleep",
+    label: "Sleep",
+    tagline: "Adult lullabies for winding down",
+    icon: <SleepIcon />,
+    detail: "Use this at night when your mind is still carrying the day. RTHMIC makes an adult lullaby: soft, reassuring, unhurried, and personal. It can hold loose thoughts, tomorrow worries, body tension, or the simple wish to drift down without forcing sleep.",
+    guidance: "Speak what is still active in your mind or body. Name what you want to set down, what tomorrow can hold, and what kind of night you want to move toward.",
+    priming: {
+      headline: "What needs to soften before sleep?",
+      subheadline: "Say what the day left behind.",
+      instructions: [
+        "Name what is still circling: unfinished tasks, conversations, body tension, tomorrow worries, or simple restlessness.",
+        "Say what can wait until morning. Give RTHMIC the things your mind keeps trying to hold.",
+        "Describe the kind of landing you want: safe, quiet, warm, spacious, held, or gently blank.",
+      ],
+      footnote: "This is not a sleep command. It is a soft place for the mind to land. Speak for 30 seconds to two minutes.",
+    },
+  },
 ];
 
 // ─── Subcategory groupings for "For you in the moment" ────────────────────────
 
 const FOR_YOU_SUBCATEGORIES = [
   { label: "Rthms that Unlock • Mode • Movement • Explain",           slugs: ["mode", "movement", "explain"] },
-  { label: "Rthms that Prime • Mindset",                              slugs: ["mindset"] },
+  { label: "Rthms that Prime • Mindset • Sleep",                       slugs: ["mindset", "sleep"] },
   { label: "Rthms that Preserve • Journal • Epiphany",                slugs: ["journal", "epiphany"] },
   { label: "Rthms that Install • Memory • Book Summary",              slugs: ["memory", "booksummary"] },
 ];
@@ -3261,6 +3302,15 @@ function BookSummaryIcon() {
       {/* Small spark top-right — the big idea inside */}
       <line x1="17" y1="5" x2="17" y2="8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
       <line x1="15.5" y1="6.5" x2="18.5" y2="6.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function SleepIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <path d="M18.8 15.2A7.5 7.5 0 0 1 8.8 5.2a8 8 0 1 0 10 10Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="M16.5 4.5h3l-3 4h3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

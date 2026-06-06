@@ -483,6 +483,7 @@ Return ONLY a valid JSON array of ${count} concept names. No explanation, no mar
     mindset: "upcoming situations, events, or decisions the user is about to walk into and wants the right mindset for",
     mode: "unhelpful states the user is already in and wants to shake off, reset, or move through",
     movement: "avoided, stalled, overwhelming, or repeatedly postponed tasks the user needs help starting",
+    sleep: "thoughts, worries, moments, or feelings the user wants softened into an adult lullaby before rest",
     journal: "moments from the day worth capturing as a personal song",
     epiphany: "fresh realisations, ideas, or insights worth preserving",
     bridge: "personal messages made for someone else",
@@ -495,6 +496,7 @@ Return ONLY a valid JSON array of ${count} concept names. No explanation, no mar
     mindset: "Return first-person upcoming situations like job interview, first date, important purchase, giving a speech, difficult meeting, performance review, sales call, medical appointment, negotiation, or exam. Do NOT return advice phrases.",
     mode: "Return first-person current states to shift out of, such as awkward confrontation aftermath, anxiety about last night, resentment, shame spiral, post-argument replay, Sunday dread, social hangover, or feeling defensive. Do NOT return aspirational modes like deep focus.",
     movement: "Return stuck-task situations, such as avoiding admin, overwhelmed and don't know where to start, task never reaches the top of the list, messy room, unopened email, delayed application, postponed workout, or project restart.",
+    sleep: "Return night-time states or soft prompts, such as mind won't switch off, tomorrow can wait, after a long day, anxious before bed, leaving work outside, or letting the room go quiet.",
   };
   const guidance = extraGuidance[pillar] ? `\n${extraGuidance[pillar]}` : "";
 
@@ -523,7 +525,7 @@ export async function GET(req: NextRequest) {
   if (!uid) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const pillar = req.nextUrl.searchParams.get("pillar") ?? "";
-  const allowed = new Set(["memory", "menus", "mindset", "mode", "movement", "journal", "epiphany", "explain", "booksummary", "bridge", "invite"]);
+  const allowed = new Set(["memory", "menus", "mindset", "mode", "movement", "journal", "epiphany", "explain", "booksummary", "sleep", "bridge", "invite"]);
   if (!allowed.has(pillar)) {
     return NextResponse.json({ error: "Invalid pillar" }, { status: 400 });
   }
@@ -576,6 +578,7 @@ export async function GET(req: NextRequest) {
       memory: CHALLENGE_STARTERS.memory.slice(0, 6),
       mode: CHALLENGE_STARTERS.mode.slice(0, 6),
       movement: CHALLENGE_STARTERS.movement.slice(0, 6),
+      sleep: ["Mind won't switch off", "Tomorrow can wait", "After a long day", "Anxious before bed", "Leave work outside", "Let the room go quiet"],
       journal: ["Today in one scene", "A strange good moment", "What I learned today", "A thing worth keeping", "A hard day ending", "Small wins"],
       epiphany: ["The new idea", "What finally clicked", "A better frame", "Something I realised", "The missing link", "A useful metaphor"],
       bridge: ["Encourage a friend", "Thank a collaborator", "Repair a moment", "Celebrate someone", "Explain how you feel", "Send reassurance"],

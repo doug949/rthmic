@@ -52,6 +52,7 @@ const CONFIGURABLE_PILLARS = [
   { slug: "movement",    label: "Movement" },
   { slug: "explain",     label: "Explain" },
   { slug: "mindset",     label: "Mindset" },
+  { slug: "sleep",       label: "Sleep" },
   { slug: "journal",     label: "Journal" },
   { slug: "epiphany",    label: "Epiphany" },
   { slug: "memory",      label: "Memory" },

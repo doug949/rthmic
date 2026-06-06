@@ -20,6 +20,7 @@ const TINT: Record<string, string> = {
   invite:        "218,185,120",
   understanding: "100,85,140",
   menus:         "118,152,208",
+  sleep:         "130,150,220",
 };
 
 const DEFAULT_TINT = "0,0,0";

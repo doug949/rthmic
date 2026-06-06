@@ -15,9 +15,10 @@
  *    pass onBack={null} so Back is greyed out and unresponsive.
  */
 
-import { useCallback, type ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { transitionTo } from "@/app/lib/pageTransition";
+import { AppMenu } from "@/app/components/AppMenu";
 
 interface AppHeaderProps {
   /** Label text for the ← button. Defaults to "← Back". */
@@ -39,6 +40,7 @@ interface AppHeaderProps {
 
 export function AppHeader({ backLabel = "← Back", onBack, title, titleIcon }: AppHeaderProps) {
   const router = useRouter();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const handleBack = useCallback(() => {
     if (onBack === null) return;        // disabled — do nothing
@@ -78,6 +80,18 @@ export function AppHeader({ backLabel = "← Back", onBack, title, titleIcon }: 
       {/* Spacer */}
       <div className="flex-1" />
 
+      <button
+        onClick={() => setMenuOpen(true)}
+        className="mr-2 flex flex-col items-center justify-center h-8 w-8 rounded-full touch-manipulation active:bg-white/[0.06] transition-colors"
+        style={{ gap: 3, color: "rgba(255,255,255,0.42)" }}
+        aria-label="Menu"
+        title="Menu"
+      >
+        {[0, 1, 2].map((i) => (
+          <span key={i} style={{ width: i === 1 ? 12 : 16, height: 1.5, borderRadius: 1, background: "currentColor" }} />
+        ))}
+      </button>
+
       {/* ⌂ Home — always present, always goes to / */}
       <button
         onClick={handleHome}
@@ -89,6 +103,7 @@ export function AppHeader({ backLabel = "← Back", onBack, title, titleIcon }: 
         <HomeIcon />
         <span className="text-sm uppercase tracking-widest leading-none">Home</span>
       </button>
+      <AppMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
     </header>
   );
 }

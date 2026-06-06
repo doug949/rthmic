@@ -18,6 +18,7 @@ const PILLAR_FILE: Record<PillarType, string> = {
   Epiphany:      "epiphany.md",     // Idea/insight capture — crystallise the spark in song
   Explain:       "explain.md",      // Comprehension — make an idea finally click for the listener
   BookSummary:   "booksummary.md",  // One big idea from a popular nonfiction book
+  Sleep:         "sleep.md",        // Adult lullabies — settle the mind before sleep
 };
 
 export function loadTemplate(pillar: PillarType): string {
@@ -127,13 +128,21 @@ const PILLAR_KEYWORDS: Record<PillarType, string[]> = {
     "concept from", "idea from", "key idea", "main idea", "core idea",
     "one thing from", "the premise", "what it says", "nonfiction", "non-fiction",
   ],
+  Sleep: [
+    "sleep", "asleep", "bed", "bedtime", "night", "tonight", "fall asleep",
+    "can't sleep", "cannot sleep", "insomnia", "wide awake", "tired but wired",
+    "wind down", "unwind", "settle", "settling", "rest", "restful", "restless",
+    "ruminating", "rumination", "mind racing", "thoughts racing", "switch off",
+    "shut down", "let go", "soften", "lullaby", "lullabies", "adult lullaby",
+    "tomorrow", "worrying at night", "night thoughts", "before sleep",
+  ],
 };
 
 export function detectPillar(transcript: string): PillarType {
   const lower = transcript.toLowerCase();
 
   const scores: Record<PillarType, number> = {
-    Memory: 0, Menus: 0, Mindset: 0, Mode: 0, Movement: 0, Understanding: 0, Bridge: 0, Invite: 0, Journal: 0, Epiphany: 0, Explain: 0, BookSummary: 0,
+    Memory: 0, Menus: 0, Mindset: 0, Mode: 0, Movement: 0, Understanding: 0, Bridge: 0, Invite: 0, Journal: 0, Epiphany: 0, Explain: 0, BookSummary: 0, Sleep: 0,
   };
 
   for (const [pillar, keywords] of Object.entries(PILLAR_KEYWORDS) as [PillarType, string[]][]) {

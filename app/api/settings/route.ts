@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireUserId } from "@/app/lib/auth";
 import { REDIS_AVAILABLE, withRedis } from "@/app/lib/redis";
 
-export const DEFAULT_ADVANCED_PILLARS = ["memory", "booksummary", "explain", "mindset"];
+export const DEFAULT_ADVANCED_PILLARS = ["memory", "booksummary", "explain", "mindset", "sleep"];
 
 export interface UserSettings {
   name: string;

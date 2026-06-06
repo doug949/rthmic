@@ -10,7 +10,7 @@ import { requireUserId } from "@/app/lib/auth";
 import { REDIS_AVAILABLE, withRedis, type RedisClient } from "@/app/lib/redis";
 import { toSunoPronunciation } from "@/app/lib/sunoLyrics";
 import { extractSunoTaskId, isSunoCreditError, sunoStartError } from "@/app/lib/sunoResponse";
-import { buildSunoStyle } from "@/app/lib/sunoStyle";
+import { applyVocalistPreference, buildSunoStyle } from "@/app/lib/sunoStyle";
 import type { StyleChoice } from "@/app/services/llmService";
 import type { PillarType } from "@/app/types/pipeline";
 
@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
   if (!rawLyrics.trim()) return NextResponse.json({ error: "lyrics required" }, { status: 400 });
 
   const vocalist = await getVocalistPref(uid);
-  const genre = vocalist !== "none" ? `${rawGenre}, ${vocalist} vocalist` : rawGenre;
+  const genre = applyVocalistPreference(rawGenre, vocalist);
   const lyrics = toSunoPronunciation(rawLyrics.slice(0, SUNO_CHAR_LIMIT));
   const builtStyle = buildSunoStyle(genre);
 

@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { StyleChoice } from "@/app/services/llmService";
 import { toSunoPronunciation } from "@/app/lib/sunoLyrics";
 import { extractSunoTaskId, sunoStartError } from "@/app/lib/sunoResponse";
-import { buildSunoStyle } from "@/app/lib/sunoStyle";
+import { applyVocalistPreference, buildSunoStyle } from "@/app/lib/sunoStyle";
 
 const BASE_URL = "https://api.sunoapi.org/api/v1";
 
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     const style = (body.style as StyleChoice) ?? "B";
     const rawGenre = typeof body.genre === "string" && body.genre.trim() ? body.genre.trim() : "Indie Electronic";
     const vocalist = await getVocalistPref(req);
-    const genre = vocalist !== "none" ? `${rawGenre}, ${vocalist} vocalist` : rawGenre;
+    const genre = applyVocalistPreference(rawGenre, vocalist);
     const songTitle = typeof body.title === "string" && body.title.trim()
       ? body.title.trim()
       : "RTHM";

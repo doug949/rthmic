@@ -170,8 +170,10 @@ export async function POST(request: NextRequest) {
         });
       } else {
         // update — status and/or tags; clears deletedAt when un-deleting
+        const target = current.find((r) => r.id === body.id);
+        const activatePair = !!target && body.status === "active";
         updated = current.map((r) => {
-          if (r.id !== body.id) return r;
+          if (r.id !== body.id && !(activatePair && target && samePair(r, target))) return r;
           const next: SavedRhythm = { ...r };
           if (body.status      !== undefined) next.status      = body.status as SavedRhythm["status"];
           if (body.tags        !== undefined) next.tags        = normalizeTags(body.tags as string[]);

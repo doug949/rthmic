@@ -515,6 +515,7 @@ const HOME_TILES: {
 }[] = [
   { id: "create", href: "/speak",     label: "Create a Rthm",        shortLabel: "Create",     icon: <MicIcon />,     accent: "rgba(201,165,90,0.55)", image: "/images/tiles/optimized/create.webp" },
   { id: "right-now", href: "/speak?quick=1", label: "In The Moment", shortLabel: "In The Moment", icon: <SituationIcon />, accent: "rgba(120,200,210,0.55)", image: "/images/tiles/optimized/in-the-moment.webp" },
+  { id: "sleep", href: "/speak?pillar=sleep", label: "Rthmic Sleep", shortLabel: "Sleep", icon: <SleepTileIcon />, accent: "rgba(130,150,220,0.55)" },
   { id: "my-rthms", href: "/library/my-rthms", label: "My Rthms",      shortLabel: "My Rthms",   icon: <PlayIcon />,    accent: "rgba(100,140,255,0.5)", image: "/images/tiles/optimized/my-rthms.webp" },
   { id: "bridge", href: "/bridge", label: "Rthmic Bridge", shortLabel: "Bridge", icon: <BridgeTileIcon />, accent: "rgba(180,160,140,0.55)", image: "/images/tiles/optimized/bridge.webp" },
   { id: "invite", href: "/invite", label: "Rthmic Invite", shortLabel: "Invite", icon: <InviteTileIcon />, accent: "rgba(218,185,120,0.55)", image: "/images/tiles/optimized/invite.webp", adminOnly: true },
@@ -533,6 +534,15 @@ function SituationIcon() {
       <path d="M12 4.5v2.2M12 17.3v2.2M4.5 12h2.2M17.3 12h2.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
       <circle cx="12" cy="12" r="4.3" stroke="currentColor" strokeWidth="1.6" />
       <path d="M12 9.5v2.7l1.8 1.1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function SleepTileIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <path d="M18.8 15.3A7.2 7.2 0 0 1 8.7 5.2 7.4 7.4 0 1 0 18.8 15.3Z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M15.9 4.7h3.2l-3.2 4.1h3.2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" opacity="0.68" />
     </svg>
   );
 }

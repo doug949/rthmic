@@ -107,6 +107,7 @@ const PILLAR_STYLE_DEFAULTS: Record<PillarType, StyleChoice> = {
   Epiphany:     "A", // electric, excited — the energy of a spark landing
   Explain:      "B", // calm, clear, unhurried — optimised for comprehension not atmosphere
   BookSummary:  "B", // same as Explain — clear, confident, the energy of a good recommendation
+  Sleep:        "B", // slow, soft, settling — adult lullaby energy
 };
 
 // ─── Mock outputs ─────────────────────────────────────────────────────────────
@@ -629,6 +630,50 @@ The day is done.
 You spoke it out before it could disappear.
 Play this back when you've forgotten what this felt like.
 It's kept now.`,
+  },
+  Sleep: {
+    title: "Leave Tomorrow Outside",
+    stateSummary: {
+      state: "You're tired, but your mind is still carrying the day and trying to finish what cannot be finished tonight.",
+      intent: "You want to soften the noise enough to rest.",
+      friction: "The unfinished thoughts keep asking for attention, even though this is not the hour to solve them.",
+    },
+    lyrics: `[VERSE]
+The room is darker now.
+The day is still talking, but lower.
+You do not have to answer every thought
+just because it knocks at the edge of sleep.
+
+Let the list stay on the other side of morning.
+Let the words lose their sharp corners.
+Your body has been carrying you all day.
+Now let the weight come down.
+
+[CHORUS]
+Leave tomorrow outside the door.
+Leave the bright things unheld.
+Nothing needs finishing here.
+Only the breath. Only the bed.
+
+[VERSE 2]
+There is a quiet under the thinking.
+Not empty. Not gone.
+Just quieter than the mind expected.
+Put one hand on that quiet.
+Let the room hold the rest.
+
+[BRIDGE]
+If a thought returns, let it pass through slowly.
+No argument. No chase.
+It can wait in the hallway of morning.
+It does not need your whole night.
+
+[OUTRO]
+Leave tomorrow outside the door.
+Let the dark do what it knows.
+Nothing needs finishing here.
+Only the breath.
+Only the bed.`,
   },
 };
 

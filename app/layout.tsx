@@ -10,6 +10,7 @@ import { PageTransitionLayer } from "@/app/components/PageTransitionLayer";
 import { PillarThemeProvider } from "@/app/contexts/PillarThemeContext";
 import RoutePersistence from "@/app/components/RoutePersistence";
 import { RuntimeDiagnosticsBoundary, RuntimeDiagnosticsListeners } from "@/app/components/RuntimeDiagnostics";
+import { InterpretationReadyPill } from "@/app/components/InterpretationReadyPill";
 
 // Fonts are defined with system fallbacks in globals.css so cloud builds do not depend on fetching Google Fonts.
 export const metadata: Metadata = {
@@ -60,6 +61,7 @@ export default function RootLayout({
               <AudioProvider>
                 {children}
                 <AppChrome />
+                <InterpretationReadyPill />
               </AudioProvider>
             </GenerationProvider>
           </RuntimeDiagnosticsBoundary>

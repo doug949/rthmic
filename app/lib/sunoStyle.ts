@@ -88,3 +88,15 @@ export function buildSunoStyle(style: string): string {
   const base = lastComma > 0 ? truncated.slice(0, lastComma) : truncated;
   return `${base.trim().replace(/[,.\s]+$/g, "")}${FADE_SUFFIX}`;
 }
+
+export function styleHasVocalistDirection(style: string): boolean {
+  const text = style.toLowerCase();
+  return /\b(male|female|man|woman|men|women|boy|girl|masculine|feminine)\b/.test(text) ||
+    /\b(duet|both vocalists|mixed vocals|vocal harmony|ensemble|choir|group vocals)\b/.test(text) ||
+    /\b(voice|vocal|vocalist|singer|sung|rap|rapped|spoken)\b/.test(text);
+}
+
+export function applyVocalistPreference(style: string, vocalist: "male" | "female" | "none"): string {
+  if (vocalist === "none" || styleHasVocalistDirection(style)) return style;
+  return `${style}, ${vocalist} vocalist`;
+}
