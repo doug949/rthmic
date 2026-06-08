@@ -16,6 +16,7 @@ import {
 } from "@/app/lib/clientDiagnostics";
 
 interface DiagnosticsSnapshot {
+  collectedAt: string;
   route: string;
   sessionId: string;
   clientBuild: string;
@@ -97,6 +98,7 @@ async function collectSnapshot(): Promise<DiagnosticsSnapshot> {
   }
 
   return {
+    collectedAt: new Date().toISOString(),
     route: `${window.location.pathname}${window.location.search}${window.location.hash}`,
     sessionId: getDiagnosticSessionId(),
     clientBuild: process.env.NEXT_PUBLIC_RTHMIC_BUILD ?? "dev",
@@ -124,11 +126,15 @@ async function collectSnapshot(): Promise<DiagnosticsSnapshot> {
 export default function DiagnosticsPage() {
   const [snapshot, setSnapshot] = useState<DiagnosticsSnapshot | null>(null);
   const [copied, setCopied] = useState(false);
+  const [refreshed, setRefreshed] = useState(false);
+  const [cleared, setCleared] = useState(false);
   const [allowed, setAllowed] = useState(false);
   const [checked, setChecked] = useState(false);
 
   const refresh = useCallback(async () => {
     setSnapshot(await collectSnapshot());
+    setRefreshed(true);
+    window.setTimeout(() => setRefreshed(false), 1400);
   }, []);
 
   useEffect(() => {
@@ -162,6 +168,8 @@ export default function DiagnosticsPage() {
   const clearDiagnostics = () => {
     localStorage.removeItem("rthmic:diagnostic-events-v1");
     localStorage.removeItem("rthmic:route-stack-v1");
+    setCleared(true);
+    window.setTimeout(() => setCleared(false), 1600);
     refresh();
   };
 
@@ -195,7 +203,7 @@ export default function DiagnosticsPage() {
             className="flex-1 rounded-xl border px-4 py-3 text-sm font-medium"
             style={{ borderColor: "rgba(255,255,255,0.14)", color: "rgba(255,255,255,0.78)", background: "rgba(255,255,255,0.05)" }}
           >
-            Refresh
+            {refreshed ? "Updated" : "Refresh Report"}
           </button>
           <button
             onClick={copySnapshot}
@@ -206,11 +214,20 @@ export default function DiagnosticsPage() {
           </button>
         </div>
 
+        <button
+          onClick={clearDiagnostics}
+          className="rounded-xl border px-4 py-3 text-sm font-medium"
+          style={{ borderColor: "rgba(255,255,255,0.10)", color: "rgba(255,255,255,0.56)", background: "rgba(255,255,255,0.03)" }}
+        >
+          {cleared ? "Diagnostics Cleared" : "Clear Diagnostics"}
+        </button>
+
         {!snapshot ? (
           <p className="text-sm text-white/50">Collecting diagnostics...</p>
         ) : (
           <>
             <Panel title="Runtime">
+              <Row label="Snapshot" value={snapshot.collectedAt} />
               <Row label="Route" value={snapshot.route} />
               <Row label="Session" value={snapshot.sessionId} />
               <Row label="Online" value={snapshot.online ? "yes" : "no"} />
@@ -281,14 +298,6 @@ export default function DiagnosticsPage() {
             <Panel title="Device">
               <p className="break-words text-xs leading-relaxed text-white/45">{snapshot.userAgent}</p>
             </Panel>
-
-            <button
-              onClick={clearDiagnostics}
-              className="rounded-xl border px-4 py-3 text-sm"
-              style={{ borderColor: "rgba(255,255,255,0.10)", color: "rgba(255,255,255,0.46)", background: "rgba(255,255,255,0.03)" }}
-            >
-              Clear Diagnostics
-            </button>
           </>
         )}
       </section>
