@@ -77,8 +77,9 @@ const [clearingQueue, setClearingQueue]     = useState(false);
     }
   }
 
-  const activeRthms     = rhythms.filter((r) => r.status === "new" || r.status === "active" || r.status === "favourite");
-  const myRthmsCount    = activeRthms.length;
+  const newRthmsCount   = rhythms.filter((r) => r.status === "new").length;
+  const myRthms         = rhythms.filter((r) => r.status === "active" || r.status === "favourite");
+  const myRthmsCount    = myRthms.length;
   const favouritesCount = rhythms.filter((r) => r.status === "favourite").length;
   const archiveCount    = rhythms.filter((r) => r.status === "archived").length;
 
@@ -88,9 +89,9 @@ const [clearingQueue, setClearingQueue]     = useState(false);
     if (period === "week")  { d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); d.setHours(0, 0, 0, 0); return d.getTime(); }
     d.setDate(1); d.setHours(0, 0, 0, 0); return d.getTime();
   };
-  const todayCount = activeRthms.filter((r) => r.savedAt >= startOf("today")).length;
-  const weekCount  = activeRthms.filter((r) => r.savedAt >= startOf("week")).length;
-  const monthCount = activeRthms.filter((r) => r.savedAt >= startOf("month")).length;
+  const todayCount = myRthms.filter((r) => r.savedAt >= startOf("today")).length;
+  const weekCount  = myRthms.filter((r) => r.savedAt >= startOf("week")).length;
+  const monthCount = myRthms.filter((r) => r.savedAt >= startOf("month")).length;
 
   return (
     <main
@@ -164,6 +165,35 @@ const [clearingQueue, setClearingQueue]     = useState(false);
               </div>
             ))}
           </div>
+        )}
+
+        {/* ── New Rthms ─────────────────────────────────────────────────── */}
+        {newRthmsCount > 0 && (
+          <TransitionLink
+            href="/library/my-rthms?section=new"
+            className="flex items-center gap-4 px-5 py-4 rounded-2xl border touch-manipulation active:scale-[0.985] transition-all"
+            style={{ background: "rgba(109,40,217,0.08)", borderColor: "rgba(109,40,217,0.28)" }}
+          >
+            <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
+              style={{ background: "rgba(109,40,217,0.16)", border: "1px solid rgba(139,92,246,0.26)" }}>
+              <span style={{ color: "rgb(167,139,250)" }}><MyRthmsIcon /></span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-medium leading-snug" style={{ color: "rgb(167,139,250)", fontFamily: "var(--font-display)" }}>New</h2>
+                <span
+                  className="inline-flex items-center justify-center text-[9px] font-semibold rounded-full px-1.5 py-0.5 leading-none"
+                  style={{ background: "rgba(109,40,217,0.2)", color: "rgb(167,139,250)" }}
+                >
+                  {newRthmsCount}
+                </span>
+              </div>
+              <p className="text-[11px] mt-0.5 leading-snug" style={{ color: "rgba(255,255,255,0.32)" }}>Freshly generated Rthms to keep or clear</p>
+            </div>
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className="flex-shrink-0">
+              <path d="M5 3L11 8L5 13" stroke="rgba(167,139,250,0.48)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </TransitionLink>
         )}
 
         {/* ── My Rthms ─────────────────────────────────────────────────── */}

@@ -18,6 +18,7 @@ import { PlayIcon } from "@/app/components/HomeTileIcons";
 type LoadState = "loading" | "ready" | "error";
 type TimePeriod = "today" | "week" | "month" | "all";
 type LibraryCollection = "main" | "bridge" | "invite";
+type LibrarySection = "main" | "new";
 
 interface QueueJob {
   jobId: string;
@@ -70,6 +71,11 @@ function collectionEmptyCopy(collection: LibraryCollection): string {
   return "Rthms you generate will appear here.";
 }
 
+function pageTitle(collection: LibraryCollection, section: LibrarySection): string {
+  if (section === "new") return "New";
+  return collectionTitle(collection);
+}
+
 function belongsToCollection(rhythm: SavedRhythm, collection: LibraryCollection): boolean {
   if (rhythm.rthmixId) return false;
   if (collection === "bridge") return rhythm.pillar === "Bridge";
@@ -86,6 +92,7 @@ export default function MyRthmsPage() {
   const [timePeriod, setTimePeriod]     = useState<TimePeriod>("all");
   const [chartsMode, setChartsMode]     = useState(false);
   const [collection, setCollection] = useState<LibraryCollection>("main");
+  const [section, setSection] = useState<LibrarySection>("main");
   const [expanded, setExpanded]        = useState(false);
   const [selectedPillar, setSelectedPillar] = useState<string | null>(null);
   const [selectedTags, setSelectedTags]     = useState<string[]>([]);
@@ -143,7 +150,9 @@ export default function MyRthmsPage() {
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search).get("period");
-    const c = collectionFromQuery(new URLSearchParams(window.location.search).get("collection"));
+    const params = new URLSearchParams(window.location.search);
+    const c = collectionFromQuery(params.get("collection"));
+    setSection(params.get("section") === "new" ? "new" : "main");
     setCollection(c);
     if (c === "bridge" || c === "invite") setTimePeriod("all");
     if (p === "charts") {
@@ -207,10 +216,10 @@ export default function MyRthmsPage() {
     (r) => r.status === "deleted" && r.deletedAt !== undefined && now - r.deletedAt < THIRTY_DAYS
   );
 
-  const handleRemove = (id: string) => {
+  const handleRemove = (id: string, ids: string[] = [id]) => {
     if (confirmRemoveId === id) {
-      updateRhythmLocal(id, { status: "deleted", deletedAt: Date.now() });
-      mutate({ action: "remove", id });
+      ids.forEach((targetId) => updateRhythmLocal(targetId, { status: "deleted", deletedAt: Date.now() }));
+      mutate(ids.length > 1 ? { action: "batch-remove", ids } : { action: "remove", id: ids[0] }, ids);
       setConfirmRemoveId(null);
     } else {
       setConfirmRemoveId(id);
@@ -233,6 +242,8 @@ export default function MyRthmsPage() {
     ids.forEach((id) => updateRhythmLocal(id, { status: "active" }));
     mutate({ action: "update", id: rhythm.id, status: "active" }, ids);
   };
+
+  const handleMoveToMainLibrary = handleMarkListened;
 
   const handleUngraduate = (id: string) =>
     updateRhythm(id, { status: "active" });
@@ -390,7 +401,7 @@ export default function MyRthmsPage() {
   return (
     <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ animation: "page-enter 380ms ease forwards" }}>
       <RevealBlock delay={0}>
-        <AppHeader title={collectionTitle(collection)} titleIcon={<PlayIcon />} />
+        <AppHeader title={pageTitle(collection, section)} titleIcon={<PlayIcon />} />
       </RevealBlock>
 
       <section className="flex-1 flex flex-col gap-6 pb-32">
@@ -460,8 +471,8 @@ export default function MyRthmsPage() {
           </div>
         )}
 
-      {/* ── New (unplayed) Rthms ─────────────────────────────────────────────── */}
-        {newCards.length > 0 && (
+      {/* ── New Rthms ───────────────────────────────────────────────────────── */}
+        {section === "new" && (
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2 px-1">
               <span className="text-[10px] uppercase tracking-widest" style={{ color: "rgb(139,92,246)" }}>New</span>
@@ -472,8 +483,22 @@ export default function MyRthmsPage() {
                 {newCards.length}
               </span>
             </div>
+            {section === "new" && (
+              <p className="px-1 text-xs text-white/32 leading-relaxed">
+                These are freshly generated. Move the ones worth keeping into the main library, or delete the ones you do not need.
+              </p>
+            )}
+            {loadState === "ready" && newCards.length === 0 && section === "new" && (
+              <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5 py-12 flex flex-col items-center gap-3">
+                <p className="text-sm text-white/50 text-center leading-relaxed">No new Rthms waiting.</p>
+                <TransitionLink href="/library/my-rthms" className="text-xs text-white/45 underline underline-offset-4 hover:text-white/60 transition-colors">
+                  View main library →
+                </TransitionLink>
+              </div>
+            )}
             {newCards.map(({ key, rhythm, alternate, preferredSideId }) => {
               const isSelected = selectedIds.has(rhythm.id);
+              const pairIds = alternate ? [rhythm.id, alternate.id] : [rhythm.id];
               return (
                 <div key={key}>
                 <div className="relative overflow-hidden">
@@ -506,17 +531,19 @@ export default function MyRthmsPage() {
                       showLyrics={showLyricsId === rhythm.id}
                       onToggleLyrics={() => setShowLyricsId(showLyricsId === rhythm.id ? null : rhythm.id)}
                       onPlay={() => selectMode ? toggleSelect(rhythm.id) : togglePlay(rhythm)}
-                      onMarkListened={() => handleMarkListened(rhythm)}
+                      onMarkListened={() => handleMoveToMainLibrary(rhythm)}
                       onGraduate={() => handleGraduate(rhythm.id)}
                       onArchive={() => handleArchive(rhythm)}
-                      onRemove={() => handleRemove(rhythm.id)}
+                      onRemove={() => handleRemove(key, pairIds)}
                       onRecreate={() => setRecreateRhythm(rhythm)}
                       onBuildUpon={() => handleBuildUpon(rhythm)}
                       onShare={() => handleShare(rhythm)}
                       onTag={(tags) => handleTag(rhythm.id, tags)}
                       onNote={(note) => handleNote(rhythm.id, note)}
-                      actionPending={pendingMutationIds.has(rhythm.id)}
-                      confirmingRemove={confirmRemoveId === rhythm.id}
+                      actionPending={pairIds.some((id) => pendingMutationIds.has(id))}
+                      markListenedLabel="Move"
+                      markListenedSublabel="To main library"
+                      confirmingRemove={confirmRemoveId === key}
                       shareToast={shareToastId === rhythm.id}
                       sideLabel={alternate ? sideLabelFor(rhythm) : undefined}
                       alternateLabel={alternate?.title}
@@ -533,6 +560,7 @@ export default function MyRthmsPage() {
         )}
 
         {/* ── Active Rthms ─────────────────────────────────────────────────────── */}
+        {section === "main" && (
         <div className="flex flex-col gap-2">
           {loadState === "loading" && (
             <div className="flex justify-center py-16">
@@ -701,6 +729,7 @@ export default function MyRthmsPage() {
             </>
           )}
         </div>
+        )}
 
         {/* ── Recently Deleted ─────────────────────────────────────────────────── */}
         {recentlyDeleted.length > 0 && (

@@ -44,6 +44,8 @@ export function RhythmRow({
   sidePreference = "none",
   onPreferSide,
   actionPending,
+  markListenedLabel = "Listened",
+  markListenedSublabel = "Move to My Rthms",
 }: {
   rhythm: SavedRhythm;
   playing: boolean;
@@ -74,6 +76,8 @@ export function RhythmRow({
   sidePreference?: SidePreferenceState;
   onPreferSide?: () => void;
   actionPending?: boolean;
+  markListenedLabel?: string;
+  markListenedSublabel?: string;
 }) {
   // colour theme — priority: favourite > isNew > default
   const P = isNew && !favourite ? {
@@ -322,13 +326,16 @@ export function RhythmRow({
       <div className="flex" style={{ borderTop: `1px solid ${favourite ? "rgba(201,165,90,0.12)" : P ? P.divider : "rgba(255,255,255,0.06)"}` }}>
         <SmallBtn onClick={onShare} label={shareToast ? "Copied!" : "Share"} sublabel={shareToast ? "Link ready" : "Send link"} icon="↗" active={shareToast} gold={favourite} purple={!!P} />
         {isNew && onMarkListened && (
-          <SmallBtn onClick={onMarkListened} label={actionPending ? "Moving…" : "Listened"} sublabel="Move to My Rthms" icon="✓" purple disabled={actionPending} />
+          <SmallBtn onClick={onMarkListened} label={actionPending ? "Moving…" : markListenedLabel} sublabel={markListenedSublabel} icon="✓" purple disabled={actionPending} />
         )}
         {onGraduate && (
           <SmallBtn onClick={onGraduate} label={actionPending ? "Adding…" : "Add to Favs"} icon="☆" purple={!!P} disabled={actionPending} />
         )}
         {onUngraduate && (
           <SmallBtn onClick={onUngraduate} label={actionPending ? "Saving…" : "Unfavourite"} icon="★" gold disabled={actionPending} />
+        )}
+        {isNew && (
+          <SmallBtn onClick={onRemove} label={confirmingRemove ? "Confirm?" : "Delete"} icon="×" danger confirming={confirmingRemove} disabled={actionPending} />
         )}
         <SmallBtn onClick={() => setMoreOpen(true)} label="More" icon="···" gold={favourite} purple={!!P} />
       </div>
