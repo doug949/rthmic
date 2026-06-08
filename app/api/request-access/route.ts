@@ -5,7 +5,7 @@
 //   Returns: { ok: true } | { error: string }
 //
 // Redis schema:
-//   `beta-code:{code}`       → { email, createdAt } — TTL 30 days (the actual access code)
+//   `beta-code:{code}`       → { email, createdAt } — persistent beta access code
 //   `beta-req:{email}`       → { sentAt }           — TTL 10 min (rate-limit / dedup)
 //   `access-request:{email}` → { email, requestedAt, source } — persistent waitlist fallback
 //   `access-requests`        → newest-first list of requested emails
@@ -19,7 +19,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "redis";
 import { Resend } from "resend";
 
-const THIRTY_DAYS_SEC = 30 * 24 * 60 * 60;
 const TEN_MIN_SEC     = 10 * 60;
 
 const REDIS_AVAILABLE  = !!process.env.REDIS_URL;
@@ -231,11 +230,10 @@ export async function POST(request: NextRequest) {
       let newCode = makeBetaCode();
       if (await client.exists(`beta-code:${newCode}`)) newCode = makeBetaCode();
 
-      // Store the code (30 days)
+      // Store the code permanently. Revoke manually by deleting beta-code:{code}.
       await client.set(
         `beta-code:${newCode}`,
-        JSON.stringify({ email: normalised, createdAt: Date.now() }),
-        { EX: THIRTY_DAYS_SEC }
+        JSON.stringify({ email: normalised, createdAt: Date.now() })
       );
 
       // Rate limit marker (10 min)
