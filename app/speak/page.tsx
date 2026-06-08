@@ -1015,7 +1015,7 @@ export default function SpeakPage() {
           <span style={{ fontSize: 28, color: "rgba(170,225,255,0.86)" }}>✓</span>
           <p className="text-base font-medium" style={{ color: "rgba(170,225,255,0.9)" }}>Added to queue</p>
           <p className="text-sm text-white/40 text-center max-w-xs leading-relaxed">
-            Your Rthm is generating on RTHMIC's servers. You can close the app completely — it will be waiting when you come back.
+            Your Rthm is generating on RTHMIC's servers. This usually takes 1-2 minutes. You can close the app completely — it will be waiting when you come back.
           </p>
           <QueuePill />
         </div>

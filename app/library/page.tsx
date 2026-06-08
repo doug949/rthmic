@@ -131,7 +131,7 @@ const [clearingQueue, setClearingQueue]     = useState(false);
               </button>
             </div>
             <p className="px-1 text-xs text-white/32 leading-relaxed">
-              These are generating on RTHMIC's servers. You can close the app completely and come back later.
+              Rthms usually take 1-2 minutes to generate on RTHMIC's servers. You can close the app completely and come back later.
             </p>
             {queueJobs.map((job) => (
               <div
