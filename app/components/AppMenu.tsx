@@ -106,11 +106,12 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
         className="fixed left-0 right-0 z-50 rounded-t-2xl flex flex-col"
         style={{
           bottom: 0,
-          height: "75vh",
-          maxHeight: "75vh",
+          height: "min(78dvh, calc(100dvh - env(safe-area-inset-top, 0px) - 16px))",
+          maxHeight: "calc(100dvh - env(safe-area-inset-top, 0px) - 16px)",
           background: "#0f1a2e",
           borderTop: "1px solid rgba(255,255,255,0.08)",
           paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 20px)",
+          overflow: "hidden",
         }}
       >
         <div className="flex justify-center pt-3 pb-1"><div className="w-10 h-1 rounded-full bg-white/15" /></div>
@@ -118,7 +119,7 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
           <p className="text-[10px] text-white/25 uppercase tracking-widest mb-0.5">Signed in as</p>
           <p className="text-sm text-white/60 font-medium tracking-wide">{userCode || "RTHMIC"}</p>
         </div>
-        <div className="flex-1 overflow-y-auto flex flex-col px-4 pt-3 gap-2">
+        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col px-4 pt-3 gap-2" style={{ WebkitOverflowScrolling: "touch", overscrollBehavior: "contain" }}>
           {isAdmin && (
             <>
               <MenuRow icon="✎" title="Codex Notes" detail="Review quick notes captured in the app" onClick={() => go("/codex-notes")} />
