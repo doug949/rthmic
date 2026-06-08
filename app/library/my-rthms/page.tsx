@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, type ChangeEvent } from "react";
 import { AppHeader } from "@/app/components/AppHeader";
 import { RevealBlock } from "@/app/components/RevealBlock";
 import { TransitionLink } from "@/app/components/TransitionLink";
@@ -83,6 +83,32 @@ function belongsToCollection(rhythm: SavedRhythm, collection: LibraryCollection)
   return rhythm.pillar !== "Bridge" && rhythm.pillar !== "Invite";
 }
 
+function normaliseSearchText(value: string | undefined): string {
+  return (value ?? "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function searchableText(rhythm: SavedRhythm): string {
+  return normaliseSearchText([
+    rhythm.title,
+    rhythm.pillar,
+    rhythm.note,
+    rhythm.lyrics,
+    ...(rhythm.tags ?? []),
+  ].filter(Boolean).join(" "));
+}
+
+function matchesSearch(rhythm: SavedRhythm, query: string): boolean {
+  const terms = normaliseSearchText(query).split(/\s+/).filter(Boolean);
+  if (terms.length === 0) return true;
+  const haystack = searchableText(rhythm);
+  return terms.every((term) => haystack.includes(term));
+}
+
 export default function MyRthmsPage() {
   const [rhythms, setRhythms]       = useState<SavedRhythm[]>([]);
   const [loadState, setLoadState]   = useState<LoadState>("loading");
@@ -93,6 +119,7 @@ export default function MyRthmsPage() {
   const [chartsMode, setChartsMode]     = useState(false);
   const [collection, setCollection] = useState<LibraryCollection>("main");
   const [section, setSection] = useState<LibrarySection>("main");
+  const [searchQuery, setSearchQuery] = useState("");
   const [expanded, setExpanded]        = useState(false);
   const [selectedPillar, setSelectedPillar] = useState<string | null>(null);
   const [selectedTags, setSelectedTags]     = useState<string[]>([]);
@@ -210,7 +237,8 @@ export default function MyRthmsPage() {
 
   const now = Date.now();
   const regularRhythms = rhythms.filter((r) => belongsToCollection(r, collection));
-  const newRthms      = regularRhythms.filter((r) => r.status === "new");
+  const searchActive = normaliseSearchText(searchQuery).length > 0;
+  const newRthms      = regularRhythms.filter((r) => r.status === "new" && matchesSearch(r, searchQuery));
   const myRthms       = regularRhythms.filter((r) => r.status === "active" || r.status === "favourite");
   const recentlyDeleted = regularRhythms.filter(
     (r) => r.status === "deleted" && r.deletedAt !== undefined && now - r.deletedAt < THIRTY_DAYS
@@ -382,7 +410,8 @@ export default function MyRthmsPage() {
     .filter((r) => r.savedAt >= start)
     .filter((r) => !chartsMode || (r.playCount ?? 0) > 0)
     .filter((r) => !selectedPillar || r.pillar === selectedPillar)
-    .filter((r) => selectedTags.length === 0 || selectedTags.every((t) => (r.tags ?? []).includes(t)));
+    .filter((r) => selectedTags.length === 0 || selectedTags.every((t) => (r.tags ?? []).includes(t)))
+    .filter((r) => matchesSearch(r, searchQuery));
   const orderedRthms = chartsMode
     ? [...filteredRthms].sort((a, b) =>
         (b.playCount ?? 0) - (a.playCount ?? 0) ||
@@ -392,6 +421,8 @@ export default function MyRthmsPage() {
     : filteredRthms;
   const visibleRthms = chartsMode
     ? orderedRthms.slice(0, CHART_LIMIT)
+    : searchActive
+    ? orderedRthms
     : timePeriod === "all" && !expanded
     ? orderedRthms.slice(0, ALL_TIME_PREVIEW)
     : orderedRthms;
@@ -471,6 +502,19 @@ export default function MyRthmsPage() {
           </div>
         )}
 
+        {loadState === "ready" && (
+          <LibrarySearchBox
+            value={searchQuery}
+            onChange={(value) => {
+              setSearchQuery(value);
+              setExpanded(false);
+            }}
+            onClear={() => setSearchQuery("")}
+            resultCount={section === "new" ? newRthms.length : filteredRthms.length}
+            totalCount={section === "new" ? regularRhythms.filter((r) => r.status === "new").length : myRthms.length}
+          />
+        )}
+
       {/* ── New Rthms ───────────────────────────────────────────────────────── */}
         {section === "new" && (
           <div className="flex flex-col gap-2">
@@ -490,7 +534,9 @@ export default function MyRthmsPage() {
             )}
             {loadState === "ready" && newCards.length === 0 && section === "new" && (
               <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5 py-12 flex flex-col items-center gap-3">
-                <p className="text-sm text-white/50 text-center leading-relaxed">No new Rthms waiting.</p>
+                <p className="text-sm text-white/50 text-center leading-relaxed">
+                  {searchActive ? "No new Rthms match that search." : "No new Rthms waiting."}
+                </p>
                 <TransitionLink href="/library/my-rthms" className="text-xs text-white/45 underline underline-offset-4 hover:text-white/60 transition-colors">
                   View main library →
                 </TransitionLink>
@@ -646,6 +692,8 @@ export default function MyRthmsPage() {
                 <p className="text-center text-sm text-white/30 py-8">
                   {(selectedPillar || selectedTags.length > 0)
                     ? "No Rthms match these filters"
+                    : searchActive
+                    ? "No Rthms match that search"
                     : chartsMode
                     ? "Play a few Rthms and your chart will appear here"
                     : "No Rthms in this period"}
@@ -716,7 +764,7 @@ export default function MyRthmsPage() {
                     </p>
                   )}
 
-                  {!chartsMode && timePeriod === "all" && orderedRthms.length > ALL_TIME_PREVIEW && (
+                  {!chartsMode && !searchActive && timePeriod === "all" && orderedRthms.length > ALL_TIME_PREVIEW && (
                     <button
                       onClick={() => setExpanded((e) => !e)}
                       className="text-[10px] text-white/50 uppercase tracking-widest py-2 touch-manipulation hover:text-white/65 transition-colors"
@@ -964,6 +1012,72 @@ function TimePeriodTabs({
             </button>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Search box ──────────────────────────────────────────────────────────────
+
+function LibrarySearchBox({
+  value,
+  onChange,
+  onClear,
+  resultCount,
+  totalCount,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  onClear: () => void;
+  resultCount: number;
+  totalCount: number;
+}) {
+  const active = normaliseSearchText(value).length > 0;
+
+  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+    onChange(event.target.value);
+  };
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-[9px] uppercase tracking-widest text-white/25 px-0.5" htmlFor="library-search">
+        Search
+      </label>
+      <div
+        className="flex items-center gap-3 rounded-2xl border px-4 py-3"
+        style={{
+          background: active ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.035)",
+          borderColor: active ? "rgba(201,165,90,0.26)" : "rgba(255,255,255,0.08)",
+        }}
+      >
+        <span className="text-base leading-none" style={{ color: active ? "rgba(201,165,90,0.7)" : "rgba(255,255,255,0.28)" }}>
+          ⌕
+        </span>
+        <input
+          id="library-search"
+          type="search"
+          value={value}
+          onChange={handleChange}
+          placeholder="Search title, tag, category, note, lyrics..."
+          autoComplete="off"
+          className="min-w-0 flex-1 bg-transparent outline-none text-sm placeholder:text-white/25"
+          style={{ color: "rgba(255,255,255,0.78)" }}
+        />
+        {active && (
+          <>
+            <span className="text-[10px] tabular-nums whitespace-nowrap" style={{ color: "rgba(255,255,255,0.34)" }}>
+              {resultCount}/{totalCount}
+            </span>
+            <button
+              onClick={onClear}
+              className="h-7 w-7 rounded-full flex items-center justify-center text-lg leading-none touch-manipulation active:scale-[0.95] transition-transform"
+              style={{ color: "rgba(255,255,255,0.42)", background: "rgba(255,255,255,0.06)" }}
+              aria-label="Clear search"
+            >
+              ×
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
