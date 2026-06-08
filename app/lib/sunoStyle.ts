@@ -1,5 +1,6 @@
 const SUNO_STYLE_LIMIT = 200;
 const FADE_SUFFIX = ", fade out ending, resolving outro";
+type VocalistLock = "male" | "female" | "mixed";
 
 const ARTIST_REFERENCE_PATTERNS = [
   // Suno currently appears most sensitive to explicit "make it like artist X"
@@ -40,21 +41,85 @@ const ALLOWED_ARTIST_REFERENCE_STYLES = [
   "Hamilton-style Broadway hip-hop in the zone of Lin-Manuel Miranda and clipping",
 ];
 
+function sunoPromptPart(style: string): string {
+  return style.includes("|") ? style.split("|").slice(1).join("|") : style;
+}
+
+function detectVocalistLock(style: string): VocalistLock | null {
+  const text = style.toLowerCase();
+  const maleOnly =
+    /\bmale\s+(lead\s+)?(vocal|voice|vocalist|singer)\s+only\b/.test(text) ||
+    /\bmale\s+vocalist\s+only\b/.test(text) ||
+    /\bno\s+female\s+(vocal|voice|vocalist|singer|vocals)\b/.test(text);
+  const femaleOnly =
+    /\bfemale\s+(lead\s+)?(vocal|voice|vocalist|singer)\s+only\b/.test(text) ||
+    /\bfemale\s+vocalist\s+only\b/.test(text) ||
+    /\bno\s+male\s+(vocal|voice|vocalist|singer|vocals)\b/.test(text);
+  const mixed =
+    /\b(duet|both vocalists|mixed vocals|male and female|female and male|vocal harmony|ensemble|choir|group vocals)\b/.test(text);
+
+  if (maleOnly) return "male";
+  if (femaleOnly) return "female";
+  if (mixed) return "mixed";
+  if (/\bmale\b/.test(text) && !/\bfemale\b/.test(text)) return "male";
+  if (/\bfemale\b/.test(text) && !/\bmale\b/.test(text)) return "female";
+  if (mixed) return "mixed";
+  return null;
+}
+
+function stripConflictingVoice(style: string, lock: VocalistLock): string {
+  let cleaned = style;
+  if (lock === "male") {
+    cleaned = cleaned
+      .replace(/\bfemale\s+(lead\s+)?(vocal|voice|vocalist|singer|vocals)\b/gi, "")
+      .replace(/\bwoman\s+(vocal|voice|vocalist|singer)\b/gi, "")
+      .replace(/\bwomen\s+(vocal|voice|vocalist|singer|vocals)\b/gi, "");
+  }
+  if (lock === "female") {
+    cleaned = cleaned
+      .replace(/\bmale\s+(lead\s+)?(vocal|voice|vocalist|singer|vocals)\b/gi, "")
+      .replace(/\bman\s+(vocal|voice|vocalist|singer)\b/gi, "")
+      .replace(/\bmen\s+(vocal|voice|vocalist|singer|vocals)\b/gi, "");
+  }
+  return cleaned.replace(/\s{2,}/g, " ").trim();
+}
+
+function vocalistLockPrefix(lock: VocalistLock): string {
+  if (lock === "male") return "Male lead vocal only, no female voice";
+  if (lock === "female") return "Female lead vocal only, no male voice";
+  return "Mixed or duet vocals, preserve both vocal identities";
+}
+
+function pinVocalistLock(style: string): string {
+  const prompt = sunoPromptPart(style);
+  const lock = detectVocalistLock(style);
+  if (!lock) return prompt;
+  const cleaned = stripConflictingVoice(prompt, lock);
+  const prefix = vocalistLockPrefix(lock);
+  return cleaned.toLowerCase().startsWith(prefix.toLowerCase())
+    ? cleaned
+    : `${prefix}, ${cleaned}`;
+}
+
 function pinKnownStyleRules(style: string): string {
   const isNordicNight =
     /\bnordic night\b/i.test(style) ||
     (/very slow scandinavian ambient electronic/i.test(style) && /soft nordic/i.test(style));
-  if (!isNordicNight) return style;
+  if (!isNordicNight) return pinVocalistLock(style);
 
-  const prompt = style.includes("|") ? style.split("|").slice(1).join("|") : style;
-  const withoutConflictingVoice = prompt
-    .replace(/\bfemale\s+(vocal|voice|vocalist|singer)\b/gi, "")
-    .replace(/\bwoman\s+(vocal|voice|vocalist|singer)\b/gi, "")
-    .replace(/\bwomen\s+(vocal|voice|vocalist|singer)\b/gi, "")
-    .replace(/\s{2,}/g, " ")
-    .trim();
-
-  return `Nordic Night, male vocalist only, no female vocal, soft Nordic male vocal, ${withoutConflictingVoice}`;
+  return [
+    "Nordic Night",
+    "Male lead vocal only",
+    "no female voice",
+    "soft Nordic male vocal",
+    "slow Scandinavian ambient electronic",
+    "72 BPM",
+    "quiet reassuring night routine",
+    "restrained pads",
+    "gentle pulse bass",
+    "almost no drums",
+    "no drops",
+  ].join(", ");
 }
 
 export function sanitizeSunoStyle(style: string): string {
