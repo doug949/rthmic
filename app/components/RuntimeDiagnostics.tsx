@@ -25,6 +25,31 @@ function errorDetail(error: unknown) {
   };
 }
 
+function fetchRequestDetail(input: RequestInfo | URL, init?: RequestInit) {
+  const method = init?.method ?? (input instanceof Request ? input.method : "GET");
+  const rawUrl = input instanceof Request ? input.url : String(input);
+  let url = rawUrl;
+  let origin = "unknown";
+
+  try {
+    const parsed = new URL(rawUrl, window.location.href);
+    origin = parsed.origin === window.location.origin ? "same-origin" : parsed.origin;
+    url = parsed.origin === window.location.origin
+      ? `${parsed.pathname}${parsed.search}`
+      : parsed.origin;
+  } catch {
+    // Keep the raw value if URL parsing fails.
+  }
+
+  return {
+    method,
+    url,
+    origin,
+    online: navigator.onLine,
+    visibilityState: document.visibilityState,
+  };
+}
+
 export class RuntimeDiagnosticsBoundary extends Component<
   RuntimeDiagnosticsBoundaryProps,
   RuntimeDiagnosticsBoundaryState
@@ -94,6 +119,45 @@ export function RuntimeDiagnosticsListeners() {
     return () => {
       window.removeEventListener("error", onError);
       window.removeEventListener("unhandledrejection", onUnhandledRejection);
+    };
+  }, []);
+
+  useEffect(() => {
+    const originalFetch = window.fetch;
+    if ((originalFetch as typeof originalFetch & { __rthmicDiagnosticsPatched?: boolean }).__rthmicDiagnosticsPatched) {
+      return;
+    }
+
+    const patchedFetch: typeof window.fetch = async (input, init) => {
+      const startedAt = performance.now();
+      const detail = fetchRequestDetail(input, init);
+
+      try {
+        const response = await originalFetch(input, init);
+        if (response.status >= 500) {
+          recordDiagnosticEvent("fetch-response-error", {
+            ...detail,
+            status: response.status,
+            statusText: response.statusText,
+            durationMs: Math.round(performance.now() - startedAt),
+          });
+        }
+        return response;
+      } catch (error) {
+        recordDiagnosticEvent("fetch-load-failed", {
+          ...detail,
+          durationMs: Math.round(performance.now() - startedAt),
+          error: errorDetail(error),
+        });
+        throw error;
+      }
+    };
+
+    (patchedFetch as typeof patchedFetch & { __rthmicDiagnosticsPatched?: boolean }).__rthmicDiagnosticsPatched = true;
+    window.fetch = patchedFetch;
+
+    return () => {
+      window.fetch = originalFetch;
     };
   }, []);
 

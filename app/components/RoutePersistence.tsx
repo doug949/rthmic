@@ -21,7 +21,10 @@ import {
 
 const RELOAD_REPORTED_KEY = "rthmic:last-reload-reported";
 const RESTORE_ATTEMPT_KEY = "rthmic:reload-restore-attempt";
+const LAST_RESTORE_AT_KEY = "rthmic:reload-restore-at";
 const LAST_SNAPSHOT_KEY = "rthmic:last-route-snapshot-at";
+const RESTORE_COOLDOWN_MS = 60_000;
+const RESTORE_ROUTE_MAX_AGE_MS = 15 * 60_000;
 
 function currentRoute() {
   return currentClientRoute();
@@ -37,11 +40,21 @@ function isAutoRestoreRoute(route: string): boolean {
 }
 
 function bestRouteToRestore(routeAfterReload: string): string | null {
-  const persisted = readPersistedRouteState()?.route;
+  const persistedState = readPersistedRouteState();
+  const persistedAt = persistedState?.at ? Date.parse(persistedState.at) : 0;
+  const persistedIsFresh = !!persistedAt && Date.now() - persistedAt < RESTORE_ROUTE_MAX_AGE_MS;
+  const persisted = persistedIsFresh ? persistedState?.route : null;
   const sessionRoute = safeGetSessionItem(LAST_ROUTE_KEY) ?? safeGetSessionItem(CURRENT_ROUTE_KEY);
   const localRoute = safeGetLocalItem(CURRENT_ROUTE_KEY);
   const candidates = [persisted, sessionRoute, localRoute];
   return candidates.find((candidate) => isRestorableRoute(candidate) && candidate !== routeAfterReload) ?? null;
+}
+
+function restoreIsCoolingDown(): boolean {
+  const restoredAt = safeGetSessionItem(LAST_RESTORE_AT_KEY);
+  if (!restoredAt) return false;
+  const parsed = Date.parse(restoredAt);
+  return !!parsed && Date.now() - parsed < RESTORE_COOLDOWN_MS;
 }
 
 export default function RoutePersistence() {
@@ -61,15 +74,19 @@ export default function RoutePersistence() {
       ? "navigation"
       : reason === "user-clicked-update"
         ? "app-update"
+        : reason === "user-clicked-refresh"
+          ? "manual-refresh"
         : "browser-or-runtime";
     const shouldRestore = !!(
       wasReload &&
       reason !== "user-clicked-update" &&
+      reason !== "user-clicked-refresh" &&
       !navigationIntent &&
       previousRoute &&
       isAutoRestoreRoute(previousRoute) &&
       restoreAttemptId &&
-      previousAttempt !== restoreAttemptId
+      previousAttempt !== restoreAttemptId &&
+      !restoreIsCoolingDown()
     );
 
     if (wasReload) {
@@ -83,6 +100,7 @@ export default function RoutePersistence() {
         persistedRouteState: readPersistedRouteState(),
         routeStack: readRouteStack(),
       });
+      safeRemoveSessionItem(RELOAD_REASON_KEY);
     }
 
     if (wasReload && reason !== "user-clicked-update" && previousRoute && previousRoute !== route) {
@@ -94,6 +112,7 @@ export default function RoutePersistence() {
 
     if (shouldRestore && previousRoute && restoreAttemptId) {
       safeSetSessionItem(RESTORE_ATTEMPT_KEY, restoreAttemptId);
+      safeSetSessionItem(LAST_RESTORE_AT_KEY, new Date().toISOString());
       const stack = readRouteStack();
       const previousStackRoute = stack.find((candidate) => candidate !== previousRoute && candidate !== route);
       if (previousStackRoute) safeSetSessionItem(PREVIOUS_ROUTE_KEY, previousStackRoute);
