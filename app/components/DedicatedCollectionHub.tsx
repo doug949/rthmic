@@ -46,9 +46,21 @@ export function DedicatedCollectionHub({
   const [rhythms, setRhythms] = useState<SavedRhythm[]>([]);
   const [jobs, setJobs] = useState<QueueJob[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [accessChecked, setAccessChecked] = useState(kind !== "invite");
+  const [allowed, setAllowed] = useState(kind !== "invite");
   const pillar = PILLAR_BY_KIND[kind];
 
   useEffect(() => {
+    if (kind !== "invite") return;
+    fetch("/api/settings")
+      .then((res) => res.json())
+      .then((data) => setAllowed(!!data.access?.capabilities?.invite))
+      .catch(() => setAllowed(false))
+      .finally(() => setAccessChecked(true));
+  }, [kind]);
+
+  useEffect(() => {
+    if (!allowed) return;
     let cancelled = false;
     async function load() {
       try {
@@ -72,7 +84,7 @@ export function DedicatedCollectionHub({
       cancelled = true;
       clearInterval(id);
     };
-  }, []);
+  }, [allowed]);
 
   const active = useMemo(
     () => rhythms.filter((r) => r.pillar === pillar && r.status !== "deleted" && r.status !== "archived"),
@@ -80,6 +92,32 @@ export function DedicatedCollectionHub({
   );
   const activeJobs = jobs.filter((job) => job.pillar === pillar);
   const latest = active.slice(0, 3);
+
+  if (!accessChecked) {
+    return (
+      <main className="min-h-dvh px-6 pb-20 text-white page-enter">
+        <div className="mx-auto max-w-xl">
+          <AppHeader title={title} titleIcon={icon} />
+          <section className="flex min-h-[60vh] items-center justify-center">
+            <div className="w-6 h-6 rounded-full border-2 border-white/15 border-t-white/50 animate-spin" />
+          </section>
+        </div>
+      </main>
+    );
+  }
+
+  if (!allowed) {
+    return (
+      <main className="min-h-dvh px-6 pb-20 text-white page-enter">
+        <div className="mx-auto max-w-xl">
+          <AppHeader title={title} titleIcon={icon} />
+          <section className="flex min-h-[60vh] items-center justify-center text-center">
+            <p className="text-sm text-white/45">Rthmic Invite is private for admin testing.</p>
+          </section>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-dvh px-6 pb-20 text-white page-enter">

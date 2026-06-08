@@ -15,6 +15,8 @@ function fmt(ts: number): string {
 export default function CodexNotesPage() {
   const [notes, setNotes] = useState<CodexNote[]>([]);
   const [loading, setLoading] = useState(true);
+  const [allowed, setAllowed] = useState(false);
+  const [checked, setChecked] = useState(false);
   const [showAddressed, setShowAddressed] = useState(false);
 
   const loadNotes = useCallback((showSpinner = false) => {
@@ -27,7 +29,19 @@ export default function CodexNotesPage() {
   }, []);
 
   useEffect(() => {
-    loadNotes(true);
+    fetch("/api/settings")
+      .then((res) => res.json())
+      .then((data) => {
+        const canView = !!data.access?.capabilities?.codexNotes;
+        setAllowed(canView);
+        if (canView) loadNotes(true);
+        else setLoading(false);
+      })
+      .catch(() => {
+        setAllowed(false);
+        setLoading(false);
+      })
+      .finally(() => setChecked(true));
   }, [loadNotes]);
 
   useEffect(() => {
@@ -45,6 +59,27 @@ export default function CodexNotesPage() {
 
   const openNotes = notes.filter((note) => !note.done);
   const doneNotes = notes.filter((note) => note.done);
+
+  if (!checked) {
+    return (
+      <main className="relative z-10 min-h-screen flex items-center justify-center">
+        <div className="w-6 h-6 rounded-full border-2 border-white/15 border-t-white/50 animate-spin" />
+      </main>
+    );
+  }
+
+  if (!allowed) {
+    return (
+      <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ animation: "page-enter 380ms ease forwards" }}>
+        <RevealBlock delay={0}>
+          <AppHeader title="Codex Notes" />
+        </RevealBlock>
+        <section className="flex-1 flex items-center justify-center text-center pb-28">
+          <p className="text-sm text-white/45">Codex Notes are private for admin testing.</p>
+        </section>
+      </main>
+    );
+  }
 
   const setDone = async (id: string, done: boolean) => {
     setNotes((prev) => prev.map((note) => note.id === id ? { ...note, done, doneAt: done ? Date.now() : undefined } : note));

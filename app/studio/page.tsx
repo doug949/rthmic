@@ -6,8 +6,6 @@ import { AppHeader } from "@/app/components/AppHeader";
 import { RevealBlock } from "@/app/components/RevealBlock";
 import { LockIcon } from "@/app/components/HomeTileIcons";
 
-const STUDIO_CODE = "doug2026";
-
 const PHOTO_FOCUS_OPTIONS = [
   { id: "place-history", label: "History", detail: "What this place or object might be connected to." },
   { id: "surroundings", label: "Surroundings", detail: "What the area, setting, or nearby context may imply." },
@@ -58,10 +56,11 @@ export default function StudioPage() {
   const photoChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
-    const match = document.cookie.match(/(?:^|;\s*)rthmic_code=([^;]+)/);
-    const code = match ? decodeURIComponent(match[1]) : "";
-    if (code === STUDIO_CODE) setAllowed(true);
-    setChecked(true);
+    fetch("/api/settings")
+      .then((res) => res.json())
+      .then((data) => setAllowed(!!data.access?.capabilities?.developerStudio))
+      .catch(() => setAllowed(false))
+      .finally(() => setChecked(true));
   }, []);
 
   if (!checked) {

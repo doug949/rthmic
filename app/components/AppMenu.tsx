@@ -13,6 +13,7 @@ interface AppMenuProps {
 export function AppMenu({ open, onClose }: AppMenuProps) {
   const router = useRouter();
   const [userCode, setUserCode] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [keepOffline, setKeepOffline] = useState(false);
   const [clearingAudio, setClearingAudio] = useState(false);
@@ -24,6 +25,10 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
     const match = document.cookie.match(/(?:^|;\s*)rthmic_code=([^;]+)/);
     if (match) setUserCode(decodeURIComponent(match[1]));
     setKeepOffline(keepAllOfflineEnabled());
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((data) => setIsAdmin(!!data.access?.isAdmin))
+      .catch(() => setIsAdmin(false));
   }, [open]);
 
   if (!open) return null;
@@ -114,8 +119,12 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
           <p className="text-sm text-white/60 font-medium tracking-wide">{userCode || "RTHMIC"}</p>
         </div>
         <div className="flex-1 overflow-y-auto flex flex-col px-4 pt-3 gap-2">
-          <MenuRow icon="✎" title="Codex Notes" detail="Review quick notes captured in the app" onClick={() => go("/codex-notes")} />
-          <MenuRow icon="⌁" title="Diagnostics" detail="Inspect reloads, routes, cache, and service worker state" onClick={() => go("/diagnostics")} />
+          {isAdmin && (
+            <>
+              <MenuRow icon="✎" title="Codex Notes" detail="Review quick notes captured in the app" onClick={() => go("/codex-notes")} />
+              <MenuRow icon="⌁" title="Diagnostics" detail="Inspect reloads, routes, cache, and service worker state" onClick={() => go("/diagnostics")} />
+            </>
+          )}
           <MenuRow icon="↺" title={refreshing ? "Refreshing…" : "Refresh App Cache"} detail="Updates app files, keeps permissions and offline audio" onClick={handleRefresh} disabled={refreshing} />
           <button onClick={handleToggleKeepOffline} className="w-full flex items-center gap-4 px-4 py-4 rounded-xl touch-manipulation active:bg-white/[0.04] transition-colors text-left">
             <span className="relative w-10 h-6 rounded-full flex-shrink-0 transition-colors" style={{ background: keepOffline ? "rgba(201,165,90,0.35)" : "rgba(255,255,255,0.10)" }}>

@@ -124,13 +124,23 @@ async function collectSnapshot(): Promise<DiagnosticsSnapshot> {
 export default function DiagnosticsPage() {
   const [snapshot, setSnapshot] = useState<DiagnosticsSnapshot | null>(null);
   const [copied, setCopied] = useState(false);
+  const [allowed, setAllowed] = useState(false);
+  const [checked, setChecked] = useState(false);
 
   const refresh = useCallback(async () => {
     setSnapshot(await collectSnapshot());
   }, []);
 
   useEffect(() => {
-    void collectSnapshot().then(setSnapshot);
+    fetch("/api/settings")
+      .then((res) => res.json())
+      .then((data) => {
+        const canView = !!data.access?.capabilities?.diagnostics;
+        setAllowed(canView);
+        if (canView) void collectSnapshot().then(setSnapshot);
+      })
+      .catch(() => setAllowed(false))
+      .finally(() => setChecked(true));
     const onChange = () => refresh();
     window.addEventListener("online", onChange);
     window.addEventListener("offline", onChange);
@@ -154,6 +164,25 @@ export default function DiagnosticsPage() {
     localStorage.removeItem("rthmic:route-stack-v1");
     refresh();
   };
+
+  if (!checked) {
+    return (
+      <main className="relative z-10 min-h-screen flex items-center justify-center">
+        <div className="w-6 h-6 rounded-full border-2 border-white/15 border-t-white/50 animate-spin" />
+      </main>
+    );
+  }
+
+  if (!allowed) {
+    return (
+      <main className="relative z-10 min-h-screen px-5 pt-safe pb-10">
+        <AppHeader title="Diagnostics" />
+        <section className="flex min-h-[60vh] items-center justify-center text-center">
+          <p className="text-sm text-white/45">Diagnostics are private for admin testing.</p>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="relative z-10 min-h-screen px-5 pt-safe pb-10">

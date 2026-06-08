@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "redis";
 import type { SavedRhythm } from "@/app/types/library";
+import { requireAdmin } from "@/app/lib/access";
 import { uploadAudioToWasabi } from "@/app/lib/wasabiUpload";
 
 const SUNO_BASE = "https://api.sunoapi.org/api/v1";
@@ -55,13 +56,8 @@ async function getFreshAudioUrl(rhythm: SavedRhythm): Promise<string | null> {
 
 export const maxDuration = 60;
 
-function requireAuth(req: NextRequest): boolean {
-  const session = req.cookies.get("rthmic_session");
-  return session?.value === process.env.RTHMIC_SESSION_TOKEN;
-}
-
 export async function GET(req: NextRequest) {
-  if (!requireAuth(req)) {
+  if (!requireAdmin(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   if (!process.env.REDIS_URL || !process.env.WASABI_ACCESS_KEY_ID) {

@@ -1,15 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createHash } from "crypto";
 import { createClient } from "redis";
-
-// Derive a stable, cross-device UID from the invite code.
-// All devices logging in with the same code share one library namespace.
-function codeToUid(code: string): string {
-  return createHash("sha256")
-    .update(`rthmic-lib-v1:${code}`)
-    .digest("hex")
-    .slice(0, 32);
-}
+import { codeToUid, roleForCode } from "@/app/lib/access";
 
 /** Check Redis for a beta-issued code (from /api/request-access). */
 async function isBetaCode(code: string): Promise<boolean> {
@@ -36,9 +27,13 @@ export async function POST(request: NextRequest) {
     .split(",")
     .map(c => c.trim())
     .filter(Boolean);
+  const adminCodes = (process.env.RTHMIC_ADMIN_CODES ?? process.env.ADMIN_CODES ?? "doug2026")
+    .split(",")
+    .map(c => c.trim())
+    .filter(Boolean);
 
   // Accept env-var codes OR Redis-stored beta codes
-  const isEnvCode   = validCodes.includes(password);
+  const isEnvCode   = validCodes.includes(password) || adminCodes.includes(password);
   const isBeta      = isEnvCode ? false : await isBetaCode(password);
 
   if (!isEnvCode && !isBeta) {
@@ -46,8 +41,9 @@ export async function POST(request: NextRequest) {
   }
 
   const uid = codeToUid(password);
+  const access = roleForCode(password);
 
-  const response = NextResponse.json({ ok: true });
+  const response = NextResponse.json({ ok: true, role: access });
 
   // Session cookie — 30 day auth gate
   response.cookies.set("rthmic_session", process.env.RTHMIC_SESSION_TOKEN!, {
@@ -72,6 +68,13 @@ export async function POST(request: NextRequest) {
   // Display cookie — readable by the client to show who is logged in.
   // Not httpOnly so JS can access it. Not sensitive — user already knows their code.
   response.cookies.set("rthmic_code", password, {
+    httpOnly: false,
+    secure: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 30,
+  });
+  response.cookies.set("rthmic_role", access, {
     httpOnly: false,
     secure: true,
     sameSite: "lax",

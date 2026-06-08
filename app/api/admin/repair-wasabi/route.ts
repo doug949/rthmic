@@ -5,6 +5,7 @@ import { HeadObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "redis";
 import type { SavedRhythm } from "@/app/types/library";
+import { requireAdmin } from "@/app/lib/access";
 import { uploadAudioToWasabi } from "@/app/lib/wasabiUpload";
 
 const BUCKET = "rthm-audio";
@@ -14,11 +15,6 @@ export const maxDuration = 60;
 
 type RepairFailure = { id: string; title: string; key?: string; reason: string };
 type RepairItem = { id: string; title: string; key: string; oldSize: number | null; source: string };
-
-function requireAuth(req: NextRequest): boolean {
-  const session = req.cookies.get("rthmic_session");
-  return session?.value === process.env.RTHMIC_SESSION_TOKEN;
-}
 
 function makeS3(): S3Client {
   return new S3Client({
@@ -130,7 +126,7 @@ async function getFreshAudioUrl(rhythm: SavedRhythm): Promise<{ url: string; sou
 }
 
 export async function GET(req: NextRequest) {
-  if (!requireAuth(req)) {
+  if (!requireAdmin(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   if (!process.env.REDIS_URL || !process.env.WASABI_ACCESS_KEY_ID || !process.env.WASABI_SECRET_ACCESS_KEY) {

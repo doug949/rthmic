@@ -45,6 +45,10 @@ interface UserProfile {
   adhdMode: boolean;
   simpleMode: boolean;
   advancedPillars: string[];
+  access?: {
+    role?: "admin" | "beta";
+    isAdmin?: boolean;
+  };
 }
 
 const CONFIGURABLE_PILLARS = [
@@ -58,14 +62,15 @@ const CONFIGURABLE_PILLARS = [
   { slug: "memory",      label: "Memory" },
   { slug: "booksummary", label: "Book Summary" },
   { slug: "bridge",      label: "Bridge" },
-  { slug: "invite",      label: "Invite" },
+  { slug: "invite",      label: "Invite", adminOnly: true },
 ];
 
 export default function SettingsPage() {
   const router = useRouter();
 
   // ── Profile state ────────────────────────────────────────────────────────────
-  const [profile, setProfile] = useState<UserProfile>({ name: "", vocalist: "none", adhdMode: false, simpleMode: false, advancedPillars: ["memory", "booksummary", "explain", "mindset"] });
+  const [profile, setProfile] = useState<UserProfile>({ name: "", vocalist: "none", adhdMode: false, simpleMode: false, advancedPillars: ["memory", "booksummary", "explain", "mindset"], access: { role: "beta", isAdmin: false } });
+  const configurablePillars = CONFIGURABLE_PILLARS.filter((pillar) => !pillar.adminOnly || profile.access?.isAdmin);
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -97,7 +102,7 @@ export default function SettingsPage() {
       fetch("/api/settings").then(r => r.json()).catch(() => null),
       fetch("/api/genres").then(r => r.json()).catch(() => null),
     ]).then(([prof, gen]) => {
-      if (prof) setProfile({ name: prof.name ?? "", vocalist: prof.vocalist ?? "none", adhdMode: !!prof.adhdMode, simpleMode: !!prof.simpleMode, advancedPillars: Array.isArray(prof.advancedPillars) ? prof.advancedPillars : ["memory", "booksummary", "explain", "mindset"] });
+      if (prof) setProfile({ name: prof.name ?? "", vocalist: prof.vocalist ?? "none", adhdMode: !!prof.adhdMode, simpleMode: !!prof.simpleMode, advancedPillars: Array.isArray(prof.advancedPillars) ? prof.advancedPillars : ["memory", "booksummary", "explain", "mindset"], access: prof.access ?? { role: "beta", isAdmin: false } });
       if (gen?.genres) {
         setSlots(prev => prev.map((s, i) => ({
           ...s, style: gen.genres[i] ?? "", committed: !!(gen.genres[i]),
@@ -409,7 +414,7 @@ export default function SettingsPage() {
               <p className="text-sm font-medium" style={{ color: PURPLE.text }}>Pillar Configuration</p>
               <p className="text-xs mt-0.5" style={{ color: PURPLE.dim }}>Set which pillars are Advanced — hidden when Simple Mode is on</p>
             </div>
-            {CONFIGURABLE_PILLARS.map((p, i) => {
+            {configurablePillars.map((p, i) => {
               const isAdvanced = profile.advancedPillars.includes(p.slug);
               const toggle = () => {
                 const next = isAdvanced

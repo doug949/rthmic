@@ -31,6 +31,7 @@ function preloadImage(src: string): Promise<void> {
 export default function Home() {
   const router = useRouter();
   const [userCode, setUserCode] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [userName, setUserName] = useState("");
   const [open, setOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -63,7 +64,10 @@ export default function Home() {
     }
     fetch("/api/settings")
       .then((r) => r.json())
-      .then((d) => { if (d.name) setUserName(d.name); })
+      .then((d) => {
+        if (d.name) setUserName(d.name);
+        setIsAdmin(!!d.access?.isAdmin);
+      })
       .catch(() => {});
     fetch(`/api/version?t=${Date.now()}`, { cache: "no-store" })
       .then((r) => r.json())
@@ -230,7 +234,7 @@ export default function Home() {
 
   const order = tileOrder.length > 0 ? tileOrder : HOME_TILES.map((tile) => tile.id);
   const visibleTiles = HOME_TILES
-    .filter((tile) => !tile.adminOnly || userCode === "doug2026")
+    .filter((tile) => !tile.adminOnly || isAdmin)
     .sort((a, b) => {
       const fallbackA = HOME_TILES.findIndex((tile) => tile.id === a.id);
       const fallbackB = HOME_TILES.findIndex((tile) => tile.id === b.id);
@@ -374,26 +378,30 @@ export default function Home() {
               <p className="text-sm text-white/60 font-medium tracking-wide">{userCode}</p>
             </div>
             <div className="flex-1 overflow-y-auto flex flex-col px-4 pt-3 gap-2">
-              <button
-                onClick={() => { setOpen(false); router.push("/codex-notes"); }}
-                className="w-full flex items-center gap-4 px-4 py-4 rounded-xl touch-manipulation active:bg-white/[0.04] transition-colors text-left"
-              >
-                <span className="text-white/35 text-lg leading-none">✎</span>
-                <div>
-                  <p className="text-sm text-white/70 font-medium">Codex Notes</p>
-                  <p className="text-xs text-white/30 mt-0.5">Review quick notes captured in the app</p>
-                </div>
-              </button>
-              <button
-                onClick={() => { setOpen(false); router.push("/diagnostics"); }}
-                className="w-full flex items-center gap-4 px-4 py-4 rounded-xl touch-manipulation active:bg-white/[0.04] transition-colors text-left"
-              >
-                <span className="text-white/35 text-lg leading-none">⌁</span>
-                <div>
-                  <p className="text-sm text-white/70 font-medium">Diagnostics</p>
-                  <p className="text-xs text-white/30 mt-0.5">Inspect reloads, routes, cache, and service worker state</p>
-                </div>
-              </button>
+              {isAdmin && (
+                <>
+                  <button
+                    onClick={() => { setOpen(false); router.push("/codex-notes"); }}
+                    className="w-full flex items-center gap-4 px-4 py-4 rounded-xl touch-manipulation active:bg-white/[0.04] transition-colors text-left"
+                  >
+                    <span className="text-white/35 text-lg leading-none">✎</span>
+                    <div>
+                      <p className="text-sm text-white/70 font-medium">Codex Notes</p>
+                      <p className="text-xs text-white/30 mt-0.5">Review quick notes captured in the app</p>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => { setOpen(false); router.push("/diagnostics"); }}
+                    className="w-full flex items-center gap-4 px-4 py-4 rounded-xl touch-manipulation active:bg-white/[0.04] transition-colors text-left"
+                  >
+                    <span className="text-white/35 text-lg leading-none">⌁</span>
+                    <div>
+                      <p className="text-sm text-white/70 font-medium">Diagnostics</p>
+                      <p className="text-xs text-white/30 mt-0.5">Inspect reloads, routes, cache, and service worker state</p>
+                    </div>
+                  </button>
+                </>
+              )}
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}

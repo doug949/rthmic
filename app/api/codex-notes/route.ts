@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "redis";
+import { requireAdmin } from "@/app/lib/access";
 
 export interface CodexNote {
   id: string;
@@ -13,6 +14,7 @@ export interface CodexNote {
 function requireAuth(request: NextRequest): string | null {
   const session = request.cookies.get("rthmic_session");
   if (session?.value !== process.env.RTHMIC_SESSION_TOKEN) return null;
+  if (!requireAdmin(request)) return null;
   return request.cookies.get("rthmic_uid")?.value ?? null;
 }
 

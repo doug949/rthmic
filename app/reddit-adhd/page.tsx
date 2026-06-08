@@ -6,8 +6,6 @@ import { AppHeader } from "@/app/components/AppHeader";
 import { RevealBlock } from "@/app/components/RevealBlock";
 import { BrainIcon } from "@/app/components/HomeTileIcons";
 
-const ADMIN_CODE = "doug2026";
-
 type Phase = "idle" | "recording" | "transcribing" | "understanding" | "queueing" | "queued";
 
 interface UnderstandResult {
@@ -47,10 +45,11 @@ export default function RedditAdhdPage() {
   const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
-    const match = document.cookie.match(/(?:^|;\s*)rthmic_code=([^;]+)/);
-    const code = match ? decodeURIComponent(match[1]) : "";
-    setAllowed(code === ADMIN_CODE);
-    setChecked(true);
+    fetch("/api/settings")
+      .then((res) => res.json())
+      .then((data) => setAllowed(!!data.access?.capabilities?.adminExperiments))
+      .catch(() => setAllowed(false))
+      .finally(() => setChecked(true));
   }, []);
 
   const startRecording = async () => {

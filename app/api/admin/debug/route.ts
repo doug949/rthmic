@@ -2,7 +2,7 @@
 // Protected by the same session token. Returns JSON readable in the browser.
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireUserId } from "@/app/lib/auth";
+import { requireAdmin } from "@/app/lib/access";
 import { REDIS_AVAILABLE, withRedis } from "@/app/lib/redis";
 import { USERS_KEY, userQueueKey, jobKey } from "@/app/lib/queueLib";
 import type { QueueJob } from "@/app/lib/queueLib";
@@ -14,8 +14,8 @@ const SUNO_BASE = "https://api.sunoapi.org/api/v1";
 const APP_URL = "https://rthmic.app";
 
 export async function GET(req: NextRequest) {
-  const uid = requireUserId(req);
-  if (!uid) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!requireAdmin(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const uid = req.cookies.get("rthmic_uid")?.value ?? "";
 
   if (!REDIS_AVAILABLE) return NextResponse.json({ error: "No REDIS_URL" }, { status: 500 });
 

@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { requireUserId } from "@/app/lib/auth";
+import { accessForRequest, accessForRole } from "@/app/lib/access";
 import { REDIS_AVAILABLE, withRedis } from "@/app/lib/redis";
 
 export const DEFAULT_ADVANCED_PILLARS = ["memory", "booksummary", "explain", "mindset", "sleep"];
@@ -30,9 +31,12 @@ function settingsKey(uid: string) {
 
 export async function GET(request: NextRequest) {
   const uid = requireUserId(request);
-  if (!uid) return NextResponse.json(DEFAULT_SETTINGS);
+  const fallbackAccess = accessForRole("beta");
+  if (!uid) return NextResponse.json({ ...DEFAULT_SETTINGS, access: fallbackAccess, role: fallbackAccess.role });
 
-  if (!REDIS_AVAILABLE) return NextResponse.json(DEFAULT_SETTINGS);
+  const access = accessForRequest(request);
+
+  if (!REDIS_AVAILABLE) return NextResponse.json({ ...DEFAULT_SETTINGS, access, role: access.role });
 
   try {
     const settings = await withRedis(async (client) => {
@@ -40,9 +44,9 @@ export async function GET(request: NextRequest) {
       if (!raw) return DEFAULT_SETTINGS;
       return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) } as UserSettings;
     });
-    return NextResponse.json(settings);
+    return NextResponse.json({ ...settings, access, role: access.role });
   } catch {
-    return NextResponse.json(DEFAULT_SETTINGS);
+    return NextResponse.json({ ...DEFAULT_SETTINGS, access, role: access.role });
   }
 }
 

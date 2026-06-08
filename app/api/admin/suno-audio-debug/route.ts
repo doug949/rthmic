@@ -1,16 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "redis";
 import type { SavedRhythm } from "@/app/types/library";
+import { requireAdmin } from "@/app/lib/access";
 
 const SUNO_BASE = "https://api.sunoapi.org/api/v1";
 
 export const maxDuration = 30;
-
-function requireAuth(req: NextRequest): string | null {
-  const session = req.cookies.get("rthmic_session");
-  if (session?.value !== process.env.RTHMIC_SESSION_TOKEN) return null;
-  return req.cookies.get("rthmic_uid")?.value ?? null;
-}
 
 function extractClips(node: unknown, depth = 0): Record<string, unknown>[] {
   if (depth > 5 || !node || typeof node !== "object") return [];
@@ -115,8 +110,8 @@ async function probeUrl(rawUrl: string) {
 }
 
 export async function GET(req: NextRequest) {
-  const uid = requireAuth(req);
-  if (!uid) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!requireAdmin(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const uid = req.cookies.get("rthmic_uid")?.value ?? "";
   if (!process.env.REDIS_URL || !process.env.SUNO_API_KEY) {
     return NextResponse.json({ error: "Missing env vars" }, { status: 500 });
   }
