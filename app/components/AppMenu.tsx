@@ -106,8 +106,8 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
         className="fixed left-0 right-0 z-50 rounded-t-2xl flex flex-col"
         style={{
           bottom: 0,
-          height: "min(78dvh, calc(100dvh - env(safe-area-inset-top, 0px) - 16px))",
-          maxHeight: "calc(100dvh - env(safe-area-inset-top, 0px) - 16px)",
+          top: "calc(env(safe-area-inset-top, 0px) + 12px)",
+          maxHeight: "calc(100dvh - env(safe-area-inset-top, 0px) - 12px)",
           background: "#0f1a2e",
           borderTop: "1px solid rgba(255,255,255,0.08)",
           paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 20px)",
