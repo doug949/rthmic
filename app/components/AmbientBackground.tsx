@@ -96,16 +96,16 @@ export function AmbientBackground() {
       <NeuralCanvas />
 
       {/* Per-pillar tint glow — only shown when a pillar is active */}
-      {!isDefault && (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background: `radial-gradient(ellipse 95% 52% at 50% 0%, rgba(${tint},0.15) 0%, transparent 100%)`,
-            transition: "background 1.2s ease",
-          }}
-        />
-      )}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          opacity: isDefault ? 0 : 1,
+          background: `radial-gradient(ellipse 95% 52% at 50% 0%, rgba(${tint},0.15) 0%, transparent 100%)`,
+          transition: "opacity 900ms ease, background 1.2s ease",
+          willChange: "opacity, background",
+        }}
+      />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useEffect, useRef } from "react";
 
 // Gold or blue — assigned at init, never changes
@@ -11,6 +12,7 @@ interface Node {
   vx: number;
   vy: number;
   r: number;
+  life: number;
   pulse: number;
   pulsed: boolean;
   color: NodeColor;
@@ -18,6 +20,7 @@ interface Node {
 
 const NODE_COUNT  = 52;
 const CONNECT_DIST = 125;
+const FADE_IN_RATE = 0.012;
 const PULSE_CHANCE = 0.00006; // very slow firing
 const PULSE_DECAY  = 0.003;   // very slow fade-out (~330 frames per pulse)
 
@@ -53,6 +56,7 @@ export function NeuralCanvas() {
           vx: (Math.random() - 0.5) * 0.25,
           vy: (Math.random() - 0.5) * 0.25,
           r: Math.random() * 1.5 + 1,
+          life: 0,
           pulse: 0,
           pulsed: false,
           color: Math.random() < 0.5 ? "gold" : "blue",
@@ -65,6 +69,7 @@ export function NeuralCanvas() {
 
       // update positions & pulse
       for (const n of nodes) {
+        n.life = Math.min(1, n.life + FADE_IN_RATE);
         n.x += n.vx;
         n.y += n.vy;
         if (n.x < 0 || n.x > W) n.vx *= -1;
@@ -84,7 +89,8 @@ export function NeuralCanvas() {
 
           const proximity  = 1 - dist / CONNECT_DIST;
           const pulseGlow  = Math.max(a.pulse, b.pulse);
-          const alpha      = proximity * 0.22 + pulseGlow * 0.4;
+          const fade       = Math.min(a.life, b.life);
+          const alpha      = (proximity * 0.22 + pulseGlow * 0.4) * fade;
 
           // pick dominant color from whichever node is pulsing more
           const dominant = a.pulse >= b.pulse ? a : b;
@@ -112,7 +118,7 @@ export function NeuralCanvas() {
       // nodes
       for (const n of nodes) {
         const glow   = n.pulse;
-        const alpha  = 0.45 + glow * 0.55;
+        const alpha  = (0.45 + glow * 0.55) * n.life;
         const radius = n.r + glow * 3;
         const base   = n.color === "gold" ? GOLD : BLUE;
         const boost  = glow * 55;
@@ -167,12 +173,14 @@ export function NeuralCanvas() {
     <canvas
       ref={canvasRef}
       style={{
+        "--ambient-opacity": 0.7,
         position: "absolute",
         inset: 0,
         width: "100%",
         height: "100%",
-        opacity: 0.7,
-      }}
+        opacity: 0,
+        animation: "ambient-fade-in 900ms ease forwards",
+      } as CSSProperties}
     />
   );
 }

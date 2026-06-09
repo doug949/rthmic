@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
 const TILE_BACKGROUNDS: Record<string, { image: string; position?: string }> = {
@@ -50,9 +51,18 @@ export default function RouteTileBackground() {
   if (!background) return null;
 
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden select-none" aria-hidden style={{ zIndex: 0 }}>
+    <div
+      key={background.image}
+      className="fixed inset-0 pointer-events-none overflow-hidden select-none"
+      aria-hidden
+      style={{
+        "--ambient-opacity": 1,
+        zIndex: 0,
+        opacity: 0,
+        animation: "ambient-fade-in 720ms ease forwards",
+      } as CSSProperties}
+    >
       <img
-        key={background.image}
         src={background.image}
         alt=""
         className="absolute inset-0 h-full w-full object-cover"
