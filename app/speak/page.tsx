@@ -2229,6 +2229,45 @@ function displayNameFor(g: string): string {
   return comma > 0 ? g.slice(0, comma) : g.slice(0, 42);
 }
 
+function StyleSectionHeader({
+  title,
+  count,
+  expanded,
+  controls,
+  onToggle,
+}: {
+  title: string;
+  count: number;
+  expanded: boolean;
+  controls: string;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={expanded}
+      aria-controls={controls}
+      className="w-full flex items-center justify-between gap-3 py-1 text-left touch-manipulation"
+    >
+      <span className="text-[10px] text-white/40 uppercase tracking-[0.25em]">{title}</span>
+      <span className="flex items-center gap-2 text-[10px] text-white/30">
+        <span>{count}</span>
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 16 16"
+          fill="none"
+          aria-hidden="true"
+          className={`transition-transform duration-150 ${expanded ? "rotate-90" : ""}`}
+        >
+          <path d="M6 4L10 8L6 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </span>
+    </button>
+  );
+}
+
 function GenreView({
   understandResult,
   onGenerate,
@@ -2249,6 +2288,8 @@ function GenreView({
   // Custom style
   const [customStyle, setCustomStyle]       = useState("");
   const [customSelected, setCustomSelected] = useState(false);
+  const [builtInExpanded, setBuiltInExpanded] = useState(true);
+  const [userExpanded, setUserExpanded]       = useState(true);
 
   const selectPreset = (i: number) => { setSelectedIndex(i); setCustomSelected(false); };
   const selectCustom = () => { if (customStyle) { setCustomSelected(true); setSelectedIndex(null); } };
@@ -2419,13 +2460,21 @@ function GenreView({
           {builtInGenres.length > 0 && (
             <div className="flex flex-col gap-2">
               <RevealBlock delay={40}>
-                <p className="text-[10px] text-white/40 uppercase tracking-[0.25em]">Style Archetypes</p>
+                <StyleSectionHeader
+                  title="Style Archetypes"
+                  count={builtInGenres.length}
+                  expanded={builtInExpanded}
+                  controls="style-archetypes-list"
+                  onToggle={() => setBuiltInExpanded((open) => !open)}
+                />
               </RevealBlock>
-              <div className="flex flex-col gap-2">
-                {builtInGenres.map((genre, i) =>
-                  renderTile(genre, i, 60 + i * 20)
-                )}
-              </div>
+              {builtInExpanded && (
+                <div id="style-archetypes-list" className="flex flex-col gap-2">
+                  {builtInGenres.map((genre, i) =>
+                    renderTile(genre, i, 60 + i * 20)
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -2433,13 +2482,21 @@ function GenreView({
           {userGenres.length > 0 && (
             <div className="flex flex-col gap-2">
               <RevealBlock delay={40 + builtInGenres.length * 20}>
-                <p className="text-[10px] text-white/40 uppercase tracking-[0.25em]">Your Styles</p>
+                <StyleSectionHeader
+                  title="Your Styles"
+                  count={userGenres.length}
+                  expanded={userExpanded}
+                  controls="your-styles-list"
+                  onToggle={() => setUserExpanded((open) => !open)}
+                />
               </RevealBlock>
-              <div className="flex flex-col gap-2">
-                {userGenres.map((genre, i) =>
-                  renderTile(genre, builtInGenres.length + i, 60 + (builtInGenres.length + i) * 20)
-                )}
-              </div>
+              {userExpanded && (
+                <div id="your-styles-list" className="flex flex-col gap-2">
+                  {userGenres.map((genre, i) =>
+                    renderTile(genre, builtInGenres.length + i, 60 + (builtInGenres.length + i) * 20)
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
