@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import "./globals.css";
 import ServiceWorkerRegistration from "@/app/components/ServiceWorkerRegistration";
 import RouteTileBackground from "@/app/components/RouteTileBackground";
@@ -51,7 +52,9 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-[#0a0a0a]">
         <PillarThemeProvider>
           <AmbientBackground />
-          <RouteTileBackground />
+          <Suspense fallback={null}>
+            <RouteTileBackground />
+          </Suspense>
           <PageTransitionLayer />
           <RuntimeDiagnosticsListeners />
           <RoutePersistence />

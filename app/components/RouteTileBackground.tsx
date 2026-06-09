@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 
 const TILE_BACKGROUNDS: Record<string, { image: string; position?: string }> = {
   create: { image: "/images/tiles/optimized/create.webp", position: "50% 48%" },
@@ -42,33 +42,9 @@ function tileForRoute(pathname: string | null, search: URLSearchParams): string 
 }
 
 export default function RouteTileBackground() {
-  const [route, setRoute] = useState<{ pathname: string | null; search: URLSearchParams }>(() => ({
-    pathname: typeof window === "undefined" ? null : window.location.pathname,
-    search: typeof window === "undefined" ? new URLSearchParams() : new URLSearchParams(window.location.search),
-  }));
-
-  useEffect(() => {
-    let current = "";
-    const updateRoute = () => {
-      const next = `${window.location.pathname}${window.location.search}`;
-      if (next === current) return;
-      current = next;
-      setRoute({
-        pathname: window.location.pathname,
-        search: new URLSearchParams(window.location.search),
-      });
-    };
-
-    updateRoute();
-    const interval = window.setInterval(updateRoute, 350);
-    window.addEventListener("popstate", updateRoute);
-    return () => {
-      window.clearInterval(interval);
-      window.removeEventListener("popstate", updateRoute);
-    };
-  }, []);
-
-  const tile = tileForRoute(route.pathname, route.search);
+  const pathname = usePathname();
+  const search = useSearchParams();
+  const tile = tileForRoute(pathname, search);
   const background = tile ? TILE_BACKGROUNDS[tile] : null;
 
   if (!background) return null;

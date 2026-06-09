@@ -326,6 +326,10 @@ export default function SpeakPage() {
   // Clear ambient background when speak page unmounts
   useEffect(() => () => setActivePillar(null), []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (phase === "module") setActivePillar(null);
+  }, [phase, setActivePillar]);
+
   // MediaRecorder
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -756,6 +760,16 @@ export default function SpeakPage() {
     }, 200);
   }, []);
 
+  const returnToModule = useCallback(() => {
+    setQuickMode(false);
+    setExperiment(null);
+    experimentRef.current = null;
+    seedRef.current = null;
+    setSelectedPillar(null);
+    setIsDedication(false);
+    goToPhase("module");
+  }, [goToPhase]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ─── Reset ────────────────────────────────────────────────────────────────
 
   const reset = useCallback(() => {
@@ -807,7 +821,7 @@ export default function SpeakPage() {
         navigateTo("/", router);
         break;
       case "priming":
-        goToPhase("module");
+        returnToModule();
         break;
       case "idle":
         goToPhase("priming");
@@ -835,7 +849,7 @@ export default function SpeakPage() {
         goToPhase("confirming");
         break;
     }
-  }, [phase, genPhase, reset, goToPhase, clearRecordingTimers, cleanupWebAudio, router]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [phase, genPhase, reset, goToPhase, returnToModule, clearRecordingTimers, cleanupWebAudio, router]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Paste lyrics bypass ──────────────────────────────────────────────────
   //
