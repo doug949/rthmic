@@ -173,8 +173,9 @@ RTHMIC · rthmic.app
 
 export async function POST(request: NextRequest) {
   let email: string;
+  let betaAgreementAccepted: boolean;
   try {
-    ({ email } = await request.json());
+    ({ email, betaAgreementAccepted } = await request.json());
   } catch {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
@@ -186,6 +187,10 @@ export async function POST(request: NextRequest) {
   const normalised = email.trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalised)) {
     return NextResponse.json({ error: "Invalid email address" }, { status: 400 });
+  }
+
+  if (betaAgreementAccepted !== true) {
+    return NextResponse.json({ error: "Private beta agreement required" }, { status: 412 });
   }
 
   if (!REDIS_AVAILABLE) {

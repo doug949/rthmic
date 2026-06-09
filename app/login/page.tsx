@@ -12,6 +12,7 @@ function LoginForm() {
   const [requestingAccess, setRequestingAccess] = useState(false);
   const [accessRequested, setAccessRequested] = useState(false);
   const [accessError, setAccessError] = useState("");
+  const [betaAgreementAccepted, setBetaAgreementAccepted] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -29,7 +30,7 @@ function LoginForm() {
     const res = await fetch(`/api/auth`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password: code }),
+      body: JSON.stringify({ password: code, betaAgreementAccepted }),
     });
 
     if (res.ok) {
@@ -52,7 +53,7 @@ function LoginForm() {
     const res = await fetch("/api/request-access", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email, betaAgreementAccepted }),
     });
 
     if (res.ok) {
@@ -140,12 +141,29 @@ function LoginForm() {
         {error && (
           <p className="text-xs text-red-400/80 text-center">Access code not recognised</p>
         )}
+        <label
+          className="flex gap-3 rounded-2xl border px-4 py-3 text-left"
+          style={{
+            background: "rgba(255,255,255,0.035)",
+            borderColor: betaAgreementAccepted ? "rgba(201,165,90,0.34)" : "rgba(255,255,255,0.10)",
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={betaAgreementAccepted}
+            onChange={(e) => setBetaAgreementAccepted(e.target.checked)}
+            className="mt-0.5 h-4 w-4 flex-shrink-0 accent-[#c9a55a]"
+          />
+          <span className="text-xs leading-relaxed text-white/52">
+            I understand RTHMIC is a private beta. I won&apos;t share screenshots, recordings, access codes, or copy the product experience, and my feedback may be used to improve RTHMIC.
+          </span>
+        </label>
         <button
           type="submit"
-          disabled={loading || !password.trim()}
+          disabled={loading || !password.trim() || !betaAgreementAccepted}
           className="w-full font-semibold text-base tracking-wide rounded-xl py-4 transition-opacity duration-200 active:scale-[0.98]"
           style={{
-            background: password.trim() ? "#ffffff" : "rgba(255,255,255,0.72)",
+            background: password.trim() && betaAgreementAccepted ? "#ffffff" : "rgba(255,255,255,0.72)",
             color: "#08090b",
             opacity: loading ? 0.7 : 1,
           }}
@@ -182,7 +200,7 @@ function LoginForm() {
         )}
         <button
           type="submit"
-          disabled={requestingAccess || !email}
+          disabled={requestingAccess || !email || !betaAgreementAccepted}
           className="
             w-full border border-white/10 text-white/55 font-medium text-sm tracking-wide
             rounded-xl py-4
@@ -192,6 +210,11 @@ function LoginForm() {
         >
           {requestingAccess ? "…" : "Request access"}
         </button>
+        {!betaAgreementAccepted && email && (
+          <p className="text-[11px] text-white/30 text-center leading-relaxed">
+            Please accept the private beta agreement above before requesting access.
+          </p>
+        )}
       </form>
     </main>
   );

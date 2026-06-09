@@ -14,14 +14,17 @@ interface Node {
   r: number;
   life: number;
   pulse: number;
+  pulseTarget: number;
   pulsed: boolean;
   color: NodeColor;
 }
 
 const NODE_COUNT  = 52;
 const CONNECT_DIST = 125;
-const FADE_IN_RATE = 0.012;
+const EDGE_FADE_DIST = 56;
+const FADE_IN_RATE = 0.006;
 const PULSE_CHANCE = 0.00006; // very slow firing
+const PULSE_ATTACK = 0.018;
 const PULSE_DECAY  = 0.003;   // very slow fade-out (~330 frames per pulse)
 
 // Base RGB for each color type
@@ -58,10 +61,25 @@ export function NeuralCanvas() {
           r: Math.random() * 1.5 + 1,
           life: 0,
           pulse: 0,
+          pulseTarget: 0,
           pulsed: false,
           color: Math.random() < 0.5 ? "gold" : "blue",
         });
       }
+    }
+
+    function clamp01(value: number) {
+      return Math.max(0, Math.min(1, value));
+    }
+
+    function edgeFade(n: Node) {
+      if (!W || !H) return 0;
+      return clamp01(Math.min(
+        n.x / EDGE_FADE_DIST,
+        (W - n.x) / EDGE_FADE_DIST,
+        n.y / EDGE_FADE_DIST,
+        (H - n.y) / EDGE_FADE_DIST,
+      ));
     }
 
     function draw() {
@@ -72,10 +90,15 @@ export function NeuralCanvas() {
         n.life = Math.min(1, n.life + FADE_IN_RATE);
         n.x += n.vx;
         n.y += n.vy;
-        if (n.x < 0 || n.x > W) n.vx *= -1;
-        if (n.y < 0 || n.y > H) n.vy *= -1;
-        if (n.pulse > 0) n.pulse = Math.max(0, n.pulse - PULSE_DECAY);
-        if (!n.pulsed && Math.random() < PULSE_CHANCE) n.pulse = 1;
+        if (n.x < -EDGE_FADE_DIST || n.x > W + EDGE_FADE_DIST) n.vx *= -1;
+        if (n.y < -EDGE_FADE_DIST || n.y > H + EDGE_FADE_DIST) n.vy *= -1;
+        if (!n.pulsed && Math.random() < PULSE_CHANCE) n.pulseTarget = 1;
+        if (n.pulseTarget > n.pulse) {
+          n.pulse = Math.min(n.pulseTarget, n.pulse + PULSE_ATTACK);
+          if (n.pulse >= 0.98) n.pulseTarget = 0;
+        } else if (n.pulse > 0) {
+          n.pulse = Math.max(0, n.pulse - PULSE_DECAY);
+        }
         n.pulsed = n.pulse > 0;
       }
 
@@ -89,8 +112,9 @@ export function NeuralCanvas() {
 
           const proximity  = 1 - dist / CONNECT_DIST;
           const pulseGlow  = Math.max(a.pulse, b.pulse);
-          const fade       = Math.min(a.life, b.life);
+          const fade       = Math.min(a.life, b.life, edgeFade(a), edgeFade(b));
           const alpha      = (proximity * 0.22 + pulseGlow * 0.4) * fade;
+          if (alpha <= 0.002) continue;
 
           // pick dominant color from whichever node is pulsing more
           const dominant = a.pulse >= b.pulse ? a : b;
@@ -118,7 +142,9 @@ export function NeuralCanvas() {
       // nodes
       for (const n of nodes) {
         const glow   = n.pulse;
-        const alpha  = (0.45 + glow * 0.55) * n.life;
+        const fade   = n.life * edgeFade(n);
+        if (fade <= 0.002) continue;
+        const alpha  = (0.45 + glow * 0.55) * fade;
         const radius = n.r + glow * 3;
         const base   = n.color === "gold" ? GOLD : BLUE;
         const boost  = glow * 55;

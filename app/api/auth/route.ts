@@ -18,7 +18,7 @@ async function isBetaCode(code: string): Promise<boolean> {
 }
 
 export async function POST(request: NextRequest) {
-  const { password: rawPassword } = await request.json();
+  const { password: rawPassword, betaAgreementAccepted } = await request.json();
   const password = typeof rawPassword === "string" ? rawPassword.trim() : "";
 
   // RTHMIC_CODES is a comma-separated list of valid invite codes.
@@ -40,8 +40,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Wrong password" }, { status: 401 });
   }
 
-  const uid = codeToUid(password);
   const access = roleForCode(password);
+  if (access !== "admin" && betaAgreementAccepted !== true) {
+    return NextResponse.json({ error: "Private beta agreement required" }, { status: 412 });
+  }
+
+  const uid = codeToUid(password);
 
   const response = NextResponse.json({ ok: true, role: access });
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { AUDIO_CACHE, keepAllOfflineEnabled, setKeepAllOffline } from "@/app/lib/offlineAudio";
 import { LAST_ROUTE_KEY, RELOAD_REASON_KEY, currentClientRoute, recordDiagnosticEvent, safeSetSessionItem } from "@/app/lib/clientDiagnostics";
@@ -109,7 +110,7 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
     router.push("/login");
   };
 
-  return (
+  return createPortal(
     <>
       <div
         className="fixed inset-0 z-50"
@@ -122,21 +123,23 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
         onClick={onClose}
       />
       <div
-        className="fixed left-0 right-0 z-50 rounded-t-2xl flex flex-col"
+        className="fixed left-0 z-50 rounded-r-2xl flex flex-col"
         style={{
+          top: 0,
           bottom: 0,
-          top: "calc(env(safe-area-inset-top, 0px) + 12px)",
-          maxHeight: "calc(100dvh - env(safe-area-inset-top, 0px) - 12px)",
+          width: "min(86vw, 380px)",
+          paddingTop: "calc(env(safe-area-inset-top, 0px) + 12px)",
+          maxHeight: "100dvh",
           background: "#0f1a2e",
-          borderTop: "1px solid rgba(255,255,255,0.08)",
+          borderRight: "1px solid rgba(255,255,255,0.08)",
           paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 20px)",
           overflow: "hidden",
-          transform: open ? "translateY(0)" : "translateY(105%)",
+          transform: open ? "translateX(0)" : "translateX(-105%)",
           opacity: open ? 1 : 0,
           transition: "transform 260ms cubic-bezier(0.16, 1, 0.3, 1), opacity 180ms ease",
         }}
       >
-        <div className="flex justify-center pt-3 pb-1"><div className="w-10 h-1 rounded-full bg-white/15" /></div>
+        <div className="flex justify-center pt-1 pb-1"><div className="w-10 h-1 rounded-full bg-white/15" /></div>
         <div className="px-6 py-4 border-b border-white/[0.06]">
           <p className="text-[10px] text-white/25 uppercase tracking-widest mb-0.5">Signed in as</p>
           <p className="text-sm text-white/60 font-medium tracking-wide">{userCode || "RTHMIC"}</p>
@@ -144,6 +147,8 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
         <div className="flex-1 min-h-0 overflow-y-auto flex flex-col px-4 pt-3 gap-2" style={{ WebkitOverflowScrolling: "touch", overscrollBehaviorY: "auto" }}>
           {isAdmin && (
             <>
+              <MenuRow icon="◉" title="Record Feedback" detail="Open the private voice feedback recorder" onClick={() => go("/feedback")} />
+              <MenuRow icon="◇" title="Beta Requests" detail="Review tester access requests" onClick={() => go("/access-requests")} />
               <MenuRow icon="✎" title="Codex Notes" detail="Review quick notes captured in the app" onClick={() => go("/codex-notes")} />
               <MenuRow icon="⌁" title="Diagnostics" detail="Inspect reloads, routes, cache, and service worker state" onClick={() => go("/diagnostics")} />
             </>
@@ -162,7 +167,8 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
           </div>
         </div>
       </div>
-    </>
+    </>,
+    document.body,
   );
 }
 

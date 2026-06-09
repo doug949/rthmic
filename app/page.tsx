@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { TransitionLink } from "@/app/components/TransitionLink";
 import { AUDIO_CACHE, keepAllOfflineEnabled, setKeepAllOffline } from "@/app/lib/offlineAudio";
@@ -372,8 +373,8 @@ export default function Home() {
         </p>
       </section>
 
-      {/* Bottom sheet */}
-      {menuShouldRender && (
+      {/* Menu drawer */}
+      {menuShouldRender && createPortal(
         <>
           <div
             className="fixed inset-0 z-50"
@@ -386,21 +387,23 @@ export default function Home() {
             onClick={() => setOpen(false)}
           />
           <div
-            className="fixed left-0 right-0 z-50 rounded-t-2xl flex flex-col"
+            className="fixed left-0 z-50 rounded-r-2xl flex flex-col"
             style={{
+              top: 0,
               bottom: 0,
-              height: "min(78dvh, calc(100dvh - env(safe-area-inset-top, 0px) - 16px))",
-              maxHeight: "calc(100dvh - env(safe-area-inset-top, 0px) - 16px)",
+              width: "min(86vw, 380px)",
+              paddingTop: "calc(env(safe-area-inset-top, 0px) + 12px)",
+              maxHeight: "100dvh",
               background: "#0f1a2e",
-              borderTop: "1px solid rgba(255,255,255,0.08)",
+              borderRight: "1px solid rgba(255,255,255,0.08)",
               paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 20px)",
               overflow: "hidden",
-              transform: open ? "translateY(0)" : "translateY(105%)",
+              transform: open ? "translateX(0)" : "translateX(-105%)",
               opacity: open ? 1 : 0,
               transition: "transform 260ms cubic-bezier(0.16, 1, 0.3, 1), opacity 180ms ease",
             }}
           >
-            <div className="flex justify-center pt-3 pb-1">
+            <div className="flex justify-center pt-1 pb-1">
               <div className="w-10 h-1 rounded-full bg-white/15" />
             </div>
             <div className="px-6 py-4 border-b border-white/[0.06]">
@@ -410,6 +413,26 @@ export default function Home() {
             <div className="flex-1 min-h-0 overflow-y-auto flex flex-col px-4 pt-3 gap-2" style={{ WebkitOverflowScrolling: "touch", overscrollBehaviorY: "auto" }}>
               {isAdmin && (
                 <>
+                  <button
+                    onClick={() => { setOpen(false); router.push("/feedback"); }}
+                    className="w-full flex items-center gap-4 px-4 py-4 rounded-xl touch-manipulation active:bg-white/[0.04] transition-colors text-left"
+                  >
+                    <span className="text-white/35 text-lg leading-none">◉</span>
+                    <div>
+                      <p className="text-sm text-white/70 font-medium">Record Feedback</p>
+                      <p className="text-xs text-white/30 mt-0.5">Open the private voice feedback recorder</p>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => { setOpen(false); router.push("/access-requests"); }}
+                    className="w-full flex items-center gap-4 px-4 py-4 rounded-xl touch-manipulation active:bg-white/[0.04] transition-colors text-left"
+                  >
+                    <span className="text-white/35 text-lg leading-none">◇</span>
+                    <div>
+                      <p className="text-sm text-white/70 font-medium">Beta Requests</p>
+                      <p className="text-xs text-white/30 mt-0.5">Review tester access requests</p>
+                    </div>
+                  </button>
                   <button
                     onClick={() => { setOpen(false); router.push("/codex-notes"); }}
                     className="w-full flex items-center gap-4 px-4 py-4 rounded-xl touch-manipulation active:bg-white/[0.04] transition-colors text-left"
@@ -530,7 +553,8 @@ export default function Home() {
               </button>
             </div>
           </div>
-        </>
+        </>,
+        document.body,
       )}
     </main>
   );
