@@ -1300,13 +1300,23 @@ const CF_IDS: Record<string, string> = {
 const ALL_PILLAR_SLUGS = FOR_YOU_PILLARS.map((p) => p.slug);
 
 const CREATE_TILE_COPY: Record<string, string> = {
-  memory: "Make important things stick.",
-  mindset: "Prepare for what is coming.",
+  memory: "Remember what matters.",
+  mindset: "Prepare for the moment.",
   mode: "Manage your state of mind.",
-  movement: "Move through stuck tasks.",
-  explain: "Make complex ideas click.",
-  booksummary: "Turn books into memorable songs.",
-  sleep: "Settle your mind for sleep.",
+  movement: "Overcome inertia. Get on track.",
+  explain: "Understand something clearly.",
+  booksummary: "Grasp the book's big idea.",
+  sleep: "Settle down and rest.",
+};
+
+const CREATE_TILE_ACCENT: Record<string, string> = {
+  memory: "96,165,250",
+  mindset: "201,165,90",
+  mode: "129,140,248",
+  movement: "74,222,128",
+  explain: "45,212,191",
+  booksummary: "248,180,90",
+  sleep: "167,139,250",
 };
 
 const PILLAR_IMAGES: Record<string, string> = Object.fromEntries(
@@ -1352,6 +1362,7 @@ const PILLAR_GRID = [
     slug: p.slug,
     label: p.label,
     description: CREATE_TILE_COPY[p.slug] ?? p.tagline,
+    accent: CREATE_TILE_ACCENT[p.slug] ?? "201,165,90",
     icon: p.icon ?? null,
     image: PILLAR_IMAGES[p.slug] ?? null,
     video: PILLAR_VIDEOS[p.slug] ?? null,
@@ -1466,7 +1477,7 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
       <RevealBlock delay={0}>
         <div className="flex flex-col gap-1.5 pt-2 pb-5">
           <p className="text-xl font-light text-white/70 leading-snug" style={{ fontFamily: "var(--font-display)" }}>
-            What do you want to create?
+            What do you want to achieve?
           </p>
         </div>
       </RevealBlock>
@@ -1482,7 +1493,7 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
                 className="relative min-h-[178px] rounded-2xl overflow-hidden px-4 py-5 flex flex-col items-center justify-center text-center touch-manipulation active:scale-[0.985] transition-transform"
                 style={{
                   background: "linear-gradient(180deg, rgba(255,255,255,0.075), rgba(255,255,255,0.035))",
-                  border: "1px solid rgba(255,255,255,0.10)",
+                  border: `1px solid rgba(${p.accent},0.24)`,
                   boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
                   backdropFilter: "blur(12px)",
                 }}
@@ -1491,14 +1502,14 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
                 <div
                   className="absolute inset-0 pointer-events-none"
                   style={{
-                    background: "radial-gradient(circle at 50% 18%, rgba(201,165,90,0.13), transparent 48%)",
+                    background: `radial-gradient(circle at 50% 18%, rgba(${p.accent},0.22), transparent 50%)`,
                   }}
                 />
                 <div className="relative flex flex-col items-center">
                   {p.icon && (
                     <span
-                      className="mb-5 text-white/72"
-                      style={{ transform: "scale(2.15)", transformOrigin: "center" }}
+                      className="mb-5"
+                      style={{ transform: "scale(2.15)", transformOrigin: "center", color: `rgba(${p.accent},0.92)` }}
                     >
                       {p.icon}
                     </span>
