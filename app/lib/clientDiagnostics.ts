@@ -12,6 +12,17 @@ export const SW_VERSION_KEY = "rthmic:service-worker-version";
 
 const MAX_EVENTS = 120;
 const MAX_ROUTES = 24;
+const MAX_DIAGNOSTIC_PARAM_LENGTH = 180;
+const OMITTED_ROUTE_PARAMS = new Set([
+  "autoText",
+  "context",
+  "draft",
+  "lyrics",
+  "prompt",
+  "seed",
+  "text",
+  "transcript",
+]);
 
 export interface DiagnosticEvent {
   id: string;
@@ -30,6 +41,40 @@ export interface DiagnosticEvent {
 
 export function currentClientRoute(): string {
   return `${window.location.pathname}${window.location.search}${window.location.hash}`;
+}
+
+export function sanitizeDiagnosticRoute(route: string | null | undefined): string | null {
+  if (!route) return null;
+  try {
+    const parsed = new URL(route, window.location.origin);
+    const params = new URLSearchParams(parsed.search);
+    let changed = false;
+
+    for (const [key, value] of Array.from(params.entries())) {
+      if (OMITTED_ROUTE_PARAMS.has(key)) {
+        params.set(key, `[omitted ${value.length} chars]`);
+        changed = true;
+      } else if (value.length > MAX_DIAGNOSTIC_PARAM_LENGTH) {
+        params.set(key, `${value.slice(0, MAX_DIAGNOSTIC_PARAM_LENGTH)}... [truncated ${value.length} chars]`);
+        changed = true;
+      }
+    }
+
+    if (!changed && route.length <= 700) return route;
+
+    const search = params.toString();
+    const hash = parsed.hash && parsed.hash.length > MAX_DIAGNOSTIC_PARAM_LENGTH
+      ? "#[omitted hash]"
+      : parsed.hash;
+    const sanitized = `${parsed.pathname}${search ? `?${search}` : ""}${hash}`;
+    return sanitized.length > 900 ? `${sanitized.slice(0, 900)}... [truncated route]` : sanitized;
+  } catch {
+    return route.length > 700 ? `${route.slice(0, 700)}... [truncated route]` : route;
+  }
+}
+
+function diagnosticRoute(): string {
+  return sanitizeDiagnosticRoute(currentClientRoute()) ?? "/";
 }
 
 function randomId(prefix: string): string {
@@ -162,8 +207,8 @@ export function getStorageSnapshot(): Record<string, number | string> {
 
 export function collectDiagnosticDetail(extra?: Record<string, unknown>): Record<string, unknown> {
   return {
-    currentRoute: currentClientRoute(),
-    previousRoute: safeGetSessionItem(LAST_ROUTE_KEY) ?? safeGetSessionItem(PREVIOUS_ROUTE_KEY),
+    currentRoute: diagnosticRoute(),
+    previousRoute: sanitizeDiagnosticRoute(safeGetSessionItem(LAST_ROUTE_KEY) ?? safeGetSessionItem(PREVIOUS_ROUTE_KEY)),
     appVersion: getAppVersion(),
     deploymentVersion: getDeploymentVersion(),
     serviceWorkerVersion: getServiceWorkerVersion(),
@@ -180,8 +225,8 @@ export function recordDiagnosticEvent(
   detail?: Record<string, unknown>
 ): DiagnosticEvent | null {
   try {
-    const route = currentClientRoute();
-    const previousRoute = safeGetSessionItem(LAST_ROUTE_KEY) ?? safeGetSessionItem(PREVIOUS_ROUTE_KEY);
+    const route = diagnosticRoute();
+    const previousRoute = sanitizeDiagnosticRoute(safeGetSessionItem(LAST_ROUTE_KEY) ?? safeGetSessionItem(PREVIOUS_ROUTE_KEY));
     const event: DiagnosticEvent = {
       id: randomId("event"),
       at: new Date().toISOString(),
@@ -206,12 +251,13 @@ export function recordDiagnosticEvent(
 
 export function updateRouteStack(route: string): string[] {
   try {
+    const routeForDiagnostics = sanitizeDiagnosticRoute(route) ?? "/";
     const current = readJson<string[]>(ROUTE_STACK_KEY, []);
-    const next = [route, ...current.filter((candidate) => candidate !== route)].slice(0, MAX_ROUTES);
+    const next = [routeForDiagnostics, ...current.filter((candidate) => candidate !== routeForDiagnostics)].slice(0, MAX_ROUTES);
     safeSetLocalItem(ROUTE_STACK_KEY, JSON.stringify(next));
     return next;
   } catch {
-    return [route];
+    return [sanitizeDiagnosticRoute(route) ?? "/"];
   }
 }
 
@@ -228,14 +274,15 @@ export interface PersistedRouteState {
 
 export function persistCurrentRoute(route = currentClientRoute()): PersistedRouteState | null {
   try {
+    const routeForDiagnostics = sanitizeDiagnosticRoute(route) ?? "/";
     const previous = safeGetSessionItem(CURRENT_ROUTE_KEY);
-    if (previous && previous !== route) safeSetSessionItem(PREVIOUS_ROUTE_KEY, previous);
-    safeSetSessionItem(CURRENT_ROUTE_KEY, route);
-    safeSetSessionItem(LAST_ROUTE_KEY, route);
-    safeSetLocalItem(CURRENT_ROUTE_KEY, route);
-    const stack = updateRouteStack(route);
+    if (previous && previous !== routeForDiagnostics) safeSetSessionItem(PREVIOUS_ROUTE_KEY, previous);
+    safeSetSessionItem(CURRENT_ROUTE_KEY, routeForDiagnostics);
+    safeSetSessionItem(LAST_ROUTE_KEY, routeForDiagnostics);
+    safeSetLocalItem(CURRENT_ROUTE_KEY, routeForDiagnostics);
+    const stack = updateRouteStack(routeForDiagnostics);
     const state: PersistedRouteState = {
-      route,
+      route: routeForDiagnostics,
       at: new Date().toISOString(),
       sessionId: getDiagnosticSessionId(),
       stack,

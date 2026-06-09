@@ -1,7 +1,11 @@
 "use client";
 
 import { Component, type ErrorInfo, type ReactNode, useEffect } from "react";
-import { recordDiagnosticEvent } from "@/app/lib/clientDiagnostics";
+import {
+  RELOAD_REASON_KEY,
+  recordDiagnosticEvent,
+  safeGetSessionItem,
+} from "@/app/lib/clientDiagnostics";
 
 type RuntimeDiagnosticsBoundaryProps = {
   children: ReactNode;
@@ -48,6 +52,28 @@ function fetchRequestDetail(input: RequestInfo | URL, init?: RequestInit) {
     online: navigator.onLine,
     visibilityState: document.visibilityState,
   };
+}
+
+function isUserUpdatingApp(): boolean {
+  return safeGetSessionItem(RELOAD_REASON_KEY) === "user-clicked-update";
+}
+
+function isLoadFailed(error: unknown): boolean {
+  return error instanceof Error && error.name === "TypeError" && error.message === "Load failed";
+}
+
+function libraryActionFromBody(body: BodyInit | null | undefined): string | undefined {
+  if (!body || typeof body !== "string") return undefined;
+  try {
+    const parsed = JSON.parse(body) as { action?: unknown };
+    return typeof parsed.action === "string" ? parsed.action : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function shouldSuppressExpectedUpdateFetch(detail: ReturnType<typeof fetchRequestDetail>, error: unknown): boolean {
+  return isUserUpdatingApp() && detail.origin === "same-origin" && detail.url === "/api/library" && isLoadFailed(error);
 }
 
 export class RuntimeDiagnosticsBoundary extends Component<
@@ -109,6 +135,7 @@ export function RuntimeDiagnosticsListeners() {
     };
 
     const onUnhandledRejection = (event: PromiseRejectionEvent) => {
+      if (isUserUpdatingApp() && isLoadFailed(event.reason)) return;
       recordDiagnosticEvent("unhandledrejection", {
         reason: errorDetail(event.reason),
       });
@@ -130,7 +157,10 @@ export function RuntimeDiagnosticsListeners() {
 
     const patchedFetch: typeof window.fetch = async (input, init) => {
       const startedAt = performance.now();
-      const detail = fetchRequestDetail(input, init);
+      const detail = {
+        ...fetchRequestDetail(input, init),
+        action: libraryActionFromBody(init?.body),
+      };
 
       try {
         const response = await originalFetch(input, init);
@@ -144,6 +174,9 @@ export function RuntimeDiagnosticsListeners() {
         }
         return response;
       } catch (error) {
+        if (shouldSuppressExpectedUpdateFetch(detail, error)) {
+          throw error;
+        }
         recordDiagnosticEvent("fetch-load-failed", {
           ...detail,
           durationMs: Math.round(performance.now() - startedAt),

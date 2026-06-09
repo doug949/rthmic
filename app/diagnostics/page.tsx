@@ -12,6 +12,7 @@ import {
   readDiagnosticEvents,
   readPersistedRouteState,
   readRouteStack,
+  sanitizeDiagnosticRoute,
   type DiagnosticEvent,
 } from "@/app/lib/clientDiagnostics";
 
@@ -99,7 +100,7 @@ async function collectSnapshot(): Promise<DiagnosticsSnapshot> {
 
   return {
     collectedAt: new Date().toISOString(),
-    route: `${window.location.pathname}${window.location.search}${window.location.hash}`,
+    route: sanitizeDiagnosticRoute(`${window.location.pathname}${window.location.search}${window.location.hash}`) ?? "/",
     sessionId: getDiagnosticSessionId(),
     clientBuild: process.env.NEXT_PUBLIC_RTHMIC_BUILD ?? "dev",
     serverBuild,
@@ -111,7 +112,7 @@ async function collectSnapshot(): Promise<DiagnosticsSnapshot> {
     navigationType: nav?.type ?? "unknown",
     serviceWorker: await serviceWorkerStatus(),
     caches: await cacheNames(),
-    lastRoute: collectStorage("rthmic:last-route"),
+    lastRoute: sanitizeDiagnosticRoute(collectStorage("rthmic:last-route")),
     reloadReason: collectStorage("rthmic:last-reload-reason"),
     routeStack: readRouteStack(),
     persistedRouteState: readPersistedRouteState(),
