@@ -411,10 +411,10 @@ function parseDismissed(value: string | null) {
   return [];
 }
 
-function parseCount(value: string | null) {
-  const parsed = Number.parseInt(value ?? "", 10);
-  if (!Number.isFinite(parsed)) return 6;
-  return Math.min(Math.max(parsed, 1), 18);
+const SUGGESTION_COUNT = 5;
+
+function parseCount(_value: string | null) {
+  return SUGGESTION_COUNT;
 }
 
 function takeFresh(pool: string[], blocked: Set<string>, count = 6) {

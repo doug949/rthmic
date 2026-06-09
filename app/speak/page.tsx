@@ -20,7 +20,8 @@ import { clearInterpretationDraft, readInterpretationDraft, saveInterpretationDr
 
 type Phase = "module" | "priming" | "idle" | "recording" | "understanding" | "confirming" | "genre" | "queued";
 
-const SKIP_CONFIRMATION_PILLARS = new Set(["explain", "menus"]);
+const SKIP_CONFIRMATION_PILLARS = new Set(["explain", "menus", "booksummary"]);
+const SUGGESTION_COUNT = 5;
 
 function shouldSkipConfirmation(pillar?: string | null) {
   return SKIP_CONFIRMATION_PILLARS.has((pillar ?? "").toLowerCase());
@@ -93,7 +94,7 @@ function writeLastShownSuggestions(pillar: string, shown: string[]) {
 }
 
 function suggestionCountForPillar(pillar: string) {
-  return pillar === "booksummary" ? 12 : 6;
+  return SUGGESTION_COUNT;
 }
 
 async function fetchSuggestions(pillar: string, dismissed: string[] = [], exclude: string[] = []): Promise<string[]> {
@@ -1717,29 +1718,29 @@ function PrimingView({ pillar, experiment, onReady }: { pillar: string | null; e
           </RevealBlock>
         </div>
 
-        {/* Full-width video thumbnail replacing instructions */}
+        {/* Optional concept video */}
         {videoSrc && pillar && PILLAR_IMAGES[pillar] && (
           <RevealBlock delay={145}>
             <button
               onClick={openLightbox}
-              className="relative w-full rounded-2xl overflow-hidden touch-manipulation active:brightness-75 transition-all"
-              style={{ aspectRatio: "4/3", border: "1px solid rgba(255,255,255,0.08)" }}
+              className="w-full rounded-2xl px-4 py-3 flex items-center justify-between gap-3 touch-manipulation active:scale-[0.985] transition-all"
+              style={{ background: "rgba(255,255,255,0.035)", border: "1px solid rgba(255,255,255,0.08)" }}
             >
-              <img src={PILLAR_IMAGES[pillar]} alt="Preview" className="w-full h-full object-cover" style={{ objectPosition: "center 20%" }} />
-              <div className="absolute inset-0 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.3)" }}>
+              <span className="flex items-center gap-3 text-left">
                 <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center"
-                  style={{ background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.35)" }}
+                  className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.14)" }}
                 >
-                  <svg width="14" height="16" viewBox="0 0 14 16" fill="none">
-                    <path d="M2 1.5L12.5 8L2 14.5V1.5Z" fill="white" />
+                  <svg width="11" height="13" viewBox="0 0 14 16" fill="none">
+                    <path d="M2 1.5L12.5 8L2 14.5V1.5Z" fill="rgba(255,255,255,0.62)" />
                   </svg>
                 </div>
-              </div>
-              {/* Info label — top center */}
-              <div className="absolute top-3 inset-x-0 flex justify-center pointer-events-none">
-                <span className="text-[10px] font-medium tracking-wide" style={{ color: "rgba(255,255,255,0.6)" }}>How to use</span>
-              </div>
+                <span>
+                  <span className="block text-[10px] uppercase tracking-[0.24em] text-white/35">Optional</span>
+                  <span className="block text-sm text-white/58">Watch the concept intro</span>
+                </span>
+              </span>
+              <span className="text-xs uppercase tracking-widest text-white/30">Play</span>
             </button>
           </RevealBlock>
         )}
