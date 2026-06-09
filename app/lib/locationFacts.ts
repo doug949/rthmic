@@ -105,6 +105,10 @@ async function nearbyWikipedia(coord: Coordinate): Promise<WikipediaPlace[]> {
   return summaries.filter((item): item is WikipediaPlace => Boolean(item));
 }
 
+function overpassName(tags: Record<string, unknown>): string | undefined {
+  return compact(tags.name) ?? compact(tags["addr:housename"]) ?? compact(tags["addr:place"]);
+}
+
 function overpassKind(tags: Record<string, unknown>): string | undefined {
   const historic = compact(tags.historic);
   if (historic) return `historic ${historic}`;
@@ -112,6 +116,16 @@ function overpassKind(tags: Record<string, unknown>): string | undefined {
   if (tourism) return `tourism ${tourism}`;
   const amenity = compact(tags.amenity);
   if (amenity) return amenity;
+  const leisure = compact(tags.leisure);
+  if (leisure) return `leisure ${leisure}`;
+  const railway = compact(tags.railway);
+  if (railway) return `railway ${railway}`;
+  const publicTransport = compact(tags.public_transport);
+  if (publicTransport) return `public transport ${publicTransport}`;
+  const shop = compact(tags.shop);
+  if (shop) return `${shop} shop`;
+  const office = compact(tags.office);
+  if (office) return `${office} office`;
   const building = compact(tags.building);
   if (building && building !== "yes") return `${building} building`;
   if (building) return "building";
@@ -124,11 +138,11 @@ async function nearbyOpenStreetMap(coord: Coordinate): Promise<NearbyPlace[]> {
   const query = `
     [out:json][timeout:5];
     (
-      node(around:500,${coord.latitude},${coord.longitude})[name][~"^(historic|tourism|amenity|building|heritage)$"~"."];
-      way(around:500,${coord.latitude},${coord.longitude})[name][~"^(historic|tourism|amenity|building|heritage)$"~"."];
-      relation(around:500,${coord.latitude},${coord.longitude})[name][~"^(historic|tourism|amenity|building|heritage)$"~"."];
+      node(around:900,${coord.latitude},${coord.longitude})[~"^(name|addr:housename|addr:place)$"~"."][~"^(historic|tourism|amenity|building|heritage|leisure|railway|public_transport|shop|office)$"~"."];
+      way(around:900,${coord.latitude},${coord.longitude})[~"^(name|addr:housename|addr:place)$"~"."][~"^(historic|tourism|amenity|building|heritage|leisure|railway|public_transport|shop|office)$"~"."];
+      relation(around:900,${coord.latitude},${coord.longitude})[~"^(name|addr:housename|addr:place)$"~"."][~"^(historic|tourism|amenity|building|heritage|leisure|railway|public_transport|shop|office)$"~"."];
     );
-    out center tags 18;
+    out center tags 24;
   `;
   const url = new URL("https://overpass-api.de/api/interpreter");
   url.searchParams.set("data", query);
@@ -139,14 +153,16 @@ async function nearbyOpenStreetMap(coord: Coordinate): Promise<NearbyPlace[]> {
   return (data?.elements ?? [])
     .map((element) => {
       const tags = element.tags ?? {};
-      const name = compact(tags.name);
+      const name = overpassName(tags);
       if (!name || seen.has(name.toLowerCase())) return null;
       seen.add(name.toLowerCase());
       const lat = typeof element.lat === "number" ? element.lat : element.center?.lat;
       const lon = typeof element.lon === "number" ? element.lon : element.center?.lon;
       const detail = [
         compact(tags.start_date) ? `start date ${compact(tags.start_date)}` : "",
+        compact(tags["addr:housenumber"]) && compact(tags["addr:street"]) ? `${compact(tags["addr:housenumber"])} ${compact(tags["addr:street"])}` : "",
         compact(tags["addr:street"]),
+        compact(tags["addr:postcode"]),
         compact(tags.website) ?? compact(tags.wikidata),
       ].filter(Boolean).join("; ");
       const place: NearbyPlace = { name };

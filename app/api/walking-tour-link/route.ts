@@ -128,6 +128,7 @@ export async function POST(req: NextRequest) {
       locationFacts ? `Local facts from geodata:\n${locationFacts}` : "",
       focusAreas ? `Selected tour purpose:\n${focusAreas}` : "",
       context ? `User context: ${context}` : "User context: Create a useful walking-tour companion for this place or route.",
+      "SOURCE FACTS TO USE, NOT SUMMARISE AWAY: preserve the strongest named map label, street, park, district, landmark, coordinate, nearby feature, date, distance, and user context in the title, state summary, and first verse.",
       "Create a Rthm that works as an audio companion for a person in or near this place. It should be paced for someone standing, walking, looking around, and making sense of the place.",
       "If the user selected history, architecture, nature, food/drink, property, sensory walk, or questions, shape the Rthm around that purpose.",
       "Use details that come from the map label, coordinates, URL, current location, local facts, selected purpose, and user context. Give priority to named nearby places, dated facts, and famous nearby landmarks from the local facts.",

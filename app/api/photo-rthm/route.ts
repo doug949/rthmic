@@ -323,7 +323,7 @@ If the image appears to show a place, object, meal, room, product, document, vie
 
 Use EXIF metadata when available. GPS, capture time, focal length, and camera direction can support useful context such as place, aspect, sun/path clues, surrounding area questions, historical curiosity, or property-viewing prompts.
 
-Important: this must be about the exact photographed subject, not a generic example of its type. If the image shows a medieval wall, old stonework, a specific building, a room, or a property, refer to this wall/place/room/property and anchor it to any known location/context from EXIF or the user. If no precise location is known, say that clearly and use questions/investigation cues instead of invented facts.
+Important: this must be about the exact photographed subject, not a generic example of its type. If the image shows a medieval wall, old stonework, a specific building, a room, or a property, refer to this wall/place/room/property and anchor it to any known location/context from EXIF or the user. If the user context, reverse geocode, OpenStreetMap, Wikipedia, visible signage, or address-like clues contain a proper name, building name, street, park, landmark, or district, put those proper nouns into the prompt. If no precise location is known, say that clearly and use questions/investigation cues instead of invented facts.
 
 Use the supplied local facts when available. Prefer named nearby places, named landmarks, dated facts, and source-backed details over vague possibility language. Never write "if there is..." or "there may be..." when a supplied local fact names the actual place. Distinguish what is known from the image/metadata/local facts from what is not known. Never invent private facts, exact history, surroundings, ownership, listing details, or landmark claims that are not visible, present in EXIF, supplied by local facts, or provided by the user.
 
@@ -358,6 +358,7 @@ ${locationFacts || "No geodata-based local facts were available."}
 
 Return JSON for RTHMIC. In prompt include:
 - What the photo appears to show.
+- The most specific name/address/location anchor available, using proper nouns from the user context, visible signage, EXIF, reverse geocode, local facts, or map-like clues.
 - Why it might matter.
 - What the Rthm should help the listener notice, learn, question, or remember based on the selected focus/purpose.
 - Any useful metadata-derived or geodata-derived facts, clearly separated from visual observations.
@@ -387,7 +388,13 @@ For tagHints:
     const seed = [
       "Developer experiment: Photograph to Rthm.",
       parsed.prompt,
-      "Make the Rthm clear, specific, and useful. Keep it anchored to the exact photographed subject and any known location/context. Do not mention that an AI vision model described the image.",
+      "SOURCE FACTS TO USE, NOT SUMMARISE AWAY:",
+      `User context: ${context || "No extra context provided."}`,
+      `User purpose: ${purpose || "No specific purpose provided."}`,
+      `Selected learning focus: ${focusAreas || "No selected focus areas."}`,
+      `EXIF metadata:\n${exifSummary(metadata)}`,
+      `Local facts from geodata:\n${locationFacts || "No geodata-based local facts were available."}`,
+      "Make the Rthm clear, specific, and useful. Keep it anchored to the exact photographed subject and any known location/context. If a building name, street, park, district, nearby landmark, date, distance, or coordinate appears in the source facts, use it directly in the title, state summary, and first verse where natural. Do not mention that an AI vision model described the image.",
     ].join(" ");
 
     return NextResponse.json({ seed, tagHints: ["photograph", "visual memory", ...parsed.tagHints] });
