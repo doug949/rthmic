@@ -37,6 +37,12 @@ const emptySlot = (): SlotState => ({
   suggestedArtists: [], selectedArtists: [],
 });
 
+interface CurrentStyle {
+  name: string;
+  prompt: string;
+  source: "Built-in" | "Your style";
+}
+
 type VoicePhase = "idle" | "recording" | "transcribing" | "interpreting";
 
 interface UserProfile {
@@ -65,11 +71,30 @@ const CONFIGURABLE_PILLARS = [
   { slug: "invite",      label: "Invite", adminOnly: true },
 ];
 
+function styleName(style: string): string {
+  const idx = style.indexOf("|");
+  if (idx > 0) return style.slice(0, idx).trim();
+  const comma = style.indexOf(",");
+  return (comma > 0 ? style.slice(0, comma) : style.slice(0, 42)).trim();
+}
+
+function stylePrompt(style: string): string {
+  const idx = style.indexOf("|");
+  return (idx > 0 ? style.slice(idx + 1) : style).trim();
+}
+
+function styleList(styles: string[], source: CurrentStyle["source"]): CurrentStyle[] {
+  return styles
+    .filter((style) => style.trim())
+    .map((style) => ({ name: styleName(style), prompt: stylePrompt(style), source }));
+}
+
 export default function SettingsPage() {
   const router = useRouter();
 
   // ── Profile state ────────────────────────────────────────────────────────────
   const [profile, setProfile] = useState<UserProfile>({ name: "", vocalist: "none", adhdMode: false, simpleMode: false, advancedPillars: ["memory", "booksummary", "explain", "mindset"], access: { role: "beta", isAdmin: false } });
+  const isAdmin = !!profile.access?.isAdmin;
   const configurablePillars = CONFIGURABLE_PILLARS.filter((pillar) => !pillar.adminOnly || profile.access?.isAdmin);
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
@@ -78,6 +103,7 @@ export default function SettingsPage() {
   // ── Styles state ─────────────────────────────────────────────────────────────
   const [currentSlot, setCurrentSlot] = useState(0);
   const [slots, setSlots] = useState<SlotState[]>([emptySlot(), emptySlot(), emptySlot(), emptySlot()]);
+  const [currentStyles, setCurrentStyles] = useState<CurrentStyle[]>([]);
   const [loading, setLoading] = useState(true);
   const [saveError, setSaveError] = useState("");
   const [interpretError, setInterpretError] = useState("");
@@ -108,6 +134,13 @@ export default function SettingsPage() {
           ...s, style: gen.genres[i] ?? "", committed: !!(gen.genres[i]),
         })));
       }
+      const builtIn = Array.isArray(gen?.builtIn) ? gen.builtIn : [];
+      const user = Array.isArray(gen?.user) ? gen.user : [];
+      const fallback = !builtIn.length && !user.length && Array.isArray(gen?.genres) ? gen.genres : [];
+      setCurrentStyles([
+        ...styleList(builtIn.length ? builtIn : fallback, "Built-in"),
+        ...styleList(user, "Your style"),
+      ]);
     }).finally(() => setLoading(false));
   }, []);
 
@@ -348,34 +381,35 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Simple mode */}
-            <button
-              onClick={() => updateProfile({ simpleMode: !profile.simpleMode })}
-              className="w-full rounded-2xl border px-5 py-4 flex items-center gap-4 text-left transition-all touch-manipulation active:scale-[0.98]"
-              style={{ background: profile.simpleMode ? PURPLE.hover : PURPLE.bg, borderColor: PURPLE.border }}
-            >
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium" style={{ color: PURPLE.text }}>Simple Mode</p>
-                <p className="text-xs mt-0.5" style={{ color: PURPLE.dim }}>
-                  Shows only the core pillars — hides advanced ones that need more conceptual buy-in
-                </p>
-              </div>
-              <div
-                className="flex-shrink-0 w-11 h-6 rounded-full border transition-all"
-                style={{
-                  background: profile.simpleMode ? "rgba(160,130,220,0.35)" : "rgba(255,255,255,0.06)",
-                  borderColor: profile.simpleMode ? PURPLE.border : "rgba(255,255,255,0.12)",
-                }}
+            {isAdmin && (
+              <button
+                onClick={() => updateProfile({ simpleMode: !profile.simpleMode })}
+                className="w-full rounded-2xl border px-5 py-4 flex items-center gap-4 text-left transition-all touch-manipulation active:scale-[0.98]"
+                style={{ background: profile.simpleMode ? PURPLE.hover : PURPLE.bg, borderColor: PURPLE.border }}
               >
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium" style={{ color: PURPLE.text }}>Simple Mode</p>
+                  <p className="text-xs mt-0.5" style={{ color: PURPLE.dim }}>
+                    Shows only the core pillars — hides advanced ones that need more conceptual buy-in
+                  </p>
+                </div>
                 <div
-                  className="w-4 h-4 rounded-full mt-0.5 transition-all"
+                  className="flex-shrink-0 w-11 h-6 rounded-full border transition-all"
                   style={{
-                    background: profile.simpleMode ? PURPLE.text : "rgba(255,255,255,0.3)",
-                    marginLeft: profile.simpleMode ? "24px" : "3px",
+                    background: profile.simpleMode ? "rgba(160,130,220,0.35)" : "rgba(255,255,255,0.06)",
+                    borderColor: profile.simpleMode ? PURPLE.border : "rgba(255,255,255,0.12)",
                   }}
-                />
-              </div>
-            </button>
+                >
+                  <div
+                    className="w-4 h-4 rounded-full mt-0.5 transition-all"
+                    style={{
+                      background: profile.simpleMode ? PURPLE.text : "rgba(255,255,255,0.3)",
+                      marginLeft: profile.simpleMode ? "24px" : "3px",
+                    }}
+                  />
+                </div>
+              </button>
+            )}
 
             {/* ADHD mode */}
             <button
@@ -408,41 +442,42 @@ export default function SettingsPage() {
             </button>
           </div>
 
-          {/* Pillar configuration */}
-          <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] overflow-hidden mt-2">
-            <div className="px-5 py-3.5 border-b border-white/[0.06]">
-              <p className="text-sm font-medium" style={{ color: PURPLE.text }}>Pillar Configuration</p>
-              <p className="text-xs mt-0.5" style={{ color: PURPLE.dim }}>Set which pillars are Advanced — hidden when Simple Mode is on</p>
-            </div>
-            {configurablePillars.map((p, i) => {
-              const isAdvanced = profile.advancedPillars.includes(p.slug);
-              const toggle = () => {
-                const next = isAdvanced
-                  ? profile.advancedPillars.filter(s => s !== p.slug)
-                  : [...profile.advancedPillars, p.slug];
-                updateProfile({ advancedPillars: next });
-              };
-              return (
-                <button
-                  key={p.slug}
-                  onClick={toggle}
-                  className="w-full flex items-center justify-between px-5 py-3 text-left touch-manipulation active:bg-white/[0.03] transition-colors"
-                  style={{ borderTop: i === 0 ? "none" : "1px solid rgba(255,255,255,0.05)" }}
-                >
-                  <span className="text-sm" style={{ color: isAdvanced ? PURPLE.text : "rgba(255,255,255,0.55)" }}>{p.label}</span>
-                  <span
-                    className="text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-full border"
-                    style={isAdvanced
-                      ? { color: PURPLE.text, borderColor: PURPLE.border, background: "rgba(160,130,220,0.12)" }
-                      : { color: "rgba(255,255,255,0.3)", borderColor: "rgba(255,255,255,0.08)", background: "transparent" }
-                    }
+          {isAdmin && (
+            <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] overflow-hidden mt-2">
+              <div className="px-5 py-3.5 border-b border-white/[0.06]">
+                <p className="text-sm font-medium" style={{ color: PURPLE.text }}>Pillar Configuration</p>
+                <p className="text-xs mt-0.5" style={{ color: PURPLE.dim }}>Set which pillars are Advanced — hidden when Simple Mode is on</p>
+              </div>
+              {configurablePillars.map((p, i) => {
+                const isAdvanced = profile.advancedPillars.includes(p.slug);
+                const toggle = () => {
+                  const next = isAdvanced
+                    ? profile.advancedPillars.filter(s => s !== p.slug)
+                    : [...profile.advancedPillars, p.slug];
+                  updateProfile({ advancedPillars: next });
+                };
+                return (
+                  <button
+                    key={p.slug}
+                    onClick={toggle}
+                    className="w-full flex items-center justify-between px-5 py-3 text-left touch-manipulation active:bg-white/[0.03] transition-colors"
+                    style={{ borderTop: i === 0 ? "none" : "1px solid rgba(255,255,255,0.05)" }}
                   >
-                    {isAdvanced ? "Advanced" : "Simple"}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+                    <span className="text-sm" style={{ color: isAdvanced ? PURPLE.text : "rgba(255,255,255,0.55)" }}>{p.label}</span>
+                    <span
+                      className="text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-full border"
+                      style={isAdvanced
+                        ? { color: PURPLE.text, borderColor: PURPLE.border, background: "rgba(160,130,220,0.12)" }
+                        : { color: "rgba(255,255,255,0.3)", borderColor: "rgba(255,255,255,0.08)", background: "transparent" }
+                      }
+                    >
+                      {isAdvanced ? "Advanced" : "Simple"}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </section>
 
         {/* ── Style Archetypes ───────────────────────────────────────────────── */}
@@ -451,6 +486,30 @@ export default function SettingsPage() {
             <span style={{ color: "rgba(201,165,90,0.65)" }}><StylesIcon /></span>
             <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: "rgba(201,165,90,0.65)" }}>Style Archetypes</p>
           </div>
+
+          {currentStyles.length > 0 && (
+            <div className="rounded-2xl border overflow-hidden mb-5" style={{ borderColor: "rgba(201,165,90,0.16)", background: "rgba(201,165,90,0.035)" }}>
+              <div className="px-5 py-3.5 border-b border-white/[0.06]">
+                <p className="text-sm font-medium" style={{ color: "rgba(201,165,90,0.88)" }}>Current Styles</p>
+                <p className="text-xs mt-0.5 text-white/38">These are the styles available when creating a Rthm.</p>
+              </div>
+              {currentStyles.map((style, i) => (
+                <div
+                  key={`${style.source}-${style.name}-${i}`}
+                  className="px-5 py-3.5"
+                  style={{ borderTop: i === 0 ? "none" : "1px solid rgba(255,255,255,0.05)" }}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-medium text-white/72">{style.name}</p>
+                    <span className="flex-shrink-0 rounded-full border px-2 py-0.5 text-[9px] uppercase tracking-widest" style={{ borderColor: "rgba(201,165,90,0.22)", color: "rgba(201,165,90,0.58)", background: "rgba(201,165,90,0.06)" }}>
+                      {style.source}
+                    </span>
+                  </div>
+                  <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-white/42">{style.prompt}</p>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Slot tabs */}
           <div className="flex gap-2 mb-5">
