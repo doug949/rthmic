@@ -36,11 +36,10 @@ function inferStyle(pillar: string): "A" | "B" {
 
 function periodStart(period: TimePeriod): number {
   if (period === "all") return 0;
-  if (period === "today") return Date.now() - 24 * 60 * 60 * 1000;
-  const d = new Date();
-  if (period === "week")  { d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); d.setHours(0, 0, 0, 0); return d.getTime(); }
-  // month
-  d.setDate(1); d.setHours(0, 0, 0, 0); return d.getTime();
+  const day = 24 * 60 * 60 * 1000;
+  if (period === "today") return Date.now() - day;
+  if (period === "week")  return Date.now() - 7 * day;
+  return Date.now() - 30 * day;
 }
 
 const ALL_TIME_PREVIEW = 8;
@@ -48,9 +47,9 @@ const CHART_LIMIT = 20;
 const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
 
 function periodLabel(period: TimePeriod): string {
-  if (period === "today") return "Past 24 Hours";
-  if (period === "week") return "This Week";
-  if (period === "month") return "This Month";
+  if (period === "today") return "Last 24 Hours";
+  if (period === "week") return "Last 7 Days";
+  if (period === "month") return "Last 30 Days";
   return "All Time";
 }
 
@@ -968,9 +967,9 @@ function ChartsFeature({
 // ─── Release date tab bar ────────────────────────────────────────────────────
 
 const PERIODS: { key: TimePeriod; label: string }[] = [
-  { key: "today", label: "Past 24 Hours" },
-  { key: "week",  label: "This Week" },
-  { key: "month", label: "This Month" },
+  { key: "today", label: "Last 24 Hours" },
+  { key: "week",  label: "Last 7 Days" },
+  { key: "month", label: "Last 30 Days" },
   { key: "all",   label: "All Time" },
 ];
 

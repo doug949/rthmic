@@ -41,12 +41,12 @@ function MyFavouritesInner() {
   const [recreateRhythm, setRecreateRhythm]   = useState<SavedRhythm | null>(null);
 
   const searchParams = useSearchParams();
-  const openParam    = searchParams.get("open"); // "explore" | "tags" | "pillars"
+  const openParam    = searchParams.get("open"); // "explore" | "tags" | "categories"
 
   // Subsection state — pre-open the section specified by the ?open= param
   const [favExploreOpen, setFavExploreOpen]   = useState(openParam === "explore" || !openParam);
   const [favTagsOpen, setFavTagsOpen]         = useState(openParam === "tags");
-  const [favPillarsOpen, setFavPillarsOpen]   = useState(openParam === "pillars");
+  const [favPillarsOpen, setFavPillarsOpen]   = useState(openParam === "categories" || openParam === "pillars");
   const [selectedFavTag, setSelectedFavTag]     = useState<string | null>(null);
   const [selectedFavPillar, setSelectedFavPillar] = useState<string | null>(null);
 
@@ -285,11 +285,11 @@ function MyFavouritesInner() {
               </div>
             </SubsectionCard>
 
-            {/* Pillars */}
+            {/* Categories */}
             <SubsectionCard
               icon={<PillarsIcon />}
-              title="Pillars"
-              description={`${allFavPillars.length} pillar${allFavPillars.length !== 1 ? "s" : ""}`}
+              title="Categories"
+              description={`${allFavPillars.length} categor${allFavPillars.length === 1 ? "y" : "ies"}`}
               open={favPillarsOpen}
               onToggle={() => setFavPillarsOpen((o) => !o)}
             >

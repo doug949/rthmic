@@ -29,6 +29,8 @@ interface QueueJob {
 export default function CatalogPage() {
   const [rhythms, setRhythms]                 = useState<SavedRhythm[]>([]);
   const [queueJobs, setQueueJobs]             = useState<QueueJob[]>([]);
+  const [isAdmin, setIsAdmin]                 = useState(false);
+  const [newRthmsOpen, setNewRthmsOpen]       = useState(false);
   const [myRthmsOpen, setMyRthmsOpen]         = useState(false);
   const [myFavouritesOpen, setMyFavouritesOpen] = useState(false);
   const [archiveOpen, setArchiveOpen]         = useState(false);
@@ -63,6 +65,10 @@ const [clearingQueue, setClearingQueue]     = useState(false);
   useEffect(() => {
     fetchCounts();
     fetchQueueJobs();
+    fetch("/api/settings")
+      .then((res) => res.json())
+      .then((data) => setIsAdmin(!!data.access?.isAdmin))
+      .catch(() => setIsAdmin(false));
     const pollId = setInterval(() => { fetchQueueJobs(); fetchCounts(); }, 15_000);
     return () => clearInterval(pollId);
   }, [fetchCounts, fetchQueueJobs]);
@@ -84,14 +90,20 @@ const [clearingQueue, setClearingQueue]     = useState(false);
   const archiveCount    = rhythms.filter((r) => r.status === "archived").length;
 
   const startOf = (period: "today" | "week" | "month") => {
-    const d = new Date();
-    if (period === "today") { d.setHours(0, 0, 0, 0); return d.getTime(); }
-    if (period === "week")  { d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); d.setHours(0, 0, 0, 0); return d.getTime(); }
-    d.setDate(1); d.setHours(0, 0, 0, 0); return d.getTime();
+    const day = 24 * 60 * 60 * 1000;
+    if (period === "today") return Date.now() - day;
+    if (period === "week")  return Date.now() - 7 * day;
+    return Date.now() - 30 * day;
   };
   const todayCount = myRthms.filter((r) => r.savedAt >= startOf("today")).length;
   const weekCount  = myRthms.filter((r) => r.savedAt >= startOf("week")).length;
   const monthCount = myRthms.filter((r) => r.savedAt >= startOf("month")).length;
+  const myRthmsTones = [
+    makePeriodTone(212, 78, 56),
+    makePeriodTone(212, 54, 52),
+    makePeriodTone(212, 34, 48),
+    makePeriodTone(212, 18, 44),
+  ];
 
   return (
     <main
@@ -99,7 +111,7 @@ const [clearingQueue, setClearingQueue]     = useState(false);
       style={{ animation: "page-enter 380ms ease forwards" }}
     >
       <RevealBlock delay={0}>
-        <AppHeader title="Catalog" />
+        <AppHeader title="Rthmic Catalog" />
       </RevealBlock>
 
       <section className="flex-1 flex flex-col gap-5 pb-16">
@@ -168,33 +180,36 @@ const [clearingQueue, setClearingQueue]     = useState(false);
         )}
 
         {/* ── New Rthms ─────────────────────────────────────────────────── */}
-        {newRthmsCount > 0 && (
-          <TransitionLink
-            href="/library/my-rthms?section=new"
-            className="flex items-center gap-4 px-5 py-4 rounded-2xl border touch-manipulation active:scale-[0.985] transition-all"
-            style={{ background: "rgba(109,40,217,0.08)", borderColor: "rgba(109,40,217,0.28)" }}
-          >
-            <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
-              style={{ background: "rgba(109,40,217,0.16)", border: "1px solid rgba(139,92,246,0.26)" }}>
-              <span style={{ color: "rgb(167,139,250)" }}><MyRthmsIcon /></span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <h2 className="text-base font-medium leading-snug" style={{ color: "rgb(167,139,250)", fontFamily: "var(--font-display)" }}>New</h2>
-                <span
-                  className="inline-flex items-center justify-center text-[9px] font-semibold rounded-full px-1.5 py-0.5 leading-none"
-                  style={{ background: "rgba(109,40,217,0.2)", color: "rgb(167,139,250)" }}
-                >
-                  {newRthmsCount}
-                </span>
-              </div>
-              <p className="text-[11px] mt-0.5 leading-snug" style={{ color: "rgba(255,255,255,0.32)" }}>Freshly generated Rthms to keep or clear</p>
-            </div>
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className="flex-shrink-0">
-              <path d="M5 3L11 8L5 13" stroke="rgba(167,139,250,0.48)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </TransitionLink>
-        )}
+        <div className="flex flex-col gap-2">
+          <SectionAccordionHeader
+            icon={<MyRthmsIcon />}
+            title="New Rthms"
+            description="Freshly generated Rthms to review, keep, move, or delete."
+            count={newRthmsCount || undefined}
+            open={newRthmsOpen}
+            onToggle={() => setNewRthmsOpen((o) => !o)}
+            tone={{
+              bg: "rgba(109,40,217,0.10)",
+              border: "rgba(139,92,246,0.24)",
+              color: "rgb(190,170,255)",
+              detail: "rgba(190,170,255,0.42)",
+            }}
+          />
+          <AnimatedAccordion open={newRthmsOpen}>
+            <SubNavCard
+              href="/library/my-rthms?section=new"
+              icon={<MyRthmsIcon />}
+              label="Review New Rthms"
+              detail={newRthmsCount > 0 ? `${newRthmsCount} waiting` : "No new Rthms"}
+              tone={{
+                bg: "rgba(109,40,217,0.07)",
+                border: "rgba(139,92,246,0.18)",
+                color: "rgb(190,170,255)",
+                detail: "rgba(190,170,255,0.38)",
+              }}
+            />
+          </AnimatedAccordion>
+        </div>
 
         {/* ── My Rthms ─────────────────────────────────────────────────── */}
         <div className="flex flex-col gap-2">
@@ -207,10 +222,10 @@ const [clearingQueue, setClearingQueue]     = useState(false);
             onToggle={() => setMyRthmsOpen((o) => !o)}
           />
           <AnimatedAccordion open={myRthmsOpen}>
-            <SubNavCard href="/library/my-rthms?period=today" icon={<TodayIcon />}  label="Today"      detail={todayCount > 0 ? `${todayCount} Rthms` : "None yet today"} />
-            <SubNavCard href="/library/my-rthms?period=week"  icon={<WeekIcon />}   label="This Week"  detail={weekCount  > 0 ? `${weekCount} Rthms`  : "None this week"}  />
-            <SubNavCard href="/library/my-rthms?period=month" icon={<MonthIcon />}  label="This Month" detail={monthCount > 0 ? `${monthCount} Rthms` : "None this month"} />
-            <SubNavCard href="/library/my-rthms"              icon={<MyRthmsIcon />} label="All Rthms" detail={myRthmsCount > 0 ? `${myRthmsCount} saved` : undefined}     />
+            <SubNavCard href="/library/my-rthms?period=today" icon={<TodayIcon />}  label="Last 24 Hours" detail={todayCount > 0 ? `${todayCount} Rthms` : "None in the last 24 hours"} tone={myRthmsTones[0]} />
+            <SubNavCard href="/library/my-rthms?period=week"  icon={<WeekIcon />}   label="Last 7 Days"   detail={weekCount  > 0 ? `${weekCount} Rthms`  : "None in the last 7 days"} tone={myRthmsTones[1]} />
+            <SubNavCard href="/library/my-rthms?period=month" icon={<MonthIcon />}  label="Last 30 Days"  detail={monthCount > 0 ? `${monthCount} Rthms` : "None in the last 30 days"} tone={myRthmsTones[2]} />
+            <SubNavCard href="/library/my-rthms"              icon={<MyRthmsIcon />} label="All Rthms" detail={myRthmsCount > 0 ? `${myRthmsCount} saved` : undefined} tone={myRthmsTones[3]} />
           </AnimatedAccordion>
         </div>
 
@@ -219,7 +234,7 @@ const [clearingQueue, setClearingQueue]     = useState(false);
           <SectionAccordionHeader
             icon={<MyFavouritesIcon />}
             title="My Favourites"
-            description="Your best Rthms. Browse by tag, pillar, or all at once."
+            description="Your best Rthms. Browse by tag, category, or all at once."
             count={favouritesCount || undefined}
             open={myFavouritesOpen}
             onToggle={() => setMyFavouritesOpen((o) => !o)}
@@ -228,7 +243,7 @@ const [clearingQueue, setClearingQueue]     = useState(false);
           <AnimatedAccordion open={myFavouritesOpen}>
             <SubNavCard href="/library/my-favourites?open=explore" icon={<ExploreAllIcon />}  label="Explore All" detail={favouritesCount > 0 ? `${favouritesCount} Rthms` : undefined} gold />
             <SubNavCard href="/library/my-favourites?open=tags"    icon={<TagsIcon />}        label="Tags"        detail="Browse by tag"   gold />
-            <SubNavCard href="/library/my-favourites?open=pillars" icon={<PillarsIcon />}     label="Pillars"     detail="Browse by pillar" gold />
+            <SubNavCard href="/library/my-favourites?open=categories" icon={<PillarsIcon />}     label="Categories"     detail="Browse by category" gold />
           </AnimatedAccordion>
         </div>
 
@@ -269,23 +284,25 @@ const [clearingQueue, setClearingQueue]     = useState(false);
         </div>
 
         {/* ── Generation Log ────────────────────────────────────────────────── */}
-        <TransitionLink
-          href="/library/log"
-          className="flex items-center gap-4 px-5 py-4 rounded-2xl border touch-manipulation active:scale-[0.985] transition-all"
-          style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.06)" }}
-        >
-          <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
-            style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
-            <span style={{ color: "rgba(255,255,255,0.3)" }}><GenLogIcon /></span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <h2 className="text-base font-medium leading-snug" style={{ color: "rgba(255,255,255,0.55)", fontFamily: "var(--font-display)" }}>Generation Log</h2>
-            <p className="text-[11px] mt-0.5 leading-snug" style={{ color: "rgba(255,255,255,0.25)" }}>Timing and status for every Rthm you&apos;ve made</p>
-          </div>
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className="flex-shrink-0">
-            <path d="M5 3L11 8L5 13" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </TransitionLink>
+        {isAdmin && (
+          <TransitionLink
+            href="/library/log"
+            className="flex items-center gap-4 px-5 py-4 rounded-2xl border touch-manipulation active:scale-[0.985] transition-all"
+            style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.06)" }}
+          >
+            <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
+              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <span style={{ color: "rgba(255,255,255,0.3)" }}><GenLogIcon /></span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-base font-medium leading-snug" style={{ color: "rgba(255,255,255,0.55)", fontFamily: "var(--font-display)" }}>Generation Log</h2>
+              <p className="text-[11px] mt-0.5 leading-snug" style={{ color: "rgba(255,255,255,0.25)" }}>Timing and status for every Rthm you&apos;ve made</p>
+            </div>
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className="flex-shrink-0">
+              <path d="M5 3L11 8L5 13" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </TransitionLink>
+        )}
 
       </section>
     </main>
@@ -371,6 +388,22 @@ function GenLogIcon() {
 
 // ─── Section accordion header ─────────────────────────────────────────────────
 
+interface CatalogTone {
+  bg: string;
+  border: string;
+  color: string;
+  detail: string;
+}
+
+function makePeriodTone(hue: number, saturation: number, lightness: number): CatalogTone {
+  return {
+    bg: `hsla(${hue}, ${saturation}%, ${lightness}%, 0.085)`,
+    border: `hsla(${hue}, ${saturation}%, ${lightness}%, 0.22)`,
+    color: `hsla(${hue}, ${saturation}%, ${Math.min(lightness + 18, 86)}%, 0.92)`,
+    detail: `hsla(${hue}, ${saturation}%, ${Math.min(lightness + 16, 82)}%, 0.44)`,
+  };
+}
+
 function SectionAccordionHeader({
   icon,
   title,
@@ -380,6 +413,7 @@ function SectionAccordionHeader({
   onToggle,
   gold,
   dim,
+  tone,
 }: {
   icon: React.ReactNode;
   title: string;
@@ -389,9 +423,13 @@ function SectionAccordionHeader({
   onToggle: () => void;
   gold?: boolean;
   dim?: boolean;
+  tone?: CatalogTone;
 }) {
   const goldColor = "rgba(201,165,90,0.85)";
   const goldDim   = "rgba(201,165,90,0.45)";
+  const mainColor = tone?.color ?? (gold ? goldColor : dim ? "rgba(255,255,255,0.38)" : "rgba(255,255,255,0.88)");
+  const detailColor = tone?.detail ?? (gold ? "rgba(201,165,90,0.42)" : dim ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.38)");
+  const mutedColor = tone?.detail ?? (gold ? goldDim : "rgba(255,255,255,0.35)");
 
   return (
     <button
@@ -402,14 +440,16 @@ function SectionAccordionHeader({
       <div
         className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
         style={
-          gold
+          tone
+            ? { background: tone.bg, border: `1px solid ${tone.border}` }
+            : gold
             ? { background: "rgba(201,165,90,0.09)", border: "1px solid rgba(201,165,90,0.18)" }
             : dim
             ? { background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.05)" }
             : { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }
         }
       >
-        <span style={{ color: gold ? goldColor : dim ? "rgba(255,255,255,0.28)" : "rgba(255,255,255,0.55)" }}>
+        <span style={{ color: tone?.color ?? (gold ? goldColor : dim ? "rgba(255,255,255,0.28)" : "rgba(255,255,255,0.55)") }}>
           {icon}
         </span>
       </div>
@@ -419,18 +459,18 @@ function SectionAccordionHeader({
         <div className="flex items-baseline gap-2">
           <h2
             className="text-base font-medium leading-snug"
-            style={{ color: gold ? goldColor : dim ? "rgba(255,255,255,0.38)" : "rgba(255,255,255,0.88)", fontFamily: "var(--font-display)" }}
+            style={{ color: mainColor, fontFamily: "var(--font-display)" }}
           >
             {title}
           </h2>
           {count !== undefined && count > 0 && (
-            <span className="text-xs tabular-nums" style={{ color: gold ? goldDim : "rgba(255,255,255,0.35)" }}>
+            <span className="text-xs tabular-nums" style={{ color: mutedColor }}>
               {count}
             </span>
           )}
         </div>
         {description && (
-          <p className="text-[11px] mt-0.5 leading-snug" style={{ color: gold ? "rgba(201,165,90,0.42)" : dim ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.38)" }}>
+          <p className="text-[11px] mt-0.5 leading-snug" style={{ color: detailColor }}>
             {description}
           </p>
         )}
@@ -440,7 +480,7 @@ function SectionAccordionHeader({
       <svg
         width="14" height="14" viewBox="0 0 16 16" fill="none"
         className="flex-shrink-0 transition-transform duration-200"
-        style={{ color: gold ? goldDim : "rgba(255,255,255,0.28)", transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
+        style={{ color: mutedColor, transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
       >
         <path d="M3 6L8 11L13 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
@@ -456,30 +496,34 @@ function SubNavCard({
   label,
   detail,
   gold,
+  tone,
 }: {
   href: string;
   icon: React.ReactNode;
   label: string;
   detail?: string;
   gold?: boolean;
+  tone?: CatalogTone;
 }) {
   return (
     <TransitionLink
       href={href}
       className="flex items-center gap-4 px-5 py-4 rounded-2xl border touch-manipulation active:scale-[0.985] transition-all"
       style={
-        gold
+        tone
+          ? { background: tone.bg, borderColor: tone.border }
+          : gold
           ? { background: "rgba(201,165,90,0.04)", borderColor: "rgba(201,165,90,0.14)" }
           : { background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.07)" }
       }
     >
-      <span style={{ color: gold ? "rgba(201,165,90,0.6)" : "rgba(255,255,255,0.38)" }}>{icon}</span>
+      <span style={{ color: tone?.color ?? (gold ? "rgba(201,165,90,0.6)" : "rgba(255,255,255,0.38)") }}>{icon}</span>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium leading-snug" style={{ color: gold ? "rgba(201,165,90,0.85)" : "rgba(255,255,255,0.75)" }}>{label}</p>
-        {detail && <p className="text-[11px] mt-0.5" style={{ color: gold ? "rgba(201,165,90,0.42)" : "rgba(255,255,255,0.38)" }}>{detail}</p>}
+        <p className="text-sm font-medium leading-snug" style={{ color: tone?.color ?? (gold ? "rgba(201,165,90,0.85)" : "rgba(255,255,255,0.75)") }}>{label}</p>
+        {detail && <p className="text-[11px] mt-0.5" style={{ color: tone?.detail ?? (gold ? "rgba(201,165,90,0.42)" : "rgba(255,255,255,0.38)") }}>{detail}</p>}
       </div>
       <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className="flex-shrink-0">
-        <path d="M5 3L11 8L5 13" stroke={gold ? "rgba(201,165,90,0.4)" : "rgba(255,255,255,0.25)"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M5 3L11 8L5 13" stroke={tone?.detail ?? (gold ? "rgba(201,165,90,0.4)" : "rgba(255,255,255,0.25)")} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </TransitionLink>
   );

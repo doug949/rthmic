@@ -534,8 +534,8 @@ const HOME_TILES: {
   adminPreview?: boolean;
 }[] = [
   { id: "create", href: "/speak",     label: "Explore And Create",        shortLabel: "Explore And Create",     icon: <MicIcon />,     accent: "rgba(201,165,90,0.55)", image: "/images/tiles/optimized/create.webp" },
-  { id: "right-now", href: "/speak?quick=1", label: "Rhythmic Express", shortLabel: "Rhythmic Express", subtitle: "Rhythmic. Simply rhythmic. Automatic. Ready when you need it.", icon: <SituationIcon />, accent: "rgba(120,200,210,0.55)", image: "/images/tiles/optimized/in-the-moment.webp" },
-  { id: "my-rthms", href: "/library/my-rthms", label: "My Rhythmic Library",      shortLabel: "My Rhythmic Library",   icon: <PlayIcon />,    accent: "rgba(100,140,255,0.5)", image: "/images/tiles/optimized/my-rthms.webp" },
+  { id: "right-now", href: "/speak?quick=1", label: "Simply Rthmic", shortLabel: "Simply Rthmic", subtitle: "Speak, get a Rthm", icon: <SituationIcon />, accent: "rgba(120,200,210,0.55)", image: "/images/tiles/optimized/in-the-moment.webp" },
+  { id: "my-rthms", href: "/library", label: "My Rhythmic Library",      shortLabel: "My Rhythmic Library",   icon: <PlayIcon />,    accent: "rgba(100,140,255,0.5)", image: "/images/tiles/optimized/my-rthms.webp" },
   { id: "bridge", href: "/bridge", label: "Rthmic Bridge", shortLabel: "Bridge", icon: <BridgeTileIcon />, accent: "rgba(180,160,140,0.55)", image: "/images/tiles/optimized/bridge.webp", adminOnly: true },
   { id: "invite", href: "/invite", label: "Rthmic Invite", shortLabel: "Invite", icon: <InviteTileIcon />, accent: "rgba(218,185,120,0.55)", image: "/images/tiles/optimized/invite.webp", adminOnly: true },
   { id: "rthmix", href: "/rthmix",    label: "Rthmixes",                shortLabel: "Rthmixes",     icon: <CassetteIcon />, accent: "rgba(230,155,60,0.5)", image: "/images/tiles/optimized/rthmix.webp", adminOnly: true },
