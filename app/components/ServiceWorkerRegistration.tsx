@@ -26,11 +26,14 @@ export default function ServiceWorkerRegistration() {
   const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
   const [serverBuild, setServerBuild] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [dismissedBuild, setDismissedBuild] = useState<string | null>(null);
   const updatingRef = useRef(false);
   const loggedUpdateRef = useRef<string | null>(null);
   const currentBuild = process.env.NEXT_PUBLIC_RTHMIC_BUILD ?? "dev";
 
   const appUpdateAvailable = !!serverBuild && serverBuild !== currentBuild;
+  const updateAlertKey = serverBuild ?? (waitingWorker ? "waiting-worker" : null);
+  const updateDismissed = !!updateAlertKey && dismissedBuild === updateAlertKey;
 
   useEffect(() => {
     const checkAppVersion = async () => {
@@ -124,7 +127,7 @@ export default function ServiceWorkerRegistration() {
     };
   }, []);
 
-  if (!waitingWorker && !appUpdateAvailable && !updating) return null;
+  if ((!waitingWorker && !appUpdateAvailable && !updating) || (!updating && updateDismissed)) return null;
 
   if (updating) {
     return (
@@ -195,6 +198,18 @@ export default function ServiceWorkerRegistration() {
         }}
       >
         Update
+      </button>
+      <button
+        onClick={() => {
+          setDismissedBuild(updateAlertKey);
+          recordDiagnosticEvent("app-update-dismissed", { currentBuild, serverBuild, hasWaitingWorker: !!waitingWorker });
+        }}
+        disabled={updating}
+        className="flex-shrink-0 w-8 h-8 rounded-full text-lg leading-none touch-manipulation active:bg-white/[0.06] transition-colors"
+        style={{ color: "rgba(255,255,255,0.32)" }}
+        aria-label="Dismiss update alert"
+      >
+        ×
       </button>
     </div>
   );

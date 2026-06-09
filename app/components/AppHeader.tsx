@@ -81,18 +81,6 @@ export function AppHeader({ backLabel = "← Back", onBack, title, titleIcon }: 
       <div className="flex-1" />
 
       <div className="relative flex items-center justify-end min-w-[96px]">
-        <button
-          onClick={() => setMenuOpen(true)}
-          className="absolute right-2 -top-7 flex flex-col items-center justify-center h-7 w-8 rounded-full touch-manipulation active:bg-white/[0.06] transition-colors"
-          style={{ gap: 3, color: "rgba(255,255,255,0.42)" }}
-          aria-label="Menu"
-          title="Menu"
-        >
-          {[0, 1, 2].map((i) => (
-            <span key={i} style={{ width: i === 1 ? 12 : 16, height: 1.5, borderRadius: 1, background: "currentColor" }} />
-          ))}
-        </button>
-
         {/* ⌂ Home — always present, always goes to / */}
         <button
           onClick={handleHome}
@@ -105,6 +93,23 @@ export function AppHeader({ backLabel = "← Back", onBack, title, titleIcon }: 
           <span className="text-sm uppercase tracking-widest leading-none">Home</span>
         </button>
       </div>
+      <button
+        onClick={() => setMenuOpen(true)}
+        className="fixed left-5 z-40 flex flex-col items-center justify-center h-12 w-12 rounded-full touch-manipulation active:bg-white/[0.06] transition-colors"
+        style={{
+          bottom: "calc(env(safe-area-inset-bottom, 0px) + 18px)",
+          gap: 4,
+          color: "rgba(255,255,255,0.48)",
+          background: "rgba(13,22,40,0.42)",
+          border: "1px solid rgba(255,255,255,0.08)",
+        }}
+        aria-label="Menu"
+        title="Menu"
+      >
+        {[0, 1, 2].map((i) => (
+          <span key={i} style={{ width: i === 1 ? 13 : 17, height: 1.5, borderRadius: 1, background: "currentColor" }} />
+        ))}
+      </button>
       <AppMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
     </header>
   );

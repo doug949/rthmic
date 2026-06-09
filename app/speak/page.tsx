@@ -1571,6 +1571,7 @@ function PrimingView({ pillar, experiment, onReady }: { pillar: string | null; e
     ?? (pillar === "bridge" ? BRIDGE_PILLAR : null)
     ?? (pillar === "invite" ? INVITE_PILLAR : null);
   const experimentDef = experiment ? EXPERIMENTS[experiment] : null;
+  const accent = pillar ? CREATE_TILE_ACCENT[pillar] ?? "201,165,90" : "201,165,90";
   const p = pillarDef?.priming;
   const instructions = p?.instructions ?? [
     "Speak about your challenge — your hopes, what you think is stopping you, or what you want to learn.",
@@ -1676,15 +1677,29 @@ function PrimingView({ pillar, experiment, onReady }: { pillar: string | null; e
         {(pillarDef || experimentDef) && (
           <RevealBlock delay={0}>
             <span
-              className="text-[10px] px-2.5 py-1 rounded-full uppercase tracking-widest font-medium"
-              style={{ background: "rgba(201,165,90,0.12)", color: "#c9a55a", border: "1px solid rgba(201,165,90,0.25)" }}
+              className="inline-flex items-center gap-1.5 text-[10px] px-2.5 py-1 rounded-full uppercase tracking-widest font-medium w-fit"
+              style={{ background: `rgba(${accent},0.12)`, color: `rgb(${accent})`, border: `1px solid rgba(${accent},0.32)` }}
             >
+              {pillarDef?.icon && (
+                <span className="inline-flex items-center justify-center" style={{ width: 14, height: 14, transform: "scale(0.62)", transformOrigin: "center" }}>
+                  {pillarDef.icon}
+                </span>
+              )}
               {experimentDef ? `${experimentDef.badge} / ${experimentDef.label}` : pillarDef?.label}
             </span>
           </RevealBlock>
         )}
 
         <div className="flex flex-col gap-3">
+          {pillarDef?.icon && (
+            <RevealBlock delay={15}>
+              <div className="flex items-center" style={{ color: `rgb(${accent})` }}>
+                <span className="inline-flex items-center justify-center" style={{ width: 38, height: 38, transform: "scale(1.65)", transformOrigin: "left center" }}>
+                  {pillarDef.icon}
+                </span>
+              </div>
+            </RevealBlock>
+          )}
           <RevealBlock delay={30}>
             <p className="text-[10px] text-white/40 uppercase tracking-[0.3em]">Before you arrive</p>
           </RevealBlock>
@@ -1732,10 +1747,11 @@ function PrimingView({ pillar, experiment, onReady }: { pillar: string | null; e
         <RevealBlock delay={165}>
           <button
             onClick={() => onReady()}
-            className="w-full py-5 rounded-2xl text-sm font-semibold tracking-wide active:scale-[0.98] transition-all touch-manipulation"
-            style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.45)", color: "#c9a55a" }}
+            className="w-full py-5 rounded-2xl text-sm font-semibold tracking-wide active:scale-[0.98] transition-all touch-manipulation flex items-center justify-center gap-3"
+            style={{ background: `rgba(${accent},0.1)`, border: `1px solid rgba(${accent},0.45)`, color: `rgb(${accent})` }}
           >
-            Talk to RTHMIC
+            <span>Talk to RTHMIC</span>
+            <NextArrowIcon />
           </button>
         </RevealBlock>
 
@@ -1818,6 +1834,15 @@ function ShuffleIcon() {
       <path d="M4 17H7.1C8.2 17 9 16.5 9.7 15.7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
       <path d="M14.3 8.3C15 7.5 15.8 7 16.9 7H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
       <path d="M17 14L20 17L17 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function NextArrowIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
+      <path d="M5 12H18.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M13.5 7L18.5 12L13.5 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

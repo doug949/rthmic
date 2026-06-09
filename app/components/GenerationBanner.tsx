@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useGeneration } from "@/app/contexts/GenerationContext";
@@ -8,10 +9,16 @@ import { WaveDots } from "@/app/components/CustomStyleInput";
 export default function GenerationBanner() {
   const { genPhase, genError, clearGeneration } = useGeneration();
   const pathname = usePathname();
+  const [dismissedPhase, setDismissedPhase] = useState<string | null>(null);
+
+  useEffect(() => {
+    setDismissedPhase(null);
+  }, [genPhase]);
 
   // Speak page handles its own full-screen generation UI
   if (pathname === "/speak") return null;
   if (genPhase === "idle") return null;
+  if (dismissedPhase === genPhase) return null;
 
   return (
     <div className="fixed top-0 left-0 right-0 z-50 flex justify-center px-4 pt-safe pointer-events-none">
@@ -33,6 +40,13 @@ export default function GenerationBanner() {
           <>
             <WaveDots size="sm" />
             <p className="flex-1 text-sm" style={{ color: "rgba(170,225,255,0.72)" }}>Building your Rthms…</p>
+            <button
+              onClick={() => setDismissedPhase(genPhase)}
+              className="flex-shrink-0 text-lg text-white/20 hover:text-white/50 transition-colors touch-manipulation leading-none pl-1"
+              aria-label="Dismiss generation alert"
+            >
+              ×
+            </button>
           </>
         )}
 

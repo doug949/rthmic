@@ -236,6 +236,8 @@ export default function Home() {
   const visibleTiles = HOME_TILES
     .filter((tile) => !tile.adminOnly || isAdmin)
     .sort((a, b) => {
+      if (a.id === "right-now") return -1;
+      if (b.id === "right-now") return 1;
       const fallbackA = HOME_TILES.findIndex((tile) => tile.id === a.id);
       const fallbackB = HOME_TILES.findIndex((tile) => tile.id === b.id);
       const orderA = order.includes(a.id) ? order.indexOf(a.id) : fallbackA;
@@ -277,11 +279,19 @@ export default function Home() {
           </div>
         )}
 
-        {/* Hamburger — top right of header */}
+        {/* Hamburger — fixed bottom left */}
         <button
           onClick={() => setOpen(true)}
-          className="absolute top-10 right-0 touch-manipulation flex flex-col items-center justify-center"
-          style={{ width: 32, height: 32, gap: 4, opacity: 0.35 }}
+          className="fixed left-5 z-40 touch-manipulation flex flex-col items-center justify-center rounded-full active:bg-white/[0.06] transition-colors"
+          style={{
+            bottom: "calc(env(safe-area-inset-bottom, 0px) + 18px)",
+            width: 48,
+            height: 48,
+            gap: 4,
+            opacity: 0.7,
+            background: "rgba(13,22,40,0.42)",
+            border: "1px solid rgba(255,255,255,0.08)",
+          }}
           aria-label="Menu"
         >
           {[0, 1, 2].map((i) => (
