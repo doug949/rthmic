@@ -524,6 +524,7 @@ const HOME_TILES: {
   href: string;
   label: string;
   shortLabel: string;
+  subtitle?: string;
   icon: React.ReactNode;
   accent: string;       // rgba for gradient tint when no image
   image?: string;
@@ -532,10 +533,9 @@ const HOME_TILES: {
   adminOnly?: boolean;
   adminPreview?: boolean;
 }[] = [
-  { id: "create", href: "/speak",     label: "Create A New Rthm",        shortLabel: "Create A New Rthm",     icon: <MicIcon />,     accent: "rgba(201,165,90,0.55)", image: "/images/tiles/optimized/create.webp" },
-  { id: "right-now", href: "/speak?quick=1", label: "In The Moment", shortLabel: "In The Moment", icon: <SituationIcon />, accent: "rgba(120,200,210,0.55)", image: "/images/tiles/optimized/in-the-moment.webp" },
-  { id: "sleep", href: "/speak?pillar=sleep", label: "Rthmic Sleep", shortLabel: "Sleep", icon: <SleepTileIcon />, accent: "rgba(130,150,220,0.55)", adminOnly: true },
-  { id: "my-rthms", href: "/library/my-rthms", label: "My Rthms",      shortLabel: "My Rthms",   icon: <PlayIcon />,    accent: "rgba(100,140,255,0.5)", image: "/images/tiles/optimized/my-rthms.webp" },
+  { id: "create", href: "/speak",     label: "Explore And Create",        shortLabel: "Explore And Create",     icon: <MicIcon />,     accent: "rgba(201,165,90,0.55)", image: "/images/tiles/optimized/create.webp" },
+  { id: "right-now", href: "/speak?quick=1", label: "Rhythmic Express", shortLabel: "Rhythmic Express", subtitle: "Rhythmic. Simply rhythmic. Automatic. Ready when you need it.", icon: <SituationIcon />, accent: "rgba(120,200,210,0.55)", image: "/images/tiles/optimized/in-the-moment.webp" },
+  { id: "my-rthms", href: "/library/my-rthms", label: "My Rhythmic Library",      shortLabel: "My Rhythmic Library",   icon: <PlayIcon />,    accent: "rgba(100,140,255,0.5)", image: "/images/tiles/optimized/my-rthms.webp" },
   { id: "bridge", href: "/bridge", label: "Rthmic Bridge", shortLabel: "Bridge", icon: <BridgeTileIcon />, accent: "rgba(180,160,140,0.55)", image: "/images/tiles/optimized/bridge.webp", adminOnly: true },
   { id: "invite", href: "/invite", label: "Rthmic Invite", shortLabel: "Invite", icon: <InviteTileIcon />, accent: "rgba(218,185,120,0.55)", image: "/images/tiles/optimized/invite.webp", adminOnly: true },
   { id: "rthmix", href: "/rthmix",    label: "Rthmixes",                shortLabel: "Rthmixes",     icon: <CassetteIcon />, accent: "rgba(230,155,60,0.5)", image: "/images/tiles/optimized/rthmix.webp", adminOnly: true },
@@ -599,10 +599,12 @@ function HomeTile({ tile, reorderMode }: { tile: typeof HOME_TILES[number]; reor
         </div>
       )}
 
-      {/* Icon + label */}
-      <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-1 pb-2.5 px-1 pointer-events-none">
-        <span className="text-white/60" style={{ transform: "scale(0.72)", transformOrigin: "center" }}>{tile.icon}</span>
-        <p className="text-[10px] font-semibold text-white/90 leading-tight tracking-wide text-center">{tile.shortLabel}</p>
+      {/* Centered label */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 py-5 text-center pointer-events-none">
+        <p className="text-[15px] font-semibold text-white/90 leading-tight tracking-[0.03em] text-center">{tile.shortLabel}</p>
+        {tile.subtitle && (
+          <p className="text-[10px] font-medium text-white/62 leading-snug text-center">{tile.subtitle}</p>
+        )}
       </div>
     </div>
   );
