@@ -1744,16 +1744,15 @@ function PrimingView({ pillar, experiment, onReady }: { pillar: string | null; e
             <div className="flex flex-col gap-3 border-t border-white/[0.06] pt-4">
               <div className="flex items-center justify-between">
                 <p className="text-[10px] text-white/35 uppercase tracking-[0.25em]">
-                  {pillar === "booksummary" ? "Or try a book"
-                    : pillar === "explain" ? "Or try a concept"
-                    : "Suggested starting points"}
+                  Or start with one of these suggestions
                 </p>
                 <button
                   onClick={handleShuffle}
                   disabled={shuffling || suggestionsLoading}
-                  className="text-[10px] text-white/30 uppercase tracking-widest touch-manipulation active:text-white/60 transition-colors disabled:opacity-40"
+                  className="inline-flex items-center gap-1.5 text-[10px] text-white/30 uppercase tracking-widest touch-manipulation active:text-white/60 transition-colors disabled:opacity-40"
                 >
-                  {shuffling ? "…" : "Shuffle"}
+                  <ShuffleIcon />
+                  <span>{shuffling ? "…" : "Shuffle"}</span>
                 </button>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -1793,10 +1792,11 @@ function PrimingView({ pillar, experiment, onReady }: { pillar: string | null; e
                   <button
                     onClick={handleShuffle}
                     disabled={shuffling}
-                    className="text-xs px-3 py-1.5 rounded-full touch-manipulation transition-all active:scale-95 disabled:opacity-40"
+                    className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full touch-manipulation transition-all active:scale-95 disabled:opacity-40"
                     style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.45)" }}
                   >
-                    Shuffle for more
+                    <ShuffleIcon />
+                    <span>Shuffle for more</span>
                   </button>
                 )}
               </div>
@@ -1804,14 +1804,21 @@ function PrimingView({ pillar, experiment, onReady }: { pillar: string | null; e
           </RevealBlock>
         )}
 
-        <RevealBlock delay={180 + instructions.length * 45 + (hasSuggestions ? 45 : 0)}>
-          <p className="text-xs text-white/40 leading-relaxed border-t border-white/[0.06] pt-4">
-            {experimentDef?.footnote ?? p?.footnote ?? "Most people speak for 1–3 minutes. After 5 minutes Rthmic will capture what you've said — you'll have the option to add more if it feels right."}
-          </p>
-        </RevealBlock>
       </div>
     </section>
     </>
+  );
+}
+
+function ShuffleIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
+      <path d="M4 7H7.2C9.4 7 10.6 9.1 12 12C13.4 14.9 14.6 17 16.8 17H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M17 4L20 7L17 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M4 17H7.1C8.2 17 9 16.5 9.7 15.7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M14.3 8.3C15 7.5 15.8 7 16.9 7H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M17 14L20 17L17 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 
@@ -1820,9 +1827,17 @@ function PrimingView({ pillar, experiment, onReady }: { pillar: string | null; e
 function IdleView({ onRecord, errorMsg, selectedPillar, quickMode, experiment }: { onRecord: () => void; errorMsg: string; selectedPillar: string | null; quickMode?: boolean; experiment?: ExperimentalCreateId | null }) {
   const [micRequesting, setMicRequesting] = useState(false);
   const experimentDef = experiment ? EXPERIMENTS[experiment] : null;
+  const pillarDef = selectedPillar
+    ? PILLARS.find((p) => p.slug === selectedPillar)
+      ?? (selectedPillar === "bridge" ? BRIDGE_PILLAR : null)
+      ?? (selectedPillar === "invite" ? INVITE_PILLAR : null)
+    : null;
 
   const idleHeading  = experimentDef?.idleHeading ?? (quickMode ? "What is happening right now?" : (selectedPillar && PILLAR_PROMPT[selectedPillar])   ?? "Speak freely");
   const idleSubtitle = experimentDef?.idleSubtitle ?? (quickMode ? "RTHMIC will suggest the right category." : (selectedPillar && PILLAR_SUBTITLE[selectedPillar]) ?? "Two Rthms will be built for you.");
+  const guidance = experimentDef?.footnote
+    ?? pillarDef?.priming.footnote
+    ?? "Most people speak for 1–3 minutes. After 5 minutes Rthmic will capture what you've said — you'll have the option to add more if it feels right.";
 
   return (
     <section className="flex-1 flex flex-col items-center justify-center pb-24 gap-10">
@@ -1871,6 +1886,12 @@ function IdleView({ onRecord, errorMsg, selectedPillar, quickMode, experiment }:
       {micRequesting && (
         <p className="text-xs text-white/35 tracking-wide animate-pulse">Requesting microphone…</p>
       )}
+
+      <RevealBlock delay={120}>
+        <p className="text-xs text-white/40 leading-relaxed text-center max-w-sm px-2">
+          {guidance}
+        </p>
+      </RevealBlock>
 
       {errorMsg && (
         <p className="text-xs text-white/50 text-center max-w-xs">{errorMsg}</p>
