@@ -388,7 +388,7 @@ export default function Home() {
               <p className="text-[10px] text-white/25 uppercase tracking-widest mb-0.5">Signed in as</p>
               <p className="text-sm text-white/60 font-medium tracking-wide">{userCode}</p>
             </div>
-            <div className="flex-1 min-h-0 overflow-y-auto flex flex-col px-4 pt-3 gap-2" style={{ WebkitOverflowScrolling: "touch", overscrollBehavior: "contain" }}>
+            <div className="flex-1 min-h-0 overflow-y-auto flex flex-col px-4 pt-3 gap-2" style={{ WebkitOverflowScrolling: "touch", overscrollBehaviorY: "auto" }}>
               {isAdmin && (
                 <>
                   <button

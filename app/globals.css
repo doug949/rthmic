@@ -94,7 +94,14 @@ html, body {
   background: #0d1628;
   color: #ededed;
   font-family: var(--rthmic-font-sans);
-  overscroll-behavior: none;
+  overscroll-behavior-y: auto;
+}
+
+.overflow-y-auto,
+.overflow-auto {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: auto;
+  scroll-behavior: smooth;
 }
 
 /* ─── Accordion open / close ─────────────────────────────────────────────── */
