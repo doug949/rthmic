@@ -529,13 +529,14 @@ const HOME_TILES: {
   accent: string;       // rgba for gradient tint when no image
   image?: string;
   imageScale?: number;  // scale > 1 crops in to hide white borders
+  scrim?: number;
   comingSoon?: boolean;
   adminOnly?: boolean;
   adminPreview?: boolean;
 }[] = [
   { id: "create", href: "/speak",     label: "Explore And Create",        shortLabel: "Explore And Create",     icon: <MicIcon />,     accent: "rgba(201,165,90,0.55)", image: "/images/tiles/optimized/create.webp" },
   { id: "right-now", href: "/speak?quick=1", label: "Simply Rthmic", shortLabel: "Simply Rthmic", subtitle: "Speak, get a Rthm", icon: <SituationIcon />, accent: "rgba(120,200,210,0.55)", image: "/images/tiles/optimized/in-the-moment.webp" },
-  { id: "my-rthms", href: "/library", label: "My Rhythmic Library",      shortLabel: "My Rhythmic Library",   icon: <PlayIcon />,    accent: "rgba(100,140,255,0.5)", image: "/images/tiles/optimized/my-rthms.webp" },
+  { id: "my-rthms", href: "/library", label: "Your Catalog",      shortLabel: "Your Catalog",   icon: <PlayIcon />,    accent: "rgba(100,140,255,0.5)", image: "/images/tiles/optimized/my-rthms.webp", scrim: 0.72 },
   { id: "bridge", href: "/bridge", label: "Rthmic Bridge", shortLabel: "Bridge", icon: <BridgeTileIcon />, accent: "rgba(180,160,140,0.55)", image: "/images/tiles/optimized/bridge.webp", adminOnly: true },
   { id: "invite", href: "/invite", label: "Rthmic Invite", shortLabel: "Invite", icon: <InviteTileIcon />, accent: "rgba(218,185,120,0.55)", image: "/images/tiles/optimized/invite.webp", adminOnly: true },
   { id: "rthmix", href: "/rthmix",    label: "Rthmixes",                shortLabel: "Rthmixes",     icon: <CassetteIcon />, accent: "rgba(230,155,60,0.5)", image: "/images/tiles/optimized/rthmix.webp", adminOnly: true },
@@ -587,7 +588,14 @@ function HomeTile({ tile, reorderMode }: { tile: typeof HOME_TILES[number]; reor
         <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse at 60% 30%, ${tile.accent} 0%, transparent 70%)` }} />
       )}
       {/* Bottom gradient */}
-      <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.15) 55%, transparent 100%)" }} />
+      <div
+        className="absolute inset-0"
+        style={{
+          background: tile.scrim
+            ? `linear-gradient(to top, rgba(0,0,0,${tile.scrim}) 0%, rgba(0,0,0,${Math.max(tile.scrim - 0.12, 0.45)}) 58%, rgba(0,0,0,${Math.max(tile.scrim - 0.24, 0.3)}) 100%)`
+            : "linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.15) 55%, transparent 100%)",
+        }}
+      />
 
       {/* Coming soon badge */}
       {tile.comingSoon && (
