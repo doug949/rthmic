@@ -1311,13 +1311,13 @@ const CREATE_TILE_COPY: Record<string, string> = {
 };
 
 const CREATE_TILE_ACCENT: Record<string, string> = {
-  memory: "96,165,250",
-  mindset: "201,165,90",
-  mode: "129,140,248",
-  movement: "74,222,128",
-  explain: "45,212,191",
-  booksummary: "248,180,90",
-  sleep: "167,139,250",
+  memory: "80,150,255",
+  mindset: "218,174,72",
+  mode: "86,215,178",
+  movement: "102,220,92",
+  explain: "64,205,235",
+  booksummary: "238,112,86",
+  sleep: "166,126,255",
 };
 
 const PILLAR_IMAGES: Record<string, string> = Object.fromEntries(
@@ -1493,32 +1493,32 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
                 onClick={() => onSelect(p.slug)}
                 className="relative min-h-[178px] rounded-2xl overflow-hidden px-4 py-5 flex flex-col items-center justify-center text-center touch-manipulation active:scale-[0.985] transition-transform"
                 style={{
-                  background: `linear-gradient(145deg, rgba(${p.accent},0.32) 0%, rgba(${p.accent},0.18) 46%, rgba(8,14,25,0.72) 100%)`,
-                  border: `1px solid rgba(${p.accent},0.24)`,
-                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
-                  backdropFilter: "blur(12px)",
+                  background: `linear-gradient(145deg, rgba(${p.accent},0.11) 0%, rgba(${p.accent},0.055) 42%, rgba(8,14,25,0.34) 100%)`,
+                  border: `1px solid rgba(${p.accent},0.2)`,
+                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)",
+                  backdropFilter: "blur(7px)",
                 }}
                 aria-label={`Create ${p.label}`}
               >
                 <div
                   className="absolute inset-0 pointer-events-none"
                   style={{
-                    background: `radial-gradient(circle at 50% 12%, rgba(${p.accent},0.38), transparent 46%)`,
+                    background: `radial-gradient(circle at 50% 12%, rgba(${p.accent},0.14), transparent 50%)`,
                   }}
                 />
                 <div className="relative flex flex-col items-center">
                   {p.icon && (
                     <span
                       className="mb-5"
-                      style={{ transform: "scale(2.15)", transformOrigin: "center", color: `rgba(${p.accent},0.92)` }}
+                      style={{ transform: "scale(2.15)", transformOrigin: "center", color: `rgb(${p.accent})` }}
                     >
                       {p.icon}
                     </span>
                   )}
-                  <p className="mt-2 text-lg font-semibold leading-tight text-white/92" style={{ fontFamily: "var(--font-display)" }}>
+                  <p className="mt-2 text-lg font-semibold leading-tight text-white" style={{ fontFamily: "var(--font-display)" }}>
                     {p.label}
                   </p>
-                  <p className="mt-2 min-h-[34px] text-[12px] leading-snug text-white/46">
+                  <p className="mt-2 min-h-[34px] text-[12px] leading-snug text-[#dfe6f2]">
                     {p.description}
                   </p>
                 </div>
