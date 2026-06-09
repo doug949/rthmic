@@ -1299,6 +1299,16 @@ const CF_IDS: Record<string, string> = {
 
 const ALL_PILLAR_SLUGS = FOR_YOU_PILLARS.map((p) => p.slug);
 
+const CREATE_TILE_COPY: Record<string, string> = {
+  memory: "Make important things stick.",
+  mindset: "Prepare for what is coming.",
+  mode: "Manage your state of mind.",
+  movement: "Move through stuck tasks.",
+  explain: "Make complex ideas click.",
+  booksummary: "Turn books into memorable songs.",
+  sleep: "Settle your mind for sleep.",
+};
+
 const PILLAR_IMAGES: Record<string, string> = Object.fromEntries(
   ALL_PILLAR_SLUGS.map((s) => [s, cfThumb(CF_IDS[s] ?? CF_IDS.default)])
 );
@@ -1341,6 +1351,7 @@ const PILLAR_GRID = [
   ...CREATE_PILLARS.map((p) => ({
     slug: p.slug,
     label: p.label,
+    description: CREATE_TILE_COPY[p.slug] ?? p.tagline,
     icon: p.icon ?? null,
     image: PILLAR_IMAGES[p.slug] ?? null,
     video: PILLAR_VIDEOS[p.slug] ?? null,
@@ -1461,38 +1472,45 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
       </RevealBlock>
 
       <div className="flex flex-col gap-2">
-        {/* ── Pillar image grid ── */}
+        {/* ── Pillar category grid ── */}
         <RevealBlock delay={0}>
-          <div className="grid grid-cols-3 gap-1.5 pb-4">
+          <div className="grid grid-cols-2 gap-2.5 pb-4">
             {PILLAR_GRID.map((p) => (
-              <div
+              <button
                 key={p.slug}
-                className="relative rounded-xl overflow-hidden"
-                style={{ aspectRatio: "1/1", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
+                onClick={() => onSelect(p.slug)}
+                className="relative min-h-[178px] rounded-2xl overflow-hidden px-4 py-5 flex flex-col items-center justify-center text-center touch-manipulation active:scale-[0.985] transition-transform"
+                style={{
+                  background: "linear-gradient(180deg, rgba(255,255,255,0.075), rgba(255,255,255,0.035))",
+                  border: "1px solid rgba(255,255,255,0.10)",
+                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
+                  backdropFilter: "blur(12px)",
+                }}
+                aria-label={`Create ${p.label}`}
               >
-                {/* Main tap area → create */}
-                <button
-                  onClick={() => onSelect(p.slug)}
-                  className="absolute inset-0 touch-manipulation active:brightness-75 transition-all"
-                  aria-label={`Create ${p.label}`}
-                >
-                  {p.image && (
-                    <img src={p.image} alt={p.label} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: "50% 36%" }} />
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    background: "radial-gradient(circle at 50% 18%, rgba(201,165,90,0.13), transparent 48%)",
+                  }}
+                />
+                <div className="relative flex flex-col items-center">
+                  {p.icon && (
+                    <span
+                      className="mb-5 text-white/72"
+                      style={{ transform: "scale(2.15)", transformOrigin: "center" }}
+                    >
+                      {p.icon}
+                    </span>
                   )}
-                  <div
-                    className="absolute inset-0"
-                    style={{ background: "linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.25) 55%, transparent 100%)" }}
-                  />
-                </button>
-
-                {/* Icon + Label centered at bottom */}
-                <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-1.5 pb-3 px-1 pointer-events-none">
-                  {p.icon && <span className="text-white/82" style={{ transform: "scale(0.98)", transformOrigin: "center" }}>{p.icon}</span>}
-                  {p.slug === "auto" && <span className="text-white/35 text-2xl mb-0.5">?</span>}
-                  <p className="text-[11px] font-semibold text-white/95 leading-tight tracking-wide text-center">{p.label}</p>
+                  <p className="mt-2 text-lg font-semibold leading-tight text-white/92" style={{ fontFamily: "var(--font-display)" }}>
+                    {p.label}
+                  </p>
+                  <p className="mt-2 min-h-[34px] text-[12px] leading-snug text-white/46">
+                    {p.description}
+                  </p>
                 </div>
-
-              </div>
+              </button>
             ))}
           </div>
         </RevealBlock>
