@@ -966,7 +966,7 @@ export default function SpeakPage() {
       />
 
       <AppHeader
-        title="Create"
+        title="Create a New Rthm"
         titleIcon={<HeaderMicIcon />}
         onBack={
           genPhase === "generating"
@@ -1476,10 +1476,10 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
                 onClick={() => onSelect(p.slug)}
                 className="relative min-h-[178px] rounded-2xl overflow-hidden px-4 py-5 flex flex-col items-center justify-center text-center touch-manipulation active:scale-[0.985] transition-transform"
                 style={{
-                  background: `linear-gradient(145deg, rgba(${p.accent},0.11) 0%, rgba(${p.accent},0.055) 42%, rgba(8,14,25,0.34) 100%)`,
-                  border: `1px solid rgba(${p.accent},0.2)`,
+                  background: `linear-gradient(145deg, rgba(${p.accent},0.085) 0%, rgba(${p.accent},0.035) 42%, rgba(8,14,25,0.22) 100%)`,
+                  border: `1px solid rgba(${p.accent},0.18)`,
                   boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)",
-                  backdropFilter: "blur(7px)",
+                  backdropFilter: "blur(2px)",
                 }}
                 aria-label={`Create ${p.label}`}
               >
