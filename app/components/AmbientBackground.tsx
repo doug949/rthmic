@@ -2,7 +2,6 @@
 
 import { usePillarTheme } from "@/app/contexts/PillarThemeContext";
 import { NeuralCanvas } from "@/app/components/NeuralCanvas";
-import type { CSSProperties } from "react";
 
 
 // ─── Per-pillar tint colors (R,G,B) ─────────────────────────────────────────
@@ -96,27 +95,6 @@ export function AmbientBackground() {
       {/* Neural / molecular network — mind chemistry */}
       <NeuralCanvas />
 
-      {/* Photographic pillar texture */}
-      {!isDefault && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          key={key}
-          src={`/textures/${key}.webp`}
-          alt=""
-          style={{
-            position: "absolute",
-            inset: 0,
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            opacity: 0,
-            "--ambient-opacity": 0.085,
-            mixBlendMode: "luminosity",
-            animation: "ambient-fade-in 1.4s ease forwards",
-          } as CSSProperties}
-        />
-      )}
-
       {/* Per-pillar tint glow — only shown when a pillar is active */}
       {!isDefault && (
         <div
@@ -128,24 +106,6 @@ export function AmbientBackground() {
           }}
         />
       )}
-
-      {/* Grain — always on */}
-      <svg
-        className="absolute inset-0 w-full h-full"
-        style={{ opacity: 0.04, mixBlendMode: "overlay" }}
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <filter id="rthmic-grain">
-          <feTurbulence
-            type="fractalNoise"
-            baseFrequency="0.68"
-            numOctaves="4"
-            stitchTiles="stitch"
-          />
-          <feColorMatrix type="saturate" values="0" />
-        </filter>
-        <rect width="100%" height="100%" filter="url(#rthmic-grain)" />
-      </svg>
     </div>
   );
 }

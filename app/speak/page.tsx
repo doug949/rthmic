@@ -1327,37 +1327,6 @@ const PILLAR_VIDEOS: Record<string, string> = Object.fromEntries(
   ALL_PILLAR_SLUGS.map((s) => [s, cfHls(CF_IDS[s] ?? CF_IDS.default)])
 );
 
-function ArtworkBackdrop({ image, objectPosition = "50% 34%" }: { image: string; objectPosition?: string }) {
-  return (
-    <div className="absolute inset-0 -mx-5 -my-4 pointer-events-none overflow-hidden" aria-hidden="true">
-      <img
-        src={image}
-        alt=""
-        className="absolute inset-0 h-full w-full object-cover"
-        style={{ objectPosition, opacity: 0.42 }}
-      />
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            "linear-gradient(to bottom, rgba(5,8,16,0.58) 0%, rgba(5,8,16,0.76) 38%, rgba(5,8,16,0.94) 100%)",
-        }}
-      />
-      <div
-        className="absolute inset-0"
-        style={{ background: "radial-gradient(circle at 50% 18%, rgba(255,255,255,0.12), transparent 42%)" }}
-      />
-    </div>
-  );
-}
-
-function PillarArtworkBackdrop({ pillar }: { pillar?: string | null }) {
-  const image = pillar ? PILLAR_IMAGES[pillar] : null;
-  if (!image) return null;
-
-  return <ArtworkBackdrop image={image} />;
-}
-
 const PILLAR_GRID = [
   ...CREATE_PILLARS.map((p) => ({
     slug: p.slug,
@@ -1686,8 +1655,7 @@ function PrimingView({ pillar, experiment, onReady }: { pillar: string | null; e
         </div>
       )}
 
-    <section className="relative flex-1 flex flex-col justify-between pb-6 overflow-hidden">
-      <PillarArtworkBackdrop pillar={pillar} />
+    <section className="relative flex-1 flex flex-col pb-6 overflow-hidden">
       <div className="relative z-10 flex-1 overflow-y-auto flex flex-col gap-4 pt-1 pb-4">
 
         {/* Pillar badge */}
@@ -1704,7 +1672,7 @@ function PrimingView({ pillar, experiment, onReady }: { pillar: string | null; e
 
         <div className="flex flex-col gap-3">
           <RevealBlock delay={30}>
-            <p className="text-[10px] text-white/40 uppercase tracking-[0.3em]">Before you speak</p>
+            <p className="text-[10px] text-white/40 uppercase tracking-[0.3em]">Before you arrive</p>
           </RevealBlock>
           <RevealBlock delay={60}>
             <h2 className="text-2xl font-light text-white leading-snug" style={{ fontFamily: "var(--font-display)" }}>
@@ -1731,8 +1699,10 @@ function PrimingView({ pillar, experiment, onReady }: { pillar: string | null; e
                   className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
                   style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.14)" }}
                 >
-                  <svg width="11" height="13" viewBox="0 0 14 16" fill="none">
-                    <path d="M2 1.5L12.5 8L2 14.5V1.5Z" fill="rgba(255,255,255,0.62)" />
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.64)" strokeWidth="1.8" />
+                    <path d="M12 10.5V16" stroke="rgba(255,255,255,0.72)" strokeWidth="1.8" strokeLinecap="round" />
+                    <circle cx="12" cy="7.5" r="1.1" fill="rgba(255,255,255,0.72)" />
                   </svg>
                 </div>
                 <span>
@@ -1744,6 +1714,16 @@ function PrimingView({ pillar, experiment, onReady }: { pillar: string | null; e
             </button>
           </RevealBlock>
         )}
+
+        <RevealBlock delay={165}>
+          <button
+            onClick={() => onReady()}
+            className="w-full py-5 rounded-2xl text-sm font-semibold tracking-wide active:scale-[0.98] transition-all touch-manipulation"
+            style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.45)", color: "#c9a55a" }}
+          >
+            Talk to RTHMIC
+          </button>
+        </RevealBlock>
 
         {hasSuggestions && (
           <RevealBlock delay={180 + instructions.length * 45}>
@@ -1816,16 +1796,6 @@ function PrimingView({ pillar, experiment, onReady }: { pillar: string | null; e
           </p>
         </RevealBlock>
       </div>
-
-      <RevealBlock delay={180 + instructions.length * 45 + (hasSuggestions ? 95 : 50)} className="relative z-10 flex-shrink-0">
-        <button
-          onClick={() => onReady()}
-          className="w-full py-5 rounded-2xl text-sm font-semibold tracking-wide active:scale-[0.98] transition-all touch-manipulation"
-          style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.45)", color: "#c9a55a" }}
-        >
-          Next
-        </button>
-      </RevealBlock>
     </section>
     </>
   );

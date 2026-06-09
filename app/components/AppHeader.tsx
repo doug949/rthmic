@@ -80,10 +80,10 @@ export function AppHeader({ backLabel = "← Back", onBack, title, titleIcon }: 
       {/* Spacer */}
       <div className="flex-1" />
 
-      <div className="flex flex-col items-end gap-1">
+      <div className="relative flex items-center justify-end min-w-[96px]">
         <button
           onClick={() => setMenuOpen(true)}
-          className="flex flex-col items-center justify-center h-7 w-8 rounded-full touch-manipulation active:bg-white/[0.06] transition-colors"
+          className="absolute right-2 -top-7 flex flex-col items-center justify-center h-7 w-8 rounded-full touch-manipulation active:bg-white/[0.06] transition-colors"
           style={{ gap: 3, color: "rgba(255,255,255,0.42)" }}
           aria-label="Menu"
           title="Menu"
