@@ -105,6 +105,7 @@ export async function GET(request: NextRequest) {
 //   { action: "update",  id: string, status?, tags? }                     — update status and/or tags
 //   { action: "incrementPlay", id: string }                               — increment all-time play count
 //   { action: "preferSide", id: string }                                  — set preferred A/B-side for the pair
+//   { action: "archiveNonFavourites", collection?: "main"|"bridge"|"invite" } — archive all active non-favourites
 //   { action: "retag" }                                                    — re-run auto-tagging across saved rhythms
 export async function POST(request: NextRequest) {
   const uid = requireUserId(request);
@@ -120,12 +121,13 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const { action } = body;
 
-  if (!["save", "remove", "batch-remove", "update", "incrementPlay", "preferSide", "retag"].includes(action)) {
+  if (!["save", "remove", "batch-remove", "update", "incrementPlay", "preferSide", "archiveNonFavourites", "retag"].includes(action)) {
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   }
 
   try {
     let retagged = 0;
+    let archived = 0;
     await withRedis(async (client) => {
       const key = libraryKey(uid);
       const current = await readSavedRhythms(client, key);
@@ -161,6 +163,20 @@ export async function POST(request: NextRequest) {
         updated = preferred
           ? current.map((r) => samePair(r, preferred) ? { ...r, preferredSideId: preferred.id } : r)
           : current;
+      } else if (action === "archiveNonFavourites") {
+        const collection = body.collection === "bridge" || body.collection === "invite" ? body.collection : "main";
+        updated = current.map((r) => {
+          const inCollection =
+            !r.rthmixId &&
+            (collection === "bridge"
+              ? r.pillar === "Bridge"
+              : collection === "invite"
+                ? r.pillar === "Invite"
+                : r.pillar !== "Bridge" && r.pillar !== "Invite");
+          if (!inCollection || r.status !== "active") return r;
+          archived++;
+          return { ...r, status: "archived" as const };
+        });
       } else if (action === "retag") {
         updated = current.map((r) => {
           if (r.status === "deleted") return r;
@@ -196,7 +212,7 @@ export async function POST(request: NextRequest) {
       await writeSavedRhythms(client, key, updated);
     });
 
-    return NextResponse.json({ ok: true, retagged });
+    return NextResponse.json({ ok: true, retagged, archived });
   } catch (err) {
     console.error("Redis write error:", err);
     return NextResponse.json({ error: "Storage error" }, { status: 500 });

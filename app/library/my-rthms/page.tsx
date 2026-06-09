@@ -129,6 +129,8 @@ export default function MyRthmsPage() {
   const [selectedIds, setSelectedIds]     = useState<Set<string>>(new Set());
   const [selectedSideIds, setSelectedSideIds] = useState<Record<string, string>>({});
   const [confirmBatchDelete, setConfirmBatchDelete] = useState(false);
+  const [confirmArchiveNonFavourites, setConfirmArchiveNonFavourites] = useState(false);
+  const [bulkArchiving, setBulkArchiving] = useState(false);
   const [autoTagging, setAutoTagging] = useState(false);
   const [autoTagMessage, setAutoTagMessage] = useState<string | null>(null);
   const [pendingMutationIds, setPendingMutationIds] = useState<Set<string>>(new Set());
@@ -239,6 +241,7 @@ export default function MyRthmsPage() {
   const searchActive = normaliseSearchText(searchQuery).length > 0;
   const newRthms      = regularRhythms.filter((r) => r.status === "new" && matchesSearch(r, searchQuery));
   const myRthms       = regularRhythms.filter((r) => r.status === "active" || r.status === "favourite");
+  const archiveableNonFavourites = regularRhythms.filter((r) => r.status === "active");
   const recentlyDeleted = regularRhythms.filter(
     (r) => r.status === "deleted" && r.deletedAt !== undefined && now - r.deletedAt < THIRTY_DAYS
   );
@@ -307,6 +310,34 @@ export default function MyRthmsPage() {
     if (!confirmBatchDelete) { setConfirmBatchDelete(true); setTimeout(() => setConfirmBatchDelete(false), 3000); return; }
     await mutate({ action: "batch-remove", ids: [...selectedIds] });
     exitSelectMode();
+  };
+
+  const handleArchiveNonFavourites = async () => {
+    if (archiveableNonFavourites.length === 0 || bulkArchiving) return;
+    if (!confirmArchiveNonFavourites) {
+      setConfirmArchiveNonFavourites(true);
+      setTimeout(() => setConfirmArchiveNonFavourites(false), 5000);
+      return;
+    }
+
+    const ids = archiveableNonFavourites.map((r) => r.id);
+    setBulkArchiving(true);
+    setConfirmArchiveNonFavourites(false);
+    setRhythms((prev) => prev.map((r) => ids.includes(r.id) ? { ...r, status: "archived" } : r));
+    try {
+      const res = await fetch("/api/library", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "archiveNonFavourites", collection }),
+      });
+      if (!res.ok) throw new Error("archive failed");
+      await fetchLibrary();
+      window.dispatchEvent(new CustomEvent("library-mutated"));
+    } catch {
+      await fetchLibrary();
+    } finally {
+      setBulkArchiving(false);
+    }
   };
 
   const handleAutoTagOlder = async () => {
@@ -659,6 +690,40 @@ export default function MyRthmsPage() {
                   setSelectedTags([]);
                 }}
               />
+
+              <button
+                onClick={handleArchiveNonFavourites}
+                disabled={archiveableNonFavourites.length === 0 || bulkArchiving}
+                className="w-full rounded-2xl border px-4 py-3 text-left touch-manipulation transition-all active:scale-[0.99] disabled:opacity-35"
+                style={
+                  confirmArchiveNonFavourites
+                    ? { background: "rgba(248,113,113,0.10)", borderColor: "rgba(248,113,113,0.34)" }
+                    : { background: "rgba(255,255,255,0.035)", borderColor: "rgba(255,255,255,0.08)" }
+                }
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={{
+                      background: confirmArchiveNonFavourites ? "rgba(248,113,113,0.13)" : "rgba(255,255,255,0.055)",
+                      color: confirmArchiveNonFavourites ? "rgba(248,113,113,0.85)" : "rgba(255,255,255,0.42)",
+                    }}
+                  >
+                    <ArchiveGlyph />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold" style={{ color: confirmArchiveNonFavourites ? "rgba(248,113,113,0.9)" : "rgba(255,255,255,0.68)" }}>
+                      {bulkArchiving ? "Archiving..." : confirmArchiveNonFavourites ? "Are you sure? This can't be undone" : "Archive all non-favourites"}
+                    </p>
+                    <p className="text-[10px] uppercase tracking-wider mt-0.5" style={{ color: confirmArchiveNonFavourites ? "rgba(248,113,113,0.58)" : "rgba(255,255,255,0.28)" }}>
+                      {archiveableNonFavourites.length > 0 ? `${archiveableNonFavourites.length} Rthm${archiveableNonFavourites.length === 1 ? "" : "s"} will move to The Archive` : "No non-favourite Rthms to archive"}
+                    </p>
+                  </div>
+                  <span className="text-[10px] uppercase tracking-widest" style={{ color: confirmArchiveNonFavourites ? "rgba(248,113,113,0.72)" : "rgba(255,255,255,0.28)" }}>
+                    {confirmArchiveNonFavourites ? "Confirm" : "Archive"}
+                  </span>
+                </div>
+              </button>
 
               {/* Release date tabs */}
               <TimePeriodTabs
@@ -1091,6 +1156,16 @@ function DimHeader({ title, count, open, onToggle }: { title: string; count?: nu
       {count !== undefined && <span className="text-xs text-white/30 tabular-nums">{count}</span>}
       <span className="ml-auto text-[10px] text-white/30 uppercase tracking-widest">{open ? "↑" : "↓"}</span>
     </button>
+  );
+}
+
+function ArchiveGlyph() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 20 20" fill="none" aria-hidden>
+      <rect x="3" y="5" width="14" height="3" rx="1" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M5 8h10v7.2A1.8 1.8 0 0 1 13.2 17H6.8A1.8 1.8 0 0 1 5 15.2V8Z" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M8 11h4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" opacity="0.7" />
+    </svg>
   );
 }
 
