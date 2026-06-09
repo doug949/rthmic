@@ -25,7 +25,7 @@ function tileForRoute(pathname: string | null, search: URLSearchParams): string 
     if (collection === "adhd") return "adhd";
     const pillar = search.get("pillar");
     if (pillar === "bridge" || pillar === "invite") return pillar;
-    return "create";
+    return null;
   }
 
   if (pathname === "/bridge") return "bridge";

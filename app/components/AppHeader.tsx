@@ -80,29 +80,31 @@ export function AppHeader({ backLabel = "← Back", onBack, title, titleIcon }: 
       {/* Spacer */}
       <div className="flex-1" />
 
-      <button
-        onClick={() => setMenuOpen(true)}
-        className="mr-2 flex flex-col items-center justify-center h-8 w-8 rounded-full touch-manipulation active:bg-white/[0.06] transition-colors"
-        style={{ gap: 3, color: "rgba(255,255,255,0.42)" }}
-        aria-label="Menu"
-        title="Menu"
-      >
-        {[0, 1, 2].map((i) => (
-          <span key={i} style={{ width: i === 1 ? 12 : 16, height: 1.5, borderRadius: 1, background: "currentColor" }} />
-        ))}
-      </button>
+      <div className="flex flex-col items-end gap-1">
+        <button
+          onClick={() => setMenuOpen(true)}
+          className="flex flex-col items-center justify-center h-7 w-8 rounded-full touch-manipulation active:bg-white/[0.06] transition-colors"
+          style={{ gap: 3, color: "rgba(255,255,255,0.42)" }}
+          aria-label="Menu"
+          title="Menu"
+        >
+          {[0, 1, 2].map((i) => (
+            <span key={i} style={{ width: i === 1 ? 12 : 16, height: 1.5, borderRadius: 1, background: "currentColor" }} />
+          ))}
+        </button>
 
-      {/* ⌂ Home — always present, always goes to / */}
-      <button
-        onClick={handleHome}
-        className="flex items-center gap-1.5 px-2 h-8 rounded-full touch-manipulation active:bg-white/[0.06] transition-colors"
-        style={{ color: "rgba(255,255,255,0.45)" }}
-        aria-label="Home"
-        title="Home"
-      >
-        <HomeIcon />
-        <span className="text-sm uppercase tracking-widest leading-none">Home</span>
-      </button>
+        {/* ⌂ Home — always present, always goes to / */}
+        <button
+          onClick={handleHome}
+          className="flex items-center gap-1.5 px-2 h-7 rounded-full touch-manipulation active:bg-white/[0.06] transition-colors"
+          style={{ color: "rgba(255,255,255,0.45)" }}
+          aria-label="Home"
+          title="Home"
+        >
+          <HomeIcon />
+          <span className="text-sm uppercase tracking-widest leading-none">Home</span>
+        </button>
+      </div>
       <AppMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
     </header>
   );

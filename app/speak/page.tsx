@@ -1492,7 +1492,7 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
                 onClick={() => onSelect(p.slug)}
                 className="relative min-h-[178px] rounded-2xl overflow-hidden px-4 py-5 flex flex-col items-center justify-center text-center touch-manipulation active:scale-[0.985] transition-transform"
                 style={{
-                  background: "linear-gradient(180deg, rgba(255,255,255,0.075), rgba(255,255,255,0.035))",
+                  background: `linear-gradient(145deg, rgba(${p.accent},0.32) 0%, rgba(${p.accent},0.18) 46%, rgba(8,14,25,0.72) 100%)`,
                   border: `1px solid rgba(${p.accent},0.24)`,
                   boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
                   backdropFilter: "blur(12px)",
@@ -1502,7 +1502,7 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
                 <div
                   className="absolute inset-0 pointer-events-none"
                   style={{
-                    background: `radial-gradient(circle at 50% 18%, rgba(${p.accent},0.22), transparent 50%)`,
+                    background: `radial-gradient(circle at 50% 12%, rgba(${p.accent},0.38), transparent 46%)`,
                   }}
                 />
                 <div className="relative flex flex-col items-center">
