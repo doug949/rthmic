@@ -530,6 +530,7 @@ const HOME_TILES: {
   image?: string;
   imageScale?: number;  // scale > 1 crops in to hide white borders
   scrim?: number;
+  imageOnly?: boolean;
   comingSoon?: boolean;
   adminOnly?: boolean;
   adminPreview?: boolean;
@@ -537,10 +538,10 @@ const HOME_TILES: {
   { id: "create", href: "/speak",     label: "Explore And Create",        shortLabel: "Explore And Create",     icon: <MicIcon />,     accent: "rgba(201,165,90,0.55)", image: "/images/tiles/optimized/create.webp" },
   { id: "right-now", href: "/speak?quick=1", label: "Simply Rthmic", shortLabel: "Simply Rthmic", subtitle: "Speak, get a Rthm", icon: <SituationIcon />, accent: "rgba(120,200,210,0.55)", image: "/images/tiles/optimized/in-the-moment.webp" },
   { id: "my-rthms", href: "/library", label: "Your Catalog",      shortLabel: "Your Catalog",   icon: <PlayIcon />,    accent: "rgba(100,140,255,0.5)", image: "/images/tiles/optimized/my-rthms.webp", scrim: 0.72 },
-  { id: "bridge", href: "/bridge", label: "Rthmic Bridge", shortLabel: "Bridge", icon: <BridgeTileIcon />, accent: "rgba(180,160,140,0.55)", image: "/images/tiles/optimized/bridge.webp", adminOnly: true },
-  { id: "invite", href: "/invite", label: "Rthmic Invite", shortLabel: "Invite", icon: <InviteTileIcon />, accent: "rgba(218,185,120,0.55)", image: "/images/tiles/optimized/invite.webp", adminOnly: true },
-  { id: "rthmix", href: "/rthmix",    label: "Rthmixes",                shortLabel: "Rthmixes",     icon: <CassetteIcon />, accent: "rgba(230,155,60,0.5)", image: "/images/tiles/optimized/rthmix.webp", adminOnly: true },
-  { id: "structure", href: "/structure", label: "Menus",                 shortLabel: "Menus",      icon: <MenusIcon />,   accent: "rgba(100,195,165,0.5)", image: "/images/tiles/optimized/structure.webp", imageScale: 1.12, adminOnly: true },
+  { id: "bridge", href: "/bridge", label: "Rthmic Bridge", shortLabel: "Bridge", icon: <BridgeTileIcon />, accent: "rgba(180,160,140,0.55)", image: "/images/tiles/optimized/bridge.webp", imageOnly: true, adminOnly: true },
+  { id: "invite", href: "/invite", label: "Rthmic Invite", shortLabel: "Invite", icon: <InviteTileIcon />, accent: "rgba(218,185,120,0.55)", image: "/images/tiles/optimized/invite.webp", imageOnly: true, adminOnly: true },
+  { id: "rthmix", href: "/rthmix",    label: "Rthmixes",                shortLabel: "Rthmixes",     icon: <CassetteIcon />, accent: "rgba(230,155,60,0.5)", image: "/images/tiles/optimized/rthmix.webp", imageOnly: true, adminOnly: true },
+  { id: "structure", href: "/structure", label: "Menus",                 shortLabel: "Menus",      icon: <MenusIcon />,   accent: "rgba(100,195,165,0.5)", image: "/images/tiles/optimized/structure.webp", imageScale: 1.12, imageOnly: true, adminOnly: true },
   { id: "adhd", href: "/speak?collection=adhd",     label: "ADHD Collection",       shortLabel: "ADHD Collection",       icon: <BrainIcon />,   accent: "rgba(220,110,140,0.5)", image: "/images/tiles/optimized/adhd.webp", adminOnly: true },
   { id: "reddit-adhd", href: "/reddit-adhd", label: "ADHD Reddit Response", shortLabel: "Reddit ADHD", icon: <BrainIcon />, accent: "rgba(220,110,140,0.55)", adminOnly: true },
   { id: "settings", href: "/settings",  label: "Settings and Styles",   shortLabel: "Settings + Styles", icon: <EQIcon />, accent: "rgba(160,130,220,0.5)", image: "/images/tiles/optimized/settings.webp", imageScale: 1.12 },
@@ -587,15 +588,16 @@ function HomeTile({ tile, reorderMode }: { tile: typeof HOME_TILES[number]; reor
       ) : (
         <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse at 60% 30%, ${tile.accent} 0%, transparent 70%)` }} />
       )}
-      {/* Bottom gradient */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background: tile.scrim
-            ? `linear-gradient(to top, rgba(0,0,0,${tile.scrim}) 0%, rgba(0,0,0,${Math.max(tile.scrim - 0.12, 0.45)}) 58%, rgba(0,0,0,${Math.max(tile.scrim - 0.24, 0.3)}) 100%)`
-            : "linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.15) 55%, transparent 100%)",
-        }}
-      />
+      {!tile.imageOnly && (
+        <div
+          className="absolute inset-0"
+          style={{
+            background: tile.scrim
+              ? `linear-gradient(to top, rgba(0,0,0,${tile.scrim}) 0%, rgba(0,0,0,${Math.max(tile.scrim - 0.12, 0.45)}) 58%, rgba(0,0,0,${Math.max(tile.scrim - 0.24, 0.3)}) 100%)`
+              : "linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.15) 55%, transparent 100%)",
+          }}
+        />
+      )}
 
       {/* Coming soon badge */}
       {tile.comingSoon && (
@@ -607,13 +609,14 @@ function HomeTile({ tile, reorderMode }: { tile: typeof HOME_TILES[number]; reor
         </div>
       )}
 
-      {/* Centered label */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 py-5 text-center pointer-events-none">
-        <p className="text-[15px] font-semibold text-white/90 leading-tight tracking-[0.03em] text-center">{tile.shortLabel}</p>
-        {tile.subtitle && (
-          <p className="text-[10px] font-medium text-white/62 leading-snug text-center">{tile.subtitle}</p>
-        )}
-      </div>
+      {!tile.imageOnly && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 py-5 text-center pointer-events-none">
+          <p className="text-[15px] font-semibold text-white/90 leading-tight tracking-[0.03em] text-center">{tile.shortLabel}</p>
+          {tile.subtitle && (
+            <p className="text-[10px] font-medium text-white/62 leading-snug text-center">{tile.subtitle}</p>
+          )}
+        </div>
+      )}
     </div>
   );
 
