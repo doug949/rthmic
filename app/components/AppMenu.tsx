@@ -12,6 +12,7 @@ interface AppMenuProps {
 
 export function AppMenu({ open, onClose }: AppMenuProps) {
   const router = useRouter();
+  const [shouldRender, setShouldRender] = useState(open);
   const [userCode, setUserCode] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -31,7 +32,16 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
       .catch(() => setIsAdmin(false));
   }, [open]);
 
-  if (!open) return null;
+  useEffect(() => {
+    if (open) {
+      setShouldRender(true);
+      return;
+    }
+    const timeout = setTimeout(() => setShouldRender(false), 260);
+    return () => clearTimeout(timeout);
+  }, [open]);
+
+  if (!shouldRender) return null;
 
   const go = (href: string) => {
     onClose();
@@ -101,7 +111,16 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
 
   return (
     <>
-      <div className="fixed inset-0 z-50" style={{ background: "rgba(0,0,0,0.45)" }} onClick={onClose} />
+      <div
+        className="fixed inset-0 z-50"
+        style={{
+          background: "rgba(0,0,0,0.45)",
+          opacity: open ? 1 : 0,
+          pointerEvents: open ? "auto" : "none",
+          transition: "opacity 180ms ease",
+        }}
+        onClick={onClose}
+      />
       <div
         className="fixed left-0 right-0 z-50 rounded-t-2xl flex flex-col"
         style={{
@@ -112,6 +131,9 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
           borderTop: "1px solid rgba(255,255,255,0.08)",
           paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 20px)",
           overflow: "hidden",
+          transform: open ? "translateY(0)" : "translateY(105%)",
+          opacity: open ? 1 : 0,
+          transition: "transform 260ms cubic-bezier(0.16, 1, 0.3, 1), opacity 180ms ease",
         }}
       >
         <div className="flex justify-center pt-3 pb-1"><div className="w-10 h-1 rounded-full bg-white/15" /></div>

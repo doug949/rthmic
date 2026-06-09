@@ -73,11 +73,33 @@ export default function QuickCodexNote() {
   const [level, setLevel] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const [pendingDrafts, setPendingDrafts] = useState(0);
+  const [accessChecked, setAccessChecked] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!mounted) return;
+    let cancelled = false;
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled) return;
+        setIsAdmin(!!data.access?.isAdmin);
+      })
+      .catch(() => {
+        if (!cancelled) setIsAdmin(false);
+      })
+      .finally(() => {
+        if (!cancelled) setAccessChecked(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [mounted]);
+
+  useEffect(() => {
+    if (!mounted || !accessChecked || !isAdmin) return;
     let cancelled = false;
     const retryDrafts = async () => {
       try {
@@ -99,9 +121,9 @@ export default function QuickCodexNote() {
     return () => {
       cancelled = true;
     };
-  }, [mounted]);
+  }, [mounted, accessChecked, isAdmin]);
 
-  if (!mounted || pathname === "/login") return null;
+  if (!mounted || !accessChecked || !isAdmin || pathname === "/login") return null;
 
   const stopMeter = () => {
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);

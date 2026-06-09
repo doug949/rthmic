@@ -94,16 +94,17 @@ export function AppHeader({ backLabel = "← Back", onBack, title, titleIcon }: 
         </button>
       </div>
       <button
-        onClick={() => setMenuOpen(true)}
-        className="fixed left-5 z-40 flex flex-col items-center justify-center h-12 w-12 rounded-full touch-manipulation active:bg-white/[0.06] transition-colors"
+        onClick={() => setMenuOpen((open) => !open)}
+        className="fixed left-5 flex flex-col items-center justify-center h-12 w-12 rounded-full touch-manipulation active:bg-white/[0.06] transition-colors"
         style={{
           bottom: "calc(env(safe-area-inset-bottom, 0px) + 18px)",
           gap: 4,
           color: "rgba(255,255,255,0.48)",
           background: "rgba(13,22,40,0.42)",
           border: "1px solid rgba(255,255,255,0.08)",
+          zIndex: menuOpen ? 60 : 40,
         }}
-        aria-label="Menu"
+        aria-label={menuOpen ? "Close menu" : "Menu"}
         title="Menu"
       >
         {[0, 1, 2].map((i) => (

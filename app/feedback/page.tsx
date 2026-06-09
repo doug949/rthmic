@@ -18,6 +18,8 @@ export default function FeedbackPage() {
   const [transcript, setTranscript] = useState("");
   const [editedTranscript, setEditedTranscript] = useState("");
   const [transitioning, setTransitioning] = useState(false);
+  const [accessChecked, setAccessChecked] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -145,9 +147,52 @@ export default function FeedbackPage() {
     if (autoStopRef.current) clearTimeout(autoStopRef.current);
   }, [cleanupAudio]);
 
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((data) => {
+        if (!cancelled) setIsAdmin(!!data.access?.isAdmin);
+      })
+      .catch(() => {
+        if (!cancelled) setIsAdmin(false);
+      })
+      .finally(() => {
+        if (!cancelled) setAccessChecked(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const fmtTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
   const progress = Math.min(seconds / MAX_SECONDS, 1);
   const wordCount = editedTranscript.trim().split(/\s+/).filter(Boolean).length;
+
+  if (!accessChecked) {
+    return (
+      <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ animation: "page-enter 380ms ease forwards" }}>
+        <RevealBlock delay={0}>
+          <AppHeader title="Feedback" />
+        </RevealBlock>
+      </main>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ animation: "page-enter 380ms ease forwards" }}>
+        <RevealBlock delay={0}>
+          <AppHeader title="Feedback" />
+        </RevealBlock>
+        <section className="flex-1 flex items-center justify-center text-center">
+          <div className="rounded-2xl border px-6 py-8 max-w-sm" style={{ background: "rgba(255,255,255,0.035)", borderColor: "rgba(255,255,255,0.08)" }}>
+            <p className="text-sm text-white/50 leading-relaxed">Audio feedback recording is currently unavailable for tester accounts.</p>
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ animation: "page-enter 380ms ease forwards" }}>

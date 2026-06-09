@@ -34,6 +34,7 @@ export default function Home() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [userName, setUserName] = useState("");
   const [open, setOpen] = useState(false);
+  const [menuShouldRender, setMenuShouldRender] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [clearingAudio, setClearingAudio] = useState(false);
   const [confirmClearAudio, setConfirmClearAudio] = useState(false);
@@ -74,6 +75,15 @@ export default function Home() {
       .then((d: { build?: string }) => { if (d.build) setServerBuild(d.build); })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (open) {
+      setMenuShouldRender(true);
+      return;
+    }
+    const timeout = setTimeout(() => setMenuShouldRender(false), 260);
+    return () => clearTimeout(timeout);
+  }, [open]);
 
   useEffect(() => {
     if (!HOME_INTRO_ENABLED || sessionStorage.getItem(HOME_INTRO_SEEN_KEY)) {
@@ -281,8 +291,8 @@ export default function Home() {
 
         {/* Hamburger — fixed bottom left */}
         <button
-          onClick={() => setOpen(true)}
-          className="fixed left-5 z-40 touch-manipulation flex flex-col items-center justify-center rounded-full active:bg-white/[0.06] transition-colors"
+          onClick={() => setOpen((value) => !value)}
+          className="fixed left-5 touch-manipulation flex flex-col items-center justify-center rounded-full active:bg-white/[0.06] transition-colors"
           style={{
             bottom: "calc(env(safe-area-inset-bottom, 0px) + 18px)",
             width: 48,
@@ -291,8 +301,9 @@ export default function Home() {
             opacity: 0.7,
             background: "rgba(13,22,40,0.42)",
             border: "1px solid rgba(255,255,255,0.08)",
+            zIndex: open ? 60 : 40,
           }}
-          aria-label="Menu"
+          aria-label={open ? "Close menu" : "Menu"}
         >
           {[0, 1, 2].map((i) => (
             <span
@@ -362,11 +373,16 @@ export default function Home() {
       </section>
 
       {/* Bottom sheet */}
-      {open && (
+      {menuShouldRender && (
         <>
           <div
             className="fixed inset-0 z-50"
-            style={{ background: "rgba(0,0,0,0.45)" }}
+            style={{
+              background: "rgba(0,0,0,0.45)",
+              opacity: open ? 1 : 0,
+              pointerEvents: open ? "auto" : "none",
+              transition: "opacity 180ms ease",
+            }}
             onClick={() => setOpen(false)}
           />
           <div
@@ -379,6 +395,9 @@ export default function Home() {
               borderTop: "1px solid rgba(255,255,255,0.08)",
               paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 20px)",
               overflow: "hidden",
+              transform: open ? "translateY(0)" : "translateY(105%)",
+              opacity: open ? 1 : 0,
+              transition: "transform 260ms cubic-bezier(0.16, 1, 0.3, 1), opacity 180ms ease",
             }}
           >
             <div className="flex justify-center pt-3 pb-1">
