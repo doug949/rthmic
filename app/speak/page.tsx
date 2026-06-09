@@ -1312,6 +1312,16 @@ const CF_IDS: Record<string, string> = {
   booksummary: "2e1d19d0dc33f42e7031bf59e9d1f586",
 };
 
+const CREATE_TILE_IMAGES: Record<string, string> = {
+  memory: "/images/create-tiles/optimized/memory.webp",
+  mindset: "/images/create-tiles/optimized/mindset.webp",
+  mode: "/images/create-tiles/optimized/mode.webp",
+  movement: "/images/create-tiles/optimized/movement.webp",
+  explain: "/images/create-tiles/optimized/explain.webp",
+  booksummary: "/images/create-tiles/optimized/booksummary.webp",
+  sleep: "/images/create-tiles/optimized/sleep.webp",
+};
+
 const ALL_PILLAR_SLUGS = FOR_YOU_PILLARS.map((p) => p.slug);
 
 const CREATE_TILE_COPY: Record<string, string> = {
@@ -1335,7 +1345,7 @@ const CREATE_TILE_ACCENT: Record<string, string> = {
 };
 
 const PILLAR_IMAGES: Record<string, string> = Object.fromEntries(
-  ALL_PILLAR_SLUGS.map((s) => [s, cfThumb(CF_IDS[s] ?? CF_IDS.default)])
+  ALL_PILLAR_SLUGS.map((s) => [s, CREATE_TILE_IMAGES[s] ?? cfThumb(CF_IDS[s] ?? CF_IDS.default)])
 );
 const PILLAR_VIDEOS: Record<string, string> = Object.fromEntries(
   ALL_PILLAR_SLUGS.map((s) => [s, cfHls(CF_IDS[s] ?? CF_IDS.default)])
@@ -1483,10 +1493,31 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
                 }}
                 aria-label={`Create ${p.label}`}
               >
+                {p.image && (
+                  <img
+                    src={p.image}
+                    alt=""
+                    aria-hidden="true"
+                    draggable={false}
+                    className="absolute inset-0 h-full w-full object-cover pointer-events-none"
+                    style={{
+                      opacity: 0.32,
+                      filter: "saturate(0.74) contrast(1.04) brightness(0.72)",
+                    }}
+                  />
+                )}
+                {p.image && (
+                  <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      background: `linear-gradient(180deg, rgba(8,14,25,0.20) 0%, rgba(8,14,25,0.46) 62%, rgba(8,14,25,0.62) 100%)`,
+                    }}
+                  />
+                )}
                 <div
                   className="absolute inset-0 pointer-events-none"
                   style={{
-                    background: `radial-gradient(circle at 50% 12%, rgba(${p.accent},0.14), transparent 50%)`,
+                    background: `radial-gradient(circle at 50% 12%, rgba(${p.accent},0.18), transparent 52%)`,
                   }}
                 />
                 <div className="relative flex flex-col items-center">
