@@ -107,22 +107,13 @@ export default function UnderstandPage() {
       {/* Footer */}
       <footer className="pb-10 flex gap-3">
         {isLast ? (
-          <>
-            <TransitionLink
-              href="/"
-              className="flex-1 py-4 rounded-2xl bg-white/[0.06] border border-white/[0.08] text-sm font-medium tracking-wide text-center active:scale-[0.98] transition-all touch-manipulation"
-              style={{ color: "rgba(255,255,255,0.7)" }}
-            >
-              Home
-            </TransitionLink>
-            <TransitionLink
-              href="/speak"
-              className="flex-1 py-4 rounded-2xl text-sm font-semibold tracking-wide text-center active:scale-[0.98] transition-all touch-manipulation"
-              style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.45)", color: "#c9a55a" }}
-            >
-              Start speaking
-            </TransitionLink>
-          </>
+          <TransitionLink
+            href="/"
+            className="w-full py-4 rounded-2xl text-sm font-semibold tracking-wide text-center active:scale-[0.98] transition-all touch-manipulation"
+            style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.45)", color: "#c9a55a" }}
+          >
+            Continue to RTHMIC
+          </TransitionLink>
         ) : (
           <button
             onClick={() => goTo(active + 1)}
