@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useAudio } from "@/app/contexts/AudioContext";
 import { tracks } from "@/app/data/tracks";
+import { AppHeader } from "@/app/components/AppHeader";
 
 const CATEGORIES = [
   { id: "all",     label: "All" },
@@ -33,13 +34,12 @@ export default function ExplorePage() {
   const visible = tracks.filter(t => filter === "all" || getCat(t.title) === filter);
 
   return (
-    <main className="min-h-screen bg-[#0d1628] flex flex-col px-6 pt-safe">
-      <header className="flex items-center gap-4 pt-12 pb-6">
-        <Link href="/library" className="text-white/30 hover:text-white/60 transition-colors text-sm tracking-widest uppercase">
-          ← Back
-        </Link>
-        <span className="text-white/15 text-sm uppercase tracking-widest ml-auto">{tracks.length} tracks</span>
-      </header>
+    <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ animation: "page-enter 380ms ease forwards" }}>
+      <AppHeader title="Explore" />
+      <div className="mb-4 flex items-center justify-between">
+        <Link href="/library" className="text-white/35 text-xs uppercase tracking-widest">Catalog</Link>
+        <span className="text-white/28 text-xs uppercase tracking-widest">{tracks.length} tracks</span>
+      </div>
 
       {/* Category chips */}
       <div className="flex gap-2 overflow-x-auto pb-4 -mx-6 px-6" style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
@@ -60,7 +60,7 @@ export default function ExplorePage() {
       </div>
 
       {/* Track list */}
-      <section className="flex flex-col gap-2 pb-16">
+      <section className="relative z-10 flex flex-col gap-2 pb-16">
         {visible.map(track => {
           const active = currentTrackId === track.id;
           const playing = active && isPlaying;

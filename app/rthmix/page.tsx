@@ -341,31 +341,31 @@ export default function RthmixPage() {
   return (
     <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ animation: "page-enter 380ms ease forwards" }}>
       <RevealBlock delay={0}>
-        <AppHeader title="Rhythmixes" titleIcon={<CassetteIcon />} />
+        <AppHeader title="Rthmixes" titleIcon={<CassetteIcon />} />
       </RevealBlock>
 
       <section className="flex-1 flex flex-col gap-4 pb-28">
         <div className="rounded-2xl border px-5 py-5" style={{ background: "rgba(255,255,255,0.035)", borderColor: "rgba(255,255,255,0.09)" }}>
           <div className="flex items-center gap-2 mb-2">
-            <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: "rgba(240,170,80,0.9)" }}>Rhythmixes</p>
+            <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: "rgba(240,170,80,0.9)" }}>Rthmixes</p>
           </div>
           <h1 className="text-2xl font-light text-white/90 leading-tight" style={{ fontFamily: "var(--font-display)" }}>
-            Listen to your Rhythmix collection or create a new one.
+            Listen to your Rthmix collection or create a new one.
           </h1>
           <p className="text-sm text-white/45 leading-relaxed mt-3">
-            Rhythmixes are multi-track Rthm albums for learning, remembering, or building one unlock at a time.
+            Rthmixes are multi-track Rthm albums for learning, remembering, or building one unlock at a time.
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-5">
             <RthmixChoiceCard
-              title="Listen to Rhythmixes"
-              detail="Browse your existing Rhythmix collection, start an album, or jump into a track."
+              title="Listen to Rthmixes"
+              detail="Browse your existing Rthmix collection, start an album, or jump into a track."
               eyebrow={`${rthmixAlbums.length + 1} collection${rthmixAlbums.length + 1 === 1 ? "" : "s"}`}
               active={viewMode === "collection"}
               onClick={() => setViewMode("collection")}
             />
             <RthmixChoiceCard
-              title="Create a new Rhythmix"
+              title="Create a new Rthmix"
               detail="Pick a suggested topic or speak your own idea and let Rthmic build the album."
               eyebrow="Suggestions + voice"
               active={viewMode === "create"}
@@ -378,7 +378,7 @@ export default function RthmixPage() {
           <div className="rounded-2xl border px-5 py-4" style={{ background: "rgba(255,255,255,0.025)", borderColor: "rgba(255,255,255,0.07)" }}>
             <p className="text-[10px] uppercase tracking-[0.28em] text-white/35">Choose a path</p>
             <p className="text-xs text-white/38 leading-relaxed mt-2">
-              Start by listening to what you already have, or create a fresh Rhythmix from a topic that is on your mind.
+              Start by listening to what you already have, or create a fresh Rthmix from a topic that is on your mind.
             </p>
           </div>
         )}
@@ -386,7 +386,7 @@ export default function RthmixPage() {
         {viewMode === "create" && (
           <div className="rounded-2xl border px-5 py-5" style={{ background: "rgba(255,255,255,0.035)", borderColor: "rgba(255,255,255,0.09)" }}>
             <div className="flex items-center justify-between gap-3 mb-2">
-              <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: "rgba(240,170,80,0.9)" }}>Create Rhythmix</p>
+              <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: "rgba(240,170,80,0.9)" }}>Create Rthmix</p>
               <button onClick={() => setViewMode("home")} className="text-[10px] uppercase tracking-widest text-white/35 touch-manipulation active:text-white/60 transition-colors">
                 Back
               </button>
@@ -395,7 +395,7 @@ export default function RthmixPage() {
               Turn a topic into a new album.
             </h2>
             <p className="text-sm text-white/45 leading-relaxed mt-3">
-              Use a suggestion if one sparks something, or speak the thing you want transformed into a Rhythmix.
+              Use a suggestion if one sparks something, or speak the thing you want transformed into a Rthmix.
             </p>
             <div className="mt-5 flex flex-col gap-3">
               <button
@@ -407,7 +407,7 @@ export default function RthmixPage() {
                   borderColor: voicePhase === "recording" ? "rgba(252,165,165,0.30)" : "rgba(255,255,255,0.10)",
                   color: "rgba(255,245,230,0.92)",
                 }}
-                aria-label={voicePhase === "recording" ? "Stop recording Rhythmix topic" : "Record Rhythmix topic"}
+                aria-label={voicePhase === "recording" ? "Stop recording Rthmix topic" : "Record Rthmix topic"}
               >
                 <span
                   className="w-16 h-16 rounded-full flex items-center justify-center"
@@ -420,7 +420,7 @@ export default function RthmixPage() {
                 </span>
                 <span className="text-sm font-medium text-white/82">
                   {building
-                    ? "Building your Rhythmix"
+                    ? "Building your Rthmix"
                     : voicePhase === "recording"
                       ? "Tap to finish"
                       : voicePhase === "transcribing"
@@ -428,12 +428,12 @@ export default function RthmixPage() {
                         : "Say the topic"}
                 </span>
                 <span className="text-xs text-white/38">
-                  {voicePhase === "recording" ? "Rhythmix will build from what you say." : "One sentence is enough."}
+                  {voicePhase === "recording" ? "Rthmix will build from what you say." : "One sentence is enough."}
                 </span>
               </button>
 
               <div>
-                <p className="text-[10px] uppercase tracking-[0.24em] text-white/30 mb-2">Suggested Rhythmixes</p>
+                <p className="text-[10px] uppercase tracking-[0.24em] text-white/30 mb-2">Suggested Rthmixes</p>
                 <div className="flex flex-wrap gap-2">
                   {RTHMIX_SUGGESTIONS.map((suggestion) => (
                     <button
@@ -465,7 +465,7 @@ export default function RthmixPage() {
                 className="inline-flex items-center justify-center rounded-full border px-4 py-3 text-[11px] uppercase tracking-widest touch-manipulation active:scale-[0.98] transition disabled:opacity-40 disabled:active:scale-100"
                 style={{ background: "rgba(255,255,255,0.055)", borderColor: "rgba(240,170,80,0.24)", color: "rgba(255,235,205,0.92)" }}
               >
-                {building ? "Building Rhythmix..." : "Build Rhythmix"}
+                {building ? "Building Rthmix..." : "Build Rthmix"}
               </button>
               {buildError && <p className="text-xs text-red-200/70">{buildError}</p>}
               {queuedPlan && (
@@ -482,8 +482,8 @@ export default function RthmixPage() {
           <>
             <div className="flex items-center justify-between gap-3 px-1">
               <div>
-                <p className="text-[10px] uppercase tracking-[0.28em] text-white/35">Rhythmix collection</p>
-                <p className="text-xs text-white/35 leading-relaxed mt-1">Listen through existing Rhythmixes and browse the album tracks.</p>
+                <p className="text-[10px] uppercase tracking-[0.28em] text-white/35">Rthmix collection</p>
+                <p className="text-xs text-white/35 leading-relaxed mt-1">Listen through existing Rthmixes and browse the album tracks.</p>
               </div>
               <button onClick={() => setViewMode("home")} className="text-[10px] uppercase tracking-widest text-white/35 touch-manipulation active:text-white/60 transition-colors">
                 Back
@@ -492,7 +492,7 @@ export default function RthmixPage() {
 
             {rthmixAlbums.length > 0 ? (
               <RthmixSection
-                label="Your Rhythmixes"
+                label="Your Rthmixes"
                 intro="Generated albums appear here as each track completes. Start from track zero, then move through the ordered unlocks."
               >
                 {rthmixAlbums.map((album) => (
@@ -519,7 +519,7 @@ export default function RthmixPage() {
               </RthmixSection>
             ) : (
               <div className="rounded-2xl border px-5 py-4" style={{ background: "rgba(255,255,255,0.025)", borderColor: "rgba(255,255,255,0.07)" }}>
-                <p className="text-sm text-white/68">No generated Rhythmixes yet.</p>
+                <p className="text-sm text-white/68">No generated Rthmixes yet.</p>
                 <p className="text-xs text-white/35 leading-relaxed mt-1">Create one from a suggested topic or by speaking your own idea.</p>
                 <button
                   onClick={() => setViewMode("create")}
@@ -532,7 +532,7 @@ export default function RthmixPage() {
             )}
 
             <RthmixSection
-              label="Memory Rhythmixes"
+              label="Memory Rthmixes"
               intro="Kept separate because these are retrieval chains: one memory hook per track. Each track loops until it feels ready, then you skip forward."
             >
               <div className="rounded-2xl border overflow-hidden" style={{ background: "rgba(139,92,246,0.06)", borderColor: "rgba(139,92,246,0.22)" }}>

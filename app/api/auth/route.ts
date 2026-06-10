@@ -2,16 +2,43 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "redis";
 import { codeToUid, roleForCode } from "@/app/lib/access";
 
+interface BetaCodeEntry {
+  email?: string;
+  firstName?: string;
+}
+
 /** Check Redis for a beta-issued code (from /api/request-access). */
-async function isBetaCode(code: string): Promise<boolean> {
-  if (!process.env.REDIS_URL) return false;
+async function getBetaCodeEntry(code: string): Promise<BetaCodeEntry | null> {
+  if (!process.env.REDIS_URL) return null;
   const client = createClient({ url: process.env.REDIS_URL });
   try {
     await client.connect();
     const entry = await client.get(`beta-code:${code}`);
-    return entry !== null;
+    if (!entry) return null;
+    try {
+      return JSON.parse(entry) as BetaCodeEntry;
+    } catch {
+      return {};
+    }
   } catch {
-    return false;
+    return null;
+  } finally {
+    await client.disconnect().catch(() => {});
+  }
+}
+
+async function seedNameFromBetaCode(uid: string, firstName: string) {
+  if (!process.env.REDIS_URL || !firstName.trim()) return;
+  const client = createClient({ url: process.env.REDIS_URL });
+  try {
+    await client.connect();
+    const key = `settings:${uid}`;
+    const raw = await client.get(key);
+    const current = raw ? JSON.parse(raw) : {};
+    if (typeof current.name === "string" && current.name.trim()) return;
+    await client.set(key, JSON.stringify({ ...current, name: firstName.trim().slice(0, 80) }));
+  } catch {
+    // Settings seeding is helpful, not required for login.
   } finally {
     await client.disconnect().catch(() => {});
   }
@@ -34,7 +61,8 @@ export async function POST(request: NextRequest) {
 
   // Accept env-var codes OR Redis-stored beta codes
   const isEnvCode   = validCodes.includes(password) || adminCodes.includes(password);
-  const isBeta      = isEnvCode ? false : await isBetaCode(password);
+  const betaEntry   = isEnvCode ? null : await getBetaCodeEntry(password);
+  const isBeta      = !!betaEntry;
 
   if (!isEnvCode && !isBeta) {
     return NextResponse.json({ error: "Wrong password" }, { status: 401 });
@@ -46,6 +74,9 @@ export async function POST(request: NextRequest) {
   }
 
   const uid = codeToUid(password);
+  if (isBeta && betaEntry?.firstName) {
+    await seedNameFromBetaCode(uid, betaEntry.firstName);
+  }
 
   const response = NextResponse.json({ ok: true, role: access });
 

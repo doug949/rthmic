@@ -6,6 +6,7 @@ import { buildBetaAccessEmailHtml, buildBetaAccessEmailText, makeBetaCode } from
 
 interface AccessRequestEntry {
   email: string;
+  firstName?: string;
   requestedAt?: number;
   source?: string;
 }
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
           if (!raw) return { email } satisfies AccessRequestEntry;
           try {
             const parsed = JSON.parse(raw) as AccessRequestEntry;
-            return { email: parsed.email || email, requestedAt: parsed.requestedAt, source: parsed.source };
+            return { email: parsed.email || email, firstName: parsed.firstName, requestedAt: parsed.requestedAt, source: parsed.source };
           } catch {
             return { email } satisfies AccessRequestEntry;
           }
@@ -78,18 +79,29 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const code = await withRedis(async (client) => {
+    const { code } = await withRedis(async (client) => {
+      const raw = await client.get(`access-request:${normalised}`);
+      let firstName = "";
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw) as AccessRequestEntry;
+          firstName = typeof parsed.firstName === "string" ? parsed.firstName.trim().slice(0, 80) : "";
+        } catch {
+          firstName = "";
+        }
+      }
+
       let newCode = makeBetaCode();
       if (await client.exists(`beta-code:${newCode}`)) newCode = makeBetaCode();
 
       await client
         .multi()
-        .set(`beta-code:${newCode}`, JSON.stringify({ email: normalised, createdAt: Date.now(), approvedAt: Date.now() }))
+        .set(`beta-code:${newCode}`, JSON.stringify({ email: normalised, firstName, createdAt: Date.now(), approvedAt: Date.now() }))
         .del(`access-request:${normalised}`)
         .lRem("access-requests", 0, normalised)
         .exec();
 
-      return newCode;
+      return { code: newCode, firstName };
     });
 
     if (process.env.RESEND_API_KEY) {

@@ -6,7 +6,9 @@ import { Suspense } from "react";
 
 function LoginForm() {
   const [password, setPassword] = useState("");
+  const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
+  const [website, setWebsite] = useState("");
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [requestingAccess, setRequestingAccess] = useState(false);
@@ -53,11 +55,12 @@ function LoginForm() {
     const res = await fetch("/api/request-access", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, betaAgreementAccepted }),
+      body: JSON.stringify({ firstName, email, website, betaAgreementAccepted }),
     });
 
     if (res.ok) {
       setAccessRequested(true);
+      setFirstName("");
       setEmail("");
     } else {
       let message = "Could not request access";
@@ -86,14 +89,26 @@ function LoginForm() {
           RTHMIC
         </h1>
         <p
-          className="mt-2 text-[10px] uppercase"
+          className="mt-2 text-[10px] uppercase leading-relaxed"
           style={{
-            letterSpacing: "0.32em",
+            letterSpacing: "0.18em",
             color: "rgba(201,165,90,0.58)",
           }}
         >
-          music to live by
+          Music-Powered Personal Productivity.<br />
+          An Entirely New Category
         </p>
+        <div
+          className="mt-5 rounded-2xl border px-4 py-3 text-left"
+          style={{
+            background: "rgba(201,165,90,0.07)",
+            borderColor: "rgba(201,165,90,0.22)",
+          }}
+        >
+          <p className="text-[11px] leading-relaxed text-white/58">
+            RTHMIC is a private beta. Access codes are associated with an email address and should be kept secure. Please do not share screenshots, recordings, access codes, or copy the product experience.
+          </p>
+        </div>
       </div>
 
       <form
@@ -141,13 +156,7 @@ function LoginForm() {
         {error && (
           <p className="text-xs text-red-400/80 text-center">Access code not recognised</p>
         )}
-        <label
-          className="flex gap-3 rounded-2xl border px-4 py-3 text-left"
-          style={{
-            background: "rgba(255,255,255,0.035)",
-            borderColor: betaAgreementAccepted ? "rgba(201,165,90,0.34)" : "rgba(255,255,255,0.10)",
-          }}
-        >
+        <label className="flex gap-3 rounded-2xl border px-4 py-3 text-left" style={{ background: "rgba(255,255,255,0.035)", borderColor: betaAgreementAccepted ? "rgba(201,165,90,0.34)" : "rgba(255,255,255,0.10)" }}>
           <input
             type="checkbox"
             checked={betaAgreementAccepted}
@@ -155,7 +164,7 @@ function LoginForm() {
             className="mt-0.5 h-4 w-4 flex-shrink-0 accent-[#c9a55a]"
           />
           <span className="text-xs leading-relaxed text-white/52">
-            I understand RTHMIC is a private beta. My access code is associated with my email, so I will keep it secure and not share or forward it. I won&apos;t share screenshots, recordings, or copy the product experience, and my feedback may be used to improve RTHMIC.
+            I understand the private beta terms above. My feedback may be used to improve RTHMIC.
           </span>
         </label>
         <button
@@ -174,8 +183,24 @@ function LoginForm() {
 
       <form onSubmit={requestAccess} className="w-full max-w-sm flex flex-col gap-3 mt-8">
         <p className="text-xs text-white/35 text-center leading-relaxed">
-          Need access? Enter your email and we&apos;ll be in touch.
+          Need access? Enter your details and we&apos;ll be in touch.
         </p>
+        <label className="flex flex-col gap-2">
+          <span className="text-[10px] uppercase tracking-[0.24em] text-white/38 px-1">First name</span>
+          <input
+            type="text"
+            value={firstName}
+            onChange={(e) => { setFirstName(e.target.value); setAccessRequested(false); setAccessError(""); }}
+            placeholder="First name"
+            autoComplete="given-name"
+            className="
+              w-full bg-white/[0.07] border border-white/16 rounded-2xl px-5 py-4
+              text-white placeholder-white/34 text-base tracking-wide
+              outline-none focus:bg-white/[0.10] focus:border-white/36
+              transition-all duration-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)]
+            "
+          />
+        </label>
         <label className="flex flex-col gap-2">
           <span className="text-[10px] uppercase tracking-[0.24em] text-white/38 px-1">Email</span>
           <input
@@ -192,15 +217,27 @@ function LoginForm() {
             "
           />
         </label>
+        <label className="hidden" aria-hidden="true">
+          Website
+          <input
+            tabIndex={-1}
+            autoComplete="off"
+            value={website}
+            onChange={(e) => setWebsite(e.target.value)}
+          />
+        </label>
+        <p className="rounded-2xl border px-4 py-3 text-[11px] leading-relaxed text-white/55" style={{ background: "rgba(255,255,255,0.035)", borderColor: "rgba(201,165,90,0.18)" }}>
+          If approved, your access code will be emailed to you. Please check your spam or junk folder.
+        </p>
         {accessRequested && (
-          <p className="text-xs text-white/55 text-center">Request received. We&apos;ll email you about access.</p>
+          <p className="text-xs text-white/55 text-center">Request received. If approved, we&apos;ll email your code. Please check spam too.</p>
         )}
         {accessError && (
           <p className="text-xs text-red-400/75 text-center">{accessError}</p>
         )}
         <button
           type="submit"
-          disabled={requestingAccess || !email || !betaAgreementAccepted}
+          disabled={requestingAccess || !firstName.trim() || !email || !betaAgreementAccepted}
           className="
             w-full border border-white/10 text-white/55 font-medium text-sm tracking-wide
             rounded-xl py-4

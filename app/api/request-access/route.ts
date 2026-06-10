@@ -1,7 +1,7 @@
 // /api/request-access — RTHMIC Beta Access Request
 //
 // POST — intake an email and store a pending beta access request for admin approval.
-//   Body: { email: string }
+//   Body: { firstName: string, email: string, website?: string }
 //   Returns: { ok: true } | { error: string }
 //
 // Redis schema:
@@ -36,15 +36,24 @@ async function withRedis<T>(
 // ─── Route ─────────────────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
+  let firstName: string;
   let email: string;
+  let website: string | undefined;
   let betaAgreementAccepted: boolean;
   try {
-    ({ email, betaAgreementAccepted } = await request.json());
+    ({ firstName, email, website, betaAgreementAccepted } = await request.json());
   } catch {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
   // Basic validation
+  if (website && typeof website === "string" && website.trim()) {
+    return NextResponse.json({ ok: true });
+  }
+  const cleanFirstName = typeof firstName === "string" ? firstName.trim().replace(/\s+/g, " ").slice(0, 80) : "";
+  if (!cleanFirstName) {
+    return NextResponse.json({ error: "First name required" }, { status: 400 });
+  }
   if (!email || typeof email !== "string") {
     return NextResponse.json({ error: "Email required" }, { status: 400 });
   }
@@ -67,7 +76,7 @@ export async function POST(request: NextRequest) {
       const reqKey = `beta-req:${normalised}`;
       if (await client.get(reqKey)) return;
 
-      const entry = JSON.stringify({ email: normalised, requestedAt: Date.now(), source: "login" });
+      const entry = JSON.stringify({ email: normalised, firstName: cleanFirstName, requestedAt: Date.now(), source: "login" });
       await client
         .multi()
         .set(`access-request:${normalised}`, entry)

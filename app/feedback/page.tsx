@@ -5,6 +5,7 @@ import { TransitionLink } from "@/app/components/TransitionLink";
 import { RevealBlock } from "@/app/components/RevealBlock";
 import { useSwipeBack } from "@/app/hooks/useSwipeBack";
 import { AppHeader } from "@/app/components/AppHeader";
+import { useAudio } from "@/app/contexts/AudioContext";
 
 type Phase = "idle" | "recording" | "processing" | "review" | "sending" | "done" | "error";
 
@@ -20,6 +21,7 @@ export default function FeedbackPage() {
   const [transitioning, setTransitioning] = useState(false);
   const [accessChecked, setAccessChecked] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const { stop: stopPlayback, isPlaying } = useAudio();
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -75,6 +77,7 @@ export default function FeedbackPage() {
   const startRecording = async () => {
     setErrorMsg("");
     try {
+      if (isPlaying) stopPlayback();
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       startOrb(stream);
       const mimeType = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg"]
