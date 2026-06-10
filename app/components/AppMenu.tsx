@@ -129,10 +129,10 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
           borderRight: "1px solid rgba(255,255,255,0.08)",
           paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 20px)",
           overflow: "hidden",
-          transform: open ? "translateX(0)" : "translateX(-105%)",
-          opacity: open ? 1 : 0,
+          transform: open ? "translate3d(0,0,0)" : "translate3d(-105%,0,0)",
           pointerEvents: open ? "auto" : "none",
-          transition: "transform 260ms cubic-bezier(0.16, 1, 0.3, 1), opacity 180ms ease",
+          transition: "transform 320ms cubic-bezier(0.16, 1, 0.3, 1)",
+          willChange: "transform",
         }}
       >
         <div className="px-6 py-4 border-b border-white/[0.06] flex items-center gap-3">
