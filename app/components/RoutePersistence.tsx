@@ -7,14 +7,18 @@ import {
   LAST_ROUTE_KEY,
   NAV_INTENT_KEY,
   PREVIOUS_ROUTE_KEY,
+  RELOAD_INTENT_KEY,
   RELOAD_REASON_KEY,
   currentClientRoute,
+  markReloadIntent,
   persistCurrentRoute,
+  readRecentReloadIntent,
   readPersistedRouteState,
   readRouteStack,
   recordDiagnosticEvent,
   safeGetLocalItem,
   safeGetSessionItem,
+  safeRemoveLocalItem,
   safeRemoveSessionItem,
   safeSetSessionItem,
 } from "@/app/lib/clientDiagnostics";
@@ -66,7 +70,8 @@ export default function RoutePersistence() {
     const wasReload = nav?.type === "reload";
     const route = currentRoute();
     const previousRoute = bestRouteToRestore(route);
-    const reason = safeGetSessionItem(RELOAD_REASON_KEY);
+    const reloadIntent = readRecentReloadIntent();
+    const reason = safeGetSessionItem(RELOAD_REASON_KEY) ?? reloadIntent?.reason ?? null;
     const navigationIntent = safeGetSessionItem(NAV_INTENT_KEY);
     const restoreAttemptId = previousRoute ? `${previousRoute} -> ${route}` : null;
     const previousAttempt = safeGetSessionItem(RESTORE_ATTEMPT_KEY);
@@ -94,6 +99,7 @@ export default function RoutePersistence() {
         reloadKind,
         previousRoute,
         reason,
+        reloadIntent,
         navigationType: nav?.type ?? "unknown",
         willRestore: shouldRestore,
         navigationIntent,
@@ -101,6 +107,7 @@ export default function RoutePersistence() {
         routeStack: readRouteStack(),
       });
       safeRemoveSessionItem(RELOAD_REASON_KEY);
+      safeRemoveLocalItem(RELOAD_INTENT_KEY);
     }
 
     if (wasReload && reason !== "user-clicked-update" && previousRoute && previousRoute !== route) {
@@ -143,7 +150,7 @@ export default function RoutePersistence() {
 
     const markPageHide = (event: PageTransitionEvent) => {
       if (safeGetSessionItem(RELOAD_REASON_KEY) !== "user-clicked-update") {
-        safeSetSessionItem(RELOAD_REASON_KEY, "browser-or-runtime");
+        markReloadIntent("browser-or-runtime", "pagehide", currentRoute());
       }
       snapshotRoute("pagehide");
       recordDiagnosticEvent("pagehide-detail", {

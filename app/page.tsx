@@ -7,7 +7,7 @@ import { TransitionLink } from "@/app/components/TransitionLink";
 import { useAudio } from "@/app/contexts/AudioContext";
 import { AUDIO_CACHE, keepAllOfflineEnabled, setKeepAllOffline } from "@/app/lib/offlineAudio";
 import { HOME_INTRO_ENABLED, HOME_INTRO_SEEN_KEY } from "@/app/lib/introConfig";
-import { LAST_ROUTE_KEY, RELOAD_REASON_KEY, currentClientRoute, recordDiagnosticEvent, safeSetSessionItem } from "@/app/lib/clientDiagnostics";
+import { currentClientRoute, markReloadIntent, recordDiagnosticEvent } from "@/app/lib/clientDiagnostics";
 
 const SCREEN_FADE_MS = 1800;
 const TILE_ENTER_MS = 1600;
@@ -143,8 +143,7 @@ export default function Home() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    safeSetSessionItem(RELOAD_REASON_KEY, "user-clicked-refresh");
-    safeSetSessionItem(LAST_ROUTE_KEY, currentClientRoute());
+    markReloadIntent("user-clicked-refresh", "home-refresh", currentClientRoute());
     recordDiagnosticEvent("manual-refresh-clicked");
     try {
       if ("serviceWorker" in navigator) {
@@ -156,6 +155,7 @@ export default function Home() {
         await Promise.all(keys.filter((k) => k !== AUDIO_CACHE).map((k) => caches.delete(k)));
       }
     } finally {
+      markReloadIntent("user-clicked-refresh", "home-refresh-reload", currentClientRoute());
       window.location.reload();
     }
   };

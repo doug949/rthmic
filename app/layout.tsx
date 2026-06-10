@@ -45,11 +45,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased">
+    <html lang="en" className="h-full antialiased" style={{ background: "#0d1628", colorScheme: "dark" }}>
       <head>
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
       </head>
-      <body className="min-h-full flex flex-col bg-[#0a0a0a]">
+      <body className="min-h-full flex flex-col bg-[#0d1628]" style={{ background: "#0d1628" }}>
         <PillarThemeProvider>
           <AmbientBackground />
           <Suspense fallback={null}>

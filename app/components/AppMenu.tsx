@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useAudio } from "@/app/contexts/AudioContext";
 import { AUDIO_CACHE, keepAllOfflineEnabled, setKeepAllOffline } from "@/app/lib/offlineAudio";
-import { LAST_ROUTE_KEY, RELOAD_REASON_KEY, currentClientRoute, recordDiagnosticEvent, safeSetSessionItem } from "@/app/lib/clientDiagnostics";
+import { currentClientRoute, markReloadIntent, recordDiagnosticEvent } from "@/app/lib/clientDiagnostics";
 
 interface AppMenuProps {
   open: boolean;
@@ -46,8 +46,7 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    safeSetSessionItem(RELOAD_REASON_KEY, "user-clicked-refresh");
-    safeSetSessionItem(LAST_ROUTE_KEY, currentClientRoute());
+    markReloadIntent("user-clicked-refresh", "hamburger-refresh", currentClientRoute());
     recordDiagnosticEvent("manual-refresh-clicked");
     try {
       if ("serviceWorker" in navigator) {
@@ -59,6 +58,7 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
         await Promise.all(keys.filter((k) => k !== AUDIO_CACHE).map((k) => caches.delete(k)));
       }
     } finally {
+      markReloadIntent("user-clicked-refresh", "hamburger-refresh-reload", currentClientRoute());
       window.location.reload();
     }
   };

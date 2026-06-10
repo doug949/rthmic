@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AUDIO_CACHE } from "@/app/lib/offlineAudio";
-import { LAST_ROUTE_KEY, RELOAD_REASON_KEY, SW_VERSION_KEY, currentClientRoute, recordDiagnosticEvent, safeSetLocalItem, safeSetSessionItem } from "@/app/lib/clientDiagnostics";
+import { SW_VERSION_KEY, currentClientRoute, markReloadIntent, recordDiagnosticEvent, safeSetLocalItem, safeSetSessionItem } from "@/app/lib/clientDiagnostics";
 
 const VERSION_CHECK_INTERVAL_MS = 30_000;
 
@@ -13,8 +13,7 @@ async function purgeAppCaches() {
 }
 
 function persistUpdateReloadReason() {
-  safeSetSessionItem(RELOAD_REASON_KEY, "user-clicked-update");
-  safeSetSessionItem(LAST_ROUTE_KEY, currentClientRoute());
+  markReloadIntent("user-clicked-update", "update-banner", currentClientRoute());
 }
 
 function persistServiceWorkerVersion(version: string) {
@@ -114,7 +113,7 @@ export default function ServiceWorkerRegistration() {
       navigator.serviceWorker.addEventListener("controllerchange", () => {
         recordDiagnosticEvent("service-worker-controllerchange", { updating: updatingRef.current });
         if (!updatingRef.current) return;
-        persistUpdateReloadReason();
+        markReloadIntent("user-clicked-update", "service-worker-controllerchange", currentClientRoute());
         window.location.reload();
       });
     }).catch((error) => {
@@ -182,10 +181,14 @@ export default function ServiceWorkerRegistration() {
             if (waitingWorker) {
               waitingWorker.postMessage({ type: "SKIP_WAITING" });
               window.setTimeout(() => {
-                if (updatingRef.current) window.location.reload();
+                if (updatingRef.current) {
+                  markReloadIntent("user-clicked-update", "waiting-worker-timeout", currentClientRoute());
+                  window.location.reload();
+                }
               }, 5000);
               return;
             }
+            markReloadIntent("user-clicked-update", "app-version-reload", currentClientRoute());
             window.location.reload();
           });
         }}

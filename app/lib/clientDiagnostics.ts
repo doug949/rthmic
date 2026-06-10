@@ -7,6 +7,7 @@ export const CURRENT_ROUTE_KEY = "rthmic:current-route-v1";
 export const LAST_ROUTE_KEY = "rthmic:last-route";
 export const PREVIOUS_ROUTE_KEY = "rthmic:previous-route";
 export const RELOAD_REASON_KEY = "rthmic:last-reload-reason";
+export const RELOAD_INTENT_KEY = "rthmic:last-reload-intent-v1";
 export const NAV_INTENT_KEY = "rthmic:navigation-intent";
 export const SW_VERSION_KEY = "rthmic:service-worker-version";
 
@@ -37,6 +38,15 @@ export interface DiagnosticEvent {
   serviceWorkerVersion: string;
   visibilityState: string;
   detail?: Record<string, unknown>;
+}
+
+export interface ReloadIntent {
+  reason: string;
+  source: string;
+  route: string;
+  at: string;
+  appVersion: string;
+  deploymentVersion: string;
 }
 
 export function currentClientRoute(): string {
@@ -105,6 +115,14 @@ export function safeRemoveSessionItem(key: string): void {
   }
 }
 
+export function safeRemoveLocalItem(key: string): void {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // Best-effort cleanup.
+  }
+}
+
 export function safeGetLocalItem(key: string): string | null {
   try {
     return localStorage.getItem(key);
@@ -152,6 +170,39 @@ export function getAppVersion(): string {
 
 export function getDeploymentVersion(): string {
   return process.env.NEXT_PUBLIC_RTHMIC_DEPLOYMENT ?? getAppVersion();
+}
+
+export function markReloadIntent(reason: string, source: string, route = currentClientRoute()): ReloadIntent | null {
+  try {
+    const routeForDiagnostics = sanitizeDiagnosticRoute(route) ?? "/";
+    const intent: ReloadIntent = {
+      reason,
+      source,
+      route: routeForDiagnostics,
+      at: new Date().toISOString(),
+      appVersion: getAppVersion(),
+      deploymentVersion: getDeploymentVersion(),
+    };
+    safeSetSessionItem(RELOAD_REASON_KEY, reason);
+    safeSetSessionItem(LAST_ROUTE_KEY, routeForDiagnostics);
+    safeSetLocalItem(RELOAD_INTENT_KEY, JSON.stringify(intent));
+    return intent;
+  } catch {
+    return null;
+  }
+}
+
+export function readRecentReloadIntent(maxAgeMs = 2 * 60_000): ReloadIntent | null {
+  const raw = safeGetLocalItem(RELOAD_INTENT_KEY);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as ReloadIntent;
+    const at = Date.parse(parsed.at);
+    if (!at || Date.now() - at > maxAgeMs) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
 }
 
 export function getServiceWorkerVersion(): string {
