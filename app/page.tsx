@@ -615,6 +615,7 @@ const HOME_TILES: {
   { id: "create", href: "/speak",     label: "Explore And Create",        shortLabel: "Explore And Create",     icon: <MicIcon />,     accent: "rgba(201,165,90,0.55)", image: "/images/tiles/optimized/create.webp" },
   { id: "right-now", href: "/speak?quick=1", label: "Simply Rthmic", shortLabel: "Simply Rthmic", subtitle: "Speak, get a Rthm", icon: <SituationIcon />, accent: "rgba(120,200,210,0.55)", image: "/images/tiles/optimized/in-the-moment.webp", imageScaleMobile: 1.25 },
   { id: "my-rthms", href: "/library", label: "Your Catalog",      shortLabel: "Your Catalog",   icon: <PlayIcon />,    accent: "rgba(100,140,255,0.5)", image: "/images/tiles/optimized/my-rthms.webp", scrim: 0.72 },
+  { id: "podcast", href: "/podcast", label: "RTHMIC Podcast", shortLabel: "RTHMIC Podcast", subtitle: "Episodes and featured Rthms", icon: <PodcastIcon />, accent: "rgba(80,190,190,0.5)", image: "/images/tiles/optimized/podcast.webp", scrim: 0.58 },
   { id: "bridge", href: "/bridge", label: "Rthmic Bridge", shortLabel: "Bridge", icon: <PaperPlaneIcon />, accent: "rgba(180,160,140,0.55)", image: "/images/tiles/optimized/bridge.webp", imageOnly: true, adminOnly: true },
   { id: "invite", href: "/invite", label: "Rthmic Invite", shortLabel: "Invite", icon: <InviteTileIcon />, accent: "rgba(218,185,120,0.55)", image: "/images/tiles/optimized/invite.webp", imageOnly: true, adminOnly: true },
   { id: "rthmix", href: "/rthmix",    label: "Rthmixes",                shortLabel: "Rthmixes",     icon: <CassetteIcon />, accent: "rgba(230,155,60,0.5)", image: "/images/tiles/optimized/rthmix.webp", imageOnly: true, adminOnly: true },
@@ -624,6 +625,15 @@ const HOME_TILES: {
   { id: "about", href: "/understand",label: "About RTHMIC",          shortLabel: "About",      icon: <InfoIcon />,    accent: "rgba(255,255,255,0.15)", image: "/images/tiles/optimized/about.webp" },
   { id: "studio", href: "/studio",    label: "Developer",            shortLabel: "Developer",  icon: <LockIcon />,    accent: "rgba(109,40,217,0.55)", image: "/images/tiles/optimized/feedback.webp", adminOnly: true },
 ];
+
+function PodcastIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <rect x="8" y="3" width="8" height="12" rx="4" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M8.5 21h7" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 function SituationIcon() {
   return (

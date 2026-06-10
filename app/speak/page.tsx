@@ -1417,6 +1417,16 @@ const PILLAR_GRID = [
   })),
 ];
 
+type CreateGridItem = {
+  slug: string;
+  label: string;
+  description: string;
+  accent: string;
+  icon: React.ReactNode;
+  image: string | null;
+  video: string | null;
+};
+
 // ─── ADHD-specific pillars — hidden unless adhdMode is enabled ────────────────
 
 const ADHD_PILLARS: PillarDefinition[] = [
@@ -1521,6 +1531,7 @@ const INVITE_PILLAR: PillarDefinition = {
 // ─── Pillar view ──────────────────────────────────────────────────────────────
 
 function PillarView({ onSelect, adhdCollection = false }: { onSelect: (slug: string, seed?: string) => void; adhdCollection?: boolean }) {
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({ regulate: true, grow: true, more: false });
   const grid = adhdCollection
     ? ADHD_PILLARS.map((pillar, index) => ({
         slug: pillar.slug,
@@ -1533,6 +1544,67 @@ function PillarView({ onSelect, adhdCollection = false }: { onSelect: (slug: str
       }))
     : PILLAR_GRID;
 
+  const sections = adhdCollection ? null : [
+    {
+      id: "regulate",
+      title: "Regulate with RTHMIC",
+      description: "Shift state, prepare, begin, or settle.",
+      slugs: ["mode", "mindset", "movement", "sleep"],
+    },
+    {
+      id: "grow",
+      title: "Grow with RTHMIC",
+      description: "Remember, understand, and absorb ideas.",
+      slugs: ["memory", "explain", "booksummary"],
+    },
+    {
+      id: "more",
+      title: "More with RTHMIC",
+      description: "New ways to use RTHMIC will appear here.",
+      slugs: [],
+    },
+  ];
+
+  const renderTiles = (tiles: CreateGridItem[]) => (
+    <div className="grid grid-cols-2 gap-2.5 pb-4">
+      {tiles.map((p) => (
+        <button
+          key={p.slug}
+          onClick={() => onSelect(p.slug)}
+          className="relative min-h-[178px] rounded-2xl overflow-hidden px-4 py-5 flex flex-col items-center justify-center text-center touch-manipulation active:scale-[0.985] transition-transform"
+          style={{
+            background: `linear-gradient(145deg, rgba(${p.accent},0.085) 0%, rgba(${p.accent},0.035) 42%, rgba(8,14,25,0.22) 100%)`,
+            border: `1px solid rgba(${p.accent},0.18)`,
+            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)",
+            backdropFilter: "blur(2px)",
+          }}
+          aria-label={`Create ${p.label}`}
+        >
+          {p.image && (
+            <img
+              src={p.image}
+              alt=""
+              aria-hidden="true"
+              draggable={false}
+              className="absolute inset-0 h-full w-full object-cover pointer-events-none"
+              style={{ opacity: 0.28, filter: "saturate(0.96) contrast(1.08) brightness(0.82)" }}
+            />
+          )}
+          <div className="absolute inset-0 pointer-events-none" style={{ background: `radial-gradient(circle at 50% 12%, rgba(${p.accent},0.18), transparent 52%)` }} />
+          <div className="relative flex flex-col items-center">
+            {p.icon && (
+              <span className="mb-5" style={{ transform: "scale(2.15)", transformOrigin: "center", color: `rgb(${p.accent})` }}>
+                {p.icon}
+              </span>
+            )}
+            <p className="mt-2 text-lg font-semibold leading-tight text-white" style={{ fontFamily: "var(--font-display)" }}>{p.label}</p>
+            <p className="mt-2 min-h-[34px] text-[12px] leading-snug text-[#dfe6f2]">{p.description}</p>
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+
   return (
     <section className="flex-1 flex flex-col pb-6 overflow-y-auto">
       <RevealBlock delay={0}>
@@ -1543,63 +1615,35 @@ function PillarView({ onSelect, adhdCollection = false }: { onSelect: (slug: str
         </div>
       </RevealBlock>
 
-      <div className="flex flex-col gap-2">
-        {/* ── Pillar category grid ── */}
-        <RevealBlock delay={0}>
-          <div className="grid grid-cols-2 gap-2.5 pb-4">
-            {grid.map((p) => (
-              <button
-                key={p.slug}
-                onClick={() => onSelect(p.slug)}
-                className="relative min-h-[178px] rounded-2xl overflow-hidden px-4 py-5 flex flex-col items-center justify-center text-center touch-manipulation active:scale-[0.985] transition-transform"
-                style={{
-                  background: `linear-gradient(145deg, rgba(${p.accent},0.085) 0%, rgba(${p.accent},0.035) 42%, rgba(8,14,25,0.22) 100%)`,
-                  border: `1px solid rgba(${p.accent},0.18)`,
-                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)",
-                  backdropFilter: "blur(2px)",
-                }}
-                aria-label={`Create ${p.label}`}
-              >
-                {p.image && (
-                  <img
-                    src={p.image}
-                    alt=""
-                    aria-hidden="true"
-                    draggable={false}
-                    className="absolute inset-0 h-full w-full object-cover pointer-events-none"
-                    style={{
-                      opacity: 0.28,
-                      filter: "saturate(0.96) contrast(1.08) brightness(0.82)",
-                    }}
-                  />
-                )}
-                <div
-                  className="absolute inset-0 pointer-events-none"
-                  style={{
-                    background: `radial-gradient(circle at 50% 12%, rgba(${p.accent},0.18), transparent 52%)`,
-                  }}
-                />
-                <div className="relative flex flex-col items-center">
-                  {p.icon && (
-                    <span
-                      className="mb-5"
-                      style={{ transform: "scale(2.15)", transformOrigin: "center", color: `rgb(${p.accent})` }}
-                    >
-                      {p.icon}
-                    </span>
-                  )}
-                  <p className="mt-2 text-lg font-semibold leading-tight text-white" style={{ fontFamily: "var(--font-display)" }}>
-                    {p.label}
-                  </p>
-                  <p className="mt-2 min-h-[34px] text-[12px] leading-snug text-[#dfe6f2]">
-                    {p.description}
-                  </p>
+      <div className="flex flex-col gap-3">
+        {adhdCollection ? (
+          <RevealBlock delay={0}>{renderTiles(grid)}</RevealBlock>
+        ) : sections?.map((section) => {
+          const sectionTiles = grid.filter((pillar) => section.slugs.includes(pillar.slug));
+          const open = openSections[section.id];
+          return (
+            <RevealBlock delay={0} key={section.id}>
+              <div className="rounded-2xl overflow-hidden" style={{ background: "rgba(9,16,30,0.34)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                <button
+                  onClick={() => setOpenSections((current) => ({ ...current, [section.id]: !current[section.id] }))}
+                  className="w-full px-4 py-4 flex items-center gap-3 text-left touch-manipulation active:bg-white/[0.03] transition-colors"
+                  aria-expanded={open}
+                >
+                  <span className="flex-1">
+                    <span className="block text-sm font-semibold text-white/85">{section.title}</span>
+                    <span className="block mt-1 text-[11px] leading-snug text-white/38">{section.description}</span>
+                  </span>
+                  <span className="text-lg text-white/35 transition-transform duration-300" style={{ transform: open ? "rotate(180deg)" : "none" }}>⌄</span>
+                </button>
+                <div className="grid transition-[grid-template-rows] duration-300 ease-out" style={{ gridTemplateRows: open ? "1fr" : "0fr" }}>
+                  <div className="overflow-hidden">
+                    <div className="px-3 pt-1">{sectionTiles.length ? renderTiles(sectionTiles) : <p className="pb-5 text-center text-xs text-white/28">More categories are coming.</p>}</div>
+                  </div>
                 </div>
-              </button>
-            ))}
-          </div>
-        </RevealBlock>
-
+              </div>
+            </RevealBlock>
+          );
+        })}
       </div>
     </section>
   );
