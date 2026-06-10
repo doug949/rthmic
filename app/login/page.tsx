@@ -155,7 +155,7 @@ function LoginForm() {
             className="mt-0.5 h-4 w-4 flex-shrink-0 accent-[#c9a55a]"
           />
           <span className="text-xs leading-relaxed text-white/52">
-            I understand RTHMIC is a private beta. I won&apos;t share screenshots, recordings, access codes, or copy the product experience, and my feedback may be used to improve RTHMIC.
+            I understand RTHMIC is a private beta. My access code is associated with my email, so I will keep it secure and not share or forward it. I won&apos;t share screenshots, recordings, or copy the product experience, and my feedback may be used to improve RTHMIC.
           </span>
         </label>
         <button

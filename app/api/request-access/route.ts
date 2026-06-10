@@ -100,7 +100,8 @@ function buildEmailHtml(code: string): string {
                 Open RTHMIC and enter this code when prompted. It works on any device.
               </p>
               <p style="margin:0;font-size:13px;color:rgba(255,255,255,0.35);line-height:1.6;">
-                This code is yours to keep — it won't expire while you're using RTHMIC.
+                This code is associated with this email address. Keep it secure, and don't share or forward it.
+                It won't expire while you're using RTHMIC.
               </p>
             </td>
           </tr>
@@ -153,7 +154,8 @@ RTHMIC — Your Access Code
 Your code: ${code}
 
 Open RTHMIC and enter this code when prompted. It works on any device.
-This code is yours to keep.
+This code is associated with this email address. Keep it secure, and don't share or forward it.
+It won't expire while you're using RTHMIC.
 
 Open RTHMIC: https://rthmic.app/login
 
