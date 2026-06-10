@@ -1,12 +1,12 @@
 // /api/request-access — RTHMIC Beta Access Request
 //
 // POST — intake an email and store a pending beta access request for admin approval.
-//   Body: { firstName: string, email: string, website?: string }
+//   Body: { firstName: string, email: string, referralSource?: string, website?: string }
 //   Returns: { ok: true } | { error: string }
 //
 // Redis schema:
 //   `beta-req:{email}`       → { sentAt }           — TTL 10 min (rate-limit / dedup)
-//   `access-request:{email}` → { email, requestedAt, source } — persistent approval queue
+//   `access-request:{email}` → { email, firstName, referralSource, requestedAt, source } — persistent approval queue
 //   `access-requests`        → newest-first list of requested emails
 //
 // Required env vars:
@@ -38,10 +38,11 @@ async function withRedis<T>(
 export async function POST(request: NextRequest) {
   let firstName: string;
   let email: string;
+  let referralSource: string | undefined;
   let website: string | undefined;
   let betaAgreementAccepted: boolean;
   try {
-    ({ firstName, email, website, betaAgreementAccepted } = await request.json());
+    ({ firstName, email, referralSource, website, betaAgreementAccepted } = await request.json());
   } catch {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
@@ -54,6 +55,9 @@ export async function POST(request: NextRequest) {
   if (!cleanFirstName) {
     return NextResponse.json({ error: "First name required" }, { status: 400 });
   }
+  const cleanReferralSource = typeof referralSource === "string"
+    ? referralSource.trim().replace(/\s+/g, " ").slice(0, 240)
+    : "";
   if (!email || typeof email !== "string") {
     return NextResponse.json({ error: "Email required" }, { status: 400 });
   }
@@ -76,7 +80,7 @@ export async function POST(request: NextRequest) {
       const reqKey = `beta-req:${normalised}`;
       if (await client.get(reqKey)) return;
 
-      const entry = JSON.stringify({ email: normalised, firstName: cleanFirstName, requestedAt: Date.now(), source: "login" });
+      const entry = JSON.stringify({ email: normalised, firstName: cleanFirstName, referralSource: cleanReferralSource, requestedAt: Date.now(), source: "login" });
       await client
         .multi()
         .set(`access-request:${normalised}`, entry)

@@ -7,6 +7,7 @@ import { AmbientBackground } from "@/app/components/AmbientBackground";
 interface AccessRequestEntry {
   email: string;
   firstName?: string;
+  referralSource?: string;
   requestedAt?: number;
   source?: string;
 }
@@ -142,6 +143,11 @@ export default function AccessRequestsPage() {
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
                   <p className="text-base font-medium text-white/82 break-all">{entry.firstName ? `${entry.firstName} · ` : ""}{entry.email}</p>
+                  {entry.referralSource && (
+                    <p className="mt-2 text-sm leading-relaxed text-white/48">
+                      Found RTHMIC via: {entry.referralSource}
+                    </p>
+                  )}
                   <div className="mt-3 flex flex-wrap gap-2 text-[10px] uppercase tracking-widest">
                     <span className="rounded-full border border-[#c9a55a]/25 bg-[#c9a55a]/10 px-3 py-1 text-[#c9a55a]/80">
                       {formatRequestedAt(entry.requestedAt)}

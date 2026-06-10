@@ -7,6 +7,7 @@ import { buildBetaAccessEmailHtml, buildBetaAccessEmailText, makeBetaCode } from
 interface AccessRequestEntry {
   email: string;
   firstName?: string;
+  referralSource?: string;
   requestedAt?: number;
   source?: string;
 }
@@ -41,7 +42,13 @@ export async function GET(request: NextRequest) {
           if (!raw) return { email } satisfies AccessRequestEntry;
           try {
             const parsed = JSON.parse(raw) as AccessRequestEntry;
-            return { email: parsed.email || email, firstName: parsed.firstName, requestedAt: parsed.requestedAt, source: parsed.source };
+            return {
+              email: parsed.email || email,
+              firstName: parsed.firstName,
+              referralSource: parsed.referralSource,
+              requestedAt: parsed.requestedAt,
+              source: parsed.source,
+            };
           } catch {
             return { email } satisfies AccessRequestEntry;
           }

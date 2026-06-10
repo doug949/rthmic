@@ -8,6 +8,7 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
+  const [referralSource, setReferralSource] = useState("");
   const [website, setWebsite] = useState("");
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -55,13 +56,14 @@ function LoginForm() {
     const res = await fetch("/api/request-access", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ firstName, email, website, betaAgreementAccepted }),
+      body: JSON.stringify({ firstName, email, referralSource, website, betaAgreementAccepted }),
     });
 
     if (res.ok) {
       setAccessRequested(true);
       setFirstName("");
       setEmail("");
+      setReferralSource("");
     } else {
       let message = "Could not request access";
       try {
@@ -75,7 +77,7 @@ function LoginForm() {
 
   return (
     <main className="relative z-10 min-h-screen flex flex-col items-center justify-center px-6 py-10">
-      <div className="mb-9 text-center">
+      <div className="mb-9 w-full max-w-sm text-center">
         <h1
           className="text-4xl uppercase"
           style={{
@@ -106,7 +108,7 @@ function LoginForm() {
           }}
         >
           <p className="text-[11px] leading-relaxed text-white/58">
-            RTHMIC is a private beta. Access codes are associated with an email address and should be kept secure. Please do not share screenshots, recordings, access codes, or copy the product experience.
+            RTHMIC is a private beta. Access codes are tied to one email address. Please keep your code secure and do not share screenshots, recordings, access codes, or copy the product experience.
           </p>
         </div>
       </div>
@@ -214,6 +216,22 @@ function LoginForm() {
               text-white placeholder-white/34 text-base tracking-wide
               outline-none focus:bg-white/[0.10] focus:border-white/36
               transition-all duration-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)]
+            "
+          />
+        </label>
+        <label className="flex flex-col gap-2">
+          <span className="text-[10px] uppercase tracking-[0.24em] text-white/38 px-1">Where did you find RTHMIC?</span>
+          <textarea
+            value={referralSource}
+            onChange={(e) => { setReferralSource(e.target.value); setAccessRequested(false); setAccessError(""); }}
+            placeholder="Friend, ADHD event, shared Rthm, LinkedIn, or anything useful..."
+            rows={3}
+            className="
+              w-full bg-white/[0.07] border border-white/16 rounded-2xl px-5 py-4
+              text-white placeholder-white/34 text-base tracking-wide
+              outline-none focus:bg-white/[0.10] focus:border-white/36
+              transition-all duration-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)]
+              resize-none leading-relaxed
             "
           />
         </label>
