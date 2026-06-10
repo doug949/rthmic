@@ -95,6 +95,16 @@ html, body {
   color: #ededed;
   font-family: var(--rthmic-font-sans);
   overscroll-behavior-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 .overflow-y-auto,
@@ -102,6 +112,8 @@ html, body {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: auto;
   scroll-behavior: smooth;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 /* ─── Accordion open / close ─────────────────────────────────────────────── */

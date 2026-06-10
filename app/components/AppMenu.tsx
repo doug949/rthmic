@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
+import { useAudio } from "@/app/contexts/AudioContext";
 import { AUDIO_CACHE, keepAllOfflineEnabled, setKeepAllOffline } from "@/app/lib/offlineAudio";
 import { LAST_ROUTE_KEY, RELOAD_REASON_KEY, currentClientRoute, recordDiagnosticEvent, safeSetSessionItem } from "@/app/lib/clientDiagnostics";
 
@@ -13,7 +14,8 @@ interface AppMenuProps {
 
 export function AppMenu({ open, onClose }: AppMenuProps) {
   const router = useRouter();
-  const [shouldRender, setShouldRender] = useState(open);
+  const { currentTrackId, currentTitle, openPlayer } = useAudio();
+  const [shouldRender, setShouldRender] = useState(false);
   const [userCode, setUserCode] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -33,14 +35,7 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
       .catch(() => setIsAdmin(false));
   }, [open]);
 
-  useEffect(() => {
-    if (open) {
-      setShouldRender(true);
-      return;
-    }
-    const timeout = setTimeout(() => setShouldRender(false), 260);
-    return () => clearTimeout(timeout);
-  }, [open]);
+  useEffect(() => setShouldRender(true), []);
 
   if (!shouldRender) return null;
 
@@ -136,15 +131,35 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
           overflow: "hidden",
           transform: open ? "translateX(0)" : "translateX(-105%)",
           opacity: open ? 1 : 0,
+          pointerEvents: open ? "auto" : "none",
           transition: "transform 260ms cubic-bezier(0.16, 1, 0.3, 1), opacity 180ms ease",
         }}
       >
-        <div className="flex justify-center pt-1 pb-1"><div className="w-10 h-1 rounded-full bg-white/15" /></div>
-        <div className="px-6 py-4 border-b border-white/[0.06]">
-          <p className="text-[10px] text-white/25 uppercase tracking-widest mb-0.5">Signed in as</p>
-          <p className="text-sm text-white/60 font-medium tracking-wide">{userCode || "RTHMIC"}</p>
+        <div className="px-6 py-4 border-b border-white/[0.06] flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] text-white/25 uppercase tracking-widest mb-0.5">Signed in as</p>
+            <p className="text-sm text-white/60 font-medium tracking-wide truncate">{userCode || "RTHMIC"}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-11 h-11 flex items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.035] touch-manipulation active:bg-white/[0.08] transition-colors"
+            aria-label="Close menu"
+          >
+            <span className="text-xl leading-none text-white/48">×</span>
+          </button>
         </div>
         <div className="flex-1 min-h-0 overflow-y-auto flex flex-col px-4 pt-3 gap-2" style={{ WebkitOverflowScrolling: "touch", overscrollBehaviorY: "auto" }}>
+          {currentTrackId && (
+            <MenuRow
+              icon="▶"
+              title="Now Playing"
+              detail={currentTitle || "Return to the current Rthm"}
+              onClick={() => {
+                onClose();
+                openPlayer();
+              }}
+            />
+          )}
           {isAdmin && (
             <>
               <MenuRow icon="◉" title="Record Feedback" detail="Open the private voice feedback recorder" onClick={() => go("/feedback")} />

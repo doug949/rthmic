@@ -1501,8 +1501,8 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
                     draggable={false}
                     className="absolute inset-0 h-full w-full object-cover pointer-events-none"
                     style={{
-                      opacity: 0.32,
-                      filter: "saturate(0.74) contrast(1.04) brightness(0.72)",
+                      opacity: 0.44,
+                      filter: "saturate(0.96) contrast(1.08) brightness(0.82)",
                     }}
                   />
                 )}
@@ -1510,7 +1510,7 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
                   <div
                     className="absolute inset-0 pointer-events-none"
                     style={{
-                      background: `linear-gradient(180deg, rgba(8,14,25,0.20) 0%, rgba(8,14,25,0.46) 62%, rgba(8,14,25,0.62) 100%)`,
+                      background: `linear-gradient(180deg, rgba(8,14,25,0.12) 0%, rgba(8,14,25,0.34) 62%, rgba(8,14,25,0.50) 100%)`,
                     }}
                   />
                 )}

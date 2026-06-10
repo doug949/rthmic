@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { TransitionLink } from "@/app/components/TransitionLink";
+import { useAudio } from "@/app/contexts/AudioContext";
 import { AUDIO_CACHE, keepAllOfflineEnabled, setKeepAllOffline } from "@/app/lib/offlineAudio";
 import { HOME_INTRO_ENABLED, HOME_INTRO_SEEN_KEY } from "@/app/lib/introConfig";
 import { LAST_ROUTE_KEY, RELOAD_REASON_KEY, currentClientRoute, recordDiagnosticEvent, safeSetSessionItem } from "@/app/lib/clientDiagnostics";
@@ -31,6 +32,7 @@ function preloadImage(src: string): Promise<void> {
 
 export default function Home() {
   const router = useRouter();
+  const { currentTrackId, currentTitle, openPlayer } = useAudio();
   const [userCode, setUserCode] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [userName, setUserName] = useState("");
@@ -77,14 +79,7 @@ export default function Home() {
       .catch(() => {});
   }, []);
 
-  useEffect(() => {
-    if (open) {
-      setMenuShouldRender(true);
-      return;
-    }
-    const timeout = setTimeout(() => setMenuShouldRender(false), 260);
-    return () => clearTimeout(timeout);
-  }, [open]);
+  useEffect(() => setMenuShouldRender(true), []);
 
   useEffect(() => {
     if (!HOME_INTRO_ENABLED || sessionStorage.getItem(HOME_INTRO_SEEN_KEY)) {
@@ -291,34 +286,37 @@ export default function Home() {
         )}
 
         {/* Hamburger — fixed bottom left */}
-        <button
-          onClick={() => setOpen((value) => !value)}
-          className="fixed left-5 touch-manipulation flex flex-col items-center justify-center rounded-full active:bg-white/[0.06] transition-colors"
-          style={{
-            bottom: "calc(env(safe-area-inset-bottom, 0px) + 18px)",
-            width: 48,
-            height: 48,
-            gap: 4,
-            opacity: 0.7,
-            background: "rgba(13,22,40,0.42)",
-            border: "1px solid rgba(255,255,255,0.08)",
-            zIndex: open ? 60 : 40,
-          }}
-          aria-label={open ? "Close menu" : "Menu"}
-        >
-          {[0, 1, 2].map((i) => (
-            <span
-              key={i}
-              style={{
-                display: "block",
-                width: i === 1 ? 12 : 16,
-                height: 1.5,
-                borderRadius: 1,
-                background: "rgba(255,255,255,0.8)",
-              }}
-            />
-          ))}
-        </button>
+        {menuShouldRender && createPortal(
+          <button
+            onClick={() => setOpen((value) => !value)}
+            className="fixed left-5 touch-manipulation flex flex-col items-center justify-center rounded-full active:bg-white/[0.06] transition-colors"
+            style={{
+              bottom: "calc(env(safe-area-inset-bottom, 0px) + 18px)",
+              width: 48,
+              height: 48,
+              gap: 4,
+              opacity: 0.7,
+              background: "rgba(13,22,40,0.42)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              zIndex: open ? 60 : 40,
+            }}
+            aria-label={open ? "Close menu" : "Menu"}
+          >
+            {[0, 1, 2].map((i) => (
+              <span
+                key={i}
+                style={{
+                  display: "block",
+                  width: i === 1 ? 12 : 16,
+                  height: 1.5,
+                  borderRadius: 1,
+                  background: "rgba(255,255,255,0.8)",
+                }}
+              />
+            ))}
+          </button>,
+          document.body,
+        )}
       </header>
 
       <section className="flex-1 flex flex-col pb-6 mt-1">
@@ -400,17 +398,39 @@ export default function Home() {
               overflow: "hidden",
               transform: open ? "translateX(0)" : "translateX(-105%)",
               opacity: open ? 1 : 0,
+              pointerEvents: open ? "auto" : "none",
               transition: "transform 260ms cubic-bezier(0.16, 1, 0.3, 1), opacity 180ms ease",
             }}
           >
-            <div className="flex justify-center pt-1 pb-1">
-              <div className="w-10 h-1 rounded-full bg-white/15" />
-            </div>
-            <div className="px-6 py-4 border-b border-white/[0.06]">
-              <p className="text-[10px] text-white/25 uppercase tracking-widest mb-0.5">Signed in as</p>
-              <p className="text-sm text-white/60 font-medium tracking-wide">{userCode}</p>
+            <div className="px-6 py-4 border-b border-white/[0.06] flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] text-white/25 uppercase tracking-widest mb-0.5">Signed in as</p>
+                <p className="text-sm text-white/60 font-medium tracking-wide truncate">{userCode}</p>
+              </div>
+              <button
+                onClick={() => setOpen(false)}
+                className="w-11 h-11 flex items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.035] touch-manipulation active:bg-white/[0.08] transition-colors"
+                aria-label="Close menu"
+              >
+                <span className="text-xl leading-none text-white/48">×</span>
+              </button>
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto flex flex-col px-4 pt-3 gap-2" style={{ WebkitOverflowScrolling: "touch", overscrollBehaviorY: "auto" }}>
+              {currentTrackId && (
+                <button
+                  onClick={() => {
+                    setOpen(false);
+                    openPlayer();
+                  }}
+                  className="w-full flex items-center gap-4 px-4 py-4 rounded-xl touch-manipulation active:bg-white/[0.04] transition-colors text-left"
+                >
+                  <span className="text-white/35 text-lg leading-none">▶</span>
+                  <div>
+                    <p className="text-sm text-white/70 font-medium">Now Playing</p>
+                    <p className="text-xs text-white/30 mt-0.5">{currentTitle || "Return to the current Rthm"}</p>
+                  </div>
+                </button>
+              )}
               {isAdmin && (
                 <>
                   <button

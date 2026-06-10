@@ -15,7 +15,8 @@
  *    pass onBack={null} so Back is greyed out and unresponsive.
  */
 
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { transitionTo } from "@/app/lib/pageTransition";
 import { AppMenu } from "@/app/components/AppMenu";
@@ -41,6 +42,9 @@ interface AppHeaderProps {
 export function AppHeader({ backLabel = "← Back", onBack, title, titleIcon }: AppHeaderProps) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   const handleBack = useCallback(() => {
     if (onBack === null) return;        // disabled — do nothing
@@ -93,24 +97,27 @@ export function AppHeader({ backLabel = "← Back", onBack, title, titleIcon }: 
           <span className="text-sm uppercase tracking-widest leading-none">Home</span>
         </button>
       </div>
-      <button
-        onClick={() => setMenuOpen((open) => !open)}
-        className="fixed left-5 flex flex-col items-center justify-center h-12 w-12 rounded-full touch-manipulation active:bg-white/[0.06] transition-colors"
-        style={{
-          bottom: "calc(env(safe-area-inset-bottom, 0px) + 18px)",
-          gap: 4,
-          color: "rgba(255,255,255,0.48)",
-          background: "rgba(13,22,40,0.42)",
-          border: "1px solid rgba(255,255,255,0.08)",
-          zIndex: menuOpen ? 60 : 40,
-        }}
-        aria-label={menuOpen ? "Close menu" : "Menu"}
-        title="Menu"
-      >
-        {[0, 1, 2].map((i) => (
-          <span key={i} style={{ width: i === 1 ? 13 : 17, height: 1.5, borderRadius: 1, background: "currentColor" }} />
-        ))}
-      </button>
+      {mounted && createPortal(
+        <button
+          onClick={() => setMenuOpen((open) => !open)}
+          className="fixed left-5 flex flex-col items-center justify-center h-12 w-12 rounded-full touch-manipulation active:bg-white/[0.06] transition-colors"
+          style={{
+            bottom: "calc(env(safe-area-inset-bottom, 0px) + 18px)",
+            gap: 4,
+            color: "rgba(255,255,255,0.48)",
+            background: "rgba(13,22,40,0.42)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            zIndex: menuOpen ? 60 : 40,
+          }}
+          aria-label={menuOpen ? "Close menu" : "Menu"}
+          title="Menu"
+        >
+          {[0, 1, 2].map((i) => (
+            <span key={i} style={{ width: i === 1 ? 13 : 17, height: 1.5, borderRadius: 1, background: "currentColor" }} />
+          ))}
+        </button>,
+        document.body,
+      )}
       <AppMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
     </header>
   );
