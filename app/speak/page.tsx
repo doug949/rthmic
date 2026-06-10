@@ -20,6 +20,7 @@ import { clearInterpretationDraft, readInterpretationDraft, saveInterpretationDr
 import { titleCaseStyle, toTitleCase } from "@/app/lib/styleText";
 import { RecordFlipIcon } from "@/app/components/RecordFlipIcon";
 import { PaperPlaneIcon } from "@/app/components/PaperPlaneIcon";
+import { recordDiagnosticEvent } from "@/app/lib/clientDiagnostics";
 
 type Phase = "module" | "priming" | "idle" | "recording" | "understanding" | "confirming" | "genre" | "queued";
 
@@ -344,6 +345,8 @@ export default function SpeakPage() {
 
   // MediaRecorder
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const activeStreamRef = useRef<MediaStream | null>(null);
+  const understandAbortRef = useRef<AbortController | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const mimeTypeRef = useRef<string>("");
   const autoStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -465,11 +468,30 @@ export default function SpeakPage() {
     setRecordingSeconds(0);
   }, []);
 
+  const discardRecordingResources = useCallback(() => {
+    clearRecordingTimers();
+    const recorder = mediaRecorderRef.current;
+    if (recorder) {
+      recorder.ondataavailable = null;
+      recorder.onstop = null;
+      if (recorder.state === "recording") {
+        try { recorder.stop(); } catch { /* already stopping */ }
+      }
+    }
+    activeStreamRef.current?.getTracks().forEach((track) => track.stop());
+    activeStreamRef.current = null;
+    mediaRecorderRef.current = null;
+    chunksRef.current = [];
+    mimeTypeRef.current = "";
+    cleanupWebAudio();
+  }, [clearRecordingTimers, cleanupWebAudio]);
+
   const startRecording = useCallback(async () => {
     setErrorMsg("");
     setWasAutoStopped(false);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      activeStreamRef.current = stream;
 
       // iOS-safe MediaRecorder creation.
       // Use a low bitrate (32 kbps) so a 5-min recording stays well under 1.5 MB,
@@ -519,11 +541,16 @@ export default function SpeakPage() {
       recorder.onstop = async () => {
         clearRecordingTimers();
         stream.getTracks().forEach((t) => t.stop());
+        activeStreamRef.current = null;
         cleanupWebAudio();
 
         // Use the recorder's actual mimeType at stop-time in case iOS updated it after start()
         const actualMime = (mediaRecorderRef.current?.mimeType || mimeTypeRef.current || "audio/mp4").trim() || "audio/mp4";
         const blob = new Blob(chunksRef.current, { type: actualMime });
+        chunksRef.current = [];
+        mediaRecorderRef.current = null;
+        recorder.ondataavailable = null;
+        recorder.onstop = null;
 
         if (blob.size === 0) {
           setErrorMsg("No audio captured — please try again.");
@@ -570,6 +597,7 @@ export default function SpeakPage() {
       }, MAX_RECORDING_SECONDS * 1000);
 
     } catch (e) {
+      discardRecordingResources();
       const raw = e instanceof Error ? e.message : String(e);
       const friendly = /not supported|not allowed|denied|permission/i.test(raw)
         ? "Microphone access denied — please allow microphone access and try again."
@@ -577,7 +605,7 @@ export default function SpeakPage() {
       setErrorMsg(friendly);
       setPhase("idle");
     }
-  }, [cleanupWebAudio, startOrbAnimation, clearRecordingTimers]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cleanupWebAudio, startOrbAnimation, clearRecordingTimers, discardRecordingResources]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const stopRecording = useCallback(() => {
     clearRecordingTimers();
@@ -592,6 +620,9 @@ export default function SpeakPage() {
   const runUnderstand = async (audio: Blob, mimeOverride?: string) => {
     setPhase("understanding");
     setErrorMsg("");
+    understandAbortRef.current?.abort();
+    const controller = new AbortController();
+    understandAbortRef.current = controller;
     try {
       const mime = mimeOverride || mimeTypeRef.current || "audio/mp4";
       const ext = mime.includes("mp4") ? "mp4" : "webm";
@@ -613,7 +644,7 @@ export default function SpeakPage() {
         form.append("pillar", pillarAtRecordTime);
       }
 
-      const res = await fetch("/api/understand", { method: "POST", body: form });
+      const res = await fetch("/api/understand", { method: "POST", body: form, signal: controller.signal });
       if (!res.ok) {
         let errMsg = "Understanding failed";
         try { const err = await res.json(); errMsg = err.error || errMsg; } catch { /* non-JSON body */ }
@@ -633,6 +664,7 @@ export default function SpeakPage() {
       const skipConfirm = shouldSkipConfirmation(pillarAtRecordTime);
       setPhase(skipConfirm ? "genre" : "confirming");
     } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") return;
       const raw = e instanceof Error ? e.message : String(e);
       // Replace raw WebKit / browser errors with friendly messages
       const friendly = /string did not match|expected pattern/i.test(raw)
@@ -640,6 +672,8 @@ export default function SpeakPage() {
         : raw || "Something went wrong";
       setErrorMsg(friendly);
       setPhase("idle");
+    } finally {
+      if (understandAbortRef.current === controller) understandAbortRef.current = null;
     }
   };
 
@@ -785,7 +819,10 @@ export default function SpeakPage() {
   // ─── Reset ────────────────────────────────────────────────────────────────
 
   const reset = useCallback(() => {
-    clearRecordingTimers();
+    recordDiagnosticEvent("create-flow-discarded", { phase, hadInterpretation: !!understandResult });
+    understandAbortRef.current?.abort();
+    understandAbortRef.current = null;
+    discardRecordingResources();
     stopAudio();
     clearGeneration();
     setPhase("module");
@@ -797,7 +834,7 @@ export default function SpeakPage() {
     setSongStatus({});
     setIsDedication(false);
     allTranscriptsRef.current = [];
-  }, [clearRecordingTimers, stopAudio, clearGeneration]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [phase, understandResult, discardRecordingResources, stopAudio, clearGeneration]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (draftLoadedRef.current) return;
@@ -840,18 +877,14 @@ export default function SpeakPage() {
         break;
       case "recording": {
         // Discard the in-progress recording without processing it
-        clearRecordingTimers();
-        const rec = mediaRecorderRef.current;
-        if (rec && rec.state === "recording") {
-          rec.ondataavailable = null;
-          rec.onstop = () => {};
-          rec.stop();
-        }
-        cleanupWebAudio();
+        discardRecordingResources();
         setPhase("idle");
         break;
       }
       case "understanding":
+        understandAbortRef.current?.abort();
+        understandAbortRef.current = null;
+        discardRecordingResources();
         navigateTo("/", router);
         break;
       case "confirming":
@@ -861,7 +894,7 @@ export default function SpeakPage() {
         goToPhase("confirming");
         break;
     }
-  }, [phase, genPhase, reset, goToPhase, returnToModule, clearRecordingTimers, cleanupWebAudio, router]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [phase, genPhase, reset, goToPhase, returnToModule, discardRecordingResources, router]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Paste lyrics bypass ──────────────────────────────────────────────────
   //
@@ -957,10 +990,10 @@ export default function SpeakPage() {
 
   useEffect(() => {
     return () => {
-      clearRecordingTimers();
-      cleanupWebAudio();
+      understandAbortRef.current?.abort();
+      discardRecordingResources();
     };
-  }, [cleanupWebAudio, clearRecordingTimers]);
+  }, [discardRecordingResources]);
 
   const visibleSongs = genSongs.filter((s) => songStatus[s.id] !== "deleted");
 
