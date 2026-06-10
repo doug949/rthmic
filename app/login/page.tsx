@@ -4,6 +4,8 @@ import { useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
+const LOGIN_VIDEO_SRC = "https://cdn.pixabay.com/video/2021/02/16/65390-514139029_large.mp4";
+
 function LoginForm() {
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -76,7 +78,37 @@ function LoginForm() {
   }
 
   return (
-    <main className="relative z-10 min-h-screen flex flex-col items-center justify-center px-6 py-10">
+    <main className="relative min-h-screen overflow-hidden flex flex-col items-center justify-center px-6 py-10">
+      <video
+        className="absolute inset-0 h-full w-full object-cover"
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="metadata"
+        aria-hidden="true"
+        style={{
+          filter: "saturate(0.82) contrast(1.08) brightness(0.54)",
+          opacity: 0.68,
+        }}
+      >
+        <source src={LOGIN_VIDEO_SRC} type="video/mp4" />
+      </video>
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(4,10,20,0.84) 0%, rgba(7,13,25,0.74) 44%, rgba(4,9,18,0.92) 100%)",
+        }}
+      />
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(circle at 50% 14%, rgba(201,165,90,0.18), transparent 32%), radial-gradient(circle at 42% 82%, rgba(70,205,235,0.10), transparent 36%)",
+        }}
+      />
+      <div className="relative z-10 flex w-full flex-col items-center">
       <div className="mb-9 w-full max-w-sm text-center">
         <h1
           className="text-4xl uppercase"
@@ -271,6 +303,7 @@ function LoginForm() {
           </p>
         )}
       </form>
+      </div>
     </main>
   );
 }
