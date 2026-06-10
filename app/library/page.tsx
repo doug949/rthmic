@@ -29,7 +29,6 @@ interface QueueJob {
 export default function CatalogPage() {
   const [rhythms, setRhythms]                 = useState<SavedRhythm[]>([]);
   const [queueJobs, setQueueJobs]             = useState<QueueJob[]>([]);
-  const [isAdmin, setIsAdmin]                 = useState(false);
   const [newRthmsOpen, setNewRthmsOpen]       = useState(false);
   const [myRthmsOpen, setMyRthmsOpen]         = useState(false);
   const [myFavouritesOpen, setMyFavouritesOpen] = useState(false);
@@ -65,10 +64,6 @@ const [clearingQueue, setClearingQueue]     = useState(false);
   useEffect(() => {
     fetchCounts();
     fetchQueueJobs();
-    fetch("/api/settings")
-      .then((res) => res.json())
-      .then((data) => setIsAdmin(!!data.access?.isAdmin))
-      .catch(() => setIsAdmin(false));
     const pollId = setInterval(() => { fetchQueueJobs(); fetchCounts(); }, 15_000);
     return () => clearInterval(pollId);
   }, [fetchCounts, fetchQueueJobs]);
@@ -104,6 +99,9 @@ const [clearingQueue, setClearingQueue]     = useState(false);
     makePeriodTone(212, 34, 48),
     makePeriodTone(212, 18, 44),
   ];
+  const myRthmsTone = makePeriodTone(212, 62, 52);
+  const libraryTone = makePeriodTone(174, 54, 46);
+  const archiveTone = makePeriodTone(338, 42, 52);
 
   return (
     <main
@@ -220,6 +218,7 @@ const [clearingQueue, setClearingQueue]     = useState(false);
             count={myRthmsCount || undefined}
             open={myRthmsOpen}
             onToggle={() => setMyRthmsOpen((o) => !o)}
+            tone={myRthmsTone}
           />
           <AnimatedAccordion open={myRthmsOpen}>
             <SubNavCard href="/library/my-rthms?period=today" icon={<TodayIcon />}  label="Last 24 Hours" detail={todayCount > 0 ? `${todayCount} Rthms` : "None in the last 24 hours"} tone={myRthmsTones[0]} />
@@ -255,9 +254,10 @@ const [clearingQueue, setClearingQueue]     = useState(false);
             description="Hand-curated Rthms from the RTHMIC team."
             open={rthmicLibraryOpen}
             onToggle={() => setRthmicLibraryOpen((o) => !o)}
+            tone={libraryTone}
           />
           <AnimatedAccordion open={rthmicLibraryOpen}>
-            <SubNavCard href="/explore" icon={<ExploreAllIcon />} label="Explore" detail="20 hand-selected Rthms" />
+            <SubNavCard href="/explore" icon={<ExploreAllIcon />} label="Explore" detail="20 hand-selected Rthms" tone={libraryTone} />
           </AnimatedAccordion>
         </div>
 
@@ -271,7 +271,7 @@ const [clearingQueue, setClearingQueue]     = useState(false);
             count={archiveCount || undefined}
             open={archiveOpen}
             onToggle={() => setArchiveOpen((o) => !o)}
-            dim
+            tone={archiveTone}
           />
           <AnimatedAccordion open={archiveOpen}>
             <SubNavCard
@@ -279,30 +279,10 @@ const [clearingQueue, setClearingQueue]     = useState(false);
               icon={<ArchiveIcon />}
               label="Archived Rthms"
               detail={archiveCount > 0 ? `${archiveCount} kept` : "Empty"}
+              tone={archiveTone}
             />
           </AnimatedAccordion>
         </div>
-
-        {/* ── Generation Log ────────────────────────────────────────────────── */}
-        {isAdmin && (
-          <TransitionLink
-            href="/library/log"
-            className="flex items-center gap-4 px-5 py-4 rounded-2xl border touch-manipulation active:scale-[0.985] transition-all"
-            style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.06)" }}
-          >
-            <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
-              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
-              <span style={{ color: "rgba(255,255,255,0.3)" }}><GenLogIcon /></span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <h2 className="text-base font-medium leading-snug" style={{ color: "rgba(255,255,255,0.55)", fontFamily: "var(--font-display)" }}>Generation Log</h2>
-              <p className="text-[11px] mt-0.5 leading-snug" style={{ color: "rgba(255,255,255,0.25)" }}>Timing and status for every Rthm you&apos;ve made</p>
-            </div>
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className="flex-shrink-0">
-              <path d="M5 3L11 8L5 13" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </TransitionLink>
-        )}
 
       </section>
     </main>
@@ -375,17 +355,6 @@ function MonthIcon() {
   );
 }
 
-function GenLogIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-      <rect x="3" y="3" width="14" height="2" rx="1" fill="currentColor" opacity="0.5" />
-      <rect x="3" y="7" width="10" height="2" rx="1" fill="currentColor" opacity="0.7" />
-      <rect x="3" y="11" width="12" height="2" rx="1" fill="currentColor" />
-      <rect x="3" y="15" width="7" height="2" rx="1" fill="currentColor" opacity="0.4" />
-    </svg>
-  );
-}
-
 // ─── Section accordion header ─────────────────────────────────────────────────
 
 interface CatalogTone {
@@ -412,7 +381,6 @@ function SectionAccordionHeader({
   open,
   onToggle,
   gold,
-  dim,
   tone,
 }: {
   icon: React.ReactNode;
@@ -422,13 +390,12 @@ function SectionAccordionHeader({
   open: boolean;
   onToggle: () => void;
   gold?: boolean;
-  dim?: boolean;
   tone?: CatalogTone;
 }) {
   const goldColor = "rgba(201,165,90,0.85)";
   const goldDim   = "rgba(201,165,90,0.45)";
-  const mainColor = tone?.color ?? (gold ? goldColor : dim ? "rgba(255,255,255,0.38)" : "rgba(255,255,255,0.88)");
-  const detailColor = tone?.detail ?? (gold ? "rgba(201,165,90,0.42)" : dim ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.38)");
+  const mainColor = tone?.color ?? (gold ? goldColor : "rgba(255,255,255,0.88)");
+  const detailColor = tone?.detail ?? (gold ? "rgba(201,165,90,0.42)" : "rgba(255,255,255,0.38)");
   const mutedColor = tone?.detail ?? (gold ? goldDim : "rgba(255,255,255,0.35)");
 
   return (
@@ -444,12 +411,10 @@ function SectionAccordionHeader({
             ? { background: tone.bg, border: `1px solid ${tone.border}` }
             : gold
             ? { background: "rgba(201,165,90,0.09)", border: "1px solid rgba(201,165,90,0.18)" }
-            : dim
-            ? { background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.05)" }
             : { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }
         }
       >
-        <span style={{ color: tone?.color ?? (gold ? goldColor : dim ? "rgba(255,255,255,0.28)" : "rgba(255,255,255,0.55)") }}>
+        <span style={{ color: tone?.color ?? (gold ? goldColor : "rgba(255,255,255,0.55)") }}>
           {icon}
         </span>
       </div>

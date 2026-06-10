@@ -302,6 +302,25 @@ export default function StudioPage() {
 
         <div className="flex flex-col gap-3">
           <p className="px-1 text-[10px] uppercase tracking-[0.3em]" style={{ color: "rgba(167,139,250,0.72)" }}>Experimental categories</p>
+          <button
+            type="button"
+            onClick={() => router.push("/reddit-adhd")}
+            className="w-full rounded-2xl border px-5 py-4 text-left touch-manipulation active:scale-[0.99] transition-transform"
+            style={{ background: "rgba(220,110,140,0.08)", borderColor: "rgba(220,110,140,0.24)" }}
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "rgba(220,110,140,0.15)", color: "rgba(245,155,180,0.9)" }}>
+                ↗
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-semibold text-white/82">ADHD Reddit Response</p>
+                  <span className="text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.34)" }}>Developer</span>
+                </div>
+                <p className="text-xs text-white/43 leading-relaxed mt-1">Turn a Reddit ADHD post and your spoken response into a direct, supportive Bridge Rthm.</p>
+              </div>
+            </div>
+          </button>
           <div className="rounded-2xl border px-5 py-4" style={{ background: "rgba(139,92,246,0.08)", borderColor: "rgba(139,92,246,0.24)" }}>
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "rgba(139,92,246,0.16)", color: "rgb(167,139,250)" }}>

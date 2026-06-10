@@ -220,3 +220,8 @@ body::-webkit-scrollbar,
   0%, 100% { transform: scaleY(0.08); opacity: 0.25; }
   50%       { transform: scaleY(1);   opacity: 1;    }
 }
+@media (max-width: 480px) {
+  img[data-mobile-scale="true"] {
+    --tile-image-scale: var(--tile-image-scale-mobile);
+  }
+}

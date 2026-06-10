@@ -8,6 +8,7 @@ import { useAudio } from "@/app/contexts/AudioContext";
 import { AUDIO_CACHE, keepAllOfflineEnabled, setKeepAllOffline } from "@/app/lib/offlineAudio";
 import { HOME_INTRO_ENABLED, HOME_INTRO_SEEN_KEY } from "@/app/lib/introConfig";
 import { currentClientRoute, markReloadIntent, recordDiagnosticEvent } from "@/app/lib/clientDiagnostics";
+import { PaperPlaneIcon } from "@/app/components/PaperPlaneIcon";
 
 const SCREEN_FADE_MS = 1800;
 const TILE_ENTER_MS = 1600;
@@ -298,7 +299,7 @@ export default function Home() {
               opacity: 0.7,
               background: "rgba(13,22,40,0.42)",
               border: "1px solid rgba(255,255,255,0.08)",
-              zIndex: open ? 60 : 40,
+              zIndex: 40,
             }}
             aria-label={open ? "Close menu" : "Menu"}
           >
@@ -385,7 +386,7 @@ export default function Home() {
             onClick={() => setOpen(false)}
           />
           <div
-            className="fixed left-0 z-50 rounded-r-2xl flex flex-col"
+            className="fixed left-0 z-[60] rounded-r-2xl flex flex-col"
             style={{
               top: 0,
               bottom: 0,
@@ -405,7 +406,9 @@ export default function Home() {
             <div className="px-6 py-4 border-b border-white/[0.06] flex items-center gap-3">
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] text-white/25 uppercase tracking-widest mb-0.5">Signed in as</p>
-                <p className="text-sm text-white/60 font-medium tracking-wide truncate">{userCode}</p>
+                <p className="text-sm text-white/60 font-medium tracking-wide truncate">
+                  {userName ? `${userName} (${userCode || "RTHMIC"})` : userCode || "RTHMIC"}
+                </p>
               </div>
               <button
                 onClick={() => setOpen(false)}
@@ -451,6 +454,16 @@ export default function Home() {
                     <div>
                       <p className="text-sm text-white/70 font-medium">Beta Requests</p>
                       <p className="text-xs text-white/30 mt-0.5">Review tester access requests</p>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => { setOpen(false); router.push("/library/log"); }}
+                    className="w-full flex items-center gap-4 px-4 py-4 rounded-xl touch-manipulation active:bg-white/[0.04] transition-colors text-left"
+                  >
+                    <span className="text-white/35 text-lg leading-none">≡</span>
+                    <div>
+                      <p className="text-sm text-white/70 font-medium">Generation Log</p>
+                      <p className="text-xs text-white/30 mt-0.5">Timing and status for every Rthm</p>
                     </div>
                   </button>
                   <button
@@ -592,6 +605,7 @@ const HOME_TILES: {
   accent: string;       // rgba for gradient tint when no image
   image?: string;
   imageScale?: number;  // scale > 1 crops in to hide white borders
+  imageScaleMobile?: number;
   scrim?: number;
   imageOnly?: boolean;
   comingSoon?: boolean;
@@ -599,14 +613,13 @@ const HOME_TILES: {
   adminPreview?: boolean;
 }[] = [
   { id: "create", href: "/speak",     label: "Explore And Create",        shortLabel: "Explore And Create",     icon: <MicIcon />,     accent: "rgba(201,165,90,0.55)", image: "/images/tiles/optimized/create.webp" },
-  { id: "right-now", href: "/speak?quick=1", label: "Simply Rthmic", shortLabel: "Simply Rthmic", subtitle: "Speak, get a Rthm", icon: <SituationIcon />, accent: "rgba(120,200,210,0.55)", image: "/images/tiles/optimized/in-the-moment.webp" },
+  { id: "right-now", href: "/speak?quick=1", label: "Simply Rthmic", shortLabel: "Simply Rthmic", subtitle: "Speak, get a Rthm", icon: <SituationIcon />, accent: "rgba(120,200,210,0.55)", image: "/images/tiles/optimized/in-the-moment.webp", imageScaleMobile: 1.25 },
   { id: "my-rthms", href: "/library", label: "Your Catalog",      shortLabel: "Your Catalog",   icon: <PlayIcon />,    accent: "rgba(100,140,255,0.5)", image: "/images/tiles/optimized/my-rthms.webp", scrim: 0.72 },
-  { id: "bridge", href: "/bridge", label: "Rthmic Bridge", shortLabel: "Bridge", icon: <BridgeTileIcon />, accent: "rgba(180,160,140,0.55)", image: "/images/tiles/optimized/bridge.webp", imageOnly: true, adminOnly: true },
+  { id: "bridge", href: "/bridge", label: "Rthmic Bridge", shortLabel: "Bridge", icon: <PaperPlaneIcon />, accent: "rgba(180,160,140,0.55)", image: "/images/tiles/optimized/bridge.webp", imageOnly: true, adminOnly: true },
   { id: "invite", href: "/invite", label: "Rthmic Invite", shortLabel: "Invite", icon: <InviteTileIcon />, accent: "rgba(218,185,120,0.55)", image: "/images/tiles/optimized/invite.webp", imageOnly: true, adminOnly: true },
   { id: "rthmix", href: "/rthmix",    label: "Rthmixes",                shortLabel: "Rthmixes",     icon: <CassetteIcon />, accent: "rgba(230,155,60,0.5)", image: "/images/tiles/optimized/rthmix.webp", imageOnly: true, adminOnly: true },
   { id: "structure", href: "/structure", label: "Menus",                 shortLabel: "Menus",      icon: <MenusIcon />,   accent: "rgba(100,195,165,0.5)", image: "/images/tiles/optimized/structure.webp", imageScale: 1.12, imageOnly: true, adminOnly: true },
   { id: "adhd", href: "/speak?collection=adhd",     label: "ADHD Collection",       shortLabel: "ADHD Collection",       icon: <BrainIcon />,   accent: "rgba(220,110,140,0.5)", image: "/images/tiles/optimized/adhd.webp", adminOnly: true },
-  { id: "reddit-adhd", href: "/reddit-adhd", label: "ADHD Reddit Response", shortLabel: "Reddit ADHD", icon: <BrainIcon />, accent: "rgba(220,110,140,0.55)", adminOnly: true },
   { id: "settings", href: "/settings",  label: "Settings and Styles",   shortLabel: "Settings + Styles", icon: <EQIcon />, accent: "rgba(160,130,220,0.5)", image: "/images/tiles/optimized/settings.webp", imageScale: 1.12 },
   { id: "about", href: "/understand",label: "About RTHMIC",          shortLabel: "About",      icon: <InfoIcon />,    accent: "rgba(255,255,255,0.15)", image: "/images/tiles/optimized/about.webp" },
   { id: "studio", href: "/studio",    label: "Developer",            shortLabel: "Developer",  icon: <LockIcon />,    accent: "rgba(109,40,217,0.55)", image: "/images/tiles/optimized/feedback.webp", adminOnly: true },
@@ -644,9 +657,11 @@ function HomeTile({ tile, reorderMode }: { tile: typeof HOME_TILES[number]; reor
           draggable={false}
           className="absolute inset-0 w-full h-full object-cover"
           style={{
-            ...(tile.imageScale ? { transform: `scale(${tile.imageScale})` } : {}),
+            transform: `scale(var(--tile-image-scale, ${tile.imageScale ?? 1}))`,
+            ...(tile.imageScaleMobile ? { "--tile-image-scale-mobile": tile.imageScaleMobile } as React.CSSProperties : {}),
             ...(tile.comingSoon ? { filter: "brightness(0.3)" } : {}),
           }}
+          data-mobile-scale={tile.imageScaleMobile ? "true" : undefined}
         />
       ) : (
         <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse at 60% 30%, ${tile.accent} 0%, transparent 70%)` }} />
@@ -693,17 +708,6 @@ function LockIcon() {
       <rect x="5" y="10" width="14" height="10" rx="2.2" stroke="currentColor" strokeWidth="1.7" />
       <path d="M8.5 10V7.5A3.5 3.5 0 0 1 12 4v0a3.5 3.5 0 0 1 3.5 3.5V10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
       <path d="M12 14v2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function BridgeTileIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <path d="M4 15c2.2-4 4.9-6 8-6s5.8 2 8 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M7 15v-3M12 15V9M17 15v-3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M4 16h16" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M7 7.8c1.4-1.6 3-2.4 5-2.4s3.6.8 5 2.4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" opacity="0.65" />
     </svg>
   );
 }

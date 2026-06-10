@@ -107,7 +107,7 @@ export function AppHeader({ backLabel = "← Back", onBack, title, titleIcon }: 
             color: "rgba(255,255,255,0.48)",
             background: "rgba(13,22,40,0.42)",
             border: "1px solid rgba(255,255,255,0.08)",
-            zIndex: menuOpen ? 60 : 40,
+            zIndex: 40,
           }}
           aria-label={menuOpen ? "Close menu" : "Menu"}
           title="Menu"

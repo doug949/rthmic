@@ -19,6 +19,7 @@ import { MicIcon as HeaderMicIcon } from "@/app/components/HomeTileIcons";
 import { clearInterpretationDraft, readInterpretationDraft, saveInterpretationDraft } from "@/app/lib/interpretationDraft";
 import { titleCaseStyle, toTitleCase } from "@/app/lib/styleText";
 import { RecordFlipIcon } from "@/app/components/RecordFlipIcon";
+import { PaperPlaneIcon } from "@/app/components/PaperPlaneIcon";
 
 type Phase = "module" | "priming" | "idle" | "recording" | "understanding" | "confirming" | "genre" | "queued";
 
@@ -311,6 +312,7 @@ export default function SpeakPage() {
   const [genDurationMs, setGenDurationMs] = useState<number | null>(null);
   const [wasAutoStopped, setWasAutoStopped] = useState(false);
   const [quickMode, setQuickMode] = useState(false);
+  const [adhdCollection, setAdhdCollection] = useState(false);
   const [experiment, setExperiment] = useState<ExperimentalCreateId | null>(null);
 
   // Ref mirror of selectedPillar — updated synchronously so stale closures
@@ -910,6 +912,7 @@ export default function SpeakPage() {
     const menuSlugParam = params.get("menuSlug");
     const menuTitleParam = params.get("menuTitle");
     const quickParam = params.get("quick");
+    const collectionParam = params.get("collection");
     const experimentParam = params.get("experiment");
     const autoTextParam = params.get("autoText");
     const tagHintsParam = params.get("tagHints");
@@ -919,6 +922,7 @@ export default function SpeakPage() {
     experimentRef.current = nextExperiment;
     tagHintsRef.current = parseTagHints(tagHintsParam);
     setExperiment(nextExperiment);
+    setAdhdCollection(collectionParam === "adhd");
     if (pillarParam) {
       setQuickMode(false);
       seedRef.current = seedParam ?? null;
@@ -1042,6 +1046,7 @@ export default function SpeakPage() {
         <>
           {phase === "module" && (
             <PillarView
+              adhdCollection={adhdCollection}
               onSelect={(slug, seed) => {
                 seedRef.current = seed ?? null;
                 if (slug === "auto") {
@@ -1428,6 +1433,7 @@ const BRIDGE_PILLAR: PillarDefinition = {
   slug: "bridge",
   label: "Rthmic Bridge",
   tagline: "A Rthm to communicate and connect",
+  icon: <PaperPlaneIcon />,
   detail: "Use this when you want to reach someone — to say something you find hard to say, to help them through something, to celebrate them, or simply to let them know they're on your mind. RTHMIC builds a complete song shaped around that person and what you want them to feel. You send the link; they can play it from anywhere.",
   guidance: "Tell RTHMIC who this is for and what you want them to feel or know. You don't need to be poetic — just honest. The more specific you are about the person and the moment, the more the song will feel like it was made for them.",
   priming: {
@@ -1462,13 +1468,25 @@ const INVITE_PILLAR: PillarDefinition = {
 
 // ─── Pillar view ──────────────────────────────────────────────────────────────
 
-function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => void }) {
+function PillarView({ onSelect, adhdCollection = false }: { onSelect: (slug: string, seed?: string) => void; adhdCollection?: boolean }) {
+  const grid = adhdCollection
+    ? ADHD_PILLARS.map((pillar, index) => ({
+        slug: pillar.slug,
+        label: pillar.label,
+        description: pillar.tagline,
+        accent: ["235,110,145", "240,165,70", "95,205,190"][index % 3],
+        icon: pillar.icon ?? null,
+        image: null,
+        video: null,
+      }))
+    : PILLAR_GRID;
+
   return (
     <section className="flex-1 flex flex-col pb-6 overflow-y-auto">
       <RevealBlock delay={0}>
         <div className="flex flex-col gap-1.5 pt-2 pb-5">
           <p className="text-xl font-light text-white/70 leading-snug" style={{ fontFamily: "var(--font-display)" }}>
-            What do you want to achieve?
+            {adhdCollection ? "What do you need help with right now?" : "What do you want to achieve?"}
           </p>
         </div>
       </RevealBlock>
@@ -1477,7 +1495,7 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
         {/* ── Pillar category grid ── */}
         <RevealBlock delay={0}>
           <div className="grid grid-cols-2 gap-2.5 pb-4">
-            {PILLAR_GRID.map((p) => (
+            {grid.map((p) => (
               <button
                 key={p.slug}
                 onClick={() => onSelect(p.slug)}
@@ -1498,16 +1516,8 @@ function PillarView({ onSelect }: { onSelect: (slug: string, seed?: string) => v
                     draggable={false}
                     className="absolute inset-0 h-full w-full object-cover pointer-events-none"
                     style={{
-                      opacity: 0.44,
+                      opacity: 0.28,
                       filter: "saturate(0.96) contrast(1.08) brightness(0.82)",
-                    }}
-                  />
-                )}
-                {p.image && (
-                  <div
-                    className="absolute inset-0 pointer-events-none"
-                    style={{
-                      background: `linear-gradient(180deg, rgba(8,14,25,0.12) 0%, rgba(8,14,25,0.34) 62%, rgba(8,14,25,0.50) 100%)`,
                     }}
                   />
                 )}
@@ -1596,6 +1606,7 @@ function HlsVideo({ src, className, style, controls = true, autoPlay = false, on
 
 function PrimingView({ pillar, experiment, onReady }: { pillar: string | null; experiment?: ExperimentalCreateId | null; onReady: (seed?: string, skipSpeak?: boolean) => void }) {
   const pillarDef = PILLARS.find((p) => p.slug === pillar)
+    ?? ADHD_PILLARS.find((p) => p.slug === pillar)
     ?? (pillar === "bridge" ? BRIDGE_PILLAR : null)
     ?? (pillar === "invite" ? INVITE_PILLAR : null);
   const experimentDef = experiment ? EXPERIMENTS[experiment] : null;
@@ -1882,6 +1893,7 @@ function IdleView({ onRecord, errorMsg, selectedPillar, quickMode, experiment }:
   const experimentDef = experiment ? EXPERIMENTS[experiment] : null;
   const pillarDef = selectedPillar
     ? PILLARS.find((p) => p.slug === selectedPillar)
+      ?? ADHD_PILLARS.find((p) => p.slug === selectedPillar)
       ?? (selectedPillar === "bridge" ? BRIDGE_PILLAR : null)
       ?? (selectedPillar === "invite" ? INVITE_PILLAR : null)
     : null;

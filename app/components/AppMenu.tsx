@@ -17,6 +17,7 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
   const { currentTrackId, currentTitle, openPlayer } = useAudio();
   const [shouldRender, setShouldRender] = useState(false);
   const [userCode, setUserCode] = useState("");
+  const [userName, setUserName] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [keepOffline, setKeepOffline] = useState(false);
@@ -31,7 +32,10 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
     setKeepOffline(keepAllOfflineEnabled());
     fetch("/api/settings")
       .then((r) => r.json())
-      .then((data) => setIsAdmin(!!data.access?.isAdmin))
+      .then((data) => {
+        setUserName(typeof data.name === "string" ? data.name.trim() : "");
+        setIsAdmin(!!data.access?.isAdmin);
+      })
       .catch(() => setIsAdmin(false));
   }, [open]);
 
@@ -118,7 +122,7 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
         onClick={onClose}
       />
       <div
-        className="fixed left-0 z-50 rounded-r-2xl flex flex-col"
+        className="fixed left-0 z-[60] rounded-r-2xl flex flex-col"
         style={{
           top: 0,
           bottom: 0,
@@ -138,7 +142,9 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
         <div className="px-6 py-4 border-b border-white/[0.06] flex items-center gap-3">
           <div className="flex-1 min-w-0">
             <p className="text-[10px] text-white/25 uppercase tracking-widest mb-0.5">Signed in as</p>
-            <p className="text-sm text-white/60 font-medium tracking-wide truncate">{userCode || "RTHMIC"}</p>
+            <p className="text-sm text-white/60 font-medium tracking-wide truncate">
+              {userName ? `${userName} (${userCode || "RTHMIC"})` : userCode || "RTHMIC"}
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -164,6 +170,7 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
             <>
               <MenuRow icon="◉" title="Record Feedback" detail="Open the private voice feedback recorder" onClick={() => go("/feedback")} />
               <MenuRow icon="◇" title="Beta Requests" detail="Review tester access requests" onClick={() => go("/access-requests")} />
+              <MenuRow icon="≡" title="Generation Log" detail="Timing and status for every Rthm" onClick={() => go("/library/log")} />
               <MenuRow icon="✎" title="Codex Notes" detail="Review quick notes captured in the app" onClick={() => go("/codex-notes")} />
               <MenuRow icon="⌁" title="Diagnostics" detail="Inspect reloads, routes, cache, and service worker state" onClick={() => go("/diagnostics")} />
             </>
