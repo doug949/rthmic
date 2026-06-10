@@ -864,6 +864,13 @@ export default function SpeakPage() {
       return;
     }
 
+    // Simply Rthmic enters directly at the speaking screen, so there is no
+    // category priming screen to return to.
+    if (quickMode && phase === "idle") {
+      navigateTo("/", router);
+      return;
+    }
+
     // Local phase stack
     switch (phase) {
       case "module":
@@ -894,7 +901,7 @@ export default function SpeakPage() {
         goToPhase("confirming");
         break;
     }
-  }, [phase, genPhase, reset, goToPhase, returnToModule, discardRecordingResources, router]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [phase, quickMode, genPhase, reset, goToPhase, returnToModule, discardRecordingResources, router]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Paste lyrics bypass ──────────────────────────────────────────────────
   //
