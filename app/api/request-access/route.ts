@@ -1,29 +1,23 @@
 // /api/request-access — RTHMIC Beta Access Request
 //
-// POST — intake an email, generate a unique beta code, store in Redis, send via Resend.
+// POST — intake an email and store a pending beta access request for admin approval.
 //   Body: { email: string }
 //   Returns: { ok: true } | { error: string }
 //
 // Redis schema:
-//   `beta-code:{code}`       → { email, createdAt } — persistent beta access code
 //   `beta-req:{email}`       → { sentAt }           — TTL 10 min (rate-limit / dedup)
-//   `access-request:{email}` → { email, requestedAt, source } — persistent waitlist fallback
+//   `access-request:{email}` → { email, requestedAt, source } — persistent approval queue
 //   `access-requests`        → newest-first list of requested emails
 //
 // Required env vars:
 //   REDIS_URL           — Redis connection string
-//   RESEND_API_KEY      — Resend API key
-//   RTHMIC_FROM_EMAIL   — Sender address (e.g. "access@rthmic.app")
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "redis";
-import { Resend } from "resend";
-import { buildBetaAccessEmailHtml, buildBetaAccessEmailText, makeBetaCode } from "@/app/lib/betaAccess";
 
 const TEN_MIN_SEC     = 10 * 60;
 
 const REDIS_AVAILABLE  = !!process.env.REDIS_URL;
-const RESEND_AVAILABLE = !!process.env.RESEND_API_KEY;
 
 // ─── Redis helper ──────────────────────────────────────────────────────────────
 
@@ -68,70 +62,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  // If email delivery is not configured, keep a waitlist request instead of
-  // pretending a code was sent. The UI intentionally shows a neutral message.
-  if (!RESEND_AVAILABLE) {
-    try {
-      await withRedis(async (client) => {
-        const reqKey = `beta-req:${normalised}`;
-        if (await client.get(reqKey)) return;
-        const entry = JSON.stringify({ email: normalised, requestedAt: Date.now(), source: "login" });
-        await client
-          .multi()
-          .set(`access-request:${normalised}`, entry)
-          .lPush("access-requests", normalised)
-          .lTrim("access-requests", 0, 499)
-          .set(reqKey, "1", { EX: TEN_MIN_SEC })
-          .exec();
-      });
-    } catch (err) {
-      console.error("[request-access] Waitlist error:", err);
-      return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
-    }
-    return NextResponse.json({ ok: true });
-  }
-
   try {
-    const code = await withRedis(async (client) => {
-      // Rate-limit: one email per 10 minutes per address
+    await withRedis(async (client) => {
       const reqKey = `beta-req:${normalised}`;
-      const existing = await client.get(reqKey);
-      if (existing) {
-        // Already sent recently — silently succeed to prevent enumeration
-        return null;
-      }
+      if (await client.get(reqKey)) return;
 
-      // Generate a unique code (retry on collision — extremely unlikely)
-      let newCode = makeBetaCode();
-      if (await client.exists(`beta-code:${newCode}`)) newCode = makeBetaCode();
-
-      // Store the code permanently. Revoke manually by deleting beta-code:{code}.
-      await client.set(
-        `beta-code:${newCode}`,
-        JSON.stringify({ email: normalised, createdAt: Date.now() })
-      );
-
-      // Rate limit marker (10 min)
-      await client.set(reqKey, "1", { EX: TEN_MIN_SEC });
-
-      return newCode;
+      const entry = JSON.stringify({ email: normalised, requestedAt: Date.now(), source: "login" });
+      await client
+        .multi()
+        .set(`access-request:${normalised}`, entry)
+        .lPush("access-requests", normalised)
+        .lTrim("access-requests", 0, 499)
+        .set(reqKey, "1", { EX: TEN_MIN_SEC })
+        .exec();
     });
-
-    // Whether we generated a fresh code or hit the rate limit, send ok to the UI
-    // (prevents email enumeration — user always sees the same confirmation)
-    if (code) {
-      // Send email
-      const resend = new Resend(process.env.RESEND_API_KEY);
-      const fromEmail = process.env.RTHMIC_FROM_EMAIL ?? "access@rthmic.app";
-
-      await resend.emails.send({
-        from: `RTHMIC <${fromEmail}>`,
-        to: normalised,
-        subject: "Your RTHMIC Access Code",
-        html: buildBetaAccessEmailHtml(code),
-        text: buildBetaAccessEmailText(code),
-      });
-    }
 
     return NextResponse.json({ ok: true });
 
