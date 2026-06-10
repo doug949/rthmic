@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { titleCaseStyle } from "@/app/lib/styleText";
 
 export const maxDuration = 15;
 
@@ -69,11 +70,11 @@ Return ONLY the JSON object, nothing else.`,
       const cleaned = raw.replace(/^```(?:json)?\n?/i, "").replace(/\n?```$/i, "").trim().replace(/^[^{]*(\{[\s\S]*\})[^}]*$/, "$1");
       const parsed = JSON.parse(cleaned);
       const raw_style = (parsed.style ?? "").trim();
-      style = raw_style.charAt(0).toUpperCase() + raw_style.slice(1);
+      style = titleCaseStyle(raw_style);
       artists = Array.isArray(parsed.artists) ? parsed.artists.slice(0, 5) : [];
     } catch {
       // Fallback: use raw text as style, no artists
-      style = raw.replace(/\{[^}]*\}/g, "").trim() || raw;
+      style = titleCaseStyle(raw.replace(/\{[^}]*\}/g, "").trim() || raw);
     }
 
     return NextResponse.json({ style, artists, genre: style });

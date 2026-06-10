@@ -14,6 +14,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "redis";
+import { titleCaseStyle } from "@/app/lib/styleText";
 
 // ─── RTHMIC built-in reference styles ────────────────────────────────────────
 // These are permanent. They are never replaced by user customisation.
@@ -78,7 +79,7 @@ export async function POST(req: NextRequest) {
   try {
     await client.set(
       `genres:${uid}`,
-      JSON.stringify(genres.map((g: string) => g.trim())),
+      JSON.stringify(genres.map((g: string) => titleCaseStyle(g))),
       { EX: 60 * 60 * 24 * 365 }
     );
     return NextResponse.json({ ok: true });

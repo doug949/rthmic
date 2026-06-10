@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { transitionTo } from "@/app/lib/pageTransition";
 import { AppHeader } from "@/app/components/AppHeader";
 import { EQIcon } from "@/app/components/HomeTileIcons";
+import { titleCaseStyle, toTitleCase } from "@/app/lib/styleText";
 
 // ─── Purple palette ────────────────────────────────────────────────────────────
 const PURPLE = {
@@ -17,10 +18,10 @@ const PURPLE = {
 
 // ─── Styles slots ──────────────────────────────────────────────────────────────
 const SLOTS = [
-  { label: "Power",  question: "What music makes you feel powerful and inspired?",     hint: "Tracks that make you feel unstoppable — before a big moment, a workout, a challenge." },
-  { label: "Focus",  question: "What music puts you in a deep focus state?",            hint: "The music you reach for when you need to think clearly and work without distraction." },
-  { label: "Energy", question: "What music instantly lifts your energy or mood?",       hint: "Tracks that shift your state the moment they come on — pure joy or momentum." },
-  { label: "Safety", question: "What music makes you feel safe, held, and at home?", hint: "The artists that feel like home. The ones you've returned to across years of your life." },
+  { label: "Power",  color: "235,120,108", question: "What music makes you feel powerful and inspired?",     hint: "Tracks that make you feel unstoppable — before a big moment, a workout, a challenge." },
+  { label: "Focus",  color: "70,205,235", question: "What music puts you in a deep focus state?",            hint: "The music you reach for when you need to think clearly and work without distraction." },
+  { label: "Energy", color: "116,225,128", question: "What music instantly lifts your energy or mood?",       hint: "Tracks that shift your state the moment they come on — pure joy or momentum." },
+  { label: "Safety", color: "176,136,255", question: "What music makes you feel safe, held, and at home?", hint: "The artists that feel like home. The ones you've returned to across years of your life." },
 ];
 
 interface SlotState {
@@ -49,33 +50,17 @@ interface UserProfile {
   name: string;
   vocalist: "none" | "male" | "female";
   adhdMode: boolean;
-  simpleMode: boolean;
-  advancedPillars: string[];
   access?: {
     role?: "admin" | "beta";
     isAdmin?: boolean;
   };
 }
 
-const CONFIGURABLE_PILLARS = [
-  { slug: "mode",        label: "Mode" },
-  { slug: "movement",    label: "Movement" },
-  { slug: "explain",     label: "Explain" },
-  { slug: "mindset",     label: "Mindset" },
-  { slug: "sleep",       label: "Sleep" },
-  { slug: "journal",     label: "Journal" },
-  { slug: "epiphany",    label: "Epiphany" },
-  { slug: "memory",      label: "Memory" },
-  { slug: "booksummary", label: "Book Summary" },
-  { slug: "bridge",      label: "Bridge" },
-  { slug: "invite",      label: "Invite", adminOnly: true },
-];
-
 function styleName(style: string): string {
   const idx = style.indexOf("|");
-  if (idx > 0) return style.slice(0, idx).trim();
+  if (idx > 0) return toTitleCase(style.slice(0, idx).trim());
   const comma = style.indexOf(",");
-  return (comma > 0 ? style.slice(0, comma) : style.slice(0, 42)).trim();
+  return toTitleCase((comma > 0 ? style.slice(0, comma) : style.slice(0, 42)).trim());
 }
 
 function stylePrompt(style: string): string {
@@ -93,9 +78,7 @@ export default function SettingsPage() {
   const router = useRouter();
 
   // ── Profile state ────────────────────────────────────────────────────────────
-  const [profile, setProfile] = useState<UserProfile>({ name: "", vocalist: "none", adhdMode: false, simpleMode: false, advancedPillars: ["memory", "booksummary", "explain", "mindset"], access: { role: "beta", isAdmin: false } });
-  const isAdmin = !!profile.access?.isAdmin;
-  const configurablePillars = CONFIGURABLE_PILLARS.filter((pillar) => !pillar.adminOnly || profile.access?.isAdmin);
+  const [profile, setProfile] = useState<UserProfile>({ name: "", vocalist: "none", adhdMode: false, access: { role: "beta", isAdmin: false } });
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -108,6 +91,7 @@ export default function SettingsPage() {
   const [saveError, setSaveError] = useState("");
   const [interpretError, setInterpretError] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [stylesExpanded, setStylesExpanded] = useState(true);
   const [voicePhase, setVoicePhase] = useState<VoicePhase>("idle");
   const [voiceError, setVoiceError] = useState("");
   const slotsRef = useRef(slots);
@@ -128,18 +112,18 @@ export default function SettingsPage() {
       fetch("/api/settings").then(r => r.json()).catch(() => null),
       fetch("/api/genres").then(r => r.json()).catch(() => null),
     ]).then(([prof, gen]) => {
-      if (prof) setProfile({ name: prof.name ?? "", vocalist: prof.vocalist ?? "none", adhdMode: !!prof.adhdMode, simpleMode: !!prof.simpleMode, advancedPillars: Array.isArray(prof.advancedPillars) ? prof.advancedPillars : ["memory", "booksummary", "explain", "mindset"], access: prof.access ?? { role: "beta", isAdmin: false } });
+      if (prof) setProfile({ name: prof.name ?? "", vocalist: prof.vocalist ?? "none", adhdMode: !!prof.adhdMode, access: prof.access ?? { role: "beta", isAdmin: false } });
       if (gen?.genres) {
         setSlots(prev => prev.map((s, i) => ({
-          ...s, style: gen.genres[i] ?? "", committed: !!(gen.genres[i]),
+          ...s, style: gen.genres[i] ? titleCaseStyle(gen.genres[i]) : "", committed: !!(gen.genres[i]),
         })));
       }
       const builtIn = Array.isArray(gen?.builtIn) ? gen.builtIn : [];
       const user = Array.isArray(gen?.user) ? gen.user : [];
       const fallback = !builtIn.length && !user.length && Array.isArray(gen?.genres) ? gen.genres : [];
       setCurrentStyles([
-        ...styleList(builtIn.length ? builtIn : fallback, "Built-in"),
-        ...styleList(user, "Your style"),
+        ...styleList((builtIn.length ? builtIn : fallback).map(titleCaseStyle), "Built-in"),
+        ...styleList(user.map(titleCaseStyle), "Your style"),
       ]);
     }).finally(() => setLoading(false));
   }, []);
@@ -275,10 +259,10 @@ export default function SettingsPage() {
           if (!tres.ok) throw new Error("Transcription failed");
           const { transcript } = await tres.json();
           updateSlot(slotIndex, { transcript, interpreting: true }); setVoicePhase("interpreting");
-          const ires = await fetch("/api/interpret-genre", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ transcript, slot: SLOTS[slotIndex].label }) });
+          const ires = await fetch("/api/interpret-genre", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ description: transcript, question: SLOTS[slotIndex].question }) });
           if (ires.ok) {
             const { style, artists } = await ires.json();
-            const formattedStyle = typeof style === "string" ? style : Array.isArray(style) ? style.join(", ") : "";
+            const formattedStyle = titleCaseStyle(typeof style === "string" ? style : Array.isArray(style) ? style.join(", ") : "");
             updateSlot(slotIndex, { style: formattedStyle, interpreting: false, suggestedArtists: artists ?? [], selectedArtists: [] });
             autoSaveStyle(slotIndex, formattedStyle);
           } else { updateSlot(slotIndex, { interpreting: false }); setInterpretError("Couldn't refine — please try again."); }
@@ -302,10 +286,10 @@ export default function SettingsPage() {
     const s = slots[i]; if (!s.selectedArtists.length) return;
     updateSlot(i, { interpreting: true }); setInterpretError("");
     try {
-      const res = await fetch("/api/interpret-genre", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ transcript: s.transcript, slot: SLOTS[i].label, artists: s.selectedArtists }) });
+      const res = await fetch("/api/interpret-genre", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ description: s.transcript, question: SLOTS[i].question, selectedArtists: s.selectedArtists }) });
       if (res.ok) {
         const { style, artists } = await res.json();
-        const formattedStyle = typeof style === "string" ? style : Array.isArray(style) ? style.join(", ") : "";
+        const formattedStyle = titleCaseStyle(typeof style === "string" ? style : Array.isArray(style) ? style.join(", ") : "");
         updateSlot(i, { style: formattedStyle, interpreting: false, suggestedArtists: artists ?? [], selectedArtists: [] });
         autoSaveStyle(i, formattedStyle);
       } else { updateSlot(i, { interpreting: false }); setInterpretError("Couldn't refine — please try again."); }
@@ -324,6 +308,7 @@ export default function SettingsPage() {
 
   const slot = SLOTS[currentSlot];
   const s = slots[currentSlot];
+  const activeAccent = slot.color;
   const hasStyle = s.style.trim().length > 0;
   const isBusy = voicePhase !== "idle" || s.interpreting;
 
@@ -381,36 +366,6 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {isAdmin && (
-              <button
-                onClick={() => updateProfile({ simpleMode: !profile.simpleMode })}
-                className="w-full rounded-2xl border px-5 py-4 flex items-center gap-4 text-left transition-all touch-manipulation active:scale-[0.98]"
-                style={{ background: profile.simpleMode ? PURPLE.hover : PURPLE.bg, borderColor: PURPLE.border }}
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium" style={{ color: PURPLE.text }}>Simple Mode</p>
-                  <p className="text-xs mt-0.5" style={{ color: PURPLE.dim }}>
-                    Shows only the core pillars — hides advanced ones that need more conceptual buy-in
-                  </p>
-                </div>
-                <div
-                  className="flex-shrink-0 w-11 h-6 rounded-full border transition-all"
-                  style={{
-                    background: profile.simpleMode ? "rgba(160,130,220,0.35)" : "rgba(255,255,255,0.06)",
-                    borderColor: profile.simpleMode ? PURPLE.border : "rgba(255,255,255,0.12)",
-                  }}
-                >
-                  <div
-                    className="w-4 h-4 rounded-full mt-0.5 transition-all"
-                    style={{
-                      background: profile.simpleMode ? PURPLE.text : "rgba(255,255,255,0.3)",
-                      marginLeft: profile.simpleMode ? "24px" : "3px",
-                    }}
-                  />
-                </div>
-              </button>
-            )}
-
             {/* ADHD mode */}
             <button
               onClick={() => updateProfile({ adhdMode: !profile.adhdMode })}
@@ -442,55 +397,34 @@ export default function SettingsPage() {
             </button>
           </div>
 
-          {isAdmin && (
-            <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] overflow-hidden mt-2">
-              <div className="px-5 py-3.5 border-b border-white/[0.06]">
-                <p className="text-sm font-medium" style={{ color: PURPLE.text }}>Pillar Configuration</p>
-                <p className="text-xs mt-0.5" style={{ color: PURPLE.dim }}>Set which pillars are Advanced — hidden when Simple Mode is on</p>
-              </div>
-              {configurablePillars.map((p, i) => {
-                const isAdvanced = profile.advancedPillars.includes(p.slug);
-                const toggle = () => {
-                  const next = isAdvanced
-                    ? profile.advancedPillars.filter(s => s !== p.slug)
-                    : [...profile.advancedPillars, p.slug];
-                  updateProfile({ advancedPillars: next });
-                };
-                return (
-                  <button
-                    key={p.slug}
-                    onClick={toggle}
-                    className="w-full flex items-center justify-between px-5 py-3 text-left touch-manipulation active:bg-white/[0.03] transition-colors"
-                    style={{ borderTop: i === 0 ? "none" : "1px solid rgba(255,255,255,0.05)" }}
-                  >
-                    <span className="text-sm" style={{ color: isAdvanced ? PURPLE.text : "rgba(255,255,255,0.55)" }}>{p.label}</span>
-                    <span
-                      className="text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-full border"
-                      style={isAdvanced
-                        ? { color: PURPLE.text, borderColor: PURPLE.border, background: "rgba(160,130,220,0.12)" }
-                        : { color: "rgba(255,255,255,0.3)", borderColor: "rgba(255,255,255,0.08)", background: "transparent" }
-                      }
-                    >
-                      {isAdvanced ? "Advanced" : "Simple"}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
         </section>
 
-        {/* ── Style Archetypes ───────────────────────────────────────────────── */}
-        <section>
-          <div className="flex items-center gap-2 mb-4">
-            <span style={{ color: "rgba(201,165,90,0.65)" }}><StylesIcon /></span>
-            <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: "rgba(201,165,90,0.65)" }}>Style Archetypes</p>
-          </div>
+        {/* ── Rthmic Styles ─────────────────────────────────────────────────── */}
+        <section
+          className="rounded-3xl border overflow-hidden"
+          style={{ borderColor: "rgba(70,205,235,0.22)", background: "rgba(70,205,235,0.035)" }}
+        >
+          <button
+            type="button"
+            onClick={() => setStylesExpanded((open) => !open)}
+            className="w-full flex items-center justify-between gap-3 px-5 py-4 text-left touch-manipulation active:bg-white/[0.03]"
+          >
+            <span className="flex items-center gap-2">
+              <span style={{ color: "rgba(70,205,235,0.78)" }}><StylesIcon /></span>
+              <span className="text-[10px] uppercase tracking-[0.3em]" style={{ color: "rgba(70,205,235,0.78)" }}>Rthmic Styles</span>
+            </span>
+            <span className="text-[10px] uppercase tracking-widest" style={{ color: "rgba(70,205,235,0.46)" }}>
+              {stylesExpanded ? "Hide" : "Show"} {currentStyles.length}
+            </span>
+          </button>
+
+          {stylesExpanded && (
+            <div className="px-5 pb-5">
 
           {currentStyles.length > 0 && (
-            <div className="rounded-2xl border overflow-hidden mb-5" style={{ borderColor: "rgba(201,165,90,0.16)", background: "rgba(201,165,90,0.035)" }}>
+            <div className="rounded-2xl border overflow-hidden mb-5" style={{ borderColor: "rgba(70,205,235,0.16)", background: "rgba(70,205,235,0.035)" }}>
               <div className="px-5 py-3.5 border-b border-white/[0.06]">
-                <p className="text-sm font-medium" style={{ color: "rgba(201,165,90,0.88)" }}>Current Styles</p>
+                <p className="text-sm font-medium" style={{ color: "rgba(70,205,235,0.9)" }}>Saved and Built-In Styles</p>
                 <p className="text-xs mt-0.5 text-white/38">These are the styles available when creating a Rthm.</p>
               </div>
               {currentStyles.map((style, i) => (
@@ -501,7 +435,7 @@ export default function SettingsPage() {
                 >
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-sm font-medium text-white/72">{style.name}</p>
-                    <span className="flex-shrink-0 rounded-full border px-2 py-0.5 text-[9px] uppercase tracking-widest" style={{ borderColor: "rgba(201,165,90,0.22)", color: "rgba(201,165,90,0.58)", background: "rgba(201,165,90,0.06)" }}>
+                    <span className="flex-shrink-0 rounded-full border px-2 py-0.5 text-[9px] uppercase tracking-widest" style={{ borderColor: "rgba(70,205,235,0.22)", color: "rgba(70,205,235,0.68)", background: "rgba(70,205,235,0.06)" }}>
                       {style.source}
                     </span>
                   </div>
@@ -512,16 +446,17 @@ export default function SettingsPage() {
           )}
 
           {/* Slot tabs */}
-          <div className="flex gap-2 mb-5">
+          <div className="mt-4 pt-5 mb-5 border-t" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
+          <div className="flex gap-2">
             {SLOTS.map((sl, i) => (
               <button
                 key={sl.label}
                 onClick={() => goToSlot(i)}
                 className="flex-1 py-2 rounded-xl border text-xs font-medium tracking-wide transition-all touch-manipulation active:scale-[0.96]"
                 style={i === currentSlot
-                  ? { background: "rgba(201,165,90,0.1)", borderColor: "rgba(201,165,90,0.45)", color: "#c9a55a" }
+                  ? { background: `rgba(${sl.color},0.12)`, borderColor: `rgba(${sl.color},0.52)`, color: `rgb(${sl.color})` }
                   : slots[i].committed
-                  ? { background: "rgba(201,165,90,0.04)", borderColor: "rgba(201,165,90,0.18)", color: "rgba(201,165,90,0.5)" }
+                  ? { background: `rgba(${sl.color},0.045)`, borderColor: `rgba(${sl.color},0.22)`, color: `rgba(${sl.color},0.62)` }
                   : { background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.35)" }}
               >
                 {sl.label}
@@ -529,12 +464,13 @@ export default function SettingsPage() {
               </button>
             ))}
           </div>
+          </div>
 
           {/* Slot label + question */}
           <div className="mb-4">
             <span
               className="inline-block text-[10px] px-2.5 py-0.5 rounded-full border uppercase tracking-widest font-medium mb-3"
-              style={{ background: "rgba(201,165,90,0.08)", color: "rgba(201,165,90,0.55)", borderColor: "rgba(201,165,90,0.2)" }}
+              style={{ background: `rgba(${activeAccent},0.10)`, color: `rgba(${activeAccent},0.78)`, borderColor: `rgba(${activeAccent},0.28)` }}
             >
               {slot.label}
             </span>
@@ -551,7 +487,7 @@ export default function SettingsPage() {
               voicePhase === "recording"
                 ? { borderColor: "rgba(239,68,68,0.4)", background: "rgba(239,68,68,0.04)" }
                 : voicePhase !== "idle"
-                ? { borderColor: "rgba(201,165,90,0.25)", background: "rgba(201,165,90,0.03)" }
+                ? { borderColor: `rgba(${activeAccent},0.25)`, background: `rgba(${activeAccent},0.035)` }
                 : { borderColor: "rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.02)" }
             }
           >
@@ -567,7 +503,7 @@ export default function SettingsPage() {
                   voicePhase === "recording"
                     ? { background: "rgba(239,68,68,0.2)", borderColor: "rgba(239,68,68,0.6)", willChange: "transform, box-shadow", transition: "none" }
                     : voicePhase !== "idle"
-                    ? { background: "rgba(201,165,90,0.1)", borderColor: "rgba(201,165,90,0.3)", transition: "all 0.2s" }
+                    ? { background: `rgba(${activeAccent},0.1)`, borderColor: `rgba(${activeAccent},0.3)`, transition: "all 0.2s" }
                     : { background: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.14)", transition: "all 0.2s" }
                 }
               >
@@ -584,7 +520,7 @@ export default function SettingsPage() {
                 {voicePhase === "transcribing" && <p className="text-base text-white/50">Transcribing…</p>}
                 {voicePhase === "interpreting" && <p className="text-base text-white/50">Interpreting your style…</p>}
                 {voicePhase === "idle" && (
-                  <><p className="text-base font-medium" style={{ color: s.transcript ? "rgba(255,255,255,0.75)" : "#c9a55a" }}>{s.transcript ? "Tap to re-record" : "Your Style Archetype - tap to speak"}</p><p className="text-xs text-white/50 mt-0.5">{s.transcript ? "Your words will be replaced" : "Describe the character, feel, energy, and artists"}</p></>
+                  <><p className="text-base font-medium" style={{ color: s.transcript ? "rgba(255,255,255,0.75)" : `rgb(${activeAccent})` }}>{s.transcript ? "Tap to re-record" : "Speak a new style"}</p><p className="text-xs text-white/50 mt-0.5">{s.transcript ? "Your words will be replaced" : "Describe a new style or genre to add it to your custom styles"}</p></>
                 )}
               </div>
             </button>
@@ -600,14 +536,14 @@ export default function SettingsPage() {
 
           {/* Interpreted style */}
           {hasStyle && !isBusy && (
-            <div className="rounded-2xl border px-5 py-5 mb-3" style={{ borderColor: "rgba(201,165,90,0.2)", background: "rgba(201,165,90,0.04)" }}>
+            <div className="rounded-2xl border px-5 py-5 mb-3" style={{ borderColor: `rgba(${activeAccent},0.24)`, background: `rgba(${activeAccent},0.045)` }}>
               <p className="text-[10px] text-white/50 uppercase tracking-widest mb-2">{s.committed ? "✓ Saved" : "Saving…"}</p>
               <textarea
                 value={s.style}
                 onChange={e => updateSlot(currentSlot, { style: e.target.value, committed: false })}
                 rows={3}
                 className="w-full bg-transparent text-base font-light leading-relaxed outline-none resize-none"
-                style={{ color: "#c9a55a", fontFamily: "var(--font-display)" }}
+                style={{ color: `rgb(${activeAccent})`, fontFamily: "var(--font-display)" }}
                 placeholder="Style description"
               />
               <p className="text-[10px] text-white/45 mt-1 leading-relaxed">Tap to edit · this feeds the music engine</p>
@@ -629,7 +565,7 @@ export default function SettingsPage() {
                       return (
                         <button key={artist} onClick={() => toggleArtist(currentSlot, artist)}
                           className="text-[11px] rounded-full px-3 py-1.5 border transition-all duration-150 touch-manipulation active:scale-95"
-                          style={isSelected ? { color: "#c9a55a", background: "rgba(201,165,90,0.12)", borderColor: "rgba(201,165,90,0.45)" } : { color: "rgba(255,255,255,0.35)", background: "transparent", borderColor: "rgba(255,255,255,0.08)" }}>
+                          style={isSelected ? { color: `rgb(${activeAccent})`, background: `rgba(${activeAccent},0.12)`, borderColor: `rgba(${activeAccent},0.45)` } : { color: "rgba(255,255,255,0.35)", background: "transparent", borderColor: "rgba(255,255,255,0.08)" }}>
                           {isSelected && <span className="mr-1 text-[10px]">✓</span>}{artist}
                         </button>
                       );
@@ -651,6 +587,8 @@ export default function SettingsPage() {
 
           {interpretError && !isBusy && <p className="text-xs text-red-400/60 mb-3 leading-relaxed">{interpretError}</p>}
           {saveError && <p className="text-xs text-red-400/60 text-center">{saveError}</p>}
+            </div>
+          )}
         </section>
 
       </div>

@@ -5,6 +5,7 @@
 // Used in GenreView (speak) and LibraryGenrePicker (library).
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import { titleCaseStyle } from "@/app/lib/styleText";
 
 interface Props {
   onStyleChange: (style: string) => void;  // fires when interpreted style updates
@@ -94,16 +95,18 @@ export default function CustomStyleInput({ onStyleChange, selected, onSelect, on
       const data = await res.json();
       const result: string = data.style || data.genre || "";
       if (result) {
-        const cap = result.charAt(0).toUpperCase() + result.slice(1);
+        const cap = titleCaseStyle(result);
         setStyle(cap);
         onStyleChange(cap);
+        onSave?.(cap);
+        setSaved(true);
       }
     } catch {
       setVoiceError("Interpretation failed — please try again.");
     } finally {
       setVoicePhase("idle");
     }
-  }, [onStyleChange]);
+  }, [onStyleChange, onSave]);
 
   // ─── Voice recording ──────────────────────────────────────────────────────
 
@@ -204,8 +207,10 @@ export default function CustomStyleInput({ onStyleChange, selected, onSelect, on
   };
 
   const handleStyleEdit = (val: string) => {
-    setStyle(val);
-    onStyleChange(val);
+    const formatted = titleCaseStyle(val);
+    setStyle(formatted);
+    onStyleChange(formatted);
+    setSaved(false);
   };
 
   // ─── Toggle open ──────────────────────────────────────────────────────────
@@ -242,7 +247,7 @@ export default function CustomStyleInput({ onStyleChange, selected, onSelect, on
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <p className={`text-base font-medium ${selected ? "text-[#c9a55a]" : "text-white/55"}`}>
-              {style || "Describe your own style"}
+              {style || "Speak a New Style"}
             </p>
             <span
               className="text-[8px] uppercase tracking-widest px-1.5 py-0.5 rounded-full border flex-shrink-0"
@@ -252,7 +257,7 @@ export default function CustomStyleInput({ onStyleChange, selected, onSelect, on
             </span>
           </div>
           {!open && !style && (
-            <p className="text-xs text-white/25 mt-0.5">Speak or type any genre, mood, or reference</p>
+            <p className="text-xs text-white/25 mt-0.5">Artist, era, genre, mood, or anything you like</p>
           )}
         </div>
         {style ? (
@@ -328,7 +333,7 @@ export default function CustomStyleInput({ onStyleChange, selected, onSelect, on
                 <p className="text-sm text-white/35">Reading your style…</p>
               )}
               {voicePhase === "idle" && (
-                <p className="text-sm text-white/40">{text ? "Tap to re-record" : "Tap to speak your style"}</p>
+                <p className="text-sm text-white/40">{text ? "Tap to re-record" : "Describe a new style or genre to add it to your custom styles"}</p>
               )}
             </div>
           </div>
@@ -347,7 +352,7 @@ export default function CustomStyleInput({ onStyleChange, selected, onSelect, on
             value={text}
             onChange={(e) => setText(e.target.value)}
             onBlur={handleTextBlur}
-            placeholder="e.g. dark Nordic techno, or Afrobeats with jazz brass, or something that feels like driving at 3am…"
+            placeholder="Name an artist, era, genre, feeling, reference, or anything you want this Rthm to sound like…"
             rows={3}
             className="w-full bg-white/[0.03] border border-white/[0.07] rounded-xl px-4 py-3 text-sm text-white/70 placeholder-white/15 outline-none focus:border-white/20 transition-colors resize-none leading-relaxed"
           />
@@ -381,7 +386,7 @@ export default function CustomStyleInput({ onStyleChange, selected, onSelect, on
                   className="w-full mt-2 py-2.5 rounded-xl text-xs font-medium tracking-widest uppercase transition-all touch-manipulation active:scale-[0.98] disabled:opacity-60"
                   style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", color: saved ? "rgba(201,165,90,0.6)" : "rgba(255,255,255,0.3)" }}
                 >
-                  {saved ? "✓ Saved to My Styles" : "Save to My Styles"}
+                  {saved ? "✓ Saved to Custom Styles" : "Save to Custom Styles"}
                 </button>
               )}
             </div>

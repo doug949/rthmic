@@ -7,22 +7,16 @@ import { requireUserId } from "@/app/lib/auth";
 import { accessForRequest, accessForRole } from "@/app/lib/access";
 import { REDIS_AVAILABLE, withRedis } from "@/app/lib/redis";
 
-export const DEFAULT_ADVANCED_PILLARS = ["memory", "booksummary", "explain", "mindset", "sleep"];
-
 export interface UserSettings {
   name: string;
   vocalist: "none" | "male" | "female";
   adhdMode: boolean;
-  simpleMode: boolean;
-  advancedPillars: string[];
 }
 
 const DEFAULT_SETTINGS: UserSettings = {
   name: "",
   vocalist: "none",
   adhdMode: false,
-  simpleMode: false,
-  advancedPillars: DEFAULT_ADVANCED_PILLARS,
 };
 
 function settingsKey(uid: string) {
@@ -59,10 +53,6 @@ export async function POST(request: NextRequest) {
   if (typeof body.name === "string") patch.name = body.name.slice(0, 80);
   if (body.vocalist === "none" || body.vocalist === "male" || body.vocalist === "female") patch.vocalist = body.vocalist;
   if (typeof body.adhdMode === "boolean") patch.adhdMode = body.adhdMode;
-  if (typeof body.simpleMode === "boolean") patch.simpleMode = body.simpleMode;
-  if (Array.isArray(body.advancedPillars) && body.advancedPillars.every((s: unknown) => typeof s === "string")) {
-    patch.advancedPillars = body.advancedPillars;
-  }
 
   if (!REDIS_AVAILABLE) return NextResponse.json({ ok: true });
 

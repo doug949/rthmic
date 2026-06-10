@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  clearInterpretationDraft,
   INTERPRETATION_DRAFT_EVENT,
   readInterpretationDraft,
   type InterpretationDraft,
@@ -28,9 +29,8 @@ export function InterpretationReadyPill() {
   if (!draft || pathname === "/speak") return null;
 
   return (
-    <button
-      onClick={() => transitionTo("/speak?draft=1", router)}
-      className="fixed left-4 right-4 z-[65] rounded-2xl border px-4 py-3 flex items-center gap-3 text-left touch-manipulation active:scale-[0.99] transition-transform"
+    <div
+      className="fixed left-4 right-4 z-[65] rounded-2xl border px-4 py-3 flex items-center gap-3 text-left"
       style={{
         bottom: "calc(env(safe-area-inset-bottom, 0px) + 86px)",
         background: "rgba(10,16,32,0.94)",
@@ -39,12 +39,27 @@ export function InterpretationReadyPill() {
         backdropFilter: "blur(18px)",
       }}
     >
-      <span className="h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ background: "rgba(201,165,90,0.9)", boxShadow: "0 0 18px rgba(201,165,90,0.45)" }} />
-      <span className="flex-1 min-w-0">
+      <button
+        type="button"
+        onClick={() => transitionTo("/speak?draft=1", router)}
+        className="flex flex-1 items-center gap-3 min-w-0 touch-manipulation active:scale-[0.99] transition-transform"
+      >
+        <span className="h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ background: "rgba(201,165,90,0.9)", boxShadow: "0 0 18px rgba(201,165,90,0.45)" }} />
+        <span className="flex-1 min-w-0">
         <span className="block text-sm font-medium" style={{ color: "rgba(201,165,90,0.92)" }}>Interpretation ready</span>
         <span className="block text-xs text-white/52 mt-0.5 truncate">Choose the style for {draft.title}</span>
-      </span>
-      <span className="text-xs uppercase tracking-widest" style={{ color: "rgba(201,165,90,0.82)" }}>Open</span>
-    </button>
+        </span>
+        <span className="text-xs uppercase tracking-widest" style={{ color: "rgba(201,165,90,0.82)" }}>Open</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => clearInterpretationDraft()}
+        className="h-8 w-8 rounded-full flex items-center justify-center text-lg leading-none touch-manipulation active:scale-95"
+        style={{ color: "rgba(255,255,255,0.38)", background: "rgba(255,255,255,0.045)", border: "1px solid rgba(255,255,255,0.08)" }}
+        aria-label="Dismiss interpretation ready notification"
+      >
+        ×
+      </button>
+    </div>
   );
 }

@@ -17,6 +17,7 @@ import { QueuePill } from "@/app/components/QueuePill";
 import { useQueueStatus } from "@/app/hooks/useQueueStatus";
 import { MicIcon as HeaderMicIcon } from "@/app/components/HomeTileIcons";
 import { clearInterpretationDraft, readInterpretationDraft, saveInterpretationDraft } from "@/app/lib/interpretationDraft";
+import { titleCaseStyle, toTitleCase } from "@/app/lib/styleText";
 
 type Phase = "module" | "priming" | "idle" | "recording" | "understanding" | "confirming" | "genre" | "queued";
 
@@ -44,7 +45,6 @@ interface PillarDefinition {
   icon?: React.ReactNode; // small SVG icon shown on the tile
   comingSoon?: boolean;   // show as dim / non-selectable
   adhdOnly?: boolean;    // hidden unless ADHD mode is enabled in settings
-  advanced?: boolean;    // hidden when simpleMode is enabled in settings
 }
 
 // ─── Suggestion chips for explain + booksummary ───────────────────────────────
@@ -1103,7 +1103,6 @@ const PILLARS: PillarDefinition[] = [
     label: "Memory",
     tagline: "Imprint through association",
     icon: <MemoryIcon />,
-    advanced: true,
     detail: "Use this when you need to memorise something — a speech, a script, a sequence, a list of names, or any content you need to recall under real conditions. Rthmic encodes the information into a song using linked images, scenes, and sensory anchors so retrieval feels natural rather than effortful.",
     guidance: "Describe what you're trying to remember and where it's slipping. Name the specific items if you can — the more concrete, the better the Rthm.",
     priming: {
@@ -1140,7 +1139,6 @@ const PILLARS: PillarDefinition[] = [
     label: "Mindset",
     tagline: "Preparation before events",
     icon: <MindsetIcon />,
-    advanced: true,
     detail: "Use this before something important — a presentation, a difficult conversation, a performance, a meeting, or any moment that requires you to show up at your best. Rthmic builds a calm upward trajectory that moves you from unsettled to ready, grounded rather than hyped.",
     guidance: "Describe what's coming and how you're feeling about it. Be specific about the moment you're preparing for — the more detail, the better.",
     priming: {
@@ -1231,7 +1229,6 @@ const PILLARS: PillarDefinition[] = [
     label: "Explain",
     tagline: "Get a complex idea to finally click for you",
     icon: <ExplainIcon />,
-    advanced: true,
     detail: "Use this when something isn't landing for you — a concept, a system, a principle, a framework. You've read about it, heard about it, maybe even tried to use it, but it hasn't fully clicked. RTHMIC builds a song structured around the idea itself: what it is, how it works, where it usually trips people up, and the moment it finally makes sense. You finish and think: I get it now.",
     guidance: "Describe the thing you want to understand. Say what you already know, where it stops making sense, and what would help it land. The more honestly you describe your current confusion, the better RTHMIC can target exactly where the gap is.",
     priming: {
@@ -1250,7 +1247,6 @@ const PILLARS: PillarDefinition[] = [
     label: "Book Summary",
     tagline: "The one big idea from a book",
     icon: <BookSummaryIcon />,
-    advanced: true,
     detail: "Use this when you want to understand — or share — the core concept from a book. RTHMIC builds a song around the book's ONE big idea: the premise, how it works, what most people miss, and why it matters. Works for books you've read, books you want to understand, or ideas you want to pass on. Try history, science, memoir, philosophy, culture, economics, creativity, nature writing, or big-idea fiction.",
     guidance: "Just name the book. RTHMIC knows the core idea. If you want the song to focus on a particular aspect — a chapter, a concept, how it applies to your life — say that too. The more specific you are, the more personal the song becomes.",
     priming: {
@@ -1325,13 +1321,13 @@ const CREATE_TILE_IMAGES: Record<string, string> = {
 const ALL_PILLAR_SLUGS = FOR_YOU_PILLARS.map((p) => p.slug);
 
 const CREATE_TILE_COPY: Record<string, string> = {
-  memory: "Remember what matters.",
-  mindset: "Prepare for the moment.",
+  memory: "Rthms that make something impossible to forget.",
+  mindset: "Prepare for the upcoming moment.",
   mode: "Manage your state of mind.",
-  movement: "Overcome inertia. Get on track.",
-  explain: "Understand something clearly.",
+  movement: "Task initiation: Get on track, stay on track.",
+  explain: "Rthms that unlock a concept.",
   booksummary: "Grasp the book's big idea.",
-  sleep: "Settle down and rest.",
+  sleep: "Rthms to rest the mind.",
 };
 
 const CREATE_TILE_ACCENT: Record<string, string> = {
@@ -2255,9 +2251,9 @@ function sunoPromptFor(g: string): string {
 }
 function displayNameFor(g: string): string {
   const idx = g.indexOf("|");
-  if (idx > 0) return g.slice(0, idx);
+  if (idx > 0) return toTitleCase(g.slice(0, idx));
   const comma = g.indexOf(",");
-  return comma > 0 ? g.slice(0, comma) : g.slice(0, 42);
+  return toTitleCase(comma > 0 ? g.slice(0, comma) : g.slice(0, 42));
 }
 
 function StyleSectionHeader({
@@ -2327,7 +2323,7 @@ function GenreView({
 
   // Save a custom style to the user's genre list (no-op if duplicate)
   const persistCustomStyle = (style: string) => {
-    const trimmed = style.trim();
+    const trimmed = titleCaseStyle(style);
     if (!trimmed) return;
     const isDuplicate = userGenres.some(
       (g) => g === trimmed || sunoPromptFor(g).toLowerCase() === trimmed.toLowerCase()
@@ -2346,8 +2342,8 @@ function GenreView({
     fetch("/api/genres")
       .then((r) => r.json())
       .then((d) => {
-        const bIn: string[] = Array.isArray(d.builtIn) ? d.builtIn : [];
-        const usr: string[] = Array.isArray(d.user)    ? d.user    : [];
+        const bIn: string[] = Array.isArray(d.builtIn) ? d.builtIn.map(titleCaseStyle) : [];
+        const usr: string[] = Array.isArray(d.user)    ? d.user.map(titleCaseStyle)    : [];
         setBuiltInGenres(bIn);
         setUserGenres(usr);
         setLoading(false);
@@ -2381,12 +2377,12 @@ function GenreView({
   const allGenres = [...builtInGenres, ...userGenres];
 
   const selectedGenre = customSelected && customStyle
-    ? customStyle
+    ? titleCaseStyle(customStyle)
     : selectedIndex !== null ? sunoPromptFor(allGenres[selectedIndex] ?? "") : "";
   const canProceed = selectedGenre.length > 0;
 
   const selectedDisplay = customSelected && customStyle
-    ? customStyle.split(",")[0].slice(0, 32)
+    ? displayNameFor(titleCaseStyle(customStyle)).slice(0, 32)
     : selectedIndex !== null ? displayNameFor(allGenres[selectedIndex] ?? "").slice(0, 32) : "";
   const buildLabel = selectedDisplay
     ? `Build with ${selectedDisplay}${selectedDisplay.length >= 32 ? "…" : ""}`
@@ -2440,7 +2436,7 @@ function GenreView({
             ? "Finding a match for your state…"
             : recommendedIndex !== null
               ? "Suggested from what you said. You can override it."
-            : "Choose the sound for your Rthm."}
+            : "Choose from your saved Rthmic Styles, or speak a new artist, era, genre, mood, or reference."}
         </p>
       </RevealBlock>
 
@@ -2480,19 +2476,19 @@ function GenreView({
           {/* ── Custom one-off ── */}
           <RevealBlock delay={20}>
             <CustomStyleInput
-              onStyleChange={(s) => { setCustomStyle(s); setCustomSelected(true); setSelectedIndex(null); }}
+              onStyleChange={(s) => { setCustomStyle(titleCaseStyle(s)); setCustomSelected(true); setSelectedIndex(null); }}
               selected={customSelected}
               onSelect={selectCustom}
               onSave={persistCustomStyle}
             />
           </RevealBlock>
 
-          {/* ── Style Archetypes (built-in, permanent) ── */}
+          {/* ── Rthmic Styles (built-in, permanent) ── */}
           {builtInGenres.length > 0 && (
             <div className="flex flex-col gap-2">
               <RevealBlock delay={40}>
                 <StyleSectionHeader
-                  title="Style Archetypes"
+                  title="Rthmic Styles"
                   count={builtInGenres.length}
                   expanded={builtInExpanded}
                   controls="style-archetypes-list"
@@ -2509,12 +2505,12 @@ function GenreView({
             </div>
           )}
 
-          {/* ── Your Styles (user-configured) ── */}
+          {/* ── Custom Styles (user-configured) ── */}
           {userGenres.length > 0 && (
             <div className="flex flex-col gap-2">
               <RevealBlock delay={40 + builtInGenres.length * 20}>
                 <StyleSectionHeader
-                  title="Your Styles"
+                  title="Custom Styles"
                   count={userGenres.length}
                   expanded={userExpanded}
                   controls="your-styles-list"
