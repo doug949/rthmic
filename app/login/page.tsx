@@ -39,7 +39,8 @@ function LoginForm() {
     });
 
     if (res.ok) {
-      router.push(from);
+      const data = await res.json() as { firstLogin?: boolean };
+      router.replace(data.firstLogin ? "/understand?welcome=1" : from);
       router.refresh();
     } else {
       setError(true);

@@ -44,6 +44,22 @@ async function seedNameFromBetaCode(uid: string, firstName: string) {
   }
 }
 
+/** Record the first successful login for this access code without an expiry. */
+async function markFirstLogin(uid: string): Promise<boolean> {
+  if (!process.env.REDIS_URL) return true;
+  const client = createClient({ url: process.env.REDIS_URL });
+  try {
+    await client.connect();
+    const created = await client.set(`onboarding:logged-in:${uid}`, new Date().toISOString(), { NX: true });
+    return created === "OK";
+  } catch {
+    // Prefer showing About once too often over skipping it for a genuinely new user.
+    return true;
+  } finally {
+    await client.disconnect().catch(() => {});
+  }
+}
+
 export async function POST(request: NextRequest) {
   const { password: rawPassword, betaAgreementAccepted } = await request.json();
   const password = typeof rawPassword === "string" ? rawPassword.trim() : "";
@@ -77,8 +93,9 @@ export async function POST(request: NextRequest) {
   if (isBeta && betaEntry?.firstName) {
     await seedNameFromBetaCode(uid, betaEntry.firstName);
   }
+  const firstLogin = access !== "admin" && await markFirstLogin(uid);
 
-  const response = NextResponse.json({ ok: true, role: access });
+  const response = NextResponse.json({ ok: true, role: access, firstLogin });
 
   // Session cookie — 30 day auth gate
   response.cookies.set("rthmic_session", process.env.RTHMIC_SESSION_TOKEN!, {
