@@ -7,6 +7,7 @@ import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import type { SavedRhythm } from "@/app/types/library";
 import { useOfflineAudio } from "@/app/hooks/useOfflineAudio";
+import { RecordFlipIcon } from "@/app/components/RecordFlipIcon";
 
 export type { SavedRhythm };
 
@@ -226,13 +227,14 @@ export function RhythmRow({
             )}
             <button
               onClick={handleSwapSide}
-              className="text-[10px] uppercase tracking-widest rounded-full px-3 py-1.5 touch-manipulation active:scale-[0.98] transition-transform"
+              className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest rounded-full px-3 py-1.5 touch-manipulation active:scale-[0.98] transition-transform"
               style={{
                 background: favourite ? "rgba(201,165,90,0.10)" : "rgba(255,255,255,0.055)",
                 border: favourite ? "1px solid rgba(201,165,90,0.22)" : "1px solid rgba(255,255,255,0.09)",
                 color: favourite ? "rgba(201,165,90,0.76)" : "rgba(255,255,255,0.52)",
               }}
             >
+              <RecordFlipIcon />
               Swap to {sideLabel === "A" ? "B" : "A"}-side
             </button>
           </div>

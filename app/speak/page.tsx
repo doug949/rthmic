@@ -18,6 +18,7 @@ import { useQueueStatus } from "@/app/hooks/useQueueStatus";
 import { MicIcon as HeaderMicIcon } from "@/app/components/HomeTileIcons";
 import { clearInterpretationDraft, readInterpretationDraft, saveInterpretationDraft } from "@/app/lib/interpretationDraft";
 import { titleCaseStyle, toTitleCase } from "@/app/lib/styleText";
+import { RecordFlipIcon } from "@/app/components/RecordFlipIcon";
 
 type Phase = "module" | "priming" | "idle" | "recording" | "understanding" | "confirming" | "genre" | "queued";
 
@@ -2977,9 +2978,10 @@ function ResultsView({
                     </span>
                     <button
                       onClick={() => setSelectedResultId(alternateSong.id)}
-                      className="text-[10px] uppercase tracking-widest rounded-full px-3 py-1.5 touch-manipulation active:scale-[0.98] transition-transform"
+                      className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest rounded-full px-3 py-1.5 touch-manipulation active:scale-[0.98] transition-transform"
                       style={{ background: "rgba(255,255,255,0.055)", border: "1px solid rgba(255,255,255,0.09)", color: "rgba(255,255,255,0.55)" }}
                     >
+                      <RecordFlipIcon />
                       Swap to {selectedIndex === 0 ? "B" : "A"}-side
                     </button>
                   </div>

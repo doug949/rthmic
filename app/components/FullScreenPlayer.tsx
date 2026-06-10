@@ -15,6 +15,7 @@ import { MoreSheet } from "@/app/library/_components";
 import { BUILD_UPON_GENRE, buildUponLyrics, buildUponTitle } from "@/app/lib/buildUpon";
 import { sideLabelFor } from "@/app/lib/rhythmPairs";
 import { MENU_CONFIGS } from "@/app/lib/menuConfigs";
+import { RecordFlipIcon } from "@/app/components/RecordFlipIcon";
 
 const LYRIC_SYNC_LEAD_SECONDS = 0.35;
 
@@ -418,13 +419,14 @@ export default function FullScreenPlayer() {
           </button>
           <button
             onClick={handleSwapSide}
-            className="text-[10px] uppercase tracking-widest rounded-full px-3 py-1.5 touch-manipulation active:scale-[0.98] transition-transform"
+            className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest rounded-full px-3 py-1.5 touch-manipulation active:scale-[0.98] transition-transform"
             style={{
               background: isFavourite ? "rgba(201,165,90,0.14)" : "rgba(255,255,255,0.07)",
               border: isFavourite ? "1px solid rgba(201,165,90,0.28)" : "1px solid rgba(255,255,255,0.12)",
               color: isFavourite ? "rgba(201,165,90,0.82)" : "rgba(255,255,255,0.62)",
             }}
           >
+            <RecordFlipIcon />
             Swap to {sideLabel === "A" ? "B" : "A"}-side
           </button>
         </div>
