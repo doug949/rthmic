@@ -16,6 +16,8 @@ export function proxy(request: NextRequest) {
     pathname.startsWith("/api/poll-generation") || // polled by cron self-call and frontend
     pathname.startsWith("/api/proxy-audio") || // handler enforces auth for library ids; share tokens are public
     pathname.startsWith("/images/") ||
+    pathname === "/login-vinyl.mp4" ||
+    pathname === "/vinyl.jpg" ||
     pathname === "/bg.jpg" ||
     pathname === "/apple-touch-icon.png"
   ) {

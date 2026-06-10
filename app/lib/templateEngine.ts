@@ -151,6 +151,23 @@ export function detectPillar(transcript: string): PillarType {
     }
   }
 
+  // Negative mentions describe what the user does not want. Do not let words
+  // such as "sleep" win merely because they appear several times in a correction.
+  const rejectsSleep = [
+    /\b(?:do not|don't|dont|not|never|no intention of|without)\s+(?:want(?:ing)?\s+to\s+)?(?:go(?:ing)?\s+to\s+)?sleep(?:ing)?\b/,
+    /\b(?:stay|staying)\s+up\b/,
+    /\bnot\s+(?:trying|planning|ready)\s+to\s+(?:rest|sleep)\b/,
+  ].some((pattern) => pattern.test(lower));
+
+  if (rejectsSleep) {
+    scores.Sleep = Math.min(scores.Sleep, -1);
+    if (/\bfocus|focused|concentrat|on track|productive|stay up|staying up\b/.test(lower)) {
+      scores.Movement += 3;
+    } else {
+      scores.Mindset += 2;
+    }
+  }
+
   const sorted = (Object.entries(scores) as [PillarType, number][]).sort((a, b) => b[1] - a[1]);
 
   // Default to Mindset if no signal — most common entry state

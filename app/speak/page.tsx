@@ -25,6 +25,15 @@ type Phase = "module" | "priming" | "idle" | "recording" | "understanding" | "co
 
 const SKIP_CONFIRMATION_PILLARS = new Set(["explain", "menus", "booksummary"]);
 const SUGGESTION_COUNT = 5;
+const CONFIRM_CATEGORY_OPTIONS: { value: PillarType; label: string }[] = [
+  { value: "Mindset", label: "Mindset" },
+  { value: "Movement", label: "Movement" },
+  { value: "Mode", label: "State of mind" },
+  { value: "Memory", label: "Memory" },
+  { value: "Understanding", label: "Understanding" },
+  { value: "Explain", label: "Explain" },
+  { value: "Sleep", label: "Sleep" },
+];
 
 function shouldSkipConfirmation(pillar?: string | null) {
   return SKIP_CONFIRMATION_PILLARS.has((pillar ?? "").toLowerCase());
@@ -1021,6 +1030,11 @@ export default function SpeakPage() {
       {genPhase === "failed" && understandResult && (
         <ConfirmingView
           result={understandResult}
+          onPillarChange={(pillar) => {
+            setSelectedPillar(pillar.toLowerCase());
+            setUnderstandResult((current) => current ? { ...current, pillar } : current);
+            saveInterpretationDraft({ ...understandResult, pillar });
+          }}
           onAddMore={addMore}
           onProceed={() => runGenerate()}
           onDiscard={reset}
@@ -1081,6 +1095,11 @@ export default function SpeakPage() {
           {phase === "confirming" && understandResult && (
             <ConfirmingView
               result={understandResult}
+              onPillarChange={(pillar) => {
+                setSelectedPillar(pillar.toLowerCase());
+                setUnderstandResult((current) => current ? { ...current, pillar } : current);
+                saveInterpretationDraft({ ...understandResult, pillar });
+              }}
               onAddMore={addMore}
               onProceed={() => goToPhase("genre")}
               onDiscard={reset}
@@ -2099,6 +2118,7 @@ function UnderstandingView({ pillar }: { pillar?: string | null }) {
 
 function ConfirmingView({
   result,
+  onPillarChange,
   onAddMore,
   onProceed,
   onDiscard,
@@ -2107,6 +2127,7 @@ function ConfirmingView({
   wasAutoStopped,
 }: {
   result: UnderstandResult;
+  onPillarChange: (pillar: PillarType) => void;
   onAddMore: () => void;
   onProceed: () => void;
   onDiscard: () => void;
@@ -2115,6 +2136,7 @@ function ConfirmingView({
   wasAutoStopped?: boolean;
 }) {
   const styleLabel = result.style === "A" ? "Energy" : "Focus";
+  const [choosingCategory, setChoosingCategory] = useState(false);
 
   // ── Word-by-word animation ──────────────────────────────────────────────────
   // Split each section into words; stagger reveal across all three sequentially.
@@ -2164,14 +2186,48 @@ function ConfirmingView({
         <RevealBlock delay={0}>
           <div className="flex flex-col gap-2">
             <h2 className="text-2xl font-light tracking-wide text-white" style={{ fontFamily: "var(--font-display)" }}>Is this right?</h2>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-white/35 border border-white/[0.10] rounded-full px-2.5 py-0.5 uppercase tracking-widest">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setChoosingCategory((open) => !open)}
+                className="text-[10px] text-white/50 border border-white/[0.14] rounded-full px-2.5 py-1 uppercase tracking-widest touch-manipulation active:bg-white/[0.08]"
+                aria-expanded={choosingCategory}
+              >
                 {result.pillar}
-              </span>
+                <span className="ml-1.5 text-white/30">⌄</span>
+              </button>
               <span className="text-[10px] text-white/35 border border-white/[0.10] rounded-full px-2.5 py-0.5 uppercase tracking-widest">
                 {styleLabel}
               </span>
             </div>
+            {choosingCategory && (
+              <div className="mt-1 rounded-2xl border border-white/[0.09] bg-[#0a1120]/95 p-3">
+                <p className="px-1 pb-2 text-[10px] uppercase tracking-[0.2em] text-white/35">Choose the category</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {CONFIRM_CATEGORY_OPTIONS.map((option) => {
+                    const active = option.value === result.pillar;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => {
+                          onPillarChange(option.value);
+                          setChoosingCategory(false);
+                        }}
+                        className="rounded-xl border px-3 py-3 text-left text-xs tracking-wide touch-manipulation active:scale-[0.98] transition-transform"
+                        style={{
+                          borderColor: active ? "rgba(201,165,90,0.46)" : "rgba(255,255,255,0.09)",
+                          background: active ? "rgba(201,165,90,0.10)" : "rgba(255,255,255,0.035)",
+                          color: active ? "#c9a55a" : "rgba(255,255,255,0.62)",
+                        }}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </RevealBlock>
 

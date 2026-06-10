@@ -4,7 +4,7 @@ import { useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
-const LOGIN_VIDEO_SRC = "https://cdn.pixabay.com/video/2021/02/16/65390-514139029_large.mp4";
+const LOGIN_VIDEO_SRC = "/login-vinyl.mp4";
 
 function LoginForm() {
   const [password, setPassword] = useState("");
@@ -80,12 +80,15 @@ function LoginForm() {
   return (
     <main className="relative min-h-screen overflow-hidden flex flex-col items-center justify-center px-6 py-10">
       <video
-        className="absolute inset-0 h-full w-full object-cover"
+        className="pointer-events-none absolute inset-0 h-full w-full object-cover"
         autoPlay
         muted
         loop
         playsInline
+        controls={false}
+        disablePictureInPicture
         preload="metadata"
+        poster="/vinyl.jpg"
         aria-hidden="true"
         style={{
           filter: "saturate(0.82) contrast(1.08) brightness(0.54)",
