@@ -533,7 +533,7 @@ export default function MyRthmsPage() {
           </div>
         )}
 
-        {loadState === "ready" && (
+        {loadState === "ready" && section === "main" && (
           <LibrarySearchBox
             value={searchQuery}
             onChange={(value) => {
@@ -541,8 +541,8 @@ export default function MyRthmsPage() {
               setExpanded(false);
             }}
             onClear={() => setSearchQuery("")}
-            resultCount={section === "new" ? newRthms.length : filteredRthms.length}
-            totalCount={section === "new" ? regularRhythms.filter((r) => r.status === "new").length : myRthms.length}
+            resultCount={filteredRthms.length}
+            totalCount={myRthms.length}
           />
         )}
 
