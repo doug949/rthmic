@@ -7,12 +7,12 @@ import { RevealBlock } from "@/app/components/RevealBlock";
 import { LockIcon } from "@/app/components/HomeTileIcons";
 
 const PHOTO_FOCUS_OPTIONS = [
-  { id: "place-history", label: "History", detail: "What this place or object might be connected to." },
-  { id: "surroundings", label: "Surroundings", detail: "What the area, setting, or nearby context may imply." },
-  { id: "sun-aspect", label: "Sun / aspect", detail: "Light, direction, time, and property-viewing clues." },
-  { id: "property", label: "Property", detail: "Useful things to notice before a viewing." },
+  { id: "place-history", label: "History", detail: "Known historical context connected to this exact place or object." },
+  { id: "surroundings", label: "Surroundings", detail: "Named nearby places, transport, amenities, setting, and distances." },
+  { id: "sun-aspect", label: "Sun / aspect", detail: "Visible light, direction, capture time, aspect, and their implications." },
+  { id: "property", label: "Property", detail: "Visible building features and grounded implications for living here." },
   { id: "memory", label: "Memory", detail: "What to preserve emotionally or personally." },
-  { id: "questions", label: "Questions", detail: "What to investigate or ask next." },
+  { id: "practical-facts", label: "Practical facts", detail: "Concrete answers and useful implications from the photo and location." },
 ] as const;
 
 const PHOTO_METADATA_SLICE_BYTES = 768 * 1024;
@@ -47,7 +47,7 @@ export default function StudioPage() {
   const [linkContext, setLinkContext] = useState("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoContext, setPhotoContext] = useState("");
-  const [photoFocus, setPhotoFocus] = useState<string[]>(["surroundings", "questions"]);
+  const [photoFocus, setPhotoFocus] = useState<string[]>(["surroundings", "practical-facts"]);
   const [photoName, setPhotoName] = useState("");
   const [photoBusy, setPhotoBusy] = useState(false);
   const [photoError, setPhotoError] = useState("");

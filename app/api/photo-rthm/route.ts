@@ -326,13 +326,15 @@ export async function POST(req: NextRequest) {
 
 Do not write song lyrics. Describe what is visible, infer the likely useful angle carefully, and shape it into a prompt that can become a practical Understanding-style Rthm.
 
-If the image appears to show a place, object, meal, room, product, document, view, property, artwork, sign, or scene, focus on what the listener should notice, remember, question, appreciate, or do next.
+If the image appears to show a place, object, meal, room, product, document, view, property, artwork, sign, or scene, identify and explain the useful details directly. The result is an answered, informative Rthm, not a checklist for the listener.
 
-Use EXIF metadata when available. GPS, capture time, focal length, and camera direction can support useful context such as place, aspect, sun/path clues, surrounding area questions, historical curiosity, or property-viewing prompts.
+Use EXIF metadata when available. GPS, capture time, focal length, and camera direction can support concrete context such as place, aspect, sun/path clues, surrounding amenities, transport, history, or property-viewing facts.
 
-Important: this must be about the exact photographed subject, not a generic example of its type. If the image shows a medieval wall, old stonework, a specific building, a room, or a property, refer to this wall/place/room/property and anchor it to any known location/context from EXIF or the user. If the user context, reverse geocode, OpenStreetMap, Wikipedia, visible signage, or address-like clues contain a proper name, building name, street, park, landmark, or district, put those proper nouns into the prompt. If no precise location is known, say that clearly and use questions/investigation cues instead of invented facts.
+Important: this must be about the exact photographed subject, not a generic example of its type. If the image shows a medieval wall, old stonework, a specific building, a room, or a property, identify the visible features and explain what those features mean. Anchor them to any known location/context from EXIF or the user. If the user context, reverse geocode, OpenStreetMap, Wikipedia, visible signage, or address-like clues contain a proper name, building name, street, park, landmark, district, amenity, or transport feature, put those proper nouns and facts into the prompt. If no precise location or supporting fact is known, omit that claim rather than asking the listener to research it.
 
 Use the supplied local facts when available. Prefer named nearby places, named landmarks, dated facts, and source-backed details over vague possibility language. Never write "if there is..." or "there may be..." when a supplied local fact names the actual place. Distinguish what is known from the image/metadata/local facts from what is not known. Never invent private facts, exact history, surroundings, ownership, listing details, or landmark claims that are not visible, present in EXIF, supplied by local facts, or provided by the user.
+
+ZERO HOMEWORK RULE: never tell the listener to look for, notice, inspect, check, verify, research, investigate, ask about, find out, consider, explore, or remember to do something. Never turn uncertainty into a question or task. Do the available analysis now: name visible architectural/material/layout/light features and explain them; state named nearby transport, amenities, landmarks, distances, and sourced history when supplied; connect those facts to the user's purpose. Unsupported details must be silently omitted.
 
 Return strict JSON only:
 {
@@ -368,10 +370,11 @@ Return JSON for RTHMIC. In prompt include:
 - What the photo appears to show.
 - The most specific name/address/location anchor available, using proper nouns from the user context, visible signage, EXIF, reverse geocode, local facts, or map-like clues.
 - Why it might matter.
-- What the Rthm should help the listener notice, learn, question, or remember based on the selected focus/purpose.
+- Direct findings and explanations based on the selected focus/purpose. Describe the visible evidence and explain its significance instead of telling the listener what to look for.
 - Any useful metadata-derived or geodata-derived facts, clearly separated from visual observations.
 - Named nearby places or famous nearby facts when supplied.
-- Useful questions or tradeoffs only after the known facts have been used.
+- For a property purpose, directly include supplied facts about nearby transport, amenities, aspect/light, setting, access, and visible building features. Explain tradeoffs only when grounded in those facts.
+- No questions, research suggestions, viewing checklist, calls to action, or tasks for the listener.
 
 For tagHints:
 - Prefer concrete visual/place tags such as "stone wall", "architecture", "local history", "property", "sun aspect", "photograph".
@@ -409,7 +412,7 @@ For musicStyle:
       `Selected learning focus: ${focusAreas || "No selected focus areas."}`,
       `EXIF metadata:\n${exifSummary(metadata)}`,
       `Local facts from geodata:\n${locationFacts || "No geodata-based local facts were available."}`,
-      "Make the Rthm clear, specific, and useful. Keep it anchored to the exact photographed subject and any known location/context. If a building name, street, park, district, nearby landmark, date, distance, or coordinate appears in the source facts, use it directly in the title, state summary, and first verse where natural. Do not mention that an AI vision model described the image.",
+      "Make the Rthm clear, specific, useful, and fully answered. Keep it anchored to the exact photographed subject and any known location/context. If a building name, street, park, district, nearby landmark, transport feature, amenity, date, distance, or coordinate appears in the source facts, use it directly in the title, state summary, and first verse where natural. State and explain visible features rather than telling the listener to look for them. Never give the listener questions, homework, research suggestions, checks, viewing tasks, or things to consider. If a fact is unavailable, omit it. Do not mention that an AI vision model described the image.",
     ].join(" ");
 
     const fallbackMusicStyle = [
