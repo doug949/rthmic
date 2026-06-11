@@ -7,6 +7,7 @@ import { Suspense } from "react";
 const LOGIN_VIDEO_SRC = "/login-vinyl.mp4";
 
 function LoginForm() {
+  const [videoReady, setVideoReady] = useState(false);
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
@@ -79,7 +80,19 @@ function LoginForm() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden flex flex-col items-center justify-center px-6 py-10">
+    <main
+      className="relative z-10 min-h-screen overflow-hidden flex flex-col items-center justify-center px-6 py-10"
+      style={{ background: "#02050a" }}
+    >
+      <div
+        className="pointer-events-none absolute inset-0 bg-cover bg-center"
+        aria-hidden="true"
+        style={{
+          backgroundImage: "url('/vinyl.jpg')",
+          filter: "saturate(0.72) contrast(1.12) brightness(0.32)",
+          transform: "scale(1.01)",
+        }}
+      />
       <video
         className="pointer-events-none absolute inset-0 h-full w-full object-cover"
         autoPlay
@@ -88,12 +101,14 @@ function LoginForm() {
         playsInline
         controls={false}
         disablePictureInPicture
-        preload="metadata"
+        preload="auto"
         poster="/vinyl.jpg"
+        onCanPlay={() => setVideoReady(true)}
         aria-hidden="true"
         style={{
-          filter: "saturate(0.82) contrast(1.08) brightness(0.54)",
-          opacity: 0.68,
+          filter: "saturate(0.76) contrast(1.12) brightness(0.42)",
+          opacity: videoReady ? 0.62 : 0,
+          transition: "opacity 1400ms cubic-bezier(0.16, 1, 0.3, 1)",
         }}
       >
         <source src={LOGIN_VIDEO_SRC} type="video/mp4" />
@@ -102,7 +117,7 @@ function LoginForm() {
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "linear-gradient(180deg, rgba(4,10,20,0.84) 0%, rgba(7,13,25,0.74) 44%, rgba(4,9,18,0.92) 100%)",
+            "linear-gradient(180deg, rgba(2,6,13,0.91) 0%, rgba(5,10,20,0.82) 44%, rgba(2,6,13,0.96) 100%)",
         }}
       />
       <div
@@ -112,7 +127,7 @@ function LoginForm() {
             "radial-gradient(circle at 50% 14%, rgba(201,165,90,0.18), transparent 32%), radial-gradient(circle at 42% 82%, rgba(70,205,235,0.10), transparent 36%)",
         }}
       />
-      <div className="relative z-10 flex w-full flex-col items-center">
+      <div className="login-content-enter relative z-10 flex w-full flex-col items-center">
       <div className="mb-9 w-full max-w-sm text-center">
         <h1
           className="text-4xl uppercase"
@@ -314,8 +329,27 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense>
+    <Suspense fallback={<LoginBackdropFallback />}>
       <LoginForm />
     </Suspense>
+  );
+}
+
+function LoginBackdropFallback() {
+  return (
+    <main className="fixed inset-0 z-10 overflow-hidden" style={{ background: "#02050a" }} aria-hidden="true">
+      <div
+        className="absolute inset-0 bg-cover bg-center"
+        style={{
+          backgroundImage: "url('/vinyl.jpg')",
+          filter: "saturate(0.72) contrast(1.12) brightness(0.32)",
+          transform: "scale(1.01)",
+        }}
+      />
+      <div
+        className="absolute inset-0"
+        style={{ background: "linear-gradient(180deg, rgba(2,6,13,0.91), rgba(2,6,13,0.96))" }}
+      />
+    </main>
   );
 }
