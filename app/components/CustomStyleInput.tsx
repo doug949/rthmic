@@ -245,17 +245,9 @@ export default function CustomStyleInput({ onStyleChange, selected, onSelect, on
           ✦
         </span>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="text-base font-medium" style={{ color: selected ? "rgb(var(--flow-accent-rgb, 201, 165, 90))" : "rgba(255,255,255,0.55)" }}>
-              {style || "Speak a New Style"}
-            </p>
-            <span
-              className="text-[8px] uppercase tracking-widest px-1.5 py-0.5 rounded-full border flex-shrink-0"
-              style={{ color: "rgba(var(--flow-accent-rgb, 201, 165, 90),0.65)", borderColor: "rgba(var(--flow-accent-rgb, 201, 165, 90),0.2)", background: "rgba(var(--flow-accent-rgb, 201, 165, 90),0.06)" }}
-            >
-              Beta
-            </span>
-          </div>
+          <p className="text-base font-medium" style={{ color: selected ? "rgb(var(--flow-accent-rgb, 201, 165, 90))" : "rgba(255,255,255,0.55)" }}>
+            {style || "Speak a New Style"}
+          </p>
           {!open && !style && (
             <p className="text-xs text-white/25 mt-0.5">Artist, era, genre, mood, or anything you like</p>
           )}
