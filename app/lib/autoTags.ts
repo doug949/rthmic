@@ -14,6 +14,10 @@ const LEGACY_AUTO_TAGS = new Set([
   "confidence", "focus", "starting", "routine", "fitness", "language",
   "work", "relationships", "gratitude", "rest", "planning", "study",
   "recall", "insight", "clarity", "creative", "money", "travel",
+  "inbound marketing", "content marketing", "marketing", "business",
+  "sales", "video", "social media", "seo", "email marketing", "website",
+  "strategy", "product", "ai", "finance", "legal", "health", "education",
+  "communication",
 ]);
 
 const CATEGORY_TAGS = new Set([
@@ -75,6 +79,12 @@ function cleanTag(tag: string): string {
     .trim();
 }
 
+function matchCount(text: string, pattern: RegExp): number {
+  if (!text) return 0;
+  const flags = pattern.flags.includes("g") ? pattern.flags : `${pattern.flags}g`;
+  return [...text.matchAll(new RegExp(pattern.source, flags))].length;
+}
+
 export function normalizeTags(tags: string[] | undefined, max = MAX_TAGS): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
@@ -90,9 +100,17 @@ export function normalizeTags(tags: string[] | undefined, max = MAX_TAGS): strin
 
 export function autoTagsForRhythm(rhythm: TaggableRhythm, max = MAX_TAGS): string[] {
   const tags: string[] = [];
-  const text = [rhythm.title, rhythm.note, rhythm.lyrics].filter(Boolean).join("\n");
+  const primaryText = [rhythm.title, rhythm.note].filter(Boolean).join("\n");
+  const lyrics = rhythm.lyrics ?? "";
+  const useLyricsFallback = primaryText.trim().length < 12;
+  const pillar = String(rhythm.pillar ?? "").toLowerCase().replace(/[^a-z]/g, "");
+
   for (const [pattern, tag] of KEYWORD_TAGS) {
-    if (pattern.test(text)) tags.push(tag);
+    if (tag === "books" && pillar !== "booksummary") continue;
+
+    const primaryMatch = pattern.test(primaryText);
+    const fallbackMatch = useLyricsFallback && matchCount(lyrics, pattern) >= 2;
+    if (primaryMatch || fallbackMatch) tags.push(tag);
     if (tags.length >= max) break;
   }
 
@@ -103,7 +121,7 @@ export function tagsForSavedRhythm(rhythm: TaggableRhythm, max = MAX_TAGS): stri
   const existing = normalizeTags(rhythm.tags, max);
   const generated = autoTagsForRhythm(rhythm, max);
   const onlyLegacyAutoTags = existing.length > 0 && existing.every((tag) => LEGACY_AUTO_TAGS.has(tag));
-  if (onlyLegacyAutoTags && generated.length > 0) return generated;
+  if (onlyLegacyAutoTags) return generated;
   if (existing.length >= max) return existing;
   return normalizeTags([...existing, ...generated], max);
 }

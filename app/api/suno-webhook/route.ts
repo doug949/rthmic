@@ -158,6 +158,7 @@ export async function POST(req: NextRequest) {
         jobId,
         pillar: job.pillar,
         lyrics: job.lyrics,
+        genre: job.displayGenre ?? job.genre,
         songs,
         note: job.note,
         experiment: job.experiment,

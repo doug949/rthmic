@@ -2,6 +2,7 @@ import { createClient } from "redis";
 import type { SavedRhythm } from "@/app/types/library";
 import type { PillarType, Song, TimedWord } from "@/app/types/pipeline";
 import { normalizeTags, tagsForSavedRhythm } from "@/app/lib/autoTags";
+import { displayStyleName } from "@/app/lib/styleText";
 import type { RedisClient } from "@/app/lib/redis";
 import {
   libraryKey,
@@ -20,6 +21,7 @@ interface SaveCompletedSongsParams {
   jobId: string;
   pillar: PillarType;
   lyrics: string;
+  genre: string;
   songs: Song[];
   note?: string;
   experiment?: string;
@@ -82,6 +84,7 @@ export async function saveCompletedSongs({
   jobId,
   pillar,
   lyrics,
+  genre,
   songs,
   note,
   experiment,
@@ -119,6 +122,7 @@ export async function saveCompletedSongs({
       pillar,
       audioUrl: song.audioUrl,
       lyrics,
+      genre: displayStyleName(genre),
       sunoClipId: song.sunoClipId,
       sunoTaskId: song.sunoTaskId,
       savedAt: Date.now(),

@@ -76,6 +76,7 @@ async function pollJob(
     jobId: job.jobId,
     pillar: job.pillar,
     lyrics: job.lyrics,
+    genre: job.displayGenre ?? job.genre,
     songs: pollData.songs,
     note: job.note,
     experiment: job.experiment,

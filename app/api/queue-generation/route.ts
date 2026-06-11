@@ -11,6 +11,7 @@ import { REDIS_AVAILABLE, withRedis, type RedisClient } from "@/app/lib/redis";
 import { prepareSunoPrompt, trimToSunoLimit } from "@/app/lib/sunoLyrics";
 import { extractSunoTaskId, isSunoCreditError, sunoStartError } from "@/app/lib/sunoResponse";
 import { applyVocalistPreference, buildSunoStyle } from "@/app/lib/sunoStyle";
+import { displayStyleName } from "@/app/lib/styleText";
 import type { StyleChoice } from "@/app/services/llmService";
 import type { PillarType } from "@/app/types/pipeline";
 
@@ -145,6 +146,7 @@ export async function POST(req: NextRequest) {
     transcript,
     stateSummary,
     genre: builtStyle,
+    displayGenre: displayStyleName(rawGenre),
     note,
     experiment,
     tagHints,

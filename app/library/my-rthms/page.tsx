@@ -96,6 +96,7 @@ function searchableText(rhythm: SavedRhythm): string {
     rhythm.title,
     rhythm.pillar,
     rhythm.note,
+    rhythm.genre,
     rhythm.lyrics,
     ...(rhythm.tags ?? []),
   ].filter(Boolean).join(" "));

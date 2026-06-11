@@ -10,6 +10,7 @@ export interface SavedRhythm {
   status: "new" | "active" | "favourite" | "archived" | "deleted";
   deletedAt?: number;
   tags?: string[];
+  genre?: string;
   note?: string;
   playCount?: number;
   lastPlayedAt?: number;

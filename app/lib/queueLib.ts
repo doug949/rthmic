@@ -16,6 +16,7 @@ export interface QueueJob {
   transcript?: string;
   stateSummary?: StateSummary;
   genre: string;
+  displayGenre?: string;
   note?: string;
   experiment?: string;
   tagHints?: string[];

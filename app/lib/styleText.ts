@@ -39,3 +39,11 @@ export function titleCaseStyle(value: string) {
 
   return toTitleCase(value);
 }
+
+export function displayStyleName(value: string) {
+  const pipe = value.indexOf("|");
+  if (pipe > 0) return toTitleCase(value.slice(0, pipe));
+
+  const comma = value.indexOf(",");
+  return toTitleCase(comma > 0 ? value.slice(0, comma) : value.slice(0, 42));
+}

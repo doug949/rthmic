@@ -187,6 +187,18 @@ export function RhythmRow({
               </span>
             )}
             <span className="text-[10px] uppercase tracking-wider" style={{ color: favourite ? "rgba(201,165,90,0.6)" : P ? P.sub : "rgba(255,255,255,0.5)" }}>{rhythm.pillar}</span>
+            {rhythm.genre && (
+              <span
+                className="text-[10px] px-1.5 py-0.5 rounded-full"
+                style={{
+                  background: favourite ? "rgba(201,165,90,0.12)" : "rgba(64,205,235,0.10)",
+                  border: favourite ? "1px solid rgba(201,165,90,0.18)" : "1px solid rgba(64,205,235,0.18)",
+                  color: favourite ? "rgba(201,165,90,0.76)" : "rgba(120,225,245,0.76)",
+                }}
+              >
+                Style · {rhythm.genre}
+              </span>
+            )}
             {tags.map((tag) => (
               <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: favourite ? "rgba(201,165,90,0.1)" : "rgba(255,255,255,0.06)", color: favourite ? "rgba(201,165,90,0.65)" : "rgba(255,255,255,0.55)" }}>
                 {tag}
