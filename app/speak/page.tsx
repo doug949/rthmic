@@ -29,8 +29,8 @@ const SUGGESTION_COUNT = 5;
 const CONFIRM_CATEGORY_OPTIONS: { value: PillarType; label: string }[] = [
   { value: "Mindset", label: "Mindset" },
   { value: "Movement", label: "Movement" },
-  { value: "Mode", label: "State of mind" },
-  { value: "Memory", label: "Memory" },
+  { value: "Mode", label: "Modeshift" },
+  { value: "Memory", label: "Memorize" },
   { value: "Understanding", label: "Understanding" },
   { value: "Explain", label: "Explain" },
   { value: "Sleep", label: "Sleep" },
@@ -1188,7 +1188,7 @@ export default function SpeakPage() {
 const PILLARS: PillarDefinition[] = [
   {
     slug: "memory",
-    label: "Memory",
+    label: "Memorize",
     tagline: "Imprint through association",
     icon: <MemoryIcon />,
     detail: "Use this when you need to memorise something — a speech, a script, a sequence, a list of names, or any content you need to recall under real conditions. Rthmic encodes the information into a song using linked images, scenes, and sensory anchors so retrieval feels natural rather than effortful.",
@@ -1242,7 +1242,7 @@ const PILLARS: PillarDefinition[] = [
   },
   {
     slug: "mode",
-    label: "Mode",
+    label: "Modeshift",
     tagline: "In-the-moment rescue",
     icon: <ModeIcon />,
     detail: "Use this when you're already inside a difficult state — overwhelm, freeze, anxiety, spiral, anger, or shutdown. Rthmic interrupts the pattern quickly, acknowledges exactly where you are, and guides you back to steady ground. It doesn't argue with how you feel. It meets you there.",
@@ -1579,7 +1579,7 @@ function PillarView({ onSelect, adhdCollection = false }: { onSelect: (slug: str
       id: "regulate",
       title: "Regulate with RTHMIC",
       description: "Shift state, prepare, begin, or settle.",
-      slugs: ["mode", "mindset", "movement", "sleep"],
+      slugs: ["mindset", "mode", "movement", "sleep"],
     },
     {
       id: "grow",
@@ -1640,7 +1640,7 @@ function PillarView({ onSelect, adhdCollection = false }: { onSelect: (slug: str
       <RevealBlock delay={0}>
         <div className="flex flex-col gap-1.5 pt-2 pb-5">
           <p className="text-xl font-light text-white/70 leading-snug" style={{ fontFamily: "var(--font-display)" }}>
-            {adhdCollection ? "What do you need help with right now?" : "What do you want to achieve?"}
+            {adhdCollection ? "What do you need help with right now?" : "What’s the goal?"}
           </p>
         </div>
       </RevealBlock>
