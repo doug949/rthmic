@@ -31,7 +31,7 @@ function cleanPreference(value: unknown): StyleCategoryPreference {
   const raw = value && typeof value === "object" ? value as Record<string, unknown> : {};
   return {
     selections: Array.isArray(raw.selections)
-      ? raw.selections.filter((item): item is string => typeof item === "string").map(item => item.slice(0, 100)).slice(0, 8)
+      ? raw.selections.filter((item): item is string => typeof item === "string").map(item => item.slice(0, 100)).slice(0, 1)
       : [],
     customDescription: typeof raw.customDescription === "string" ? raw.customDescription.slice(0, 500) : "",
     overrideStyle: typeof raw.overrideStyle === "string" ? raw.overrideStyle.slice(0, 600) : "",

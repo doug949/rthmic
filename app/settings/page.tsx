@@ -19,29 +19,45 @@ const PURPLE = {
 
 // ─── Styles slots ──────────────────────────────────────────────────────────────
 const SLOTS = [
-  { id: "power" as const, label: "Power", color: "235,120,108", question: "What music makes you feel powerful and inspired?", hint: "Choose as many as fit. These guide RTHMIC before a big moment, workout, or challenge.", suggestions: [
+  { id: "power" as const, label: "Power", color: "235,120,108", question: "What music makes you feel powerful and inspired?", hint: "Choose the one that best fits before a big moment, workout, or challenge.", suggestions: [
     { label: "70s arena rock", examples: "Queen - We Will Rock You; Led Zeppelin - Immigrant Song" },
     { label: "Modern musical theatre", examples: "Hamilton - My Shot; The Greatest Showman - This Is Me" },
     { label: "90s hip-hop confidence", examples: "The Notorious B.I.G. - Juicy; Salt-N-Pepa - None of Your Business" },
     { label: "80s synth anthem", examples: "Bonnie Tyler - Holding Out for a Hero; Survivor - Eye of the Tiger" },
+    { label: "00s pop-rock drive", examples: "Kelly Clarkson - Since U Been Gone; The Killers - All These Things That I've Done" },
+    { label: "Classic heavy metal", examples: "Black Sabbath - Iron Man; Judas Priest - You've Got Another Thing Comin'" },
+    { label: "Modern cinematic epic", examples: "Hans Zimmer - Mombasa; Woodkid - Run Boy Run" },
+    { label: "Empowering soul", examples: "Aretha Franklin - Respect; Nina Simone - Feeling Good" },
   ] },
   { id: "focus" as const, label: "Focus", color: "70,205,235", question: "What music puts you in a deep focus state?", hint: "Select the sounds that help you think clearly and work without distraction.", suggestions: [
     { label: "Minimal electronic", examples: "Jon Hopkins - Abandon Window; Nils Frahm - Says" },
     { label: "Baroque focus", examples: "J.S. Bach - Goldberg Variations; Vivaldi - Winter" },
     { label: "Ambient techno", examples: "Brian Eno - An Ending (Ascent); Aphex Twin - Xtal" },
     { label: "Lo-fi jazz", examples: "Nujabes - Aruarian Dance; BADBADNOTGOOD - Time Moves Slow" },
+    { label: "Modern classical", examples: "Philip Glass - Opening; Ludovico Einaudi - Experience" },
+    { label: "Deep house flow", examples: "Kiasmos - Looped; Bonobo - Cirrus" },
+    { label: "Post-rock instrumentals", examples: "Explosions in the Sky - Your Hand in Mine; Mogwai - Auto Rock" },
+    { label: "Acoustic concentration", examples: "Nick Drake - From the Morning; Jose Gonzalez - Crosses" },
   ] },
-  { id: "energy" as const, label: "Energy", color: "116,225,128", question: "What music instantly lifts your energy or mood?", hint: "Pick every style that reliably creates joy, movement, or momentum.", suggestions: [
+  { id: "energy" as const, label: "Energy", color: "116,225,128", question: "What music instantly lifts your energy or mood?", hint: "Choose the one that most reliably creates joy, movement, or momentum.", suggestions: [
     { label: "70s disco", examples: "Bee Gees - You Should Be Dancing; Earth, Wind & Fire - September" },
     { label: "60s funk and soul", examples: "James Brown - I Got You (I Feel Good); Sly & The Family Stone - Dance to the Music" },
     { label: "00s dance-pop", examples: "Kylie Minogue - Love at First Sight; Daft Punk - One More Time" },
     { label: "Modern Afrobeats", examples: "Burna Boy - Last Last; Rema - Calm Down" },
+    { label: "90s house", examples: "Robin S. - Show Me Love; Crystal Waters - Gypsy Woman" },
+    { label: "Indie dance", examples: "LCD Soundsystem - Dance Yrself Clean; Phoenix - Lisztomania" },
+    { label: "Latin pop", examples: "Shakira - Hips Don't Lie; Marc Anthony - Vivir Mi Vida" },
+    { label: "Pop punk", examples: "Blink-182 - The Rock Show; Paramore - Misery Business" },
   ] },
   { id: "safety" as const, label: "Safety", color: "176,136,255", question: "What music makes you feel safe, held, and at home?", hint: "Choose the sounds you return to when you need steadiness, warmth, or reassurance.", suggestions: [
     { label: "70s singer-songwriter", examples: "Carole King - You've Got a Friend; James Taylor - Fire and Rain" },
     { label: "90s acoustic warmth", examples: "Tracy Chapman - The Promise; Eva Cassidy - Songbird" },
     { label: "Classic soul comfort", examples: "Bill Withers - Lean on Me; Otis Redding - These Arms of Mine" },
     { label: "Ambient piano", examples: "Max Richter - Written on the Sky; Olafur Arnalds - Saman" },
+    { label: "80s dream pop", examples: "Cocteau Twins - Heaven or Las Vegas; The Cure - Pictures of You" },
+    { label: "Gentle folk", examples: "Nick Drake - Northern Sky; Joni Mitchell - A Case of You" },
+    { label: "Warm vocal jazz", examples: "Ella Fitzgerald - Misty; Chet Baker - I Fall in Love Too Easily" },
+    { label: "Soft indie comfort", examples: "The National - Light Years; Sufjan Stevens - Mystery of Love" },
   ] },
 ];
 
@@ -141,7 +157,7 @@ export default function SettingsPage() {
       if (prof) setProfile({ name: prof.name ?? "", vocalist: prof.vocalist ?? "none", adhdMode: !!prof.adhdMode, stylePreferences: preferences, access: prof.access ?? { role: "beta", isAdmin: false } });
       setSlots(prev => prev.map((s, i) => {
         const pref = preferences[SLOTS[i].id];
-        return { ...s, style: pref.customDescription, transcript: pref.customDescription, selections: pref.selections, overrideStyle: pref.overrideStyle, committed: !!(pref.customDescription || pref.selections.length || pref.overrideStyle) };
+        return { ...s, style: pref.customDescription, transcript: pref.customDescription, selections: pref.selections.slice(0, 1), overrideStyle: pref.overrideStyle, committed: !!(pref.customDescription || pref.selections.length || pref.overrideStyle) };
       }));
       const builtIn = Array.isArray(gen?.builtIn) ? gen.builtIn : [];
       const user = Array.isArray(gen?.user) ? gen.user : [];
@@ -201,10 +217,8 @@ export default function SettingsPage() {
     });
 
   const toggleSuggestion = (i: number, suggestion: string) => {
-    const selected = slots[i].selections.includes(suggestion)
-      ? slots[i].selections.filter(item => item !== suggestion)
-      : [...slots[i].selections, suggestion];
-    updateSlot(i, { selections: selected, committed: true }, true);
+    const selected = slots[i].selections.includes(suggestion) ? [] : [suggestion];
+    updateSlot(i, { selections: selected, overrideStyle: "", committed: selected.length > 0 || !!slots[i].style }, true);
   };
 
   const toggleArtist = (i: number, artist: string) => {
@@ -540,8 +554,8 @@ export default function SettingsPage() {
           </div>
 
           <div className="mb-5">
-            <p className="text-[10px] text-white/45 uppercase tracking-widest mb-3">Selectable suggestions</p>
-            <div className="grid gap-2">
+            <p className="text-[10px] text-white/45 uppercase tracking-widest mb-3">Choose one style</p>
+            <div className="grid grid-cols-2 gap-2.5">
               {slot.suggestions.map((suggestion) => {
                 const selected = s.selections.includes(suggestion.label);
                 return (
@@ -549,32 +563,39 @@ export default function SettingsPage() {
                     key={suggestion.label}
                     type="button"
                     onClick={() => toggleSuggestion(currentSlot, suggestion.label)}
-                    className="rounded-2xl border px-4 py-3 text-left transition-all touch-manipulation active:scale-[0.98]"
+                    className="relative aspect-square rounded-2xl border p-3 text-left transition-all touch-manipulation active:scale-[0.98] flex flex-col"
                     style={selected
                       ? { background: `rgba(${activeAccent},0.12)`, borderColor: `rgba(${activeAccent},0.48)` }
                       : { background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.08)" }}
                   >
-                    <div className="flex items-center gap-3">
-                      <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border text-[11px]" style={{ borderColor: selected ? `rgba(${activeAccent},0.65)` : "rgba(255,255,255,0.18)", color: `rgb(${activeAccent})` }}>{selected ? "✓" : ""}</span>
-                      <span className="text-sm font-medium" style={{ color: selected ? `rgb(${activeAccent})` : "rgba(255,255,255,0.72)" }}>{suggestion.label}</span>
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-sm font-medium leading-snug" style={{ color: selected ? `rgb(${activeAccent})` : "rgba(255,255,255,0.72)" }}>{suggestion.label}</span>
+                      <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border text-[10px]" style={{ borderColor: selected ? `rgba(${activeAccent},0.65)` : "rgba(255,255,255,0.18)", background: selected ? `rgba(${activeAccent},0.18)` : "transparent", color: `rgb(${activeAccent})` }}>{selected ? "✓" : ""}</span>
                     </div>
-                    <p className="ml-8 mt-1 text-xs leading-relaxed text-white/38">Examples: {suggestion.examples}</p>
+                    <p className="mt-auto pt-3 text-[10px] leading-snug text-white/38">{suggestion.examples}</p>
                   </button>
                 );
               })}
             </div>
           </div>
 
+          <div className="relative my-6 flex items-center gap-3">
+            <div className="h-px flex-1 bg-white/[0.08]" />
+            <p className="text-[10px] uppercase tracking-[0.2em] text-white/38 text-center">OR choose one of your RTHMIC styles</p>
+            <div className="h-px flex-1 bg-white/[0.08]" />
+          </div>
+
           <div className="rounded-2xl border px-4 py-4 mb-4" style={{ borderColor: `rgba(${activeAccent},0.2)`, background: `rgba(${activeAccent},0.035)` }}>
-            <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: `rgba(${activeAccent},0.75)` }}>Override with a RTHMIC style</p>
-            <p className="text-xs text-white/40 mb-3">Optional. This takes priority over all selections above for {slot.label.toLowerCase()}.</p>
             <select
               value={s.overrideStyle}
-              onChange={(event) => updateSlot(currentSlot, { overrideStyle: event.target.value, committed: true }, true)}
+              onChange={(event) => {
+                const overrideStyle = event.target.value;
+                updateSlot(currentSlot, { overrideStyle, selections: overrideStyle ? [] : s.selections, committed: !!(overrideStyle || s.selections.length || s.style) }, true);
+              }}
               className="w-full rounded-xl border bg-[#0d1628] px-3 py-3 text-sm text-white/75 outline-none"
               style={{ borderColor: "rgba(255,255,255,0.12)" }}
             >
-              <option value="">Use my detailed preferences</option>
+              <option value="">No RTHMIC style override</option>
               {currentStyles.map((style, index) => <option key={`${style.source}-${index}`} value={`${style.name}|${style.prompt}`}>{style.name} ({style.source})</option>)}
             </select>
           </div>
