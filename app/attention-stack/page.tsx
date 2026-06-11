@@ -75,19 +75,7 @@ export default function AttentionStackPage() {
   const audioContextRef = useRef<AudioContext | null>(null);
   const animationFrameRef = useRef<number | null>(null);
 
-  const speak = useCallback((text: string) => {
-    if (!("speechSynthesis" in window) || !text) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.94;
-    const voices = window.speechSynthesis.getVoices();
-    utterance.voice = voices.find(voice => /^(Daniel|Samantha|Karen|Moira)$/i.test(voice.name))
-      ?? voices.find(voice => voice.lang.startsWith("en-"))
-      ?? null;
-    window.speechSynthesis.speak(utterance);
-  }, []);
-
-  const runAction = useCallback(async (action: string, task?: string, speakResult = true, pausedTask?: string, extra?: Record<string, string>) => {
+  const runAction = useCallback(async (action: string, task?: string, pausedTask?: string, extra?: Record<string, string>) => {
     setError("");
     setVoiceState("saving");
     try {
@@ -100,13 +88,12 @@ export default function AttentionStackPage() {
       if (!response.ok) throw new Error(data.error ?? "Could not update attention stack");
       setState(data.state ?? EMPTY_STATE);
       setMessage(data.message ?? "");
-      if (speakResult) speak(data.message ?? "");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not update attention stack");
     } finally {
       setVoiceState("idle");
     }
-  }, [speak]);
+  }, []);
 
   useEffect(() => {
     fetch("/api/attention-stack")
@@ -131,7 +118,7 @@ export default function AttentionStackPage() {
       const transcript = typeof data.transcript === "string" ? data.transcript.trim() : "";
       if (!transcript) throw new Error("I did not hear anything");
       const command = interpretCommand(transcript, !!state.current);
-      await runAction(command.action, command.task, command.action === "resume" || command.action === "status", command.pausedTask);
+      await runAction(command.action, command.task, command.pausedTask);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not process recording");
       setVoiceState("idle");
@@ -193,7 +180,6 @@ export default function AttentionStackPage() {
     streamRef.current?.getTracks().forEach(track => track.stop());
     if (animationFrameRef.current !== null) cancelAnimationFrame(animationFrameRef.current);
     audioContextRef.current?.close();
-    window.speechSynthesis?.cancel();
   }, []);
 
   if (loading) return <main className="min-h-screen flex items-center justify-center"><div className="h-7 w-7 animate-spin rounded-full border-2 border-white/15 border-t-white/60" /></main>;
@@ -241,9 +227,9 @@ export default function AttentionStackPage() {
                     {entry.pausedFor && <p className="mt-1 text-xs text-white/30">Paused for: {entry.pausedFor}</p>}
                   </div>
                   <div className="flex items-center gap-1 text-white/38">
-                    <button type="button" aria-label={`Move ${entry.task} toward current focus`} disabled={index === 0 || voiceState !== "idle"} onClick={() => runAction("move", undefined, false, undefined, { entryId: entry.id, direction: "toward-current" })} className="rounded-lg p-2 disabled:opacity-15"><ArrowIcon direction="up" /></button>
-                    <button type="button" aria-label={`Move ${entry.task} further back`} disabled={index === displayedStack.length - 1 || voiceState !== "idle"} onClick={() => runAction("move", undefined, false, undefined, { entryId: entry.id, direction: "back" })} className="rounded-lg p-2 disabled:opacity-15"><ArrowIcon direction="down" /></button>
-                    <button type="button" aria-label={`Delete ${entry.task}`} disabled={voiceState !== "idle"} onClick={() => runAction("delete", undefined, false, undefined, { entryId: entry.id })} className="rounded-lg p-2 text-red-300/55 disabled:opacity-20"><TrashIcon /></button>
+                    <button type="button" aria-label={`Move ${entry.task} toward current focus`} disabled={index === 0 || voiceState !== "idle"} onClick={() => runAction("move", undefined, undefined, { entryId: entry.id, direction: "toward-current" })} className="rounded-lg p-2 disabled:opacity-15"><ArrowIcon direction="up" /></button>
+                    <button type="button" aria-label={`Move ${entry.task} further back`} disabled={index === displayedStack.length - 1 || voiceState !== "idle"} onClick={() => runAction("move", undefined, undefined, { entryId: entry.id, direction: "back" })} className="rounded-lg p-2 disabled:opacity-15"><ArrowIcon direction="down" /></button>
+                    <button type="button" aria-label={`Delete ${entry.task}`} disabled={voiceState !== "idle"} onClick={() => runAction("delete", undefined, undefined, { entryId: entry.id })} className="rounded-lg border border-red-400/20 bg-red-400/[0.08] p-2 text-red-300 disabled:opacity-20"><TrashIcon /></button>
                   </div>
                 </div>
               ))}
@@ -251,17 +237,20 @@ export default function AttentionStackPage() {
           </section>
         )}
 
-        {(state.current || state.stack.length > 0) && <button
-          type="button"
-          onClick={() => {
-            if (!confirmClear) { setConfirmClear(true); return; }
-            setConfirmClear(false);
-            runAction("clear", undefined, false);
-          }}
-          className="flex items-center gap-2 self-start rounded-xl px-2 py-2 text-xs text-white/38"
-        >
-          <TrashIcon /> {confirmClear ? "Tap again to confirm clear" : "Clear the stack"}
-        </button>}
+        {(state.current || state.stack.length > 0) && (confirmClear ? (
+          <div className="rounded-2xl border border-red-400/20 bg-red-400/[0.05] p-4">
+            <p className="text-sm font-medium text-red-200/85">Clear the entire attention stack?</p>
+            <p className="mt-1 text-xs text-white/38">This removes the current focus and every saved level.</p>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <button type="button" onClick={() => setConfirmClear(false)} className="rounded-xl border border-white/10 px-4 py-3 text-sm text-white/62">Cancel</button>
+              <button type="button" onClick={() => { setConfirmClear(false); runAction("clear"); }} className="flex items-center justify-center gap-2 rounded-xl border border-red-400/35 bg-red-400/15 px-4 py-3 text-sm font-medium text-red-200"><TrashIcon /> Clear stack</button>
+            </div>
+          </div>
+        ) : (
+          <button type="button" onClick={() => setConfirmClear(true)} className="flex items-center gap-2 self-start rounded-xl border border-red-400/20 bg-red-400/[0.06] px-3 py-2 text-xs text-red-300/85">
+            <TrashIcon /> Clear the stack
+          </button>
+        ))}
       </div>
     </main>
   );
