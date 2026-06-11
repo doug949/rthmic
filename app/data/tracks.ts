@@ -53,7 +53,7 @@ export const tracks: Track[] = [
   },
   {
     id: "10",
-    title: "Introducing RTHMIC (Edit) (Edit)",
+    title: "Introducing RTHMIC",
     audioKey: "Introducing RTHMIC (Edit) (Edit).mp3",
   },
   {

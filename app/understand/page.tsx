@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSwipeNavigation } from "@/app/hooks/useSwipeBack";
 import { TransitionLink } from "@/app/components/TransitionLink";
 import { transitionTo } from "@/app/lib/pageTransition";
@@ -26,10 +26,12 @@ const panels = [
   },
 ];
 
-export default function UnderstandPage() {
+function UnderstandContent() {
   const [active, setActive]         = useState(0);
   const [generation, setGeneration] = useState(0);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const welcome = searchParams.get("welcome") === "1";
   const panel  = panels[active];
   const isLast = active === panels.length - 1;
 
@@ -41,6 +43,7 @@ export default function UnderstandPage() {
   }, [active]);
 
   const goBack = () => {
+    if (welcome) return;
     if (active > 0) goTo(active - 1);
     else transitionTo("/", router);
   };
@@ -78,7 +81,7 @@ export default function UnderstandPage() {
       )}
 
       {/* Nav */}
-      <AppHeader title="About RTHMIC" titleIcon={<InfoIcon />} onBack={goBack} />
+      <AppHeader title="About RTHMIC" titleIcon={<InfoIcon />} onBack={goBack} locked={welcome} />
 
       {/* Panel content — key forces remount so panel-enter animation always fires */}
       <section className="flex-1 flex flex-col justify-center pb-8">
@@ -108,11 +111,11 @@ export default function UnderstandPage() {
       <footer className="pb-10 flex gap-3">
         {isLast ? (
           <TransitionLink
-            href="/"
+            href={welcome ? "/speak?pillar=explain&onboarding=1" : "/"}
             className="w-full py-4 rounded-2xl text-sm font-semibold tracking-wide text-center active:scale-[0.98] transition-all touch-manipulation"
             style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.45)", color: "#c9a55a" }}
           >
-            Continue to RTHMIC
+            {welcome ? "Create my first Rthm →" : "Continue to RTHMIC"}
           </TransitionLink>
         ) : (
           <button
@@ -125,5 +128,13 @@ export default function UnderstandPage() {
         )}
       </footer>
     </main>
+  );
+}
+
+export default function UnderstandPage() {
+  return (
+    <Suspense fallback={null}>
+      <UnderstandContent />
+    </Suspense>
   );
 }

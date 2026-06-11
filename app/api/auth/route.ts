@@ -44,17 +44,25 @@ async function seedNameFromBetaCode(uid: string, firstName: string) {
   }
 }
 
-/** Record the first successful login for this access code without an expiry. */
-async function markFirstLogin(uid: string): Promise<boolean> {
-  if (!process.env.REDIS_URL) return true;
+/** Establish onboarding state without forcing established beta users through a new gate. */
+async function getOnboardingState(uid: string): Promise<{ firstLogin: boolean; required: boolean }> {
+  if (!process.env.REDIS_URL) return { firstLogin: true, required: true };
   const client = createClient({ url: process.env.REDIS_URL });
   try {
     await client.connect();
     const created = await client.set(`onboarding:logged-in:${uid}`, new Date().toISOString(), { NX: true });
-    return created === "OK";
+    const firstLogin = created === "OK";
+    if (firstLogin) {
+      await client.set(`onboarding:required:${uid}`, "1");
+    }
+    const [required, complete] = await Promise.all([
+      client.get(`onboarding:required:${uid}`),
+      client.get(`onboarding:complete:${uid}`),
+    ]);
+    return { firstLogin, required: required === "1" && !complete };
   } catch {
     // Prefer showing About once too often over skipping it for a genuinely new user.
-    return true;
+    return { firstLogin: true, required: true };
   } finally {
     await client.disconnect().catch(() => {});
   }
@@ -93,9 +101,11 @@ export async function POST(request: NextRequest) {
   if (isBeta && betaEntry?.firstName) {
     await seedNameFromBetaCode(uid, betaEntry.firstName);
   }
-  const firstLogin = access !== "admin" && await markFirstLogin(uid);
+  const onboarding = access === "admin"
+    ? { firstLogin: false, required: false }
+    : await getOnboardingState(uid);
 
-  const response = NextResponse.json({ ok: true, role: access, firstLogin });
+  const response = NextResponse.json({ ok: true, role: access, firstLogin: onboarding.firstLogin, onboardingRequired: onboarding.required });
 
   // Session cookie — 30 day auth gate
   response.cookies.set("rthmic_session", process.env.RTHMIC_SESSION_TOKEN!, {
@@ -132,6 +142,13 @@ export async function POST(request: NextRequest) {
     sameSite: "lax",
     path: "/",
     maxAge: 60 * 60 * 24 * 30,
+  });
+  response.cookies.set("rthmic_onboarding", onboarding.required ? "required" : "complete", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
   });
 
   return response;

@@ -26,6 +26,18 @@ export function proxy(request: NextRequest) {
 
   const session = request.cookies.get("rthmic_session");
   if (session?.value === process.env.RTHMIC_SESSION_TOKEN) {
+    const onboardingRequired = request.cookies.get("rthmic_onboarding")?.value === "required";
+    if (request.method === "GET" && onboardingRequired && !pathname.startsWith("/api/")) {
+      const isWelcome = pathname === "/understand" && request.nextUrl.searchParams.get("welcome") === "1";
+      const isFirstRthm =
+        pathname === "/speak" &&
+        request.nextUrl.searchParams.get("onboarding") === "1" &&
+        request.nextUrl.searchParams.get("pillar") === "explain";
+      if (!isWelcome && !isFirstRthm) {
+        return NextResponse.redirect(new URL("/understand?welcome=1", request.url));
+      }
+    }
+
     // Backfill rthmic_uid for sessions created before uid generation was added
     if (!request.cookies.get("rthmic_uid")?.value) {
       const response = NextResponse.next();

@@ -315,6 +315,7 @@ export default function SpeakPage() {
   const menuTitleRef = useRef<string | null>(null);
   const experimentRef = useRef<ExperimentalCreateId | null>(null);
   const tagHintsRef = useRef<string[]>([]);
+  const onboardingRef = useRef(false);
   const draftLoadedRef = useRef(false);
 
   // Track how long generation took so ResultsView can display "Generated in X"
@@ -754,7 +755,13 @@ export default function SpeakPage() {
       setUnderstandResult(null);
       clearInterpretationDraft();
       allTranscriptsRef.current = [];
-      setTimeout(() => navigateTo("/library", router), 1200);
+      if (onboardingRef.current) {
+        const unlock = await fetch("/api/onboarding/complete", { method: "POST" });
+        if (!unlock.ok) throw new Error("Your Rthm started, but RTHMIC could not finish unlocking. Please try again.");
+        setTimeout(() => navigateTo("/onboarding", router), 700);
+      } else {
+        setTimeout(() => navigateTo("/library", router), 1200);
+      }
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Failed to queue generation");
     }
@@ -828,8 +835,8 @@ export default function SpeakPage() {
     discardRecordingResources();
     stopAudio();
     clearGeneration();
-    setPhase("module");
-    setSelectedPillar(null);
+    setPhase(onboardingRef.current ? "priming" : "module");
+    setSelectedPillar(onboardingRef.current ? "explain" : null);
     setUnderstandResult(null);
     clearInterpretationDraft();
     setErrorMsg("");
@@ -858,6 +865,7 @@ export default function SpeakPage() {
   // Never jumps straight to Home from mid-flow.
 
   const handleBack = useCallback(() => {
+    if (onboardingRef.current) return;
     // During active music generation — block back
     if (genPhase === "generating") return;
 
@@ -967,8 +975,10 @@ export default function SpeakPage() {
     const collectionParam = params.get("collection");
     const experimentParam = params.get("experiment");
     const autoTextParam = params.get("autoText");
+    const onboardingParam = params.get("onboarding");
     const tagHintsParam = params.get("tagHints");
     const nextExperiment = isExperiment(experimentParam) ? experimentParam : null;
+    onboardingRef.current = onboardingParam === "1";
     menuSlugRef.current = menuSlugParam ?? null;
     menuTitleRef.current = menuTitleParam ?? null;
     experimentRef.current = nextExperiment;
@@ -1034,6 +1044,7 @@ export default function SpeakPage() {
       <AppHeader
         title="Create a New Rthm"
         titleIcon={<HeaderMicIcon />}
+        locked={onboardingRef.current}
         onBack={
           genPhase === "generating"
             ? null       // disabled during async operations

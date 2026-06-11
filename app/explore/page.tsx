@@ -31,7 +31,9 @@ export default function ExplorePage() {
   const { currentTrackId, isPlaying, loadingId, handlePlay } = useAudio();
   const [filter, setFilter] = useState<CatId>("all");
 
-  const visible = tracks.filter(t => filter === "all" || getCat(t.title) === filter);
+  const visible = [...tracks]
+    .sort((a, b) => Number(b.title.toLowerCase().startsWith("introducing rthmic")) - Number(a.title.toLowerCase().startsWith("introducing rthmic")))
+    .filter(t => filter === "all" || getCat(t.title) === filter);
 
   return (
     <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ animation: "page-enter 380ms ease forwards" }}>

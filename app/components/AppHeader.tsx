@@ -37,9 +37,10 @@ interface AppHeaderProps {
    */
   title?: string;
   titleIcon?: ReactNode;
+  locked?: boolean;
 }
 
-export function AppHeader({ backLabel = "← Back", onBack, title, titleIcon }: AppHeaderProps) {
+export function AppHeader({ backLabel = "← Back", onBack, title, titleIcon, locked = false }: AppHeaderProps) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -60,14 +61,14 @@ export function AppHeader({ backLabel = "← Back", onBack, title, titleIcon }: 
   return (
     <header className="relative flex items-center pt-12 pb-8">
       {/* ← Back */}
-      <button
+      {!locked && <button
         onClick={handleBack}
         disabled={onBack === null}
         className="text-white/45 hover:text-white/70 transition-colors text-sm tracking-widest uppercase touch-manipulation disabled:opacity-20 disabled:cursor-default"
         aria-label="Go back"
       >
         {backLabel}
-      </button>
+      </button>}
 
       {/* Page title — absolutely centred regardless of surrounding button widths */}
       {title && (
@@ -86,7 +87,7 @@ export function AppHeader({ backLabel = "← Back", onBack, title, titleIcon }: 
 
       <div className="relative flex items-center justify-end min-w-[96px]">
         {/* ⌂ Home — always present, always goes to / */}
-        <button
+        {!locked && <button
           onClick={handleHome}
           className="flex items-center gap-1.5 px-2 h-7 rounded-full touch-manipulation active:bg-white/[0.06] transition-colors"
           style={{ color: "rgba(255,255,255,0.45)" }}
@@ -95,9 +96,9 @@ export function AppHeader({ backLabel = "← Back", onBack, title, titleIcon }: 
         >
           <HomeIcon />
           <span className="text-sm uppercase tracking-widest leading-none">Home</span>
-        </button>
+        </button>}
       </div>
-      {mounted && createPortal(
+      {!locked && mounted && createPortal(
         <button
           onClick={() => setMenuOpen((open) => !open)}
           className="fixed left-5 flex flex-col items-center justify-center h-12 w-12 rounded-full touch-manipulation active:bg-white/[0.06] transition-colors"
