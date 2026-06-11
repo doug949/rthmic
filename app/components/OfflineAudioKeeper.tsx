@@ -42,7 +42,7 @@ export default function OfflineAudioKeeper() {
     window.addEventListener("offline-audio-setting-changed", onSettingChanged);
     window.addEventListener("library-mutated", onLibraryMutated);
     sync();
-    const interval = window.setInterval(sync, 60_000);
+    const interval = window.setInterval(sync, 10 * 60_000);
 
     return () => {
       cancelled = true;

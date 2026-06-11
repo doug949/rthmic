@@ -51,6 +51,23 @@ function inferStyle(pillar: string): "A" | "B" {
   return (pillar || "").toLowerCase() === "movement" ? "A" : "B";
 }
 
+function pairRhythms(rhythms: SavedRhythm[], current: SavedRhythm): SavedRhythm[] {
+  const baseTitle = current.title.replace(/\s+\(Variation\)$/i, "").trim().toLowerCase();
+  return rhythms.filter((candidate) => {
+    if (candidate.id === current.id) return true;
+    if (current.alternateId && candidate.id === current.alternateId) return true;
+    if (candidate.alternateId === current.id) return true;
+    if (current.pairId && candidate.pairId === current.pairId) return true;
+    const candidateBaseTitle = candidate.title.replace(/\s+\(Variation\)$/i, "").trim().toLowerCase();
+    return (
+      baseTitle.length > 0 &&
+      candidateBaseTitle === baseTitle &&
+      candidate.pillar === current.pillar &&
+      (candidate.lyrics ?? "").slice(0, 80) === (current.lyrics ?? "").slice(0, 80)
+    );
+  });
+}
+
 export default function FullScreenPlayer() {
   const {
     currentTrackId, currentTitle, isPlaying,
@@ -90,7 +107,7 @@ export default function FullScreenPlayer() {
           (r: SavedRhythm) => r.id === currentTrackId
         );
         if (found) {
-          setLibraryRhythms(rhythms);
+          setLibraryRhythms(pairRhythms(rhythms, found));
           setSourceMenuSlug(null);
           setRhythm(found);
           return;
@@ -102,14 +119,14 @@ export default function FullScreenPlayer() {
           const menuRhythms = (menuData.songs ?? []) as SavedRhythm[];
           const menuFound = menuRhythms.find((r) => r.id === currentTrackId);
           if (menuFound) {
-            setLibraryRhythms(menuRhythms);
+            setLibraryRhythms(pairRhythms(menuRhythms, menuFound));
             setSourceMenuSlug(menu.slug);
             setRhythm(menuFound);
             return;
           }
         }
 
-        setLibraryRhythms(rhythms);
+        setLibraryRhythms([]);
         setSourceMenuSlug(null);
         setRhythm(null);
       } catch {
@@ -207,8 +224,9 @@ export default function FullScreenPlayer() {
           if (!res.ok) throw new Error("menu mutation failed");
           const data = await fetch(`/api/menu?slug=${encodeURIComponent(sourceMenuSlug)}`).then((r) => r.json());
           const menuRhythms = (data.songs ?? []) as SavedRhythm[];
-          setLibraryRhythms(menuRhythms);
-          setRhythm(menuRhythms.find((r) => r.id === currentTrackId) ?? null);
+          const current = menuRhythms.find((r) => r.id === currentTrackId) ?? null;
+          setLibraryRhythms(current ? pairRhythms(menuRhythms, current) : []);
+          setRhythm(current);
         } finally {
           setActionPending(false);
         }
