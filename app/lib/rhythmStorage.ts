@@ -1,5 +1,19 @@
 import type { SavedRhythm } from "@/app/types/library";
 import type { RedisClient } from "@/app/lib/redis";
+import { gzipSync, gunzipSync } from "node:zlib";
+
+const COMPRESSED_PREFIX = "gz:";
+
+function encodeSavedRhythms(rhythms: SavedRhythm[]): string {
+  const json = JSON.stringify(rhythms);
+  return `${COMPRESSED_PREFIX}${gzipSync(json, { level: 6 }).toString("base64")}`;
+}
+
+function decodeSavedRhythms(raw: string): SavedRhythm[] {
+  if (!raw.startsWith(COMPRESSED_PREFIX)) return JSON.parse(raw) as SavedRhythm[];
+  const compressed = Buffer.from(raw.slice(COMPRESSED_PREFIX.length), "base64");
+  return JSON.parse(gunzipSync(compressed).toString("utf8")) as SavedRhythm[];
+}
 
 export function libraryKey(uid: string): string {
   return `lib:${uid}`;
@@ -14,7 +28,7 @@ export async function readSavedRhythms(
   key: string
 ): Promise<SavedRhythm[]> {
   const raw = await client.get(key);
-  return raw ? JSON.parse(raw) : [];
+  return raw ? decodeSavedRhythms(raw) : [];
 }
 
 export async function writeSavedRhythms(
@@ -22,7 +36,7 @@ export async function writeSavedRhythms(
   key: string,
   rhythms: SavedRhythm[]
 ): Promise<void> {
-  await client.set(key, JSON.stringify(rhythms));
+  await client.set(key, encodeSavedRhythms(rhythms));
 }
 
 export async function prependUniqueSavedRhythms(

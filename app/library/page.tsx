@@ -5,7 +5,6 @@ import { TransitionLink } from "@/app/components/TransitionLink";
 import { AppHeader } from "@/app/components/AppHeader";
 import { RevealBlock } from "@/app/components/RevealBlock";
 import { useSwipeBack } from "@/app/hooks/useSwipeBack";
-import type { SavedRhythm } from "@/app/types/library";
 import { displayGenerationFailure } from "@/app/lib/generationErrors";
 import {
   MyRthmsIcon,
@@ -26,8 +25,28 @@ interface QueueJob {
   failureReason?: string;
 }
 
+interface LibrarySummary {
+  new: number;
+  active: number;
+  favourites: number;
+  archived: number;
+  today: number;
+  week: number;
+  month: number;
+}
+
+const EMPTY_SUMMARY: LibrarySummary = {
+  new: 0,
+  active: 0,
+  favourites: 0,
+  archived: 0,
+  today: 0,
+  week: 0,
+  month: 0,
+};
+
 export default function CatalogPage() {
-  const [rhythms, setRhythms]                 = useState<SavedRhythm[]>([]);
+  const [summary, setSummary]                 = useState<LibrarySummary>(EMPTY_SUMMARY);
   const [queueJobs, setQueueJobs]             = useState<QueueJob[]>([]);
   const [newRthmsOpen, setNewRthmsOpen]       = useState(false);
   const [myRthmsOpen, setMyRthmsOpen]         = useState(false);
@@ -39,17 +58,11 @@ const [clearingQueue, setClearingQueue]     = useState(false);
 
   const fetchCounts = useCallback(async () => {
     try {
-      const res = await fetch("/api/library");
+      const res = await fetch("/api/library?summary=1", { cache: "no-store" });
       if (!res.ok) throw new Error();
       const data = await res.json();
-      const rhythms = data.rhythms ?? [];
-      setRhythms(rhythms);
-      const { saveLibraryCache } = await import("@/app/lib/libraryCache");
-      saveLibraryCache(rhythms);
-    } catch {
-      const { loadLibraryCache } = await import("@/app/lib/libraryCache");
-      setRhythms(loadLibraryCache());
-    }
+      setSummary(data.summary ?? EMPTY_SUMMARY);
+    } catch { /* retain the last successful counts */ }
   }, []);
 
   const fetchQueueJobs = useCallback(async () => {
@@ -78,21 +91,13 @@ const [clearingQueue, setClearingQueue]     = useState(false);
     }
   }
 
-  const newRthmsCount   = rhythms.filter((r) => r.status === "new").length;
-  const myRthms         = rhythms.filter((r) => r.status === "active" || r.status === "favourite");
-  const myRthmsCount    = myRthms.length;
-  const favouritesCount = rhythms.filter((r) => r.status === "favourite").length;
-  const archiveCount    = rhythms.filter((r) => r.status === "archived").length;
-
-  const startOf = (period: "today" | "week" | "month") => {
-    const day = 24 * 60 * 60 * 1000;
-    if (period === "today") return Date.now() - day;
-    if (period === "week")  return Date.now() - 7 * day;
-    return Date.now() - 30 * day;
-  };
-  const todayCount = myRthms.filter((r) => r.savedAt >= startOf("today")).length;
-  const weekCount  = myRthms.filter((r) => r.savedAt >= startOf("week")).length;
-  const monthCount = myRthms.filter((r) => r.savedAt >= startOf("month")).length;
+  const newRthmsCount = summary.new;
+  const myRthmsCount = summary.active;
+  const favouritesCount = summary.favourites;
+  const archiveCount = summary.archived;
+  const todayCount = summary.today;
+  const weekCount = summary.week;
+  const monthCount = summary.month;
   const myRthmsTones = [
     makePeriodTone(212, 78, 56),
     makePeriodTone(212, 54, 52),

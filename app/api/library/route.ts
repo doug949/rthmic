@@ -45,6 +45,22 @@ function restoreDisplayLyrics(rhythm: SavedRhythm): SavedRhythm {
     : rhythm;
 }
 
+function librarySummary(rhythms: SavedRhythm[]) {
+  const active = rhythms.filter((r) => r.status === "active" || r.status === "favourite");
+  const now = Date.now();
+  const day = 24 * 60 * 60 * 1000;
+
+  return {
+    new: rhythms.filter((r) => r.status === "new").length,
+    active: active.length,
+    favourites: rhythms.filter((r) => r.status === "favourite").length,
+    archived: rhythms.filter((r) => r.status === "archived").length,
+    today: active.filter((r) => r.savedAt >= now - day).length,
+    week: active.filter((r) => r.savedAt >= now - 7 * day).length,
+    month: active.filter((r) => r.savedAt >= now - 30 * day).length,
+  };
+}
+
 // GET /api/library — fetch all rhythms (active, archived, recently deleted)
 export async function GET(request: NextRequest) {
   const uid = requireUserId(request);
@@ -75,8 +91,10 @@ export async function GET(request: NextRequest) {
           : r
       );
 
-      // Normalise legacy pillar names and quietly backfill missing tags.
-      const normalised = aged.map((r) => {
+      // Normalise legacy data for the response. Reads must remain read-only:
+      // a full Redis instance must never make an otherwise successful read
+      // look like an empty library because optional housekeeping could not save.
+      return aged.map((r) => {
         const pillar = normalisePillar(r.pillar) as PillarType;
         return {
           ...restoreDisplayLyrics(r),
@@ -84,13 +102,11 @@ export async function GET(request: NextRequest) {
           tags: r.tags?.length ? normalizeTags(r.tags) : tagsForSavedRhythm({ ...r, pillar }),
         };
       });
-
-      if (JSON.stringify(normalised) !== JSON.stringify(all)) {
-        await writeSavedRhythms(client, key, normalised);
-      }
-
-      return normalised;
     });
+
+    if (request.nextUrl.searchParams.get("summary") === "1") {
+      return NextResponse.json({ summary: librarySummary(rhythms) });
+    }
     return NextResponse.json({ rhythms });
   } catch (err) {
     console.error("Redis get error:", err);

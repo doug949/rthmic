@@ -194,7 +194,7 @@ export default function MyRthmsPage() {
     fetchQueueJobs();
     const onMutated = () => { fetchLibrary(); fetchQueueJobs(); };
     window.addEventListener("library-mutated", onMutated);
-    const pollId = setInterval(() => { fetchQueueJobs(); fetchLibrary(); }, 15_000);
+    const pollId = setInterval(fetchQueueJobs, 15_000);
     return () => {
       window.removeEventListener("library-mutated", onMutated);
       clearInterval(pollId);
