@@ -1594,8 +1594,9 @@ const INVITE_PILLAR: PillarDefinition = {
 // ─── Pillar view ──────────────────────────────────────────────────────────────
 
 function PillarView({ onSelect, adhdCollection = false }: { onSelect: (slug: string, seed?: string) => void; adhdCollection?: boolean }) {
+  const router = useRouter();
   const grid = adhdCollection
-    ? ADHD_PILLARS.map((pillar, index) => ({
+    ? [...ADHD_PILLARS.map((pillar, index) => ({
         slug: pillar.slug,
         label: pillar.label,
         description: pillar.tagline,
@@ -1603,7 +1604,15 @@ function PillarView({ onSelect, adhdCollection = false }: { onSelect: (slug: str
         icon: pillar.icon ?? null,
         image: null,
         video: null,
-      }))
+      })), {
+        slug: "attention-stack",
+        label: "Attention Stack",
+        description: "Pause an interruption. Return to exactly where you were.",
+        accent: "235,110,145",
+        icon: <AttentionStackIcon />,
+        image: null,
+        video: null,
+      }]
     : PILLAR_GRID;
 
   const renderTiles = (tiles: CreateGridItem[]) => (
@@ -1611,7 +1620,7 @@ function PillarView({ onSelect, adhdCollection = false }: { onSelect: (slug: str
       {tiles.map((p) => (
         <button
           key={p.slug}
-          onClick={() => onSelect(p.slug)}
+          onClick={() => p.slug === "attention-stack" ? navigateTo("/attention-stack", router) : onSelect(p.slug)}
           className="relative min-h-[150px] rounded-2xl overflow-hidden px-4 py-4 flex flex-col items-center justify-center text-center touch-manipulation active:scale-[0.985] transition-transform"
           style={{
             aspectRatio: "1.12 / 1",
@@ -3758,6 +3767,14 @@ function LaunchIcon() {
       <circle cx="12" cy="14" r="2.5" fill="currentColor" />
       <line x1="9" y1="22" x2="15" y2="22" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
       <line x1="12" y1="19" x2="12" y2="22" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function AttentionStackIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+      <path d="M5 7h14M7 12h10M9 17h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }
