@@ -276,7 +276,9 @@ export default function StudioPage() {
       const seed = typeof data.seed === "string" ? data.seed : "";
       if (!seed) throw new Error("Could not interpret photo");
       const tags = tagHintsParam(Array.isArray(data.tagHints) ? data.tagHints : ["photograph", "visual memory"]);
-      router.push(`/speak?pillar=understanding&experiment=photo-song&autoText=1&tagHints=${tags}&seed=${encodeURIComponent(seed)}`);
+      const autoGenre = typeof data.autoGenre === "string" ? data.autoGenre.trim() : "";
+      const autoGenreParam = autoGenre ? `&autoGenre=${encodeURIComponent(autoGenre)}` : "";
+      router.push(`/speak?pillar=understanding&experiment=photo-song&autoText=1&tagHints=${tags}${autoGenreParam}&seed=${encodeURIComponent(seed)}`);
     } catch (err) {
       setPhotoError(err instanceof Error ? err.message : "Could not interpret photo");
       setPhotoBusy(false);

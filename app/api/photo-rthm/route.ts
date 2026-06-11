@@ -107,14 +107,21 @@ function cleanTagHint(tag: string): string {
     .trim();
 }
 
-function parseVisionJson(text: string): { prompt: string; tagHints: string[] } {
+function parseVisionJson(text: string): { prompt: string; tagHints: string[]; musicStyle: string } {
   try {
     const trimmed = text.trim();
     const jsonText = trimmed.startsWith("{")
       ? trimmed
       : trimmed.match(/\{[\s\S]*\}/)?.[0] ?? "";
-    const parsed = JSON.parse(jsonText) as { prompt?: unknown; tagHints?: unknown };
+    const parsed = JSON.parse(jsonText) as { prompt?: unknown; tagHints?: unknown; musicStyle?: unknown };
     const prompt = typeof parsed.prompt === "string" ? parsed.prompt.trim() : "";
+    const musicStyle = typeof parsed.musicStyle === "string"
+      ? parsed.musicStyle
+          .replace(/\s+/g, " ")
+          .replace(/[|{}[\]]/g, "")
+          .trim()
+          .slice(0, 190)
+      : "";
     const tagHints = Array.isArray(parsed.tagHints)
       ? parsed.tagHints
           .filter((tag): tag is string => typeof tag === "string")
@@ -122,11 +129,11 @@ function parseVisionJson(text: string): { prompt: string; tagHints: string[] } {
           .filter(Boolean)
           .slice(0, 8)
       : [];
-    if (prompt) return { prompt, tagHints };
+    if (prompt) return { prompt, tagHints, musicStyle };
   } catch {
     // Fall through to plain-text handling below.
   }
-  return { prompt: text.trim(), tagHints: [] };
+  return { prompt: text.trim(), tagHints: [], musicStyle: "" };
 }
 
 function dmsToDecimal(value: unknown, ref: unknown): number | undefined {
@@ -330,6 +337,7 @@ Use the supplied local facts when available. Prefer named nearby places, named l
 Return strict JSON only:
 {
   "prompt": "compact RTHMIC creation brief under 220 words",
+  "musicStyle": "single Suno-ready music style descriptor under 190 characters, built from exact image contents plus known location/time facts, no artist names",
   "tagHints": ["3-8 lowercase tags that describe the actual subject, not broad business categories"]
 }`,
       messages: [
@@ -368,7 +376,14 @@ Return JSON for RTHMIC. In prompt include:
 For tagHints:
 - Prefer concrete visual/place tags such as "stone wall", "architecture", "local history", "property", "sun aspect", "photograph".
 - Do not use "finance" unless the image or user context is explicitly about money, tax, banking, investing, or budgets.
-- Do not use "business" unless the image or user context is explicitly about a company or commercial task.`,
+- Do not use "business" unless the image or user context is explicitly about a company or commercial task.
+
+For musicStyle:
+- Make the music fully automatic and specific to this photograph; do not choose from standard RTHMIC preset names.
+- Build the style from visible contents, place type, named location facts, capture time, weather/light clues, historical/cultural/geographic context, and user purpose where supplied.
+- Prefer concrete descriptors such as local instrumentation, tempo, texture, rhythm, vocal stance, and mood that fit this exact place or subject now.
+- If location data is absent, derive the style from the visible subject and say only visually grounded things.
+- Do not invent local music traditions, private facts, current businesses, or historical claims. Avoid artist names and copyrighted style references.`,
             },
           ],
         },
@@ -397,7 +412,19 @@ For tagHints:
       "Make the Rthm clear, specific, and useful. Keep it anchored to the exact photographed subject and any known location/context. If a building name, street, park, district, nearby landmark, date, distance, or coordinate appears in the source facts, use it directly in the title, state summary, and first verse where natural. Do not mention that an AI vision model described the image.",
     ].join(" ");
 
-    return NextResponse.json({ seed, tagHints: ["photograph", "visual memory", ...parsed.tagHints] });
+    const fallbackMusicStyle = [
+      "Documentary photo Rthm",
+      "specific visual details",
+      "location-aware spoken-sung vocal",
+      "measured pulse",
+      "warm observational texture",
+    ].join(", ");
+
+    return NextResponse.json({
+      seed,
+      autoGenre: parsed.musicStyle || fallbackMusicStyle,
+      tagHints: ["photograph", "visual memory", ...parsed.tagHints],
+    });
   } catch (err) {
     console.error("Photo Rthm error:", err);
     return NextResponse.json(

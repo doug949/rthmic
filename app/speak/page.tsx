@@ -315,6 +315,8 @@ export default function SpeakPage() {
   const menuTitleRef = useRef<string | null>(null);
   const experimentRef = useRef<ExperimentalCreateId | null>(null);
   const tagHintsRef = useRef<string[]>([]);
+  const autoGenreRef = useRef<string | null>(null);
+  const autoGenreQueuedRef = useRef(false);
   const onboardingRef = useRef(false);
   const draftLoadedRef = useRef(false);
 
@@ -325,6 +327,7 @@ export default function SpeakPage() {
   const [quickMode, setQuickMode] = useState(false);
   const [adhdCollection, setAdhdCollection] = useState(false);
   const [experiment, setExperiment] = useState<ExperimentalCreateId | null>(null);
+  const [autoGenreActive, setAutoGenreActive] = useState(false);
 
   // Ref mirror of selectedPillar — updated synchronously so stale closures
   // (recorder.onstop, memoised callbacks) always read the live value.
@@ -764,8 +767,21 @@ export default function SpeakPage() {
       }
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Failed to queue generation");
+      if (experimentRef.current === "photo-song" && autoGenreRef.current === genre) {
+        autoGenreQueuedRef.current = false;
+        setAutoGenreActive(false);
+      }
     }
   };
+
+  useEffect(() => {
+    const autoGenre = autoGenreRef.current;
+    if (phase !== "genre" || !understandResult || experimentRef.current !== "photo-song" || !autoGenre || autoGenreQueuedRef.current) {
+      return;
+    }
+    autoGenreQueuedRef.current = true;
+    runGenerate(autoGenre);
+  }, [phase, understandResult]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Add more ─────────────────────────────────────────────────────────────
 
@@ -821,6 +837,9 @@ export default function SpeakPage() {
     setExperiment(null);
     experimentRef.current = null;
     seedRef.current = null;
+    autoGenreRef.current = null;
+    autoGenreQueuedRef.current = false;
+    setAutoGenreActive(false);
     setSelectedPillar(null);
     setIsDedication(false);
     goToPhase("module");
@@ -844,6 +863,12 @@ export default function SpeakPage() {
     setSongStatus({});
     setIsDedication(false);
     allTranscriptsRef.current = [];
+    seedRef.current = null;
+    experimentRef.current = null;
+    tagHintsRef.current = [];
+    autoGenreRef.current = null;
+    autoGenreQueuedRef.current = false;
+    setAutoGenreActive(false);
   }, [phase, understandResult, discardRecordingResources, stopAudio, clearGeneration]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -976,6 +1001,7 @@ export default function SpeakPage() {
     const experimentParam = params.get("experiment");
     const autoTextParam = params.get("autoText");
     const onboardingParam = params.get("onboarding");
+    const autoGenreParam = params.get("autoGenre");
     const tagHintsParam = params.get("tagHints");
     const nextExperiment = isExperiment(experimentParam) ? experimentParam : null;
     onboardingRef.current = onboardingParam === "1";
@@ -983,6 +1009,10 @@ export default function SpeakPage() {
     menuTitleRef.current = menuTitleParam ?? null;
     experimentRef.current = nextExperiment;
     tagHintsRef.current = parseTagHints(tagHintsParam);
+    const nextAutoGenre = nextExperiment === "photo-song" && autoGenreParam?.trim() ? autoGenreParam.trim() : null;
+    autoGenreRef.current = nextAutoGenre;
+    autoGenreQueuedRef.current = false;
+    setAutoGenreActive(Boolean(nextAutoGenre));
     setExperiment(nextExperiment);
     setAdhdCollection(collectionParam === "adhd");
     if (pillarParam) {
@@ -1170,11 +1200,14 @@ export default function SpeakPage() {
               wasAutoStopped={wasAutoStopped}
             />
           )}
-          {phase === "genre" && understandResult && (
+          {phase === "genre" && understandResult && experiment === "photo-song" && autoGenreActive ? (
+            <UnderstandingView pillar={selectedPillar} />
+          ) : phase === "genre" && understandResult && (
             <GenreView
               understandResult={understandResult}
               onGenerate={runGenerate}
               onDiscard={reset}
+              errorMsg={errorMsg}
             />
           )}
         </>
@@ -2427,10 +2460,12 @@ function GenreView({
   understandResult,
   onGenerate,
   onDiscard,
+  errorMsg,
 }: {
   understandResult: UnderstandResult;
   onGenerate: (genre: string) => void;
   onDiscard: () => void;
+  errorMsg?: string;
 }) {
   const [builtInGenres, setBuiltInGenres] = useState<string[]>([]);
   const [userGenres, setUserGenres]       = useState<string[]>([]);
@@ -2566,6 +2601,12 @@ function GenreView({
             : "Choose from your saved Rthmic Styles, or speak a new artist, era, genre, mood, or reference."}
         </p>
       </RevealBlock>
+
+      {errorMsg && (
+        <p className="text-xs text-red-300/70 text-center leading-relaxed" role="alert">
+          {errorMsg}
+        </p>
+      )}
 
       {!loading && (
         <RevealBlock delay={20} className="flex-shrink-0 sticky top-0 z-10">
