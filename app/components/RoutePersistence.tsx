@@ -75,6 +75,11 @@ export default function RoutePersistence() {
     const navigationIntent = safeGetSessionItem(NAV_INTENT_KEY);
     const restoreAttemptId = previousRoute ? `${previousRoute} -> ${route}` : null;
     const previousAttempt = safeGetSessionItem(RESTORE_ATTEMPT_KEY);
+    const likelyProcessRestart = !!(
+      route === "/" &&
+      reloadIntent?.reason === "browser-or-runtime" &&
+      reloadIntent.source === "pagehide"
+    );
     const reloadKind = navigationIntent
       ? "navigation"
       : reason === "user-clicked-update"
@@ -83,7 +88,7 @@ export default function RoutePersistence() {
           ? "manual-refresh"
         : "browser-or-runtime";
     const shouldRestore = !!(
-      wasReload &&
+      (wasReload || likelyProcessRestart) &&
       reason !== "user-clicked-update" &&
       reason !== "user-clicked-refresh" &&
       !navigationIntent &&
@@ -94,13 +99,14 @@ export default function RoutePersistence() {
       !restoreIsCoolingDown()
     );
 
-    if (wasReload) {
+    if (wasReload || likelyProcessRestart) {
       recordDiagnosticEvent("reload", {
         reloadKind,
         previousRoute,
         reason,
         reloadIntent,
         navigationType: nav?.type ?? "unknown",
+        likelyProcessRestart,
         willRestore: shouldRestore,
         navigationIntent,
         persistedRouteState: readPersistedRouteState(),
@@ -110,7 +116,7 @@ export default function RoutePersistence() {
       safeRemoveLocalItem(RELOAD_INTENT_KEY);
     }
 
-    if (wasReload && reason !== "user-clicked-update" && previousRoute && previousRoute !== route) {
+    if ((wasReload || likelyProcessRestart) && reason !== "user-clicked-update" && previousRoute && previousRoute !== route) {
       const alreadyReported = safeGetSessionItem(RELOAD_REPORTED_KEY);
       if (alreadyReported !== previousRoute) {
         safeSetSessionItem(RELOAD_REPORTED_KEY, previousRoute);

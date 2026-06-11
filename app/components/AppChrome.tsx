@@ -1,7 +1,6 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import IntroSequence from "@/app/components/IntroSequence";
 import MiniPlayer from "@/app/components/MiniPlayer";
 import FullScreenPlayer from "@/app/components/FullScreenPlayer";
 import GenerationBanner from "@/app/components/GenerationBanner";
@@ -18,7 +17,6 @@ export default function AppChrome() {
 
   return (
     <>
-      <IntroSequence />
       <GenerationBanner />
       <MiniPlayer />
       <FullScreenPlayer />

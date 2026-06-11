@@ -63,7 +63,6 @@ export function AudioProvider({ children }: { children: ReactNode }) {
 
   const audioRef         = useRef<HTMLAudioElement | null>(null);
   const generationRef    = useRef(0);
-  const rafRef           = useRef<number | null>(null);
   const queueRef         = useRef<AudioQueueTrack[]>([]);
   const queueIndexRef    = useRef(-1);
   const queueLoopEachRef = useRef(false);
@@ -486,29 +485,16 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
   }, [isPlaying, currentTrackId]);
 
-  // ── requestAnimationFrame loop for smooth currentTime (60fps while playing) ─
-  // Replaces the coarse timeupdate event (~250ms) so karaoke sync is frame-accurate.
+  // Keep global playback progress responsive without re-rendering every audio
+  // consumer at the display refresh rate, which is costly on iOS WebKit.
   useEffect(() => {
-    if (!isPlaying) {
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      }
-      return;
-    }
-
-    const tick = () => {
+    if (!isPlaying) return;
+    const updateProgress = () => {
       if (audioRef.current) setCurrentTime(audioRef.current.currentTime);
-      rafRef.current = requestAnimationFrame(tick);
     };
-    rafRef.current = requestAnimationFrame(tick);
-
-    return () => {
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      }
-    };
+    updateProgress();
+    const interval = window.setInterval(updateProgress, 200);
+    return () => window.clearInterval(interval);
   }, [isPlaying]);
 
   return (
