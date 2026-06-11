@@ -2665,6 +2665,27 @@ function GenreView({
             />
           </RevealBlock>
 
+          <RevealBlock delay={30}>
+            <div className="flex items-center gap-4 py-1" aria-label="Or choose an existing Rthmic style">
+              <div className="h-px flex-1" style={{ background: "linear-gradient(to right, transparent, rgba(var(--flow-accent-rgb),0.38))" }} />
+              <div
+                className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border text-sm font-semibold tracking-[0.16em]"
+                style={{
+                  borderColor: "rgba(var(--flow-accent-rgb),0.42)",
+                  background: "rgba(var(--flow-accent-rgb),0.10)",
+                  color: "rgb(var(--flow-accent-rgb))",
+                  boxShadow: "0 0 24px rgba(var(--flow-accent-rgb),0.08)",
+                }}
+              >
+                OR
+              </div>
+              <div className="h-px flex-1" style={{ background: "linear-gradient(to left, transparent, rgba(var(--flow-accent-rgb),0.38))" }} />
+            </div>
+            <p className="mt-1 text-center text-[10px] uppercase tracking-[0.22em] text-white/35">
+              Choose an existing style
+            </p>
+          </RevealBlock>
+
           {/* ── Rthmic Styles (built-in, permanent) ── */}
           {builtInGenres.length > 0 && (
             <div className="flex flex-col gap-2">
