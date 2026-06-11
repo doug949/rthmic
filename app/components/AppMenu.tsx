@@ -62,7 +62,19 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
         }
       });
     return () => { cancelled = true; };
-  }, [open]);
+  }, []);
+
+  useEffect(() => {
+    if (!open || !isAdmin) return;
+    let cancelled = false;
+    fetch("/api/access-requests", { cache: "no-store" })
+      .then(response => response.json().then(data => ({ response, data })))
+      .then(({ response, data }) => {
+        if (!cancelled && response.ok) setBetaRequestCount(Array.isArray(data.requests) ? data.requests.length : 0);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [open, isAdmin]);
 
   useEffect(() => setShouldRender(true), []);
 
@@ -71,6 +83,11 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
   const go = (href: string) => {
     onClose();
     router.push(href);
+  };
+
+  const openAttentionStack = () => {
+    onClose();
+    window.dispatchEvent(new CustomEvent("rthmic:open-attention-stack"));
   };
 
   const handleRefresh = async () => {
@@ -205,7 +222,8 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
           )}
           {isAdmin && (
             <>
-              <MenuRow icon="◉" title="Record Feedback" detail="Open the private voice feedback recorder" onClick={() => go("/feedback")} />
+              <MenuRow icon={<RecordFeedbackIcon />} title="Record Feedback" detail="Open the private voice feedback recorder" onClick={() => go("/feedback")} />
+              <MenuRow icon={<StackMenuIcon />} title="Attention Stack" detail="Pause your focus and find your way back" onClick={openAttentionStack} />
               <MenuRow
                 icon={<AttentionIcon active={!!betaRequestCount} />}
                 title="Beta Requests"
@@ -264,6 +282,14 @@ function AttentionIcon({ active }: { active: boolean }) {
       !
     </span>
   );
+}
+
+function RecordFeedbackIcon() {
+  return <span className="flex h-7 w-7 items-center justify-center rounded-full border border-red-400/35 bg-red-400/10 text-red-300" aria-hidden="true">◉</span>;
+}
+
+function StackMenuIcon() {
+  return <span className="flex h-7 w-7 items-center justify-center rounded-full border border-green-400/35 bg-green-400/10 text-green-300" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 7h14M7 12h10M9 17h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg></span>;
 }
 
 function MenuRow({ icon, title, detail, onClick, disabled, danger, badge, attention }: {

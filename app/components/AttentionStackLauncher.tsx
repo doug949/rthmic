@@ -8,6 +8,7 @@ export default function AttentionStackLauncher() {
   const pathname = usePathname();
   const [isAdmin, setIsAdmin] = useState(false);
   const [open, setOpen] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     if (window.self !== window.top) return;
@@ -19,29 +20,19 @@ export default function AttentionStackLauncher() {
     return () => { cancelled = true; };
   }, []);
 
+  useEffect(() => {
+    const handleOpen = () => {
+      setLoaded(false);
+      setOpen(true);
+    };
+    window.addEventListener("rthmic:open-attention-stack", handleOpen);
+    return () => window.removeEventListener("rthmic:open-attention-stack", handleOpen);
+  }, []);
+
   if (!isAdmin || pathname === "/login" || pathname === "/attention-stack" || typeof window === "undefined" || window.self !== window.top) return null;
 
   return createPortal(
     <>
-      {!open && (
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="fixed right-4 z-[44] flex h-12 w-12 items-center justify-center rounded-full border text-green-200 transition-transform active:scale-95"
-          style={{
-            bottom: "calc(env(safe-area-inset-bottom, 0px) + 76px)",
-            borderColor: "rgba(74,222,128,0.34)",
-            background: "rgba(10,24,26,0.88)",
-            boxShadow: "0 10px 30px rgba(0,0,0,0.34), 0 0 20px rgba(34,197,94,0.08)",
-            backdropFilter: "blur(16px)",
-          }}
-          aria-label="Open Attention Stack"
-          title="Attention Stack"
-        >
-          <StackIcon />
-        </button>
-      )}
-
       {open && (
         <div className="fixed inset-0 z-[80]">
           <button type="button" onClick={() => setOpen(false)} className="absolute inset-0 bg-black/60" aria-label="Close Attention Stack" />
@@ -54,7 +45,10 @@ export default function AttentionStackLauncher() {
               <div className="flex items-center gap-3 text-white/78"><StackIcon /><span className="text-sm font-medium tracking-wide">Attention Stack</span></div>
               <button type="button" onClick={() => setOpen(false)} className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.035] text-xl text-white/55" aria-label="Hide Attention Stack">×</button>
             </div>
-            <iframe title="Attention Stack" src="/attention-stack?embedded=1" className="w-full border-0" style={{ height: "calc(100% - 4rem)" }} allow="microphone" />
+            <div className="relative w-full bg-[#0d1628]" style={{ height: "calc(100% - 4rem)" }}>
+              {!loaded && <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#0d1628]"><div className="h-7 w-7 animate-spin rounded-full border-2 border-white/15 border-t-white/60" /></div>}
+              <iframe title="Attention Stack" src="/attention-stack?embedded=1" onLoad={() => setLoaded(true)} className="h-full w-full border-0 bg-[#0d1628]" style={{ colorScheme: "dark" }} allow="microphone" />
+            </div>
           </section>
         </div>
       )}
