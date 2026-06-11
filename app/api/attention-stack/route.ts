@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
   const uid = requireAuth(request);
   if (!uid) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = await request.json() as { action?: string; task?: string; pausedTask?: string };
+  const body = await request.json() as { action?: string; task?: string; pausedTask?: string; entryId?: string; direction?: string };
   const action = body.action;
   const task = cleanTask(body.task);
   const pausedTask = cleanTask(body.pausedTask);
@@ -110,6 +110,17 @@ export async function POST(request: NextRequest) {
         state.current = null;
         state.stack = [];
         message = "Attention stack cleared.";
+      } else if (action === "delete") {
+        const index = state.stack.findIndex(entry => entry.id === body.entryId);
+        if (index < 0) throw new Error("entry required");
+        state.stack.splice(index, 1);
+      } else if (action === "move") {
+        const index = state.stack.findIndex(entry => entry.id === body.entryId);
+        if (index < 0) throw new Error("entry required");
+        const target = body.direction === "toward-current" ? index + 1 : index - 1;
+        if (target >= 0 && target < state.stack.length) {
+          [state.stack[index], state.stack[target]] = [state.stack[target], state.stack[index]];
+        }
       } else if (action === "status") {
         message = state.current
           ? `You are working on ${state.current.task}.`
@@ -126,8 +137,12 @@ export async function POST(request: NextRequest) {
     if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status });
     return NextResponse.json(result);
   } catch (error) {
-    const message = error instanceof Error && error.message === "task required" ? "Task required" : "Storage error";
+    const message = error instanceof Error && error.message === "task required"
+      ? "Task required"
+      : error instanceof Error && error.message === "entry required"
+        ? "Stack item not found"
+        : "Storage error";
     console.error("[attention-stack] write error:", error);
-    return NextResponse.json({ error: message }, { status: message === "Task required" ? 400 : 500 });
+    return NextResponse.json({ error: message }, { status: message === "Storage error" ? 500 : 400 });
   }
 }
