@@ -19,6 +19,34 @@ import { RecordFlipIcon } from "@/app/components/RecordFlipIcon";
 
 const LYRIC_SYNC_LEAD_SECONDS = 0.35;
 
+async function copyTextToClipboard(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // Fall through to the selection-based copy used by some iOS/PWA contexts.
+  }
+
+  try {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    textarea.style.pointerEvents = "none";
+    document.body.appendChild(textarea);
+    textarea.select();
+    textarea.setSelectionRange(0, textarea.value.length);
+    const copied = document.execCommand("copy");
+    textarea.remove();
+    return copied;
+  } catch {
+    return false;
+  }
+}
+
 function inferStyle(pillar: string): "A" | "B" {
   return (pillar || "").toLowerCase() === "movement" ? "A" : "B";
 }
@@ -43,6 +71,7 @@ export default function FullScreenPlayer() {
   const [tagInput, setTagInput]       = useState("");
   const [recreateOpen, setRecreateOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [lyricsCopied, setLyricsCopied] = useState(false);
   const [sideFlipPhase, setSideFlipPhase] = useState<"idle" | "out" | "in">("idle");
   const [actionPending, setActionPending] = useState(false);
   const offlineUrl = rhythm ? `/api/proxy-audio?id=${encodeURIComponent(rhythm.id)}` : undefined;
@@ -100,6 +129,7 @@ export default function FullScreenPlayer() {
     setConfirmRemove(false);
     setRecreateOpen(false);
     setActionPending(false);
+    setLyricsCopied(false);
   }, [currentTrackId]);
 
   // ── On-demand timed lyrics fetch ─────────────────────────────────────────
@@ -305,6 +335,14 @@ export default function FullScreenPlayer() {
   };
 
   const handleTogglePlay = () => togglePlayPause();
+
+  const handleCopyLyrics = async () => {
+    if (!rhythm?.lyrics) return;
+    const copied = await copyTextToClipboard(rhythm.lyrics);
+    if (!copied) return;
+    setLyricsCopied(true);
+    setTimeout(() => setLyricsCopied(false), 2500);
+  };
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   const fmt = (s: number) => {
@@ -568,6 +606,14 @@ export default function FullScreenPlayer() {
             title={rhythm.title}
             onClose={() => setMoreOpen(false)}
             items={[
+              ...(rhythm.lyrics ? [{
+                icon: lyricsCopied ? "✓" : "▤",
+                label: lyricsCopied ? "Lyrics copied" : "Copy lyrics",
+                sublabel: lyricsCopied ? "Ready to paste" : "Copy the complete lyrics to clipboard",
+                active: lyricsCopied,
+                keepOpen: true,
+                onClick: handleCopyLyrics,
+              }] : []),
               {
                 icon: "↺", label: "Recreate", sublabel: "New genre",
                 onClick: () => setRecreateOpen(true),
