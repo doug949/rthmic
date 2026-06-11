@@ -50,6 +50,9 @@ LYRICS SPEC v1.1:
 - Structure: use [VERSE] / [CHORUS] / [BRIDGE] labels — write naturally within them
 - Length: as long as needed to fully install the idea, up to 5000 characters
 - Never use double-quote characters (") inside lyric lines — use single quotes or rewrite to avoid them
+- Write the song itself. Never discuss category selection, pillar fit, prompt instructions, mismatches, recommendations, or what should be written
+- Never refer to "the user", "the request", "the assigned pillar", or your analysis
+- If the brief and creative structure appear imperfectly matched, silently serve the original spoken intent without exposing internal reasoning
 
 SONG ENDINGS (REQUIRED):
 - The song must have a clear, conclusive closing section — no abrupt stops
@@ -138,7 +141,8 @@ PILLAR: ${pillar}
 
 ${template}
 
-Write only the final song lyrics with [VERSE] / [CHORUS] / [BRIDGE] labels. Do not return JSON.`;
+Write only the final song lyrics with [VERSE] / [CHORUS] / [BRIDGE] labels. Do not return JSON.
+If the inputs appear mismatched, silently write the most useful song for the original transcript. Never analyse or mention the mismatch.`;
 }
 
 // Style defaults per pillar (used in mock mode)
@@ -158,6 +162,20 @@ const PILLAR_STYLE_DEFAULTS: Record<PillarType, StyleChoice> = {
   BookSummary:  "B", // same as Explain — clear, confident, the energy of a good recommendation
   Sleep:        "B", // slow, soft, settling — adult lullaby energy
 };
+
+const QUICK_RTHMIC_PILLARS: PillarType[] = [
+  "Mindset",
+  "Mode",
+  "Movement",
+  "Sleep",
+  "Memory",
+  "Explain",
+  "BookSummary",
+];
+
+function isQuickRthmicPillar(value: unknown): value is PillarType {
+  return typeof value === "string" && QUICK_RTHMIC_PILLARS.includes(value as PillarType);
+}
 
 // ─── Mock outputs ─────────────────────────────────────────────────────────────
 
@@ -921,7 +939,7 @@ State summary:
 Original spoken transcript:
 "${transcript}"
 
-The pillar is already determined: ${pillar}. Write the complete RTHMIC lyrics now.`;
+Use the ${pillar} creative structure silently. Never name, explain, question, or discuss that structure in the lyrics. Write the complete RTHMIC song now.`;
 
   if (pillar === "Journal") {
     const dateStr = formatJournalDate();
@@ -1050,6 +1068,72 @@ export async function interpretBrief(rawTranscript: string, overridePillar?: Pil
   return parsed;
 }
 
+export async function interpretBriefAuto(rawTranscript: string): Promise<LLMBriefResult> {
+  if (USE_MOCK) {
+    const detected = detectPillar(rawTranscript);
+    const pillar = isQuickRthmicPillar(detected) ? detected : "Mindset";
+    await delay(500 + Math.random() * 300);
+    return {
+      pillar,
+      style: PILLAR_STYLE_DEFAULTS[pillar],
+      title: MOCK_OUTPUTS[pillar].title,
+      stateSummary: MOCK_OUTPUTS[pillar].stateSummary,
+    };
+  }
+
+  const client = new Anthropic();
+  const message = await client.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 1200,
+    system: `You are RTHMIC's fast interpretation engine. Understand the intended outcome of the user's words and choose exactly one public RTHMIC category. Do not write lyrics.
+
+Allowed categories:
+- Mindset: prepare emotionally or mentally for an upcoming moment.
+- Mode: shift into a particular state such as focus, confidence, calm, or energy.
+- Movement: begin or continue a task, overcome inertia, and stay on track.
+- Sleep: settle specifically for sleep or return to sleep.
+- Memory: memorise precise information or make something difficult to forget.
+- Explain: understand a concept, subject, place, process, or idea.
+- BookSummary: learn or retain the ideas from a named book.
+
+Choose from intended outcome, not isolated keywords. Respect negation and correction. For example, 'I am not going to sleep' must not be Sleep. Never choose Menus, Journal, Epiphany, Bridge, Invite, or Understanding.
+
+Choose style A for activation and forward momentum. Choose style B for calm focus, grounding, learning, memory, or sleep.
+
+Return only JSON:
+{
+  "pillar": "Mindset",
+  "style": "A",
+  "title": "3-5 word song title",
+  "stateSummary": {
+    "state": "one sentence in second person",
+    "intent": "one sentence in second person",
+    "friction": "one sentence in second person"
+  }
+}`,
+    messages: [
+      {
+        role: "user",
+        content: `User's spoken request:\n"${rawTranscript}"\n\nReturn only the interpretation JSON.`,
+      },
+    ],
+  });
+
+  const textBlock = message.content.find((block) => block.type === "text");
+  if (!textBlock || textBlock.type !== "text") {
+    throw new Error("LLM returned no text content");
+  }
+
+  const parsed = extractBriefJson(textBlock.text);
+  if (!isQuickRthmicPillar(parsed.pillar)) parsed.pillar = "Mindset";
+  parsed.style = parsed.style === "A" ? "A" : "B";
+  return parsed;
+}
+
+function containsInternalLyricAnalysis(lyrics: string): boolean {
+  return /\b(?:mismatch|assigned pillar|pillar assigned|needs flagging|what i(?:'|’)d recommend|recommend instead|wrong output|the user(?:'|’)s state|the user|the request|category selection|writing an? [a-z]+ song)\b/i.test(lyrics);
+}
+
 export async function writeLyricsFromBrief({
   transcript,
   pillar,
@@ -1070,28 +1154,38 @@ export async function writeLyricsFromBrief({
   const template = loadTemplate(pillar);
   const master = loadMaster();
 
-  const message = await client.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 8000,
-    system: [
-      {
-        type: "text",
-        text: buildLyricsSystemPrompt(pillar, template, master),
-        cache_control: { type: "ephemeral" },
-      },
-    ],
-    messages: [
-      {
-        role: "user",
-        content: buildLyricsUserPrompt(pillar, transcript, title, stateSummary),
-      },
-    ],
-  });
+  const requestLyrics = async (correction = "") => {
+    const message = await client.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 8000,
+      system: [
+        {
+          type: "text",
+          text: buildLyricsSystemPrompt(pillar, template, master),
+          cache_control: { type: "ephemeral" },
+        },
+      ],
+      messages: [
+        {
+          role: "user",
+          content: `${buildLyricsUserPrompt(pillar, transcript, title, stateSummary)}${correction}`,
+        },
+      ],
+    });
 
-  const textBlock = message.content.find((b) => b.type === "text");
-  if (!textBlock || textBlock.type !== "text") {
-    throw new Error("LLM returned no lyrics");
+    const textBlock = message.content.find((block) => block.type === "text");
+    if (!textBlock || textBlock.type !== "text") throw new Error("LLM returned no lyrics");
+    return textBlock.text.trim();
+  };
+
+  let lyrics = await requestLyrics();
+  if (containsInternalLyricAnalysis(lyrics)) {
+    lyrics = await requestLyrics("\n\nCORRECTION: Output only performable song lyrics. Do not mention or analyse categories, pillars, mismatches, the user, the request, recommendations, or the writing process. Silently serve the original spoken intent.");
   }
 
-  return fromSunoPronunciation(textBlock.text.trim());
+  if (containsInternalLyricAnalysis(lyrics)) {
+    throw new Error("Lyric generation returned internal analysis instead of a song");
+  }
+
+  return fromSunoPronunciation(lyrics);
 }

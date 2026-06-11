@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { transcribe } from "@/app/services/transcriptionService";
-import { interpretBrief } from "@/app/services/llmService";
+import { interpretBrief, interpretBriefAuto } from "@/app/services/llmService";
 import { normalisePillar } from "@/app/types/pipeline";
 import type { PillarType } from "@/app/types/pipeline";
 
@@ -53,7 +53,9 @@ export async function POST(req: NextRequest) {
       ? normalisePillar(selectedPillarSlug)
       : undefined;
 
-    const result = await interpretBrief(fullTranscript, overridePillar);
+    const result = overridePillar
+      ? await interpretBrief(fullTranscript, overridePillar)
+      : await interpretBriefAuto(fullTranscript);
 
     // Hard-pin: if the user explicitly chose a pillar, it cannot be overridden
     // by anything the LLM returns — enforce at the API boundary as a final guarantee.

@@ -578,11 +578,7 @@ export default function FullScreenPlayer() {
                 style={{ color: "rgba(255,255,255,0.7)" }}
                 autoFocus
               />
-              {tagInput.trim() && (
-                <button onClick={addTag} className="text-[10px] text-white/50 touch-manipulation">+ Add</button>
-              )}
             </div>
-            <p className="text-[10px] text-white/25">Enter to add · tap tag to remove</p>
           </div>
         )}
 

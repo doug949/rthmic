@@ -295,13 +295,7 @@ export function RhythmRow({
               style={{ color: "rgba(255,255,255,0.7)" }}
               autoFocus
             />
-            {tagInput.trim() && (
-              <button onClick={addTag} className="text-[10px] text-white/50 hover:text-white/70 transition-colors touch-manipulation">
-                + Add
-              </button>
-            )}
           </div>
-          <p className="text-[10px] text-white/30">Press Enter to add · tap a tag to remove</p>
         </div>
       )}
 
