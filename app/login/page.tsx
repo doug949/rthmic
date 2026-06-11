@@ -18,7 +18,10 @@ function LoginForm() {
   const [requestingAccess, setRequestingAccess] = useState(false);
   const [accessRequested, setAccessRequested] = useState(false);
   const [accessError, setAccessError] = useState("");
-  const [betaAgreementAccepted, setBetaAgreementAccepted] = useState(false);
+  const [loginAgreementAccepted, setLoginAgreementAccepted] = useState(false);
+  const [requestAgreementAccepted, setRequestAgreementAccepted] = useState(false);
+  const [loginAttempted, setLoginAttempted] = useState(false);
+  const [requestAttempted, setRequestAttempted] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -26,6 +29,8 @@ function LoginForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setLoginAttempted(true);
+    if (!password.trim() || !loginAgreementAccepted) return;
     await loginWith(password.trim());
   }
 
@@ -36,7 +41,7 @@ function LoginForm() {
     const res = await fetch(`/api/auth`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password: code, betaAgreementAccepted }),
+      body: JSON.stringify({ password: code, betaAgreementAccepted: loginAgreementAccepted }),
     });
 
     if (res.ok) {
@@ -53,6 +58,9 @@ function LoginForm() {
 
   async function requestAccess(e: React.FormEvent) {
     e.preventDefault();
+    setRequestAttempted(true);
+    const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+    if (!firstName.trim() || !validEmail || !referralSource.trim() || !requestAgreementAccepted) return;
     setRequestingAccess(true);
     setAccessError("");
     setAccessRequested(false);
@@ -60,7 +68,7 @@ function LoginForm() {
     const res = await fetch("/api/request-access", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ firstName, email, referralSource, website, betaAgreementAccepted }),
+      body: JSON.stringify({ firstName, email, referralSource, website, betaAgreementAccepted: requestAgreementAccepted }),
     });
 
     if (res.ok) {
@@ -68,6 +76,8 @@ function LoginForm() {
       setFirstName("");
       setEmail("");
       setReferralSource("");
+      setRequestAgreementAccepted(false);
+      setRequestAttempted(false);
     } else {
       let message = "Could not request access";
       try {
@@ -81,7 +91,7 @@ function LoginForm() {
 
   return (
     <main
-      className="relative z-10 min-h-screen overflow-hidden flex flex-col items-center justify-center px-6 py-10"
+      className="relative z-10 min-h-screen overflow-x-hidden flex flex-col items-center justify-start px-6 py-10"
       style={{ background: "#02050a" }}
     >
       <div
@@ -162,6 +172,9 @@ function LoginForm() {
             RTHMIC is a private beta. Access codes are tied to one email address. Please keep your code secure and do not share screenshots, recordings, access codes, or copy the product experience.
           </p>
         </div>
+        <p className="mt-4 text-xs leading-relaxed text-white/48">
+          Choose one path below: enter an access code you already have, or complete every field to request one.
+        </p>
       </div>
 
       <form
@@ -174,6 +187,13 @@ function LoginForm() {
           backdropFilter: "blur(18px)",
         }}
       >
+        <div className="flex items-start gap-3 px-1 pb-1">
+          <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border border-[#c9a55a]/35 text-xs font-semibold text-[#c9a55a]">1</span>
+          <div>
+            <h2 className="text-base font-semibold text-white">I already have an access code</h2>
+            <p className="mt-1 text-xs leading-relaxed text-white/42">Enter your code below to open RTHMIC.</p>
+          </div>
+        </div>
         <label className="flex flex-col gap-2">
           <span
             className="text-[11px] uppercase tracking-[0.24em] px-1"
@@ -185,7 +205,7 @@ function LoginForm() {
             ref={inputRef}
             type="text"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => { setPassword(e.target.value); setError(false); }}
             placeholder="Type code here"
             autoFocus
             autoComplete="off"
@@ -198,7 +218,7 @@ function LoginForm() {
               WebkitAppearance: "none",
               appearance: "none",
               backgroundColor: "#ffffff",
-              border: error ? "3px solid #f87171" : "3px solid #ffffff",
+              border: error || (loginAttempted && !password.trim()) ? "3px solid #f87171" : "3px solid #ffffff",
               color: "#08090b",
               caretColor: "#08090b",
               minHeight: "64px",
@@ -206,85 +226,121 @@ function LoginForm() {
             }}
           />
         </label>
+        {loginAttempted && !password.trim() && (
+          <p className="-mt-2 px-1 text-xs text-red-300">Enter your access code.</p>
+        )}
         {error && (
           <p className="text-xs text-red-400/80 text-center">Access code not recognised</p>
         )}
-        <label className="flex gap-3 rounded-2xl border px-4 py-3 text-left" style={{ background: "rgba(255,255,255,0.035)", borderColor: betaAgreementAccepted ? "rgba(201,165,90,0.34)" : "rgba(255,255,255,0.10)" }}>
+        <label className="flex gap-3 rounded-2xl border px-4 py-3 text-left" style={{ background: "rgba(255,255,255,0.035)", borderColor: loginAgreementAccepted ? "rgba(201,165,90,0.34)" : "rgba(255,255,255,0.10)" }}>
           <input
             type="checkbox"
-            checked={betaAgreementAccepted}
-            onChange={(e) => setBetaAgreementAccepted(e.target.checked)}
+            checked={loginAgreementAccepted}
+            onChange={(e) => setLoginAgreementAccepted(e.target.checked)}
             className="mt-0.5 h-4 w-4 flex-shrink-0 accent-[#c9a55a]"
           />
           <span className="text-xs leading-relaxed text-white/52">
             I understand the private beta terms above. My feedback may be used to improve RTHMIC.
           </span>
         </label>
+        {loginAttempted && !loginAgreementAccepted && (
+          <p className="-mt-2 px-1 text-xs text-red-300">Accept the private beta terms to continue.</p>
+        )}
         <button
           type="submit"
-          disabled={loading || !password.trim() || !betaAgreementAccepted}
+          disabled={loading}
           className="w-full font-semibold text-base tracking-wide rounded-xl py-4 transition-opacity duration-200 active:scale-[0.98]"
           style={{
-            background: password.trim() && betaAgreementAccepted ? "#ffffff" : "rgba(255,255,255,0.72)",
+            background: password.trim() && loginAgreementAccepted ? "#ffffff" : "rgba(255,255,255,0.62)",
             color: "#08090b",
             opacity: loading ? 0.7 : 1,
           }}
         >
-          {loading ? "…" : "Enter"}
+          {loading ? "…" : "Enter RTHMIC"}
         </button>
       </form>
 
-      <form onSubmit={requestAccess} className="w-full max-w-sm flex flex-col gap-3 mt-8">
-        <p className="text-xs text-white/35 text-center leading-relaxed">
-          Need access? Enter your details and we&apos;ll be in touch.
-        </p>
+      <div className="my-6 flex w-full max-w-sm items-center gap-3" aria-hidden="true">
+        <span className="h-px flex-1 bg-white/12" />
+        <span className="text-[10px] uppercase tracking-[0.24em] text-white/35">or</span>
+        <span className="h-px flex-1 bg-white/12" />
+      </div>
+
+      <form
+        onSubmit={requestAccess}
+        noValidate
+        className="w-full max-w-sm flex flex-col gap-3 rounded-3xl p-5"
+        style={{
+          background: "rgba(8,14,26,0.72)",
+          border: "1px solid rgba(255,255,255,0.14)",
+          boxShadow: "0 20px 70px rgba(0,0,0,0.48)",
+          backdropFilter: "blur(16px)",
+        }}
+      >
+        <div className="flex items-start gap-3 px-1 pb-2">
+          <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border border-[#78d2d2]/35 text-xs font-semibold text-[#78d2d2]">2</span>
+          <div>
+            <h2 className="text-base font-semibold text-white">I need to request an access code</h2>
+            <p className="mt-1 text-xs leading-relaxed text-white/42">Complete every field below. If approved, your personal code will be emailed to you.</p>
+          </div>
+        </div>
         <label className="flex flex-col gap-2">
-          <span className="text-[10px] uppercase tracking-[0.24em] text-white/38 px-1">First name</span>
+          <span className="flex justify-between px-1 text-[10px] uppercase tracking-[0.24em] text-white/48"><span>First name</span><span className="tracking-normal text-white/28">Required</span></span>
           <input
             type="text"
             value={firstName}
             onChange={(e) => { setFirstName(e.target.value); setAccessRequested(false); setAccessError(""); }}
             placeholder="First name"
             autoComplete="given-name"
-            className="
-              w-full bg-white/[0.07] border border-white/16 rounded-2xl px-5 py-4
+            aria-invalid={requestAttempted && !firstName.trim()}
+            className={`
+              w-full bg-white/[0.07] border rounded-2xl px-5 py-4
               text-white placeholder-white/34 text-base tracking-wide
               outline-none focus:bg-white/[0.10] focus:border-white/36
               transition-all duration-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)]
-            "
+              ${requestAttempted && !firstName.trim() ? "border-red-400/70" : "border-white/16"}
+            `}
           />
+          {requestAttempted && !firstName.trim() && <span className="px-1 text-xs text-red-300">Enter your first name.</span>}
         </label>
         <label className="flex flex-col gap-2">
-          <span className="text-[10px] uppercase tracking-[0.24em] text-white/38 px-1">Email</span>
+          <span className="flex justify-between px-1 text-[10px] uppercase tracking-[0.24em] text-white/48"><span>Email</span><span className="tracking-normal text-white/28">Required</span></span>
           <input
             type="email"
             value={email}
             onChange={(e) => { setEmail(e.target.value); setAccessRequested(false); setAccessError(""); }}
             placeholder="you@example.com"
             autoComplete="email"
-            className="
-              w-full bg-white/[0.07] border border-white/16 rounded-2xl px-5 py-4
+            aria-invalid={requestAttempted && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())}
+            className={`
+              w-full bg-white/[0.07] border rounded-2xl px-5 py-4
               text-white placeholder-white/34 text-base tracking-wide
               outline-none focus:bg-white/[0.10] focus:border-white/36
               transition-all duration-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)]
-            "
+              ${requestAttempted && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ? "border-red-400/70" : "border-white/16"}
+            `}
           />
+          {requestAttempted && !email.trim() && <span className="px-1 text-xs text-red-300">Enter your email address.</span>}
+          {requestAttempted && email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) && <span className="px-1 text-xs text-red-300">Enter a valid email address.</span>}
         </label>
         <label className="flex flex-col gap-2">
-          <span className="text-[10px] uppercase tracking-[0.24em] text-white/38 px-1">Where did you find RTHMIC?</span>
+          <span className="flex justify-between px-1 text-[10px] uppercase tracking-[0.24em] text-white/48"><span>Where did you find RTHMIC?</span><span className="tracking-normal text-white/28">Required</span></span>
           <textarea
             value={referralSource}
             onChange={(e) => { setReferralSource(e.target.value); setAccessRequested(false); setAccessError(""); }}
             placeholder="Friend, ADHD event, shared Rthm, LinkedIn, or anything useful..."
             rows={3}
-            className="
-              w-full bg-white/[0.07] border border-white/16 rounded-2xl px-5 py-4
+            aria-invalid={requestAttempted && !referralSource.trim()}
+            className={`
+              w-full bg-white/[0.07] border rounded-2xl px-5 py-4
               text-white placeholder-white/34 text-base tracking-wide
               outline-none focus:bg-white/[0.10] focus:border-white/36
               transition-all duration-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)]
               resize-none leading-relaxed
-            "
+              ${requestAttempted && !referralSource.trim() ? "border-red-400/70" : "border-white/16"}
+            `}
           />
+          {requestAttempted && !referralSource.trim() && <span className="px-1 text-xs text-red-300">Tell us briefly where you found RTHMIC.</span>}
         </label>
         <label className="hidden" aria-hidden="true">
           Website
@@ -295,6 +351,18 @@ function LoginForm() {
             onChange={(e) => setWebsite(e.target.value)}
           />
         </label>
+        <label className="flex gap-3 rounded-2xl border px-4 py-3 text-left" style={{ background: "rgba(255,255,255,0.035)", borderColor: requestAttempted && !requestAgreementAccepted ? "rgba(248,113,113,0.68)" : requestAgreementAccepted ? "rgba(201,165,90,0.34)" : "rgba(255,255,255,0.10)" }}>
+          <input
+            type="checkbox"
+            checked={requestAgreementAccepted}
+            onChange={(e) => setRequestAgreementAccepted(e.target.checked)}
+            className="mt-0.5 h-4 w-4 flex-shrink-0 accent-[#c9a55a]"
+          />
+          <span className="text-xs leading-relaxed text-white/52">
+            I understand the private beta terms above. My feedback may be used to improve RTHMIC.
+          </span>
+        </label>
+        {requestAttempted && !requestAgreementAccepted && <span className="px-1 text-xs text-red-300">Accept the private beta terms before requesting access.</span>}
         <p className="rounded-2xl border px-4 py-3 text-[11px] leading-relaxed text-white/55" style={{ background: "rgba(255,255,255,0.035)", borderColor: "rgba(201,165,90,0.18)" }}>
           If approved, your access code will be emailed to you. Please check your spam or junk folder.
         </p>
@@ -306,21 +374,16 @@ function LoginForm() {
         )}
         <button
           type="submit"
-          disabled={requestingAccess || !firstName.trim() || !email || !betaAgreementAccepted}
+          disabled={requestingAccess}
           className="
             w-full border border-white/10 text-white/55 font-medium text-sm tracking-wide
             rounded-xl py-4
-            disabled:opacity-30 transition-all duration-200
-            active:scale-[0.98] bg-white/[0.03]
+            disabled:opacity-50 transition-all duration-200
+            active:scale-[0.98] bg-white/[0.07]
           "
         >
           {requestingAccess ? "…" : "Request access"}
         </button>
-        {!betaAgreementAccepted && email && (
-          <p className="text-[11px] text-white/30 text-center leading-relaxed">
-            Please accept the private beta agreement above before requesting access.
-          </p>
-        )}
       </form>
       </div>
     </main>

@@ -58,6 +58,9 @@ export async function POST(request: NextRequest) {
   const cleanReferralSource = typeof referralSource === "string"
     ? referralSource.trim().replace(/\s+/g, " ").slice(0, 240)
     : "";
+  if (!cleanReferralSource) {
+    return NextResponse.json({ error: "Please tell us where you found RTHMIC" }, { status: 400 });
+  }
   if (!email || typeof email !== "string") {
     return NextResponse.json({ error: "Email required" }, { status: 400 });
   }
