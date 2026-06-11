@@ -71,9 +71,10 @@ export async function POST(request: NextRequest) {
   const uid = requireAuth(request);
   if (!uid) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = await request.json() as { action?: string; task?: string };
+  const body = await request.json() as { action?: string; task?: string; pausedTask?: string };
   const action = body.action;
   const task = cleanTask(body.task);
+  const pausedTask = cleanTask(body.pausedTask);
   if (!REDIS_AVAILABLE) return NextResponse.json({ state: EMPTY_STATE, message: "Attention Stack storage is unavailable." });
 
   try {
@@ -85,16 +86,18 @@ export async function POST(request: NextRequest) {
       if (action === "set") {
         if (!task) throw new Error("task required");
         state.current = newEntry(task);
-        message = `Got it. You are working on ${task}.`;
+      } else if (action === "transition") {
+        if (!pausedTask || !task) throw new Error("task required");
+        const pausedEntry = newEntry(pausedTask);
+        state.stack.push({ ...pausedEntry, pausedFor: task, pausedAt: Date.now() });
+        state.current = newEntry(task);
       } else if (action === "pause") {
         if (!task) throw new Error("task required");
         if (!state.current) {
           state.current = newEntry(task);
-          message = `I did not have a previous task saved, so I have set your current focus to ${task}.`;
         } else {
           state.stack.push({ ...state.current, pausedFor: task, pausedAt: Date.now() });
           state.current = newEntry(task);
-          message = `Paused. You were working on ${state.stack[state.stack.length - 1].task}.`;
         }
       } else if (action === "resume") {
         if (state.current) state.completed.unshift({ ...state.current, pausedAt: Date.now() });
@@ -128,4 +131,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: message }, { status: message === "Task required" ? 400 : 500 });
   }
 }
-

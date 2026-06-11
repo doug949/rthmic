@@ -21,19 +21,44 @@ type VoiceState = "idle" | "recording" | "transcribing" | "saving";
 
 const EMPTY_STATE: AttentionState = { current: null, stack: [], completed: [] };
 
-function interpretCommand(transcript: string, hasCurrent: boolean): { action: "set" | "pause" | "resume" | "status"; task?: string } {
+type AttentionCommand = {
+  action: "set" | "pause" | "transition" | "resume" | "status";
+  task?: string;
+  pausedTask?: string;
+};
+
+function cleanSpokenTask(value: string): string {
+  return value
+    .trim()
+    .replace(/^[,;:\s]+|[,;:.!?\s]+$/g, "")
+    .replace(/^(?:okay|ok|right|so|well|basically|actually)[,\s]+/i, "")
+    .replace(/^(?:working on|doing|the task of|trying to|needing to)\s+/i, "")
+    .replace(/\s+(?:right now|at the moment)$/i, "")
+    .replace(/\s+/g, " ");
+}
+
+function interpretCommand(transcript: string, hasCurrent: boolean): AttentionCommand {
   const text = transcript.trim().replace(/[.!?]+$/, "");
   const lower = text.toLowerCase();
   if (/\b(where was i|what was i doing|done|finished|that'?s done|all done)\b/.test(lower)) return { action: "resume" };
   if (/\b(what am i doing|what'?s my current|current task|where am i)\b/.test(lower)) return { action: "status" };
 
+  const transitionMatch = text.match(/^(?:okay[, ]*)?(?:i(?:'m| am) )?pausing\s+(.+?)\s+(?:and|then)\s+moving\s+(?:on\s+)?to\s+(.+)$/i);
+  if (transitionMatch?.[1] && transitionMatch[2]) {
+    return {
+      action: "transition",
+      pausedTask: cleanSpokenTask(transitionMatch[1]),
+      task: cleanSpokenTask(transitionMatch[2]),
+    };
+  }
+
   const pauseMatch = text.match(/^(?:okay[, ]*)?(?:i(?:'m| am) )?paus(?:e|ing)(?: this| that| what i(?:'m| am) doing)?(?: for| to do| because of)?\s+(.+)$/i);
-  if (pauseMatch?.[1]) return { action: "pause", task: pauseMatch[1].trim() };
+  if (pauseMatch?.[1]) return { action: "pause", task: cleanSpokenTask(pauseMatch[1]) };
 
   const setMatch = text.match(/^(?:i(?:'m| am) )?(?:working on|doing|starting|focusing on|focus on)\s+(.+)$/i);
-  if (setMatch?.[1]) return { action: "set", task: setMatch[1].trim() };
+  if (setMatch?.[1]) return { action: "set", task: cleanSpokenTask(setMatch[1]) };
 
-  return { action: hasCurrent ? "pause" : "set", task: text };
+  return { action: hasCurrent ? "pause" : "set", task: cleanSpokenTask(text) };
 }
 
 export default function AttentionStackPage() {
@@ -56,19 +81,19 @@ export default function AttentionStackPage() {
     window.speechSynthesis.speak(utterance);
   }, []);
 
-  const runAction = useCallback(async (action: string, task?: string, speakResult = true) => {
+  const runAction = useCallback(async (action: string, task?: string, speakResult = true, pausedTask?: string) => {
     setError("");
     setVoiceState("saving");
     try {
       const response = await fetch("/api/attention-stack", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, task }),
+        body: JSON.stringify({ action, task, pausedTask }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Could not update attention stack");
       setState(data.state ?? EMPTY_STATE);
-      setMessage(data.message ?? "Saved");
+      setMessage(data.message ?? "");
       if (speakResult) speak(data.message ?? "");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not update attention stack");
@@ -99,9 +124,8 @@ export default function AttentionStackPage() {
       if (!response.ok) throw new Error(data.error ?? "Could not transcribe");
       const transcript = typeof data.transcript === "string" ? data.transcript.trim() : "";
       if (!transcript) throw new Error("I did not hear anything");
-      setMessage(`Heard: “${transcript}”`);
       const command = interpretCommand(transcript, !!state.current);
-      await runAction(command.action, command.task);
+      await runAction(command.action, command.task, command.action === "resume" || command.action === "status", command.pausedTask);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not process recording");
       setVoiceState("idle");
@@ -177,8 +201,8 @@ export default function AttentionStackPage() {
           style={{ borderColor: voiceState === "recording" ? "rgba(248,113,113,0.6)" : "rgba(235,110,145,0.28)", background: voiceState === "recording" ? "rgba(248,113,113,0.1)" : "rgba(255,255,255,0.025)" }}
         >
           <span className="flex h-14 w-14 items-center justify-center rounded-full border text-rose-300" style={{ borderColor: "rgba(235,110,145,0.42)", background: "rgba(235,110,145,0.12)" }}><MicIcon recording={voiceState === "recording"} /></span>
-          <span className="mt-3 text-base font-medium text-white/78">{voiceState === "recording" ? "Listening - tap when done" : voiceState === "transcribing" ? "Understanding..." : voiceState === "saving" ? "Remembering..." : "Speak to your attention stack"}</span>
-          {voiceState === "idle" && <span className="mt-1 text-xs text-white/38">“Pausing this for…” or “Done, where was I?”</span>}
+          <span className="mt-3 text-base font-medium text-white/78">{voiceState === "recording" ? "Listening - tap when done" : voiceState === "transcribing" || voiceState === "saving" ? "Saving..." : "Speak to your attention stack"}</span>
+          {voiceState === "idle" && <span className="mt-1 text-xs text-white/38">“I am pausing X and moving to Y” or “Done, where was I?”</span>}
         </button>
 
         {message && <p className="rounded-2xl border border-white/8 bg-white/[0.025] px-4 py-3 text-sm leading-relaxed text-white/58">{message}</p>}
