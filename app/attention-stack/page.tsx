@@ -237,10 +237,10 @@ export default function AttentionStackPage() {
           </section>
         )}
 
-        {(state.current || state.stack.length > 0) && (confirmClear ? (
+        {state.stack.length > 0 && (confirmClear ? (
           <div className="rounded-2xl border border-red-400/20 bg-red-400/[0.05] p-4">
-            <p className="text-sm font-medium text-red-200/85">Clear the entire attention stack?</p>
-            <p className="mt-1 text-xs text-white/38">This removes the current focus and every saved level.</p>
+            <p className="text-sm font-medium text-red-200/85">Clear the saved attention stack?</p>
+            <p className="mt-1 text-xs text-white/38">Your current focus will stay in place.</p>
             <div className="mt-4 grid grid-cols-2 gap-3">
               <button type="button" onClick={() => setConfirmClear(false)} className="rounded-xl border border-white/10 px-4 py-3 text-sm text-white/62">Cancel</button>
               <button type="button" onClick={() => { setConfirmClear(false); runAction("clear"); }} className="flex items-center justify-center gap-2 rounded-xl border border-red-400/35 bg-red-400/15 px-4 py-3 text-sm font-medium text-red-200"><TrashIcon /> Clear stack</button>
@@ -251,6 +251,11 @@ export default function AttentionStackPage() {
             <TrashIcon /> Clear the stack
           </button>
         ))}
+        {state.current && state.stack.length === 0 && (
+          <p className="flex items-center gap-2 self-start px-2 py-2 text-xs text-white/28">
+            <CheckIcon /> Nothing to clear
+          </p>
+        )}
       </div>
     </main>
   );
@@ -275,4 +280,8 @@ function ArrowIcon({ direction }: { direction: "up" | "down" }) {
 
 function TrashIcon() {
   return <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13M10 11v5m4-5v5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
+
+function CheckIcon() {
+  return <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 12 4 4 10-10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }

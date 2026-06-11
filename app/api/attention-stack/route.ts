@@ -35,9 +35,15 @@ function readState(raw: string | null): AttentionState {
   if (!raw) return { ...EMPTY_STATE, stack: [], completed: [] };
   try {
     const parsed = JSON.parse(raw) as Partial<AttentionState>;
+    const current = parsed.current ?? null;
+    const stack = Array.isArray(parsed.stack) ? parsed.stack.slice(-30) : [];
+    const last = stack.at(-1);
+    if (current && last && (last.id === current.id || cleanTask(last.task).toLowerCase() === cleanTask(current.task).toLowerCase())) {
+      stack.pop();
+    }
     return {
-      current: parsed.current ?? null,
-      stack: Array.isArray(parsed.stack) ? parsed.stack.slice(-30) : [],
+      current,
+      stack,
       completed: Array.isArray(parsed.completed) ? parsed.completed.slice(0, 50) : [],
     };
   } catch {
@@ -107,9 +113,8 @@ export async function POST(request: NextRequest) {
           ? `You were working on ${state.current.task}.`
           : "That was the last saved task. Your attention stack is clear.";
       } else if (action === "clear") {
-        state.current = null;
         state.stack = [];
-        message = "Attention stack cleared.";
+        message = "Saved attention stack cleared.";
       } else if (action === "delete") {
         const index = state.stack.findIndex(entry => entry.id === body.entryId);
         if (index < 0) throw new Error("entry required");
