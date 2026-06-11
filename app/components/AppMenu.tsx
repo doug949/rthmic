@@ -25,6 +25,7 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
   const [confirmClearAudio, setConfirmClearAudio] = useState(false);
   const [clearingQueue, setClearingQueue] = useState(false);
   const [queueCleared, setQueueCleared] = useState<number | null>(null);
+  const [replayingOnboarding, setReplayingOnboarding] = useState(false);
 
   useEffect(() => {
     const match = document.cookie.match(/(?:^|;\s*)rthmic_code=([^;]+)/);
@@ -109,6 +110,18 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
     router.push("/login");
   };
 
+  const handleReplayOnboarding = async () => {
+    setReplayingOnboarding(true);
+    try {
+      const response = await fetch("/api/admin/replay-onboarding", { method: "POST" });
+      if (!response.ok) throw new Error("Could not start onboarding");
+      onClose();
+      window.location.assign("/understand?welcome=1");
+    } catch {
+      setReplayingOnboarding(false);
+    }
+  };
+
   return createPortal(
     <>
       <div
@@ -173,6 +186,13 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
               <MenuRow icon="≡" title="Generation Log" detail="Timing and status for every Rthm" onClick={() => go("/library/log")} />
               <MenuRow icon="✎" title="Codex Notes" detail="Review quick notes captured in the app" onClick={() => go("/codex-notes")} />
               <MenuRow icon="⌁" title="Diagnostics" detail="Inspect reloads, routes, cache, and service worker state" onClick={() => go("/diagnostics")} />
+              <MenuRow
+                icon="◎"
+                title={replayingOnboarding ? "Preparing first-time experience…" : "Replay First-Time Experience"}
+                detail="Run the complete new-user introduction and first Rthm sequence"
+                onClick={handleReplayOnboarding}
+                disabled={replayingOnboarding}
+              />
             </>
           )}
           <MenuRow icon="↺" title={refreshing ? "Refreshing…" : "Refresh App Cache"} detail="Updates app files, keeps permissions and offline audio" onClick={handleRefresh} disabled={refreshing} />
