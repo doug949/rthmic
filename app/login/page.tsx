@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
 const LOGIN_VIDEO_SRC = "/login-vinyl.mp4";
 
 function LoginForm() {
+  const [openPanel, setOpenPanel] = useState<"login" | "request" | null>(null);
   const [videoReady, setVideoReady] = useState(false);
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -26,6 +27,14 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const from = searchParams.get("from") || "/";
+
+  useEffect(() => {
+    if (openPanel === "login") inputRef.current?.focus();
+  }, [openPanel]);
+
+  function togglePanel(panel: "login" | "request") {
+    setOpenPanel((current) => current === panel ? (panel === "login" ? "request" : "login") : panel);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -179,7 +188,7 @@ function LoginForm() {
 
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm flex flex-col gap-4 rounded-3xl p-5"
+        className="w-full max-w-sm rounded-3xl overflow-hidden"
         style={{
           background: "rgba(8,14,26,0.78)",
           border: "1px solid rgba(255,255,255,0.22)",
@@ -187,13 +196,38 @@ function LoginForm() {
           backdropFilter: "blur(18px)",
         }}
       >
-        <div className="flex items-start gap-3 px-1 pb-1">
+        <button
+          type="button"
+          onClick={() => togglePanel("login")}
+          aria-expanded={openPanel === "login"}
+          aria-controls="login-code-panel"
+          className="flex w-full items-center gap-3 px-5 py-5 text-left touch-manipulation"
+        >
           <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border border-[#c9a55a]/35 text-xs font-semibold text-[#c9a55a]">1</span>
-          <div>
-            <h2 className="text-base font-semibold text-white">I already have an access code</h2>
-            <p className="mt-1 text-xs leading-relaxed text-white/42">Enter your code below to open RTHMIC.</p>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base font-semibold text-white">I have a code</h2>
+            <p className="mt-1 text-xs leading-relaxed text-white/42">Enter your access code to open RTHMIC.</p>
           </div>
-        </div>
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 18 18"
+            fill="none"
+            aria-hidden="true"
+            className={`flex-shrink-0 text-white/45 transition-transform duration-200 ${openPanel === "login" ? "rotate-180" : ""}`}
+          >
+            <path d="M4 7L9 12L14 7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+        <div
+          id="login-code-panel"
+          aria-hidden={openPanel !== "login"}
+          inert={openPanel !== "login"}
+          className="grid transition-[grid-template-rows] duration-300 ease-out"
+          style={{ gridTemplateRows: openPanel === "login" ? "1fr" : "0fr" }}
+        >
+          <div className="overflow-hidden">
+            <div className="flex flex-col gap-4 px-5 pb-5">
         <label className="flex flex-col gap-2">
           <span
             className="text-[11px] uppercase tracking-[0.24em] px-1"
@@ -207,7 +241,6 @@ function LoginForm() {
             value={password}
             onChange={(e) => { setPassword(e.target.value); setError(false); }}
             placeholder="Type code here"
-            autoFocus
             autoComplete="off"
             autoCorrect="off"
             autoCapitalize="none"
@@ -258,18 +291,15 @@ function LoginForm() {
         >
           {loading ? "…" : "Enter RTHMIC"}
         </button>
+            </div>
+          </div>
+        </div>
       </form>
-
-      <div className="my-6 flex w-full max-w-sm items-center gap-3" aria-hidden="true">
-        <span className="h-px flex-1 bg-white/12" />
-        <span className="text-[10px] uppercase tracking-[0.24em] text-white/35">or</span>
-        <span className="h-px flex-1 bg-white/12" />
-      </div>
 
       <form
         onSubmit={requestAccess}
         noValidate
-        className="w-full max-w-sm flex flex-col gap-3 rounded-3xl p-5"
+        className="mt-4 w-full max-w-sm rounded-3xl overflow-hidden"
         style={{
           background: "rgba(8,14,26,0.72)",
           border: "1px solid rgba(255,255,255,0.14)",
@@ -277,13 +307,38 @@ function LoginForm() {
           backdropFilter: "blur(16px)",
         }}
       >
-        <div className="flex items-start gap-3 px-1 pb-2">
+        <button
+          type="button"
+          onClick={() => togglePanel("request")}
+          aria-expanded={openPanel === "request"}
+          aria-controls="request-code-panel"
+          className="flex w-full items-center gap-3 px-5 py-5 text-left touch-manipulation"
+        >
           <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border border-[#78d2d2]/35 text-xs font-semibold text-[#78d2d2]">2</span>
-          <div>
-            <h2 className="text-base font-semibold text-white">I need to request an access code</h2>
-            <p className="mt-1 text-xs leading-relaxed text-white/42">Complete every field below. If approved, your personal code will be emailed to you.</p>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base font-semibold text-white">Request a code</h2>
+            <p className="mt-1 text-xs leading-relaxed text-white/42">Request personal access to the private beta.</p>
           </div>
-        </div>
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 18 18"
+            fill="none"
+            aria-hidden="true"
+            className={`flex-shrink-0 text-white/45 transition-transform duration-200 ${openPanel === "request" ? "rotate-180" : ""}`}
+          >
+            <path d="M4 7L9 12L14 7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+        <div
+          id="request-code-panel"
+          aria-hidden={openPanel !== "request"}
+          inert={openPanel !== "request"}
+          className="grid transition-[grid-template-rows] duration-300 ease-out"
+          style={{ gridTemplateRows: openPanel === "request" ? "1fr" : "0fr" }}
+        >
+          <div className="overflow-hidden">
+            <div className="flex flex-col gap-3 px-5 pb-5">
         <label className="flex flex-col gap-2">
           <span className="flex justify-between px-1 text-[10px] uppercase tracking-[0.24em] text-white/48"><span>First name</span><span className="tracking-normal text-white/28">Required</span></span>
           <input
@@ -384,6 +439,9 @@ function LoginForm() {
         >
           {requestingAccess ? "…" : "Request access"}
         </button>
+            </div>
+          </div>
+        </div>
       </form>
       </div>
     </main>
