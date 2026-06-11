@@ -55,7 +55,7 @@ function LoginForm() {
 
     if (res.ok) {
       const data = await res.json() as { firstLogin?: boolean; onboardingRequired?: boolean };
-      router.replace(data.onboardingRequired ? "/understand?welcome=1" : from);
+      router.replace(data.onboardingRequired ? "/settings?setup=1" : from);
       router.refresh();
     } else {
       setError(true);

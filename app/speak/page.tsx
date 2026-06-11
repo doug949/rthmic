@@ -2472,6 +2472,7 @@ function GenreView({
   const [loading, setLoading]             = useState(true);
   const [recommendedIndex, setRecommendedIndex] = useState<number | null>(null);
   const [loadingRec, setLoadingRec]       = useState(false);
+  const [preferenceCategory, setPreferenceCategory] = useState<string | null>(null);
   // selectedIndex indexes into the combined list: [...builtInGenres, ...userGenres]
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
@@ -2502,9 +2503,11 @@ function GenreView({
   };
 
   useEffect(() => {
-    fetch("/api/genres")
-      .then((r) => r.json())
-      .then((d) => {
+    Promise.all([
+      fetch("/api/genres").then((r) => r.json()),
+      fetch("/api/settings").then((r) => r.json()).catch(() => ({})),
+    ])
+      .then(([d, settings]) => {
         const bIn: string[] = Array.isArray(d.builtIn) ? d.builtIn.map(titleCaseStyle) : [];
         const usr: string[] = Array.isArray(d.user)    ? d.user.map(titleCaseStyle)    : [];
         setBuiltInGenres(bIn);
@@ -2522,6 +2525,7 @@ function GenreView({
             stateSummary: understandResult.stateSummary,
             style: understandResult.style,
             genres: allGenres,
+            stylePreferences: settings.stylePreferences,
           }),
         })
           .then((r) => r.json())
@@ -2530,6 +2534,7 @@ function GenreView({
               setRecommendedIndex(rd.recommendedIndex);
               setSelectedIndex(rd.recommendedIndex);
             }
+            if (typeof rd.preferenceCategory === "string") setPreferenceCategory(rd.preferenceCategory);
           })
           .catch(() => { setRecommendedIndex(0); setSelectedIndex(0); })
           .finally(() => setLoadingRec(false));
@@ -2597,7 +2602,7 @@ function GenreView({
           {loadingRec
             ? "Finding a match for your state…"
             : recommendedIndex !== null
-              ? "Suggested from what you said. You can override it."
+              ? `Suggested from what you said${preferenceCategory ? ` and your ${preferenceCategory} preferences` : ""}. You can override it.`
             : "Choose from your saved Rthmic Styles, or speak a new artist, era, genre, mood, or reference."}
         </p>
       </RevealBlock>

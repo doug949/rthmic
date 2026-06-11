@@ -6,6 +6,7 @@ import { transitionTo } from "@/app/lib/pageTransition";
 import { AppHeader } from "@/app/components/AppHeader";
 import { EQIcon } from "@/app/components/HomeTileIcons";
 import { titleCaseStyle, toTitleCase } from "@/app/lib/styleText";
+import { emptyStylePreferences, type StylePreferences } from "@/app/types/stylePreferences";
 
 // ─── Purple palette ────────────────────────────────────────────────────────────
 const PURPLE = {
@@ -18,10 +19,30 @@ const PURPLE = {
 
 // ─── Styles slots ──────────────────────────────────────────────────────────────
 const SLOTS = [
-  { label: "Power",  color: "235,120,108", question: "What music makes you feel powerful and inspired?",     hint: "Tracks that make you feel unstoppable — before a big moment, a workout, a challenge." },
-  { label: "Focus",  color: "70,205,235", question: "What music puts you in a deep focus state?",            hint: "The music you reach for when you need to think clearly and work without distraction." },
-  { label: "Energy", color: "116,225,128", question: "What music instantly lifts your energy or mood?",       hint: "Tracks that shift your state the moment they come on — pure joy or momentum." },
-  { label: "Safety", color: "176,136,255", question: "What music makes you feel safe, held, and at home?", hint: "The artists that feel like home. The ones you've returned to across years of your life." },
+  { id: "power" as const, label: "Power", color: "235,120,108", question: "What music makes you feel powerful and inspired?", hint: "Choose as many as fit. These guide RTHMIC before a big moment, workout, or challenge.", suggestions: [
+    { label: "70s arena rock", examples: "Queen - We Will Rock You; Led Zeppelin - Immigrant Song" },
+    { label: "Modern musical theatre", examples: "Hamilton - My Shot; The Greatest Showman - This Is Me" },
+    { label: "90s hip-hop confidence", examples: "The Notorious B.I.G. - Juicy; Salt-N-Pepa - None of Your Business" },
+    { label: "80s synth anthem", examples: "Bonnie Tyler - Holding Out for a Hero; Survivor - Eye of the Tiger" },
+  ] },
+  { id: "focus" as const, label: "Focus", color: "70,205,235", question: "What music puts you in a deep focus state?", hint: "Select the sounds that help you think clearly and work without distraction.", suggestions: [
+    { label: "Minimal electronic", examples: "Jon Hopkins - Abandon Window; Nils Frahm - Says" },
+    { label: "Baroque focus", examples: "J.S. Bach - Goldberg Variations; Vivaldi - Winter" },
+    { label: "Ambient techno", examples: "Brian Eno - An Ending (Ascent); Aphex Twin - Xtal" },
+    { label: "Lo-fi jazz", examples: "Nujabes - Aruarian Dance; BADBADNOTGOOD - Time Moves Slow" },
+  ] },
+  { id: "energy" as const, label: "Energy", color: "116,225,128", question: "What music instantly lifts your energy or mood?", hint: "Pick every style that reliably creates joy, movement, or momentum.", suggestions: [
+    { label: "70s disco", examples: "Bee Gees - You Should Be Dancing; Earth, Wind & Fire - September" },
+    { label: "60s funk and soul", examples: "James Brown - I Got You (I Feel Good); Sly & The Family Stone - Dance to the Music" },
+    { label: "00s dance-pop", examples: "Kylie Minogue - Love at First Sight; Daft Punk - One More Time" },
+    { label: "Modern Afrobeats", examples: "Burna Boy - Last Last; Rema - Calm Down" },
+  ] },
+  { id: "safety" as const, label: "Safety", color: "176,136,255", question: "What music makes you feel safe, held, and at home?", hint: "Choose the sounds you return to when you need steadiness, warmth, or reassurance.", suggestions: [
+    { label: "70s singer-songwriter", examples: "Carole King - You've Got a Friend; James Taylor - Fire and Rain" },
+    { label: "90s acoustic warmth", examples: "Tracy Chapman - The Promise; Eva Cassidy - Songbird" },
+    { label: "Classic soul comfort", examples: "Bill Withers - Lean on Me; Otis Redding - These Arms of Mine" },
+    { label: "Ambient piano", examples: "Max Richter - Written on the Sky; Olafur Arnalds - Saman" },
+  ] },
 ];
 
 interface SlotState {
@@ -31,11 +52,13 @@ interface SlotState {
   interpreting: boolean;
   suggestedArtists: string[];
   selectedArtists: string[];
+  selections: string[];
+  overrideStyle: string;
 }
 
 const emptySlot = (): SlotState => ({
   transcript: "", style: "", committed: false, interpreting: false,
-  suggestedArtists: [], selectedArtists: [],
+  suggestedArtists: [], selectedArtists: [], selections: [], overrideStyle: "",
 });
 
 interface CurrentStyle {
@@ -50,6 +73,7 @@ interface UserProfile {
   name: string;
   vocalist: "none" | "male" | "female";
   adhdMode: boolean;
+  stylePreferences: StylePreferences;
   access?: {
     role?: "admin" | "beta";
     isAdmin?: boolean;
@@ -78,7 +102,7 @@ export default function SettingsPage() {
   const router = useRouter();
 
   // ── Profile state ────────────────────────────────────────────────────────────
-  const [profile, setProfile] = useState<UserProfile>({ name: "", vocalist: "none", adhdMode: false, access: { role: "beta", isAdmin: false } });
+  const [profile, setProfile] = useState<UserProfile>({ name: "", vocalist: "none", adhdMode: false, stylePreferences: emptyStylePreferences(), access: { role: "beta", isAdmin: false } });
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -91,7 +115,8 @@ export default function SettingsPage() {
   const [saveError, setSaveError] = useState("");
   const [interpretError, setInterpretError] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [stylesExpanded, setStylesExpanded] = useState(true);
+  const [stylesExpanded, setStylesExpanded] = useState(false);
+  const [setupMode] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("setup") === "1");
   const [voicePhase, setVoicePhase] = useState<VoicePhase>("idle");
   const [voiceError, setVoiceError] = useState("");
   const slotsRef = useRef(slots);
@@ -112,12 +137,12 @@ export default function SettingsPage() {
       fetch("/api/settings").then(r => r.json()).catch(() => null),
       fetch("/api/genres").then(r => r.json()).catch(() => null),
     ]).then(([prof, gen]) => {
-      if (prof) setProfile({ name: prof.name ?? "", vocalist: prof.vocalist ?? "none", adhdMode: !!prof.adhdMode, access: prof.access ?? { role: "beta", isAdmin: false } });
-      if (gen?.genres) {
-        setSlots(prev => prev.map((s, i) => ({
-          ...s, style: gen.genres[i] ? titleCaseStyle(gen.genres[i]) : "", committed: !!(gen.genres[i]),
-        })));
-      }
+      const preferences: StylePreferences = prof?.stylePreferences ?? emptyStylePreferences();
+      if (prof) setProfile({ name: prof.name ?? "", vocalist: prof.vocalist ?? "none", adhdMode: !!prof.adhdMode, stylePreferences: preferences, access: prof.access ?? { role: "beta", isAdmin: false } });
+      setSlots(prev => prev.map((s, i) => {
+        const pref = preferences[SLOTS[i].id];
+        return { ...s, style: pref.customDescription, transcript: pref.customDescription, selections: pref.selections, overrideStyle: pref.overrideStyle, committed: !!(pref.customDescription || pref.selections.length || pref.overrideStyle) };
+      }));
       const builtIn = Array.isArray(gen?.builtIn) ? gen.builtIn : [];
       const user = Array.isArray(gen?.user) ? gen.user : [];
       const fallback = !builtIn.length && !user.length && Array.isArray(gen?.genres) ? gen.genres : [];
@@ -151,9 +176,36 @@ export default function SettingsPage() {
     setProfile(prev => { const next = { ...prev, ...patch }; saveProfile(next); return next; });
   };
 
+  const saveSlots = useCallback((nextSlots: SlotState[]) => {
+    const stylePreferences = emptyStylePreferences();
+    nextSlots.forEach((item, index) => {
+      stylePreferences[SLOTS[index].id] = {
+        selections: item.selections,
+        customDescription: item.style.trim(),
+        overrideStyle: item.overrideStyle,
+      };
+    });
+    setProfile(prev => {
+      const next = { ...prev, stylePreferences };
+      saveProfile(next);
+      return next;
+    });
+  }, [saveProfile]);
+
   // ── Slot helpers ─────────────────────────────────────────────────────────────
-  const updateSlot = (i: number, patch: Partial<SlotState>) =>
-    setSlots(prev => prev.map((s, j) => j === i ? { ...s, ...patch } : s));
+  const updateSlot = (i: number, patch: Partial<SlotState>, save = false) =>
+    setSlots(prev => {
+      const next = prev.map((s, j) => j === i ? { ...s, ...patch } : s);
+      if (save) saveSlots(next);
+      return next;
+    });
+
+  const toggleSuggestion = (i: number, suggestion: string) => {
+    const selected = slots[i].selections.includes(suggestion)
+      ? slots[i].selections.filter(item => item !== suggestion)
+      : [...slots[i].selections, suggestion];
+    updateSlot(i, { selections: selected, committed: true }, true);
+  };
 
   const toggleArtist = (i: number, artist: string) => {
     const next = slots[i].selectedArtists.includes(artist)
@@ -212,15 +264,13 @@ export default function SettingsPage() {
   }, []);
 
   // ── Auto-save style ──────────────────────────────────────────────────────────
-  const autoSaveStyle = useCallback(async (slotIndex: number, formattedStyle: string) => {
-    setSaveError("");
-    try {
-      const styles = slotsRef.current.map((sl, j) => j === slotIndex ? formattedStyle : sl.style.trim());
-      const res = await fetch("/api/genres", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ genres: styles }) });
-      if (res.ok) setSlots(prev => prev.map((s, j) => j === slotIndex ? { ...s, committed: true } : s));
-      else setSaveError("Could not save — please try again.");
-    } catch { setSaveError("Could not save — please try again."); }
-  }, []);
+  const saveSpokenStyle = useCallback((slotIndex: number, formattedStyle: string) => {
+    setSlots(prev => {
+      const next = prev.map((item, index) => index === slotIndex ? { ...item, style: formattedStyle, committed: true } : item);
+      saveSlots(next);
+      return next;
+    });
+  }, [saveSlots]);
 
   // ── Voice recording ──────────────────────────────────────────────────────────
   const stopVoiceRecording = useCallback(() => {
@@ -264,7 +314,7 @@ export default function SettingsPage() {
             const { style, artists } = await ires.json();
             const formattedStyle = titleCaseStyle(typeof style === "string" ? style : Array.isArray(style) ? style.join(", ") : "");
             updateSlot(slotIndex, { style: formattedStyle, interpreting: false, suggestedArtists: artists ?? [], selectedArtists: [] });
-            autoSaveStyle(slotIndex, formattedStyle);
+            saveSpokenStyle(slotIndex, formattedStyle);
           } else { updateSlot(slotIndex, { interpreting: false }); setInterpretError("Couldn't refine — please try again."); }
         } catch { updateSlot(slotIndex, { interpreting: false }); setInterpretError("Something went wrong — please try again."); }
         setVoicePhase("idle");
@@ -275,7 +325,7 @@ export default function SettingsPage() {
       const raw = e instanceof Error ? e.message : String(e);
       setVoiceError(/denied|not allowed/i.test(raw) ? "Microphone access denied — please allow it and try again." : "Could not start recording — please try again.");
     }
-  }, [cleanupWebAudio, startAudioVisualization, autoSaveStyle]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cleanupWebAudio, startAudioVisualization, saveSpokenStyle]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleVoiceTap = () => {
     if (voicePhase === "recording") stopVoiceRecording();
@@ -291,7 +341,7 @@ export default function SettingsPage() {
         const { style, artists } = await res.json();
         const formattedStyle = titleCaseStyle(typeof style === "string" ? style : Array.isArray(style) ? style.join(", ") : "");
         updateSlot(i, { style: formattedStyle, interpreting: false, suggestedArtists: artists ?? [], selectedArtists: [] });
-        autoSaveStyle(i, formattedStyle);
+        saveSpokenStyle(i, formattedStyle);
       } else { updateSlot(i, { interpreting: false }); setInterpretError("Couldn't refine — please try again."); }
     } catch { updateSlot(i, { interpreting: false }); setInterpretError("Refinement failed — please try again."); }
   };
@@ -310,6 +360,7 @@ export default function SettingsPage() {
   const s = slots[currentSlot];
   const activeAccent = slot.color;
   const hasStyle = s.style.trim().length > 0;
+  const hasPreference = hasStyle || s.selections.length > 0 || !!s.overrideStyle;
   const isBusy = voicePhase !== "idle" || s.interpreting;
 
   return (
@@ -317,12 +368,12 @@ export default function SettingsPage() {
       className="relative z-10 min-h-screen flex flex-col px-6"
       style={{ paddingTop: "env(safe-area-inset-top, 0px)", animation: "page-enter 380ms ease forwards" }}
     >
-      <AppHeader title="Settings and Styles" titleIcon={<EQIcon />} onBack={() => transitionTo("/", router)} />
+      <AppHeader title={setupMode ? "Choose Your Styles" : "Settings and Styles"} titleIcon={<EQIcon />} onBack={setupMode ? undefined : () => transitionTo("/", router)} />
 
       <div className="flex-1 flex flex-col pb-10 gap-8 overflow-y-auto">
 
         {/* ── Profile ────────────────────────────────────────────────────────── */}
-        <section>
+        {!setupMode && <section>
           <div className="flex items-center gap-2 mb-4">
             <span style={{ color: PURPLE.dim }}><ProfileIcon /></span>
             <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: PURPLE.dim }}>Your Profile</p>
@@ -397,7 +448,7 @@ export default function SettingsPage() {
             </button>
           </div>
 
-        </section>
+        </section>}
 
         {/* ── Rthmic Styles ─────────────────────────────────────────────────── */}
         <section
@@ -424,8 +475,8 @@ export default function SettingsPage() {
           {currentStyles.length > 0 && (
             <div className="rounded-2xl border overflow-hidden mb-5" style={{ borderColor: "rgba(70,205,235,0.16)", background: "rgba(70,205,235,0.035)" }}>
               <div className="px-5 py-3.5 border-b border-white/[0.06]">
-                <p className="text-sm font-medium" style={{ color: "rgba(70,205,235,0.9)" }}>Saved and Built-In Styles</p>
-                <p className="text-xs mt-0.5 text-white/38">These are the styles available when creating a Rthm.</p>
+                <p className="text-sm font-medium" style={{ color: "rgba(70,205,235,0.9)" }}>Styles available as category overrides</p>
+                <p className="text-xs mt-0.5 text-white/38">Nominate one below to override a category&apos;s detailed preferences.</p>
               </div>
               {currentStyles.map((style, i) => (
                 <div
@@ -444,6 +495,14 @@ export default function SettingsPage() {
               ))}
             </div>
           )}
+            </div>
+          )}
+        </section>
+
+        <section
+          className="rounded-3xl border px-5 pb-5"
+          style={{ borderColor: "rgba(70,205,235,0.22)", background: "rgba(70,205,235,0.035)" }}
+        >
 
           {/* Slot tabs */}
           <div className="mt-4 pt-5 mb-5 border-t" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
@@ -478,6 +537,46 @@ export default function SettingsPage() {
               {slot.question}
             </h2>
             <p className="text-sm text-white/40 mt-1.5 leading-relaxed">{slot.hint}</p>
+          </div>
+
+          <div className="mb-5">
+            <p className="text-[10px] text-white/45 uppercase tracking-widest mb-3">Selectable suggestions</p>
+            <div className="grid gap-2">
+              {slot.suggestions.map((suggestion) => {
+                const selected = s.selections.includes(suggestion.label);
+                return (
+                  <button
+                    key={suggestion.label}
+                    type="button"
+                    onClick={() => toggleSuggestion(currentSlot, suggestion.label)}
+                    className="rounded-2xl border px-4 py-3 text-left transition-all touch-manipulation active:scale-[0.98]"
+                    style={selected
+                      ? { background: `rgba(${activeAccent},0.12)`, borderColor: `rgba(${activeAccent},0.48)` }
+                      : { background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.08)" }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border text-[11px]" style={{ borderColor: selected ? `rgba(${activeAccent},0.65)` : "rgba(255,255,255,0.18)", color: `rgb(${activeAccent})` }}>{selected ? "✓" : ""}</span>
+                      <span className="text-sm font-medium" style={{ color: selected ? `rgb(${activeAccent})` : "rgba(255,255,255,0.72)" }}>{suggestion.label}</span>
+                    </div>
+                    <p className="ml-8 mt-1 text-xs leading-relaxed text-white/38">Examples: {suggestion.examples}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border px-4 py-4 mb-4" style={{ borderColor: `rgba(${activeAccent},0.2)`, background: `rgba(${activeAccent},0.035)` }}>
+            <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: `rgba(${activeAccent},0.75)` }}>Override with a RTHMIC style</p>
+            <p className="text-xs text-white/40 mb-3">Optional. This takes priority over all selections above for {slot.label.toLowerCase()}.</p>
+            <select
+              value={s.overrideStyle}
+              onChange={(event) => updateSlot(currentSlot, { overrideStyle: event.target.value, committed: true }, true)}
+              className="w-full rounded-xl border bg-[#0d1628] px-3 py-3 text-sm text-white/75 outline-none"
+              style={{ borderColor: "rgba(255,255,255,0.12)" }}
+            >
+              <option value="">Use my detailed preferences</option>
+              {currentStyles.map((style, index) => <option key={`${style.source}-${index}`} value={`${style.name}|${style.prompt}`}>{style.name} ({style.source})</option>)}
+            </select>
           </div>
 
           {/* Voice input */}
@@ -520,7 +619,7 @@ export default function SettingsPage() {
                 {voicePhase === "transcribing" && <p className="text-base text-white/50">Transcribing…</p>}
                 {voicePhase === "interpreting" && <p className="text-base text-white/50">Interpreting your style…</p>}
                 {voicePhase === "idle" && (
-                  <><p className="text-base font-medium" style={{ color: s.transcript ? "rgba(255,255,255,0.75)" : `rgb(${activeAccent})` }}>{s.transcript ? "Tap to re-record" : "Speak a new style"}</p><p className="text-xs text-white/50 mt-0.5">{s.transcript ? "Your words will be replaced" : "Describe a new style or genre to add it to your custom styles"}</p></>
+                  <><p className="text-base font-medium" style={{ color: s.transcript ? "rgba(255,255,255,0.75)" : `rgb(${activeAccent})` }}>{s.transcript ? "Tap to re-record" : "Speak your own style"}</p><p className="text-xs text-white/50 mt-0.5">{s.transcript ? "Your words will be replaced" : `Describe anything else that belongs in your ${slot.label.toLowerCase()} preference`}</p></>
                 )}
               </div>
             </button>
@@ -535,18 +634,28 @@ export default function SettingsPage() {
           {voiceError && <p className="text-xs text-red-400/60 mb-3 leading-relaxed">{voiceError}</p>}
 
           {/* Interpreted style */}
-          {hasStyle && !isBusy && (
+          {hasPreference && !isBusy && (
             <div className="rounded-2xl border px-5 py-5 mb-3" style={{ borderColor: `rgba(${activeAccent},0.24)`, background: `rgba(${activeAccent},0.045)` }}>
-              <p className="text-[10px] text-white/50 uppercase tracking-widest mb-2">{s.committed ? "✓ Saved" : "Saving…"}</p>
-              <textarea
-                value={s.style}
-                onChange={e => updateSlot(currentSlot, { style: e.target.value, committed: false })}
-                rows={3}
-                className="w-full bg-transparent text-base font-light leading-relaxed outline-none resize-none"
-                style={{ color: `rgb(${activeAccent})`, fontFamily: "var(--font-display)" }}
-                placeholder="Style description"
-              />
-              <p className="text-[10px] text-white/45 mt-1 leading-relaxed">Tap to edit · this feeds the music engine</p>
+              <p className="text-[10px] text-white/50 uppercase tracking-widest mb-2">Your Current {slot.label} Style Preference</p>
+              {s.overrideStyle ? (
+                <p className="text-base font-light leading-relaxed" style={{ color: `rgb(${activeAccent})`, fontFamily: "var(--font-display)" }}>
+                  {styleName(s.overrideStyle)}
+                </p>
+              ) : (
+                <>
+                  {s.selections.length > 0 && <p className="text-sm leading-relaxed mb-2" style={{ color: `rgb(${activeAccent})` }}>{s.selections.join(" + ")}</p>}
+                  {hasStyle && <textarea
+                    value={s.style}
+                    onChange={e => updateSlot(currentSlot, { style: e.target.value, committed: false })}
+                    onBlur={() => saveSpokenStyle(currentSlot, s.style)}
+                    rows={3}
+                    className="w-full bg-transparent text-base font-light leading-relaxed outline-none resize-none"
+                    style={{ color: `rgb(${activeAccent})`, fontFamily: "var(--font-display)" }}
+                    placeholder="Style description"
+                  />}
+                  <p className="text-[10px] text-white/45 mt-1 leading-relaxed">Your selected suggestions and spoken description are used together.</p>
+                </>
+              )}
             </div>
           )}
 
@@ -587,9 +696,27 @@ export default function SettingsPage() {
 
           {interpretError && !isBusy && <p className="text-xs text-red-400/60 mb-3 leading-relaxed">{interpretError}</p>}
           {saveError && <p className="text-xs text-red-400/60 text-center">{saveError}</p>}
-            </div>
+          {(s.selections.length > 0 || s.style || s.overrideStyle) && !isBusy && (
+            <button
+              type="button"
+              onClick={() => updateSlot(currentSlot, { selections: [], style: "", transcript: "", overrideStyle: "", committed: false, suggestedArtists: [], selectedArtists: [] }, true)}
+              className="mt-3 text-xs text-white/42 underline underline-offset-4 touch-manipulation"
+            >
+              Reset {slot.label} preferences
+            </button>
           )}
         </section>
+
+        {setupMode && (
+          <button
+            type="button"
+            onClick={() => transitionTo("/understand?welcome=1", router)}
+            className="w-full rounded-2xl border py-4 text-sm font-semibold tracking-wide touch-manipulation active:scale-[0.98]"
+            style={{ color: "rgba(70,205,235,0.92)", borderColor: "rgba(70,205,235,0.4)", background: "rgba(70,205,235,0.1)" }}
+          >
+            Continue to RTHMIC
+          </button>
+        )}
 
       </div>
     </main>
