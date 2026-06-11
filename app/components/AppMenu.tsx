@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useAudio } from "@/app/contexts/AudioContext";
@@ -19,6 +19,7 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
   const [userCode, setUserCode] = useState("");
   const [userName, setUserName] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [betaRequestCount, setBetaRequestCount] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [keepOffline, setKeepOffline] = useState(false);
   const [clearingAudio, setClearingAudio] = useState(false);
@@ -31,13 +32,36 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
     const match = document.cookie.match(/(?:^|;\s*)rthmic_code=([^;]+)/);
     if (match) setUserCode(decodeURIComponent(match[1]));
     setKeepOffline(keepAllOfflineEnabled());
+    let cancelled = false;
     fetch("/api/settings")
       .then((r) => r.json())
-      .then((data) => {
+      .then(async (data) => {
+        if (cancelled) return;
         setUserName(typeof data.name === "string" ? data.name.trim() : "");
-        setIsAdmin(!!data.access?.isAdmin);
+        const admin = !!data.access?.isAdmin;
+        setIsAdmin(admin);
+        if (!admin) {
+          setBetaRequestCount(null);
+          return;
+        }
+
+        try {
+          const response = await fetch("/api/access-requests", { cache: "no-store" });
+          const requestData = await response.json();
+          if (!cancelled && response.ok) {
+            setBetaRequestCount(Array.isArray(requestData.requests) ? requestData.requests.length : 0);
+          }
+        } catch {
+          if (!cancelled) setBetaRequestCount(null);
+        }
       })
-      .catch(() => setIsAdmin(false));
+      .catch(() => {
+        if (!cancelled) {
+          setIsAdmin(false);
+          setBetaRequestCount(null);
+        }
+      });
+    return () => { cancelled = true; };
   }, [open]);
 
   useEffect(() => setShouldRender(true), []);
@@ -182,7 +206,18 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
           {isAdmin && (
             <>
               <MenuRow icon="◉" title="Record Feedback" detail="Open the private voice feedback recorder" onClick={() => go("/feedback")} />
-              <MenuRow icon="◇" title="Beta Requests" detail="Review tester access requests" onClick={() => go("/access-requests")} />
+              <MenuRow
+                icon={<AttentionIcon active={!!betaRequestCount} />}
+                title="Beta Requests"
+                detail={betaRequestCount === null
+                  ? "Review tester access requests"
+                  : betaRequestCount === 0
+                    ? "No requests awaiting approval"
+                    : `${betaRequestCount} request${betaRequestCount === 1 ? "" : "s"} awaiting approval`}
+                badge={betaRequestCount && betaRequestCount > 0 ? betaRequestCount : undefined}
+                attention={!!betaRequestCount}
+                onClick={() => go("/access-requests")}
+              />
               <MenuRow icon="≡" title="Generation Log" detail="Timing and status for every Rthm" onClick={() => go("/library/log")} />
               <MenuRow icon="✎" title="Codex Notes" detail="Review quick notes captured in the app" onClick={() => go("/codex-notes")} />
               <MenuRow icon="⌁" title="Diagnostics" detail="Inspect reloads, routes, cache, and service worker state" onClick={() => go("/diagnostics")} />
@@ -214,13 +249,32 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
   );
 }
 
-function MenuRow({ icon, title, detail, onClick, disabled, danger }: {
-  icon: string;
+function AttentionIcon({ active }: { active: boolean }) {
+  return (
+    <span
+      className="flex h-7 w-7 items-center justify-center rounded-full border text-sm font-bold"
+      style={{
+        color: active ? "#f3c969" : "rgba(255,255,255,0.38)",
+        borderColor: active ? "rgba(243,201,105,0.48)" : "rgba(255,255,255,0.12)",
+        background: active ? "rgba(243,201,105,0.12)" : "rgba(255,255,255,0.035)",
+        boxShadow: active ? "0 0 18px rgba(243,201,105,0.12)" : "none",
+      }}
+      aria-hidden="true"
+    >
+      !
+    </span>
+  );
+}
+
+function MenuRow({ icon, title, detail, onClick, disabled, danger, badge, attention }: {
+  icon: ReactNode;
   title: string;
   detail: string;
   onClick: () => void;
   disabled?: boolean;
   danger?: boolean;
+  badge?: number;
+  attention?: boolean;
 }) {
   return (
     <button
@@ -228,11 +282,20 @@ function MenuRow({ icon, title, detail, onClick, disabled, danger }: {
       disabled={disabled}
       className="w-full flex items-center gap-4 px-4 py-4 rounded-xl touch-manipulation active:bg-white/[0.04] transition-colors text-left disabled:opacity-50"
     >
-      <span className="text-white/35 text-lg leading-none">{icon}</span>
-      <span>
-        <span className="block text-sm font-medium" style={{ color: danger ? "rgba(248,113,113,0.72)" : "rgba(255,255,255,0.7)" }}>{title}</span>
+      <span className="w-7 flex-shrink-0 text-white/35 text-lg leading-none flex items-center justify-center">{icon}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-medium" style={{ color: danger ? "rgba(248,113,113,0.72)" : attention ? "rgba(243,201,105,0.92)" : "rgba(255,255,255,0.7)" }}>{title}</span>
         <span className="block text-xs text-white/30 mt-0.5">{detail}</span>
       </span>
+      {badge !== undefined && (
+        <span
+          className="flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-xs font-bold tabular-nums"
+          style={{ color: "#07101f", background: "#f3c969" }}
+          aria-label={`${badge} pending request${badge === 1 ? "" : "s"}`}
+        >
+          {badge > 99 ? "99+" : badge}
+        </span>
+      )}
     </button>
   );
 }
