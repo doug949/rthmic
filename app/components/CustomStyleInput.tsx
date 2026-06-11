@@ -232,7 +232,7 @@ export default function CustomStyleInput({ onStyleChange, selected, onSelect, on
       className="rounded-2xl border transition-all duration-200"
       style={
         selected
-          ? { borderColor: "rgba(201,165,90,0.5)", background: "rgba(201,165,90,0.06)" }
+          ? { borderColor: "rgba(var(--flow-accent-rgb, 201, 165, 90),0.5)", background: "rgba(var(--flow-accent-rgb, 201, 165, 90),0.06)" }
           : { borderColor: "rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.02)" }
       }
     >
@@ -241,17 +241,17 @@ export default function CustomStyleInput({ onStyleChange, selected, onSelect, on
         onClick={handleToggleOpen}
         className="w-full flex items-center gap-3 px-5 py-4 text-left touch-manipulation active:scale-[0.98] transition-transform"
       >
-        <span className="text-lg flex-shrink-0" style={{ color: selected ? "#c9a55a" : "rgba(255,255,255,0.25)" }}>
+        <span className="text-lg flex-shrink-0" style={{ color: selected ? "rgb(var(--flow-accent-rgb, 201, 165, 90))" : "rgba(255,255,255,0.25)" }}>
           ✦
         </span>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <p className={`text-base font-medium ${selected ? "text-[#c9a55a]" : "text-white/55"}`}>
+            <p className="text-base font-medium" style={{ color: selected ? "rgb(var(--flow-accent-rgb, 201, 165, 90))" : "rgba(255,255,255,0.55)" }}>
               {style || "Speak a New Style"}
             </p>
             <span
               className="text-[8px] uppercase tracking-widest px-1.5 py-0.5 rounded-full border flex-shrink-0"
-              style={{ color: "rgba(201,165,90,0.55)", borderColor: "rgba(201,165,90,0.2)", background: "rgba(201,165,90,0.06)" }}
+              style={{ color: "rgba(var(--flow-accent-rgb, 201, 165, 90),0.65)", borderColor: "rgba(var(--flow-accent-rgb, 201, 165, 90),0.2)", background: "rgba(var(--flow-accent-rgb, 201, 165, 90),0.06)" }}
             >
               Beta
             </span>
@@ -264,11 +264,11 @@ export default function CustomStyleInput({ onStyleChange, selected, onSelect, on
           <div
             className="w-4 h-4 rounded-full border flex-shrink-0 flex items-center justify-center"
             style={selected
-              ? { borderColor: "rgba(201,165,90,0.7)", background: "rgba(201,165,90,0.3)" }
+              ? { borderColor: "rgba(var(--flow-accent-rgb, 201, 165, 90),0.7)", background: "rgba(var(--flow-accent-rgb, 201, 165, 90),0.3)" }
               : { borderColor: "rgba(255,255,255,0.2)" }}
             onClick={(e) => { e.stopPropagation(); onSelect(); }}
           >
-            {selected && <div className="w-2 h-2 rounded-full bg-[#c9a55a]" />}
+            {selected && <div className="w-2 h-2 rounded-full" style={{ background: "rgb(var(--flow-accent-rgb, 201, 165, 90))" }} />}
           </div>
         ) : (
           <span className="text-white/20 text-sm flex-shrink-0">{open ? "−" : "+"}</span>
@@ -289,7 +289,7 @@ export default function CustomStyleInput({ onStyleChange, selected, onSelect, on
                 voicePhase === "recording"
                   ? { background: "rgba(239,68,68,0.15)", borderColor: "rgba(239,68,68,0.5)" }
                   : isProcessing
-                  ? { background: "rgba(201,165,90,0.08)", borderColor: "rgba(201,165,90,0.2)" }
+                  ? { background: "rgba(var(--flow-accent-rgb, 201, 165, 90),0.08)", borderColor: "rgba(var(--flow-accent-rgb, 201, 165, 90),0.2)" }
                   : { background: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.12)" }
               }
               aria-label={voicePhase === "recording" ? "Stop" : "Record"}
@@ -373,7 +373,7 @@ export default function CustomStyleInput({ onStyleChange, selected, onSelect, on
                 onClick={onSelect}
                 className="w-full mt-2 py-2.5 rounded-xl text-xs font-semibold tracking-widest uppercase transition-all touch-manipulation active:scale-[0.98]"
                 style={selected
-                  ? { background: "rgba(201,165,90,0.15)", border: "1px solid rgba(201,165,90,0.5)", color: "#c9a55a" }
+                  ? { background: "rgba(var(--flow-accent-rgb, 201, 165, 90),0.15)", border: "1px solid rgba(var(--flow-accent-rgb, 201, 165, 90),0.5)", color: "rgb(var(--flow-accent-rgb, 201, 165, 90))" }
                   : { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.45)" }
                 }
               >
@@ -384,7 +384,7 @@ export default function CustomStyleInput({ onStyleChange, selected, onSelect, on
                   onClick={() => { onSave(style); setSaved(true); }}
                   disabled={saved}
                   className="w-full mt-2 py-2.5 rounded-xl text-xs font-medium tracking-widest uppercase transition-all touch-manipulation active:scale-[0.98] disabled:opacity-60"
-                  style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", color: saved ? "rgba(201,165,90,0.6)" : "rgba(255,255,255,0.3)" }}
+                  style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", color: saved ? "rgba(var(--flow-accent-rgb, 201, 165, 90),0.7)" : "rgba(255,255,255,0.3)" }}
                 >
                   {saved ? "✓ Saved to Custom Styles" : "Save to Custom Styles"}
                 </button>
@@ -408,7 +408,7 @@ export function WaveDots({ size = "md", gold = false }: { size?: "sm" | "md"; go
 
   const n = size === "sm" ? 3 : 5;
   const dotSize = size === "sm" ? 3 : 4;
-  const color = gold ? "rgba(201,165,90,0.7)" : "rgba(255,255,255,0.5)";
+  const color = gold ? "rgba(var(--flow-accent-rgb, 201, 165, 90),0.75)" : "rgba(255,255,255,0.5)";
 
   return (
     <div className="flex items-center gap-1">

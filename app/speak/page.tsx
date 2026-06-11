@@ -446,9 +446,12 @@ export default function SpeakPage() {
 
         const el = orbRef.current;
         if (el) {
+          const accent = selectedPillarRef.current
+            ? CREATE_TILE_ACCENT[selectedPillarRef.current] ?? PILLAR_COLOR[selectedPillarRef.current] ?? "86,215,178"
+            : "86,215,178";
           el.style.transform = `scale(${scale.toFixed(3)})`;
-          el.style.boxShadow = `0 0 ${glow.toFixed(1)}px ${(glow * 0.4).toFixed(1)}px rgba(201,165,90,${glowAlpha})`;
-          el.style.backgroundColor = `rgba(201,165,90,${bgAlpha})`;
+          el.style.boxShadow = `0 0 ${glow.toFixed(1)}px ${(glow * 0.4).toFixed(1)}px rgba(${accent},${glowAlpha})`;
+          el.style.backgroundColor = `rgba(${accent},${bgAlpha})`;
         }
 
         animFrameRef.current = requestAnimationFrame(tick);
@@ -1003,11 +1006,20 @@ export default function SpeakPage() {
   }, [discardRecordingResources]);
 
   const visibleSongs = genSongs.filter((s) => songStatus[s.id] !== "deleted");
+  const flowAccent = selectedPillar
+    ? CREATE_TILE_ACCENT[selectedPillar] ?? PILLAR_COLOR[selectedPillar] ?? "86,215,178"
+    : "86,215,178";
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <main className="relative z-10 min-h-screen flex flex-col px-6 pt-safe" style={{ animation: "page-enter 380ms ease forwards" }}>
+    <main
+      className="relative z-10 min-h-screen flex flex-col px-6 pt-safe"
+      style={{
+        animation: "page-enter 380ms ease forwards",
+        "--flow-accent-rgb": flowAccent,
+      } as React.CSSProperties}
+    >
 
       {/* Phase-change overlay — fades to dark between screens */}
       <div
@@ -2029,7 +2041,7 @@ function IdleView({ onRecord, errorMsg, selectedPillar, quickMode, experiment }:
             <span
               className="absolute w-28 h-28 rounded-full pointer-events-none"
               style={{
-                background: "conic-gradient(from 0deg, transparent 0%, transparent 74%, rgba(255,255,255,0.08) 78%, rgba(255,255,255,0.55) 83%, rgba(255,255,255,0.8) 86%, rgba(255,255,255,0.55) 89%, rgba(255,255,255,0.08) 93%, transparent 96%, transparent 100%)",
+                background: "conic-gradient(from 0deg, transparent 0%, transparent 74%, rgba(var(--flow-accent-rgb),0.08) 78%, rgba(var(--flow-accent-rgb),0.55) 83%, rgba(var(--flow-accent-rgb),0.9) 86%, rgba(var(--flow-accent-rgb),0.55) 89%, rgba(var(--flow-accent-rgb),0.08) 93%, transparent 96%, transparent 100%)",
                 WebkitMaskImage: "radial-gradient(circle, transparent 51px, black 53px)",
                 maskImage: "radial-gradient(circle, transparent 51px, black 53px)",
                 animation: "rim-spin 6s linear infinite",
@@ -2041,8 +2053,9 @@ function IdleView({ onRecord, errorMsg, selectedPillar, quickMode, experiment }:
             disabled={micRequesting}
             className="w-28 h-28 rounded-full flex items-center justify-center active:scale-[0.96] transition-all touch-manipulation relative z-10"
             style={{
-              background: micRequesting ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.07)",
-              border: micRequesting ? "1px solid rgba(201,165,90,0.35)" : "1px solid rgba(255,255,255,0.12)",
+              background: micRequesting ? "rgba(var(--flow-accent-rgb),0.05)" : "rgba(var(--flow-accent-rgb),0.09)",
+              border: "1px solid rgba(var(--flow-accent-rgb),0.38)",
+              color: "rgb(var(--flow-accent-rgb))",
             }}
             aria-label="Start recording"
           >
@@ -2097,18 +2110,19 @@ function RecordingView({
       <div className="relative flex items-center justify-center pointer-events-none">
         <span
           className="absolute w-48 h-48 rounded-full animate-ping"
-          style={{ animationDuration: "2.4s", border: "1px solid rgba(201,165,90,0.12)" }}
+          style={{ animationDuration: "2.4s", border: "1px solid rgba(var(--flow-accent-rgb),0.12)" }}
         />
         <span
           className="absolute w-38 h-38 rounded-full animate-ping"
-          style={{ animationDuration: "2.4s", animationDelay: "0.6s", border: "1px solid rgba(201,165,90,0.18)" }}
+          style={{ animationDuration: "2.4s", animationDelay: "0.6s", border: "1px solid rgba(var(--flow-accent-rgb),0.18)" }}
         />
         <div
           ref={orbRef}
           className="w-28 h-28 rounded-full flex items-center justify-center"
           style={{
-            backgroundColor: "rgba(201,165,90,0.08)",
-            border: "1px solid rgba(201,165,90,0.3)",
+            backgroundColor: "rgba(var(--flow-accent-rgb),0.10)",
+            border: "1px solid rgba(var(--flow-accent-rgb),0.42)",
+            color: "rgb(var(--flow-accent-rgb))",
             willChange: "transform, box-shadow, background-color",
             transition: "none",
           }}
@@ -2159,7 +2173,7 @@ const UNDERSTANDING_COPY: Record<string, { heading: string; stages: string[] }> 
 
 function UnderstandingView({ pillar }: { pillar?: string | null }) {
   const key = (pillar ?? "").toLowerCase();
-  const pillarColor = PILLAR_COLOR[key] ?? DEFAULT_COLOR;
+  const pillarColor = CREATE_TILE_ACCENT[key] ?? PILLAR_COLOR[key] ?? "86,215,178";
   const copy = UNDERSTANDING_COPY[key] ?? {
     heading: "Understanding you",
     stages: ["Transcribing…", "Reading your state…", "Shaping your Rthm…", "Almost there…"],
@@ -2300,9 +2314,9 @@ function ConfirmingView({
                         }}
                         className="rounded-xl border px-3 py-3 text-left text-xs tracking-wide touch-manipulation active:scale-[0.98] transition-transform"
                         style={{
-                          borderColor: active ? "rgba(201,165,90,0.46)" : "rgba(255,255,255,0.09)",
-                          background: active ? "rgba(201,165,90,0.10)" : "rgba(255,255,255,0.035)",
-                          color: active ? "#c9a55a" : "rgba(255,255,255,0.62)",
+                          borderColor: active ? "rgba(var(--flow-accent-rgb),0.46)" : "rgba(255,255,255,0.09)",
+                          background: active ? "rgba(var(--flow-accent-rgb),0.10)" : "rgba(255,255,255,0.035)",
+                          color: active ? "rgb(var(--flow-accent-rgb))" : "rgba(255,255,255,0.62)",
                         }}
                       >
                         {option.label}
@@ -2330,7 +2344,7 @@ function ConfirmingView({
               <button
                 onClick={onReanalyse}
                 className="text-xs underline underline-offset-2 touch-manipulation active:opacity-60 transition-opacity"
-                style={{ color: "rgba(201,165,90,0.6)" }}
+                style={{ color: "rgba(var(--flow-accent-rgb),0.72)" }}
               >
                 Re-analyse my prompt
               </button>
@@ -2345,7 +2359,7 @@ function ConfirmingView({
           <button
             onClick={onProceed}
             className="w-full py-5 rounded-2xl text-sm font-semibold tracking-wide active:scale-[0.98] transition-all touch-manipulation"
-            style={{ background: "rgba(201,165,90,0.1)", border: "1px solid rgba(201,165,90,0.45)", color: "#c9a55a" }}
+            style={{ background: "rgba(var(--flow-accent-rgb),0.1)", border: "1px solid rgba(var(--flow-accent-rgb),0.45)", color: "rgb(var(--flow-accent-rgb))" }}
           >
             Continue with {result.pillar}
           </button>
@@ -2549,27 +2563,26 @@ function GenreView({
       <RevealBlock key={globalIndex} delay={stagger}>
         <button
           onClick={() => selectPreset(globalIndex)}
-          className={`w-full text-left px-5 py-4 rounded-2xl border transition-all duration-150 active:scale-[0.98] touch-manipulation ${
-            isSelected
-              ? "border-[rgba(201,165,90,0.5)] bg-[rgba(201,165,90,0.08)]"
-              : "border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06]"
-          }`}
+          className="w-full text-left px-5 py-4 rounded-2xl border transition-all duration-150 active:scale-[0.98] touch-manipulation"
+          style={isSelected
+            ? { borderColor: "rgba(var(--flow-accent-rgb),0.5)", background: "rgba(var(--flow-accent-rgb),0.08)" }
+            : { borderColor: "rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }}
         >
           <div className="flex items-center justify-between gap-3">
-            <span className={`text-sm font-medium leading-snug ${isSelected ? "text-[#c9a55a]" : "text-white/70"}`}>
+            <span className="text-sm font-medium leading-snug" style={{ color: isSelected ? "rgb(var(--flow-accent-rgb))" : "rgba(255,255,255,0.7)" }}>
               {label}
             </span>
             <div className="flex items-center gap-2 flex-shrink-0">
               {isRecommended && (
                 <span className="text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-full"
-                  style={{ background: "rgba(201,165,90,0.12)", color: "rgba(201,165,90,0.7)", border: "1px solid rgba(201,165,90,0.25)" }}>
+                  style={{ background: "rgba(var(--flow-accent-rgb),0.12)", color: "rgba(var(--flow-accent-rgb),0.78)", border: "1px solid rgba(var(--flow-accent-rgb),0.25)" }}>
                   {loadingRec ? "…" : "Suggested"}
                 </span>
               )}
-              <div className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${
-                isSelected ? "border-[rgba(201,165,90,0.7)] bg-[rgba(201,165,90,0.3)]" : "border-white/20"
-              }`}>
-                {isSelected && <div className="w-2 h-2 rounded-full bg-[#c9a55a]" />}
+              <div className="w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0" style={isSelected
+                ? { borderColor: "rgba(var(--flow-accent-rgb),0.7)", background: "rgba(var(--flow-accent-rgb),0.3)" }
+                : { borderColor: "rgba(255,255,255,0.2)" }}>
+                {isSelected && <div className="w-2 h-2 rounded-full" style={{ background: "rgb(var(--flow-accent-rgb))" }} />}
               </div>
             </div>
           </div>
@@ -2610,7 +2623,7 @@ function GenreView({
               }}
               disabled={!canProceed}
               className="w-full py-4 rounded-2xl text-sm font-semibold tracking-wide active:scale-[0.98] transition-all touch-manipulation disabled:opacity-45"
-              style={{ background: "rgba(201,165,90,0.12)", border: "1px solid rgba(201,165,90,0.46)", color: "#c9a55a" }}
+              style={{ background: "rgba(var(--flow-accent-rgb),0.12)", border: "1px solid rgba(var(--flow-accent-rgb),0.46)", color: "rgb(var(--flow-accent-rgb))" }}
             >
               {canProceed ? buildLabel : "Select a style below"}
             </button>
@@ -3518,7 +3531,7 @@ function ActionBtn({
 
 function MicIcon({ active }: { active?: boolean }) {
   return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style={{ color: active ? "#c9a55a" : "rgba(255,255,255,0.55)" }}>
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style={{ color: active ? "rgb(var(--flow-accent-rgb))" : "currentColor" }}>
       <rect x="9" y="2" width="6" height="11" rx="3" fill="currentColor" />
       <path d="M5 11a7 7 0 0 0 14 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
       <line x1="12" y1="18" x2="12" y2="22" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
@@ -3530,7 +3543,7 @@ function MicIcon({ active }: { active?: boolean }) {
 // Spinning ring shown while getUserMedia is resolving (before recording actually starts)
 function MicRequestingIcon() {
   return (
-    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" className="animate-spin" style={{ color: "rgba(201,165,90,0.6)" }}>
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" className="animate-spin" style={{ color: "rgba(var(--flow-accent-rgb),0.72)" }}>
       <circle cx="14" cy="14" r="11" stroke="currentColor" strokeWidth="2" strokeDasharray="44 24" strokeLinecap="round" />
     </svg>
   );
