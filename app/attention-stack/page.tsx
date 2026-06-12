@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { AppHeader } from "@/app/components/AppHeader";
 
 interface AttentionEntry {
@@ -62,6 +63,16 @@ function interpretCommand(transcript: string, hasCurrent: boolean): AttentionCom
 }
 
 export default function AttentionStackPage() {
+  return (
+    <Suspense fallback={<main className="min-h-screen bg-[#0d1628]" />}>
+      <AttentionStackContent />
+    </Suspense>
+  );
+}
+
+function AttentionStackContent() {
+  const searchParams = useSearchParams();
+  const embedded = searchParams.get("embedded") === "1";
   const [state, setState] = useState<AttentionState>(EMPTY_STATE);
   const [loading, setLoading] = useState(true);
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
@@ -182,11 +193,14 @@ export default function AttentionStackPage() {
     audioContextRef.current?.close();
   }, []);
 
-  if (loading) return <main className="min-h-screen flex items-center justify-center"><div className="h-7 w-7 animate-spin rounded-full border-2 border-white/15 border-t-white/60" /></main>;
+  if (loading) return <main className="min-h-screen flex items-center justify-center bg-[#0d1628]"><div className="h-7 w-7 animate-spin rounded-full border-2 border-white/15 border-t-white/60" /></main>;
 
   return (
-    <main className="relative z-10 min-h-screen px-6" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
-      <AppHeader title="Attention Stack" titleIcon={<StackIcon />} />
+    <main
+      className={`relative z-10 min-h-screen bg-[#0d1628] px-6 ${embedded ? "pt-5" : ""}`}
+      style={embedded ? undefined : { paddingTop: "env(safe-area-inset-top, 0px)" }}
+    >
+      {!embedded && <AppHeader title="Attention Stack" titleIcon={<StackIcon />} />}
       <div className="mx-auto flex max-w-xl flex-col gap-5 pb-16">
         <section className="rounded-3xl border p-5" style={{ borderColor: "rgba(74,222,128,0.34)", background: "rgba(34,197,94,0.075)" }}>
           <p className="text-[10px] uppercase tracking-[0.28em] text-green-300/70">Current focus</p>
