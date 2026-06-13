@@ -304,7 +304,7 @@ export default function MenuDetailPage({ params }: { params: Promise<{ slug: str
                         )}
                       </p>
                       <p className="text-[11px] text-white/35 mt-0.5">
-                        Genre: {song.genre || "Not recorded"} · Created: {formatTrackDate(song.savedAt)}
+                        Requested style: {song.genre || "Not recorded"} · Created: {formatTrackDate(song.savedAt)}
                       </p>
                     </div>
 
@@ -513,7 +513,7 @@ export default function MenuDetailPage({ params }: { params: Promise<{ slug: str
                           <div className="flex-1 min-w-0">
                             <p className="text-xs text-white/40 leading-snug">{tm?.menuTitle}</p>
                             <p className="text-[10px] text-white/20 mt-0.5">
-                              Genre: {song.genre || "Not recorded"} · Created: {formatTrackDate(song.savedAt)}
+                              Requested style: {song.genre || "Not recorded"} · Created: {formatTrackDate(song.savedAt)}
                             </p>
                           </div>
                         </div>

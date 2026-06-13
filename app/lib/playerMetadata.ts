@@ -16,6 +16,6 @@ export function formatTrackDate(createdAt?: number | null): string {
   return TRACK_DATE_FORMATTER.format(new Date(createdAt));
 }
 
-export function trackMetadataLabel(genre?: string | null, createdAt?: number | null): string {
-  return `Genre: ${genre?.trim() || "Not recorded"} · Created: ${formatTrackDate(createdAt)}`;
+export function trackMetadataLabel(requestedStyle?: string | null, createdAt?: number | null): string {
+  return `Requested style: ${requestedStyle?.trim() || "Not recorded"} · Created: ${formatTrackDate(createdAt)}`;
 }

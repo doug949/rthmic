@@ -199,7 +199,7 @@ export function RhythmRow({
                   color: favourite ? "rgba(201,165,90,0.76)" : "rgba(120,225,245,0.76)",
                 }}
               >
-                Style · {rhythm.genre}
+                Requested style · {rhythm.genre}
               </span>
             )}
             <span className="text-[10px] uppercase tracking-wider" style={{ color: favourite ? "rgba(201,165,90,0.5)" : "rgba(255,255,255,0.38)" }}>
