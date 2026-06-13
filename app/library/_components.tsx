@@ -8,6 +8,7 @@ import { createPortal } from "react-dom";
 import type { SavedRhythm } from "@/app/types/library";
 import { useOfflineAudio } from "@/app/hooks/useOfflineAudio";
 import { RecordFlipIcon } from "@/app/components/RecordFlipIcon";
+import { formatTrackDate } from "@/app/lib/playerMetadata";
 
 export type { SavedRhythm };
 
@@ -199,6 +200,9 @@ export function RhythmRow({
                 Style · {rhythm.genre}
               </span>
             )}
+            <span className="text-[10px] uppercase tracking-wider" style={{ color: favourite ? "rgba(201,165,90,0.5)" : "rgba(255,255,255,0.38)" }}>
+              Created · {formatTrackDate(rhythm.savedAt)}
+            </span>
             {tags.map((tag) => (
               <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: favourite ? "rgba(201,165,90,0.1)" : "rgba(255,255,255,0.06)", color: favourite ? "rgba(201,165,90,0.65)" : "rgba(255,255,255,0.55)" }}>
                 {tag}

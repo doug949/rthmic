@@ -16,6 +16,7 @@ import { BUILD_UPON_GENRE, buildUponLyrics, buildUponTitle } from "@/app/lib/bui
 import { sideLabelFor } from "@/app/lib/rhythmPairs";
 import { MENU_CONFIGS } from "@/app/lib/menuConfigs";
 import { RecordFlipIcon } from "@/app/components/RecordFlipIcon";
+import { trackMetadataLabel } from "@/app/lib/playerMetadata";
 
 const LYRIC_SYNC_LEAD_SECONDS = 0.35;
 
@@ -70,7 +71,7 @@ function pairRhythms(rhythms: SavedRhythm[], current: SavedRhythm): SavedRhythm[
 
 export default function FullScreenPlayer() {
   const {
-    currentTrackId, currentTitle, isPlaying,
+    currentTrackId, currentTitle, currentMeta, isPlaying,
     currentTime, duration,
     playerOpen, closePlayer, stop,
     togglePlayPause, restart, seek, skip, handlePlayUrl,
@@ -293,7 +294,7 @@ export default function FullScreenPlayer() {
         alternate.id,
         `/api/proxy-audio?id=${encodeURIComponent(alternate.id)}`,
         alternate.title,
-        { rhythmId: alternate.id, sunoTaskId: alternate.sunoTaskId }
+        { rhythmId: alternate.id, sunoTaskId: alternate.sunoTaskId, genre: alternate.genre, createdAt: alternate.savedAt }
       );
       setSideFlipPhase("in");
       window.setTimeout(() => setSideFlipPhase("idle"), 220);
@@ -382,6 +383,8 @@ export default function FullScreenPlayer() {
 
   const displayTitle  = rhythm?.title ?? currentTitle ?? "Playing…";
   const displayPillar = rhythm?.pillar ?? null;
+  const displayGenre = rhythm?.genre ?? currentMeta?.genre;
+  const displayCreatedAt = rhythm?.savedAt ?? currentMeta?.createdAt;
   const hasAudio      = !!rhythm?.audioUrl || !!currentTrackId;
   const isFavourite   = rhythm?.status === "favourite";
   const theme = isFavourite
@@ -433,6 +436,9 @@ export default function FullScreenPlayer() {
           )}
           <p className="text-sm font-semibold truncate px-2" style={{ fontFamily: "var(--font-display)", color: theme.title }}>
             {displayTitle}
+          </p>
+          <p className="text-[10px] truncate px-2 mt-0.5" style={{ color: theme.muted }}>
+            {trackMetadataLabel(displayGenre, displayCreatedAt)}
           </p>
         </div>
         <button

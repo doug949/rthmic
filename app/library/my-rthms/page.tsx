@@ -370,7 +370,12 @@ export default function MyRthmsPage() {
     // Route through our proxy — fetches a fresh Suno URL server-side and pipes
     // the audio back so iOS never has to handle expired CDN links directly.
     const proxyUrl = `/api/proxy-audio?id=${encodeURIComponent(rhythm.id)}`;
-    handlePlayUrl(rhythm.id, proxyUrl, rhythm.title);
+    handlePlayUrl(rhythm.id, proxyUrl, rhythm.title, {
+      rhythmId: rhythm.id,
+      sunoTaskId: rhythm.sunoTaskId,
+      genre: rhythm.genre,
+      createdAt: rhythm.savedAt,
+    });
     if (rhythm.status === "new") {
       updateRhythm(rhythm.id, { status: "active" });
       const alternate = rhythms.find((r) =>

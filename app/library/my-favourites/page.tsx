@@ -127,7 +127,12 @@ function MyFavouritesInner() {
 
   const togglePlay = useCallback((rhythm: SavedRhythm) => {
     if (!rhythm.audioUrl && !rhythm.audioKey) return;
-    handlePlayUrl(rhythm.id, `/api/proxy-audio?id=${encodeURIComponent(rhythm.id)}`, rhythm.title);
+    handlePlayUrl(rhythm.id, `/api/proxy-audio?id=${encodeURIComponent(rhythm.id)}`, rhythm.title, {
+      rhythmId: rhythm.id,
+      sunoTaskId: rhythm.sunoTaskId,
+      genre: rhythm.genre,
+      createdAt: rhythm.savedAt,
+    });
   }, [handlePlayUrl]);
 
   const handleShare = async (rhythm: SavedRhythm) => {

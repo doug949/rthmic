@@ -28,7 +28,7 @@ export default function PodcastPage() {
   };
 
   const playTrack = (track: PodcastFeaturedTrack) => {
-    if (track.audioKey) handlePlay(`podcast-${track.id}`, track.audioKey);
+    if (track.audioKey) handlePlay(`podcast-${track.id}`, track.audioKey, track.title);
     else if (track.audioUrl) handlePlayUrl(`podcast-${track.id}`, track.audioUrl, track.title);
   };
 

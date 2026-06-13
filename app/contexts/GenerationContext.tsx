@@ -119,6 +119,7 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
                 lyrics: params.lyrics,
                 sunoClipId: song.sunoClipId,
                 sunoTaskId: song.sunoTaskId,
+                genre: params.genre,
                 ...(pairId ? {
                   pairId,
                   side: (songs.indexOf(song) === 0 ? "A" : "B") as "A" | "B",

@@ -9,10 +9,12 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import type { AudioTrackMeta } from "@/app/lib/playerMetadata";
 
 interface AudioContextValue {
   currentTrackId: string | null;
   currentTitle: string | null;
+  currentMeta: AudioTrackMeta | null;
   isPlaying: boolean;
   loadingId: string | null;
   currentTime: number;
@@ -22,9 +24,9 @@ interface AudioContextValue {
   openPlayer: () => void;
   closePlayer: () => void;
   /** Play a library track via signed URL fetch from /api/stream */
-  handlePlay: (trackId: string, audioKey: string) => Promise<void>;
+  handlePlay: (trackId: string, audioKey: string, title?: string, meta?: AudioTrackMeta) => Promise<void>;
   /** Play any song via a direct audio URL (Suno-generated, share page, etc.) */
-  handlePlayUrl: (id: string, url: string, title?: string, meta?: { sunoTaskId?: string; rhythmId?: string }) => Promise<void>;
+  handlePlayUrl: (id: string, url: string, title?: string, meta?: AudioTrackMeta) => Promise<void>;
   /** Play an ordered sequence, advancing automatically when each track ends */
   playQueue: (tracks: AudioQueueTrack[], startId?: string, options?: AudioQueueOptions) => Promise<void>;
   /** Toggle play/pause for the currently loaded track (no URL needed) */
@@ -42,7 +44,7 @@ export type AudioQueueTrack = {
   id: string;
   url: string;
   title?: string;
-  meta?: { sunoTaskId?: string; rhythmId?: string };
+  meta?: AudioTrackMeta;
 };
 
 export type AudioQueueOptions = {
@@ -54,6 +56,7 @@ const AudioCtx = createContext<AudioContextValue | null>(null);
 export function AudioProvider({ children }: { children: ReactNode }) {
   const [currentTrackId, setCurrentTrackId] = useState<string | null>(null);
   const [currentTitle, setCurrentTitle]     = useState<string | null>(null);
+  const [currentMeta, setCurrentMeta]       = useState<AudioTrackMeta | null>(null);
   const [isPlaying, setIsPlaying]           = useState(false);
   const [loadingId, setLoadingId]           = useState<string | null>(null);
   const [currentTime, setCurrentTime]       = useState(0);
@@ -66,7 +69,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   const queueRef         = useRef<AudioQueueTrack[]>([]);
   const queueIndexRef    = useRef(-1);
   const queueLoopEachRef = useRef(false);
-  const attachAndPlayRef = useRef<((id: string, url: string, generation: number, meta?: { sunoTaskId?: string; rhythmId?: string }) => void) | null>(null);
+  const attachAndPlayRef = useRef<((id: string, url: string, generation: number, meta?: AudioTrackMeta) => void) | null>(null);
 
   const openPlayer  = useCallback(() => setPlayerOpen(true),  []);
   const closePlayer = useCallback(() => setPlayerOpen(false), []);
@@ -86,6 +89,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     stopCurrent();
     setCurrentTrackId(null);
     setCurrentTitle(null);
+    setCurrentMeta(null);
     setIsPlaying(false);
     setLoadingId(null);
     queueRef.current = [];
@@ -100,13 +104,14 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     setLoadingId(track.id);
     setCurrentTrackId(track.id);
     setCurrentTitle(track.title ?? null);
+    setCurrentMeta(track.meta ?? null);
     setIsPlaying(false);
     setPlayerOpen(true);
     attachAndPlayRef.current?.(track.id, track.url, generation, track.meta);
   }, [stopCurrent]);
 
   const attachAndPlay = useCallback(
-    (id: string, url: string, generation: number, meta?: { sunoTaskId?: string; rhythmId?: string }) => {
+    (id: string, url: string, generation: number, meta?: AudioTrackMeta) => {
       if (generation !== generationRef.current) return;
 
       setLoadingId(null);
@@ -139,6 +144,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         setIsPlaying(false);
         setCurrentTrackId(null);
         setCurrentTitle(null);
+        setCurrentMeta(null);
         setCurrentTime(0);
         setDuration(0);
         queueRef.current = [];
@@ -284,8 +290,10 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   }, [attachAndPlay]);
 
   const handlePlay = useCallback(
-    async (trackId: string, audioKey: string) => {
+    async (trackId: string, audioKey: string, title?: string, meta?: AudioTrackMeta) => {
       if (currentTrackId === trackId) {
+        if (title !== undefined) setCurrentTitle(title);
+        if (meta !== undefined) setCurrentMeta(meta);
         if (isPlaying) {
           audioRef.current?.pause();
           setIsPlaying(false);
@@ -305,6 +313,8 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       const generation = ++generationRef.current;
       setLoadingId(trackId);
       setCurrentTrackId(trackId);
+      setCurrentTitle(title ?? null);
+      setCurrentMeta(meta ?? null);
       setIsPlaying(false);
       setPlayerOpen(true); // auto-open full-screen player
 
@@ -321,14 +331,16 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         url = `/api/proxy-audio?id=${encodeURIComponent(trackId)}`;
       }
 
-      attachAndPlay(trackId, url, generation, { rhythmId: trackId });
+      attachAndPlay(trackId, url, generation, { rhythmId: trackId, ...meta });
     },
     [currentTrackId, isPlaying, stopCurrent, attachAndPlay]
   );
 
   const handlePlayUrl = useCallback(
-    async (id: string, url: string, title?: string, meta?: { sunoTaskId?: string; rhythmId?: string }) => {
+    async (id: string, url: string, title?: string, meta?: AudioTrackMeta) => {
       if (currentTrackId === id) {
+        if (title !== undefined) setCurrentTitle(title);
+        if (meta !== undefined) setCurrentMeta(meta);
         if (isPlaying) {
           audioRef.current?.pause();
           setIsPlaying(false);
@@ -349,6 +361,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       setLoadingId(id);
       setCurrentTrackId(id);
       setCurrentTitle(title ?? null);
+      setCurrentMeta(meta ?? null);
       setIsPlaying(false);
       setPlayerOpen(true); // auto-open full-screen player
 
@@ -372,6 +385,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       setLoadingId(track.id);
       setCurrentTrackId(track.id);
       setCurrentTitle(track.title ?? null);
+      setCurrentMeta(track.meta ?? null);
       setIsPlaying(false);
       setPlayerOpen(true);
 
@@ -442,8 +456,10 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     }
     navigator.mediaSession.metadata = new MediaMetadata({
       title: currentTitle ?? "RTHM",
-      artist: "RTHMIC",
-      album: "RTHMIC",
+      artist: currentMeta?.genre || "Genre not recorded",
+      album: currentMeta?.createdAt
+        ? `Created ${new Date(currentMeta.createdAt).toLocaleDateString("en-GB")}`
+        : "Creation date not recorded",
       artwork: [
         { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
         { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
@@ -476,7 +492,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       navigator.mediaSession.setActionHandler("nexttrack", null);
       navigator.mediaSession.setActionHandler("previoustrack", null);
     };
-  }, [currentTrackId, currentTitle, playQueuedTrack, resumePlayback]);
+  }, [currentMeta, currentTrackId, currentTitle, playQueuedTrack, resumePlayback]);
 
   // Keep the OS playback state in sync so the lock screen shows the right icon
   useEffect(() => {
@@ -501,6 +517,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       value={{
         currentTrackId,
         currentTitle,
+        currentMeta,
         isPlaying,
         loadingId,
         currentTime,

@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { useAudio } from "@/app/contexts/AudioContext";
+import { trackMetadataLabel } from "@/app/lib/playerMetadata";
 
 export default function MiniPlayer() {
   const {
-    currentTrackId, currentTitle, isPlaying, loadingId,
+    currentTrackId, currentTitle, currentMeta, isPlaying, loadingId,
     currentTime, duration, playerOpen, openPlayer, stop, togglePlayPause,
   } = useAudio();
   const [tucked, setTucked] = useState(false);
@@ -85,9 +86,12 @@ export default function MiniPlayer() {
             aria-label="Open player"
           >
             <PlayingIndicator isPlaying={isPlaying} isLoading={isLoading} />
-            <p className="flex-1 text-sm font-medium text-white/80 truncate">
-              {displayTitle}
-            </p>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-white/80 truncate">{displayTitle}</p>
+              <p className="text-[10px] text-white/35 truncate mt-0.5">
+                {trackMetadataLabel(currentMeta?.genre, currentMeta?.createdAt)}
+              </p>
+            </div>
           </button>
 
           <button

@@ -49,7 +49,7 @@ export default function UnlockPage() {
           return (
             <button
               key={track.id}
-              onClick={() => handlePlay(track.id, track.audioKey)}
+              onClick={() => handlePlay(track.id, track.audioKey, track.title)}
               className={`
                 w-full flex items-center gap-5 px-6 py-6 rounded-2xl border
                 transition-all duration-150 text-left touch-manipulation

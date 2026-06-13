@@ -71,7 +71,7 @@ export default function ExplorePage() {
           return (
             <button
               key={track.id}
-              onClick={() => handlePlay(track.id, track.audioKey)}
+              onClick={() => handlePlay(track.id, track.audioKey, track.title)}
               className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl border text-left touch-manipulation active:scale-[0.99] transition-all duration-150"
               style={{
                 background: active ? "rgba(201,165,90,0.08)" : "rgba(255,255,255,0.03)",

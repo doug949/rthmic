@@ -258,7 +258,12 @@ export default function RthmixPage() {
       id: rhythm.id,
       url: `/api/proxy-audio?id=${encodeURIComponent(rhythm.id)}`,
       title: rhythm.title,
-      meta: { rhythmId: rhythm.id },
+      meta: {
+        rhythmId: rhythm.id,
+        sunoTaskId: rhythm.sunoTaskId,
+        genre: rhythm.genre,
+        createdAt: rhythm.savedAt,
+      },
     };
   };
 
@@ -686,13 +691,23 @@ function GeneratedRthmixAlbum({
       id: rhythm.id,
       url: `/api/proxy-audio?id=${encodeURIComponent(rhythm.id)}`,
       title: rhythm.title,
-      meta: { rhythmId: rhythm.id },
+      meta: {
+        rhythmId: rhythm.id,
+        sunoTaskId: rhythm.sunoTaskId,
+        genre: rhythm.genre,
+        createdAt: rhythm.savedAt,
+      },
     }));
 
   const playFrom = (rhythm: SavedRhythm) => {
     const url = `/api/proxy-audio?id=${encodeURIComponent(rhythm.id)}`;
     if (currentTrackId === rhythm.id) {
-      handlePlayUrl(rhythm.id, url, rhythm.title, { rhythmId: rhythm.id });
+      handlePlayUrl(rhythm.id, url, rhythm.title, {
+        rhythmId: rhythm.id,
+        sunoTaskId: rhythm.sunoTaskId,
+        genre: rhythm.genre,
+        createdAt: rhythm.savedAt,
+      });
       return;
     }
     playQueue(queue, rhythm.id, { loopEach: true });

@@ -10,6 +10,7 @@ import { usePillarTheme } from "@/app/contexts/PillarThemeContext";
 import type { SavedRhythm } from "@/app/types/library";
 import { getMenuConfig } from "@/app/lib/menuConfigs";
 import { sideLabelFor } from "@/app/lib/rhythmPairs";
+import { formatTrackDate } from "@/app/lib/playerMetadata";
 
 const TEAL = {
   text:   "rgba(120,210,180,0.92)",
@@ -49,15 +50,6 @@ function orderMenuBatch(batch: SavedRhythm[]): SavedRhythm[] {
     const sideB = sideLabelFor(b) === "A" ? 0 : 1;
     return sideA - sideB || b.savedAt - a.savedAt;
   });
-}
-
-function relDate(ts: number): string {
-  const d = Date.now() - ts;
-  const m = Math.floor(d / 60000);
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -166,7 +158,12 @@ export default function MenuDetailPage({ params }: { params: Promise<{ slug: str
       stopAudio();
     } else if (song.audioUrl || song.audioKey) {
       const url = song.audioKey ? `/api/proxy-audio?id=${encodeURIComponent(song.id)}` : song.audioUrl!;
-      handlePlayUrl(song.id, url, song.title, { rhythmId: song.id, sunoTaskId: song.sunoTaskId });
+      handlePlayUrl(song.id, url, song.title, {
+        rhythmId: song.id,
+        sunoTaskId: song.sunoTaskId,
+        genre: song.genre,
+        createdAt: song.savedAt,
+      });
     }
   };
 
@@ -306,7 +303,9 @@ export default function MenuDetailPage({ params }: { params: Promise<{ slug: str
                           </span>
                         )}
                       </p>
-                      <p className="text-[11px] text-white/35 mt-0.5">{relDate(song.savedAt)}</p>
+                      <p className="text-[11px] text-white/35 mt-0.5">
+                        Genre: {song.genre || "Not recorded"} · Created: {formatTrackDate(song.savedAt)}
+                      </p>
                     </div>
 
                     {/* Playing wave indicator */}
@@ -513,7 +512,9 @@ export default function MenuDetailPage({ params }: { params: Promise<{ slug: str
                           </button>
                           <div className="flex-1 min-w-0">
                             <p className="text-xs text-white/40 leading-snug">{tm?.menuTitle}</p>
-                            <p className="text-[10px] text-white/20 mt-0.5">{relDate(song.savedAt)}</p>
+                            <p className="text-[10px] text-white/20 mt-0.5">
+                              Genre: {song.genre || "Not recorded"} · Created: {formatTrackDate(song.savedAt)}
+                            </p>
                           </div>
                         </div>
                       ))
