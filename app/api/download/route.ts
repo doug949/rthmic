@@ -3,7 +3,7 @@ import type { SavedRhythm } from "@/app/types/library";
 import type { ShareEntry } from "@/app/api/share/route";
 import { requireUserId } from "@/app/lib/auth";
 import { REDIS_AVAILABLE, withRedis } from "@/app/lib/redis";
-import { libraryKey, readSavedRhythms } from "@/app/lib/rhythmStorage";
+import { archiveKey, libraryKey, readSavedRhythms } from "@/app/lib/rhythmStorage";
 import { getWasabiSignedUrl } from "@/app/lib/wasabiUpload";
 
 export const maxDuration = 30;
@@ -50,7 +50,10 @@ export async function GET(req: NextRequest) {
       }
 
       const all = await readSavedRhythms(client, libraryKey(uid));
-      return all.find((r) => r.id === rhythmId) ?? null;
+      const active = all.find((r) => r.id === rhythmId) ?? null;
+      if (active) return active;
+      const archived = await readSavedRhythms(client, archiveKey(uid));
+      return archived.find((r) => r.id === rhythmId) ?? null;
     });
     if (result === "unauthorized") {
       return new NextResponse("Unauthorized", { status: 401 });

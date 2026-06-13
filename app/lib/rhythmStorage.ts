@@ -19,6 +19,10 @@ export function libraryKey(uid: string): string {
   return `lib:${uid}`;
 }
 
+export function archiveKey(uid: string): string {
+  return `archive:${uid}`;
+}
+
 export function menuKey(uid: string, slug: string): string {
   return `menu:${uid}:${slug}`;
 }

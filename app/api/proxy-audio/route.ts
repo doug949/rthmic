@@ -9,7 +9,7 @@ import type { ShareEntry } from "@/app/api/share/route";
 import type { SavedRhythm } from "@/app/types/library";
 import { requireUserId } from "@/app/lib/auth";
 import { REDIS_AVAILABLE, withRedis } from "@/app/lib/redis";
-import { libraryKey, menuKey, readSavedRhythms } from "@/app/lib/rhythmStorage";
+import { archiveKey, libraryKey, menuKey, readSavedRhythms } from "@/app/lib/rhythmStorage";
 import { getWasabiSignedUrl } from "@/app/lib/wasabiUpload";
 import { MENU_CONFIGS } from "@/app/lib/menuConfigs";
 
@@ -119,6 +119,10 @@ export async function GET(request: NextRequest) {
 
         const rhythms = await readSavedRhythms(client, libraryKey(uid));
         let found = rhythms.find((r) => r.id === rhythmId) ?? null;
+        if (found) return found;
+
+        const archivedRhythms = await readSavedRhythms(client, archiveKey(uid));
+        found = archivedRhythms.find((r) => r.id === rhythmId) ?? null;
         if (found) return found;
 
         for (const menu of MENU_CONFIGS) {

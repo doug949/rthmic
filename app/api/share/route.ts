@@ -15,7 +15,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { SavedRhythm } from "@/app/types/library";
 import { requireUserId } from "@/app/lib/auth";
 import { REDIS_AVAILABLE, withRedis } from "@/app/lib/redis";
-import { libraryKey, readSavedRhythms } from "@/app/lib/rhythmStorage";
+import { archiveKey, libraryKey, readSavedRhythms } from "@/app/lib/rhythmStorage";
 
 const NINETY_DAYS_SEC = 90 * 24 * 60 * 60;
 
@@ -60,7 +60,11 @@ export async function POST(request: NextRequest) {
     const result = await withRedis(async (client) => {
       // Fetch the rhythm from the caller's library
       const rhythms = await readSavedRhythms(client, libraryKey(uid));
-      const rhythm = rhythms.find((r) => r.id === rhythmId && r.status !== "deleted");
+      let rhythm = rhythms.find((r) => r.id === rhythmId && r.status !== "deleted");
+      if (!rhythm) {
+        const archivedRhythms = await readSavedRhythms(client, archiveKey(uid));
+        rhythm = archivedRhythms.find((r) => r.id === rhythmId && r.status !== "deleted");
+      }
 
       if (!rhythm) return null;
 

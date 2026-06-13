@@ -18,7 +18,7 @@ import type { SavedRhythm } from "@/app/types/library";
 import { normalizeTags, tagsForSavedRhythm } from "@/app/lib/autoTags";
 import { requireUserId } from "@/app/lib/auth";
 import { REDIS_AVAILABLE, withRedis } from "@/app/lib/redis";
-import { libraryKey, readSavedRhythms, writeSavedRhythms } from "@/app/lib/rhythmStorage";
+import { archiveKey, libraryKey, readSavedRhythms, writeSavedRhythms } from "@/app/lib/rhythmStorage";
 import { fromSunoPronunciation } from "@/app/lib/sunoLyrics";
 
 export type { SavedRhythm };
@@ -88,6 +88,26 @@ function libraryDiagnostics(rhythms: SavedRhythm[]) {
   };
 }
 
+function uniqueRhythms(...groups: SavedRhythm[][]): SavedRhythm[] {
+  const seen = new Set<string>();
+  return groups.flat().filter((rhythm) => {
+    if (seen.has(rhythm.id)) return false;
+    seen.add(rhythm.id);
+    return true;
+  });
+}
+
+function normaliseForResponse(rhythms: SavedRhythm[]): SavedRhythm[] {
+  return rhythms.map((r) => {
+    const pillar = normalisePillar(r.pillar) as PillarType;
+    return {
+      ...restoreDisplayLyrics(r),
+      pillar,
+      tags: r.tags?.length ? normalizeTags(r.tags) : tagsForSavedRhythm({ ...r, pillar }),
+    };
+  });
+}
+
 // GET /api/library — fetch the active library by default.
 // Archived and deleted records stay out of normal app payloads so a large
 // archive does not add work to every library consumer.
@@ -103,9 +123,12 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const allRhythms = await withRedis(async (client) => {
-      const key = libraryKey(uid);
-      const all = await readSavedRhythms(client, key);
+    const requestedId = request.nextUrl.searchParams.get("id");
+    const scope = request.nextUrl.searchParams.get("scope");
+    const wantsAll = scope === "all" || request.nextUrl.searchParams.get("diagnostics") === "1" || request.nextUrl.searchParams.get("summary") === "1";
+
+    const { activeRhythms, archivedRhythms } = await withRedis(async (client) => {
+      const all = await readSavedRhythms(client, libraryKey(uid));
 
       // Lazily purge deleted items older than 30 days
       const now = Date.now();
@@ -120,8 +143,16 @@ export async function GET(request: NextRequest) {
           : r
       );
 
-      return aged;
+      const active = aged.filter((rhythm) => rhythm.status !== "archived");
+      const legacyArchived = aged.filter((rhythm) => rhythm.status === "archived");
+      let archived: SavedRhythm[] = legacyArchived;
+      if (scope === "archived" || wantsAll || (requestedId && !active.some((rhythm) => rhythm.id === requestedId))) {
+        archived = uniqueRhythms(await readSavedRhythms(client, archiveKey(uid)), legacyArchived);
+      }
+      return { activeRhythms: active, archivedRhythms: archived };
     });
+
+    const allRhythms = wantsAll ? uniqueRhythms(activeRhythms, archivedRhythms) : activeRhythms;
 
     if (request.nextUrl.searchParams.get("diagnostics") === "1") {
       return NextResponse.json({ diagnostics: libraryDiagnostics(allRhythms) });
@@ -130,32 +161,24 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ summary: librarySummary(allRhythms) });
     }
 
-    const requestedId = request.nextUrl.searchParams.get("id");
-    const scope = request.nextUrl.searchParams.get("scope");
     let selected: SavedRhythm[];
     if (requestedId) {
-      const requested = allRhythms.find((rhythm) => rhythm.id === requestedId);
+      const available = uniqueRhythms(activeRhythms, archivedRhythms);
+      const requested = available.find((rhythm) => rhythm.id === requestedId);
       selected = requested
-        ? allRhythms.filter((rhythm) => samePair(rhythm, requested) && rhythm.status !== "deleted")
+        ? available.filter((rhythm) => samePair(rhythm, requested) && rhythm.status !== "deleted")
         : [];
     } else if (scope === "archived") {
-      selected = allRhythms.filter((rhythm) => rhythm.status === "archived");
+      selected = archivedRhythms.filter((rhythm) => rhythm.status === "archived");
     } else if (scope === "all") {
       selected = allRhythms;
     } else {
-      selected = allRhythms.filter((rhythm) => rhythm.status !== "archived" && rhythm.status !== "deleted");
+      selected = activeRhythms.filter((rhythm) => rhythm.status !== "deleted");
     }
 
     // Normalise only the records this caller needs. Reads remain read-only:
     // optional housekeeping must never turn a successful read into an empty library.
-    const rhythms = selected.map((r) => {
-        const pillar = normalisePillar(r.pillar) as PillarType;
-        return {
-          ...restoreDisplayLyrics(r),
-          pillar,
-          tags: r.tags?.length ? normalizeTags(r.tags) : tagsForSavedRhythm({ ...r, pillar }),
-        };
-      });
+    const rhythms = normaliseForResponse(selected);
     return NextResponse.json({ rhythms });
   } catch (err) {
     console.error("Redis get error:", err);
@@ -194,10 +217,9 @@ export async function POST(request: NextRequest) {
     let retagged = 0;
     let archived = 0;
     await withRedis(async (client) => {
-      const key = libraryKey(uid);
-      const current = await readSavedRhythms(client, key);
-
-      let updated: SavedRhythm[];
+      const activeKey = libraryKey(uid);
+      const storedArchiveKey = archiveKey(uid);
+      const current = await readSavedRhythms(client, activeKey);
 
       if (action === "save") {
         const restored = restoreDisplayLyrics(body.rhythm);
@@ -207,27 +229,51 @@ export async function POST(request: NextRequest) {
           savedAt: Date.now(),
           status: "active",
         };
-        updated = [rhythm, ...current.filter((r) => r.id !== rhythm.id)];
+        await writeSavedRhythms(client, activeKey, [rhythm, ...current.filter((r) => r.id !== rhythm.id)]);
       } else if (action === "remove") {
-        updated = current.map((r) =>
-          r.id === body.id ? { ...r, status: "deleted" as const, deletedAt: Date.now() } : r
-        );
+        if (current.some((r) => r.id === body.id)) {
+          await writeSavedRhythms(client, activeKey, current.map((r) =>
+            r.id === body.id ? { ...r, status: "deleted" as const, deletedAt: Date.now() } : r
+          ));
+        } else {
+          const storedArchive = await readSavedRhythms(client, storedArchiveKey);
+          await writeSavedRhythms(client, storedArchiveKey, storedArchive.map((r) =>
+            r.id === body.id ? { ...r, status: "deleted" as const, deletedAt: Date.now() } : r
+          ));
+        }
       } else if (action === "batch-remove") {
         const ids = new Set<string>(body.ids ?? []);
-        updated = current.map((r) =>
+        await writeSavedRhythms(client, activeKey, current.map((r) =>
           ids.has(r.id) ? { ...r, status: "deleted" as const, deletedAt: Date.now() } : r
-        );
+        ));
       } else if (action === "incrementPlay") {
-        updated = current.map((r) =>
-          r.id === body.id
-            ? { ...r, playCount: (r.playCount ?? 0) + 1, lastPlayedAt: Date.now() }
-            : r
-        );
+        if (current.some((r) => r.id === body.id)) {
+          await writeSavedRhythms(client, activeKey, current.map((r) =>
+            r.id === body.id ? { ...r, playCount: (r.playCount ?? 0) + 1, lastPlayedAt: Date.now() } : r
+          ));
+        } else {
+          const storedArchive = await readSavedRhythms(client, storedArchiveKey);
+          if (storedArchive.some((r) => r.id === body.id)) {
+            await writeSavedRhythms(client, storedArchiveKey, storedArchive.map((r) =>
+              r.id === body.id ? { ...r, playCount: (r.playCount ?? 0) + 1, lastPlayedAt: Date.now() } : r
+            ));
+          }
+        }
       } else if (action === "preferSide") {
         const preferred = current.find((r) => r.id === body.id);
-        updated = preferred
-          ? current.map((r) => samePair(r, preferred) ? { ...r, preferredSideId: preferred.id } : r)
-          : current;
+        if (preferred) {
+          await writeSavedRhythms(client, activeKey, current.map((r) =>
+            samePair(r, preferred) ? { ...r, preferredSideId: preferred.id } : r
+          ));
+        } else {
+          const storedArchive = await readSavedRhythms(client, storedArchiveKey);
+          const archivedPreferred = storedArchive.find((r) => r.id === body.id);
+          if (archivedPreferred) {
+            await writeSavedRhythms(client, storedArchiveKey, storedArchive.map((r) =>
+              samePair(r, archivedPreferred) ? { ...r, preferredSideId: archivedPreferred.id } : r
+            ));
+          }
+        }
       } else if (action === "archiveNonFavourites") {
         const collection = body.collection === "bridge" || body.collection === "invite" ? body.collection : "main";
         const isInCollection = (rhythm: SavedRhythm) =>
@@ -240,25 +286,53 @@ export async function POST(request: NextRequest) {
         const favourites = current.filter((rhythm) =>
           isInCollection(rhythm) && rhythm.status === "favourite"
         );
-        updated = current.map((r) => {
-          if (!isInCollection(r) || r.status !== "active") return r;
-          if (favourites.some((favourite) => samePair(r, favourite))) return r;
-          archived++;
-          return { ...r, status: "archived" as const };
-        });
+        const moving = current.filter((r) =>
+          isInCollection(r) && r.status === "active" && !favourites.some((favourite) => samePair(r, favourite))
+        );
+        archived = moving.length;
+        const movingIds = new Set(moving.map((r) => r.id));
+        const storedArchive = await readSavedRhythms(client, storedArchiveKey);
+        await writeSavedRhythms(client, storedArchiveKey, uniqueRhythms(
+          moving.map((r) => ({ ...r, status: "archived" as const })),
+          storedArchive,
+        ));
+        await writeSavedRhythms(client, activeKey, current.filter((r) => !movingIds.has(r.id)));
       } else if (action === "retag") {
-        updated = current.map((r) => {
+        const updated = current.map((r) => {
           if (r.status === "deleted") return r;
           const next = { ...r, tags: tagsForSavedRhythm(r) };
           if (JSON.stringify(next.tags ?? []) !== JSON.stringify(r.tags ?? [])) retagged++;
           return next;
         });
+        await writeSavedRhythms(client, activeKey, updated);
       } else {
-        // update — status and/or tags; clears deletedAt when un-deleting
+        // Update, archive, or restore. Archive transitions physically move records.
         const target = current.find((r) => r.id === body.id);
-        const activatePair = !!target && body.status === "active";
-        updated = current.map((r) => {
-          if (r.id !== body.id && !(activatePair && target && samePair(r, target))) return r;
+        if (target && body.status === "archived") {
+          const storedArchive = await readSavedRhythms(client, storedArchiveKey);
+          const moved = { ...target, status: "archived" as const };
+          await writeSavedRhythms(client, storedArchiveKey, uniqueRhythms([moved], storedArchive));
+          await writeSavedRhythms(client, activeKey, current.filter((r) => r.id !== target.id));
+          archived = 1;
+          return;
+        }
+
+        if (!target && body.status === "active") {
+          const storedArchive = await readSavedRhythms(client, storedArchiveKey);
+          const archivedTarget = storedArchive.find((r) => r.id === body.id);
+          if (!archivedTarget) return;
+          const restoring = storedArchive.filter((r) => samePair(r, archivedTarget) && r.status === "archived");
+          const restoringIds = new Set(restoring.map((r) => r.id));
+          await writeSavedRhythms(client, activeKey, uniqueRhythms(
+            restoring.map((r) => ({ ...r, status: "active" as const, deletedAt: undefined })),
+            current,
+          ));
+          await writeSavedRhythms(client, storedArchiveKey, storedArchive.filter((r) => !restoringIds.has(r.id)));
+          return;
+        }
+
+        const updateRecords = (records: SavedRhythm[], updateTarget: SavedRhythm) => records.map((r) => {
+          if (r.id !== updateTarget.id) return r;
           const next: SavedRhythm = { ...r };
           if (body.status      !== undefined) next.status      = body.status as SavedRhythm["status"];
           if (body.tags        !== undefined) next.tags        = normalizeTags(body.tags as string[]);
@@ -276,9 +350,16 @@ export async function POST(request: NextRequest) {
           if (next.status !== "deleted") delete next.deletedAt;
           return next;
         });
+        if (target) {
+          await writeSavedRhythms(client, activeKey, updateRecords(current, target));
+        } else {
+          const storedArchive = await readSavedRhythms(client, storedArchiveKey);
+          const archivedTarget = storedArchive.find((r) => r.id === body.id);
+          if (archivedTarget) {
+            await writeSavedRhythms(client, storedArchiveKey, updateRecords(storedArchive, archivedTarget));
+          }
+        }
       }
-
-      await writeSavedRhythms(client, key, updated);
     });
 
     return NextResponse.json({ ok: true, retagged, archived });

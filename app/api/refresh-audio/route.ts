@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { SavedRhythm } from "@/app/types/library";
 import { requireUserId } from "@/app/lib/auth";
 import { REDIS_AVAILABLE, withRedis } from "@/app/lib/redis";
-import { libraryKey, readSavedRhythms, writeSavedRhythms } from "@/app/lib/rhythmStorage";
+import { archiveKey, libraryKey, readSavedRhythms, writeSavedRhythms } from "@/app/lib/rhythmStorage";
 
 const BASE_URL = "https://api.sunoapi.org/api/v1";
 
@@ -83,9 +83,15 @@ export async function GET(request: NextRequest) {
   if (clips.length === 0) return NextResponse.json({ error: "No clips found" }, { status: 404 });
 
   let rhythms: SavedRhythm[] = [];
+  let storageKey = libraryKey(uid);
   if (REDIS_AVAILABLE) {
     try {
-      rhythms = await withRedis((client) => readSavedRhythms(client, libraryKey(uid)));
+      rhythms = await withRedis(async (client) => {
+        const active = await readSavedRhythms(client, libraryKey(uid));
+        if (active.some((rhythm) => rhythm.id === rhythmId)) return active;
+        storageKey = archiveKey(uid);
+        return readSavedRhythms(client, storageKey);
+      });
     } catch (err) {
       console.warn("[refresh-audio] Redis lookup failed:", err);
     }
@@ -103,7 +109,7 @@ export async function GET(request: NextRequest) {
         const updated = rhythms.map((r) =>
           r.id === rhythmId ? { ...r, audioUrl: freshUrl } : r
         );
-        await writeSavedRhythms(client, libraryKey(uid), updated);
+        await writeSavedRhythms(client, storageKey, updated);
       });
     } catch (err) {
       console.warn("[refresh-audio] Redis update failed:", err);
