@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, type ChangeEvent } from "react";
 import { AppHeader } from "@/app/components/AppHeader";
 import { RevealBlock } from "@/app/components/RevealBlock";
 import { useSwipeBack } from "@/app/hooks/useSwipeBack";
@@ -17,6 +17,29 @@ function inferStyle(pillar: string): "A" | "B" {
   return (pillar || "").toLowerCase() === "movement" ? "A" : "B";
 }
 
+function normaliseSearchText(value: string | undefined): string {
+  return (value ?? "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function matchesSearch(rhythm: SavedRhythm, query: string): boolean {
+  const terms = normaliseSearchText(query).split(/\s+/).filter(Boolean);
+  if (terms.length === 0) return true;
+  const haystack = normaliseSearchText([
+    rhythm.title,
+    rhythm.pillar,
+    rhythm.note,
+    rhythm.genre,
+    rhythm.lyrics,
+    ...(rhythm.tags ?? []),
+  ].filter(Boolean).join(" "));
+  return terms.every((term) => haystack.includes(term));
+}
+
 export default function ArchivePage() {
   const [rhythms, setRhythms]         = useState<SavedRhythm[]>([]);
   const [loadState, setLoadState]     = useState<LoadState>("loading");
@@ -24,6 +47,7 @@ export default function ArchivePage() {
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const [shareToastId, setShareToastId]       = useState<string | null>(null);
   const [recreateRhythm, setRecreateRhythm]   = useState<SavedRhythm | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { currentTrackId, isPlaying, currentTime, duration, handlePlayUrl } = useAudio();
   const { startGeneration } = useGeneration();
@@ -60,6 +84,8 @@ export default function ArchivePage() {
   }, [fetchLibrary]);
 
   const archived = rhythms.filter((r) => r.status === "archived");
+  const filteredArchived = archived.filter((rhythm) => matchesSearch(rhythm, searchQuery));
+  const searchActive = normaliseSearchText(searchQuery).length > 0;
 
   const handleRemove = (id: string) => {
     if (confirmRemoveId === id) {
@@ -171,7 +197,26 @@ export default function ArchivePage() {
             <p className="text-[11px] text-white/30 pb-1 leading-relaxed">
               Archived Rthms are hidden everywhere else. Tap Restore to bring one back.
             </p>
-            {archived.map((rhythm) => (
+            <ArchiveSearchBox
+              value={searchQuery}
+              onChange={setSearchQuery}
+              onClear={() => setSearchQuery("")}
+              resultCount={filteredArchived.length}
+              totalCount={archived.length}
+            />
+            {searchActive && filteredArchived.length === 0 && (
+              <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5 py-10 text-center">
+                <p className="text-sm text-white/45">No archived Rthms match “{searchQuery.trim()}”.</p>
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="mt-3 text-xs uppercase tracking-widest touch-manipulation"
+                  style={{ color: "rgba(201,165,90,0.72)" }}
+                >
+                  Clear search
+                </button>
+              </div>
+            )}
+            {filteredArchived.map((rhythm) => (
               <RhythmRow
                 key={rhythm.id}
                 rhythm={rhythm}
@@ -206,6 +251,67 @@ export default function ArchivePage() {
         />
       )}
     </main>
+  );
+}
+
+function ArchiveSearchBox({
+  value,
+  onChange,
+  onClear,
+  resultCount,
+  totalCount,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  onClear: () => void;
+  resultCount: number;
+  totalCount: number;
+}) {
+  const active = normaliseSearchText(value).length > 0;
+  const handleChange = (event: ChangeEvent<HTMLInputElement>) => onChange(event.target.value);
+
+  return (
+    <div className="flex flex-col gap-1.5 pb-2">
+      <label className="text-[9px] uppercase tracking-widest text-white/25 px-0.5" htmlFor="archive-search">
+        Search archive
+      </label>
+      <div
+        className="flex items-center gap-3 rounded-2xl border px-4 py-3"
+        style={{
+          background: active ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.035)",
+          borderColor: active ? "rgba(201,165,90,0.26)" : "rgba(255,255,255,0.08)",
+        }}
+      >
+        <span className="text-base leading-none" style={{ color: active ? "rgba(201,165,90,0.7)" : "rgba(255,255,255,0.28)" }}>
+          ⌕
+        </span>
+        <input
+          id="archive-search"
+          type="search"
+          value={value}
+          onChange={handleChange}
+          placeholder="Search title, style, category, tag, note, lyrics..."
+          autoComplete="off"
+          className="min-w-0 flex-1 bg-transparent outline-none text-sm placeholder:text-white/25"
+          style={{ color: "rgba(255,255,255,0.78)" }}
+        />
+        {active && (
+          <>
+            <span className="text-[10px] tabular-nums whitespace-nowrap" style={{ color: "rgba(255,255,255,0.34)" }}>
+              {resultCount}/{totalCount}
+            </span>
+            <button
+              onClick={onClear}
+              className="h-7 w-7 rounded-full flex items-center justify-center text-lg leading-none touch-manipulation active:scale-[0.95] transition-transform"
+              style={{ color: "rgba(255,255,255,0.42)", background: "rgba(255,255,255,0.06)" }}
+              aria-label="Clear archive search"
+            >
+              ×
+            </button>
+          </>
+        )}
+      </div>
+    </div>
   );
 }
 
