@@ -101,7 +101,7 @@ export default function FullScreenPlayer() {
     let cancelled = false;
     (async () => {
       try {
-        const data = await fetch("/api/library").then((r) => r.json());
+        const data = await fetch(`/api/library?id=${encodeURIComponent(currentTrackId)}`).then((r) => r.json());
         if (cancelled) return;
         const rhythms = (data.rhythms ?? []) as SavedRhythm[];
         const found = rhythms.find(
@@ -197,6 +197,9 @@ export default function FullScreenPlayer() {
     async (body: Record<string, unknown>) => {
       setActionPending(true);
       const optimisticId = typeof body.id === "string" ? body.id : currentTrackId;
+      const refreshUrl = optimisticId
+        ? `/api/library?id=${encodeURIComponent(optimisticId)}`
+        : "/api/library";
       if (body.action === "update" && optimisticId) {
         const patch = { ...body };
         delete patch.action;
@@ -241,14 +244,14 @@ export default function FullScreenPlayer() {
         });
         if (!res.ok) throw new Error("library mutation failed");
         // Re-fetch to get updated state
-        const data = await fetch("/api/library").then((r) => r.json());
+        const data = await fetch(refreshUrl).then((r) => r.json());
         setRhythm(
           (data.rhythms ?? []).find((r: SavedRhythm) => r.id === currentTrackId) ?? null
         );
         // Notify list pages so they re-fetch and show fresh data (e.g. new tags)
         window.dispatchEvent(new CustomEvent("library-mutated"));
       } catch {
-        const data = await fetch("/api/library").then((r) => r.json()).catch(() => null);
+        const data = await fetch(refreshUrl).then((r) => r.json()).catch(() => null);
         if (data) setRhythm((data.rhythms ?? []).find((r: SavedRhythm) => r.id === currentTrackId) ?? null);
       } finally {
         setActionPending(false);

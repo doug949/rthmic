@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { TransitionLink } from "@/app/components/TransitionLink";
 import { useAudio } from "@/app/contexts/AudioContext";
 import { AUDIO_CACHE, keepAllOfflineEnabled, setKeepAllOffline } from "@/app/lib/offlineAudio";
-import { HOME_INTRO_ENABLED, HOME_INTRO_SEEN_KEY } from "@/app/lib/introConfig";
 import { currentClientRoute, markReloadIntent, recordDiagnosticEvent } from "@/app/lib/clientDiagnostics";
 import { PaperPlaneIcon } from "@/app/components/PaperPlaneIcon";
 
@@ -49,7 +48,6 @@ export default function Home() {
   const [serverBuild, setServerBuild] = useState("");
   const [screenReady, setScreenReady] = useState(false);
   const [tilesReady, setTilesReady] = useState(false);
-  const [introComplete, setIntroComplete] = useState(false);
   const [tileIntroDone, setTileIntroDone] = useState(false);
   const [tileOrder, setTileOrder] = useState<string[]>([]);
   const [reorderMode, setReorderMode] = useState(false);
@@ -82,20 +80,9 @@ export default function Home() {
 
   useEffect(() => setMenuShouldRender(true), []);
 
-  useEffect(() => {
-    if (!HOME_INTRO_ENABLED || sessionStorage.getItem(HOME_INTRO_SEEN_KEY)) {
-      setIntroComplete(true);
-      return;
-    }
-    const onIntroComplete = () => setIntroComplete(true);
-    window.addEventListener("rthmic:intro-complete", onIntroComplete);
-    return () => window.removeEventListener("rthmic:intro-complete", onIntroComplete);
-  }, []);
-
   // Keep the menu hidden until its images are decoded, then let the page fade in
   // before the tile rows begin their wave.
   useEffect(() => {
-    if (!introComplete) return;
     let cancelled = false;
     let tileTimer: ReturnType<typeof setTimeout>;
     const imageUrls = HOME_TILES.flatMap((tile) => tile.image ? [tile.image] : []);
@@ -112,7 +99,7 @@ export default function Home() {
       cancelled = true;
       clearTimeout(tileTimer);
     };
-  }, [introComplete]);
+  }, []);
 
   useEffect(() => {
     if (!tilesReady) return;

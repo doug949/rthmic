@@ -88,7 +88,9 @@ function libraryDiagnostics(rhythms: SavedRhythm[]) {
   };
 }
 
-// GET /api/library — fetch all rhythms (active, archived, recently deleted)
+// GET /api/library — fetch the active library by default.
+// Archived and deleted records stay out of normal app payloads so a large
+// archive does not add work to every library consumer.
 export async function GET(request: NextRequest) {
   const uid = requireUserId(request);
   if (!uid) {
@@ -101,7 +103,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const rhythms = await withRedis(async (client) => {
+    const allRhythms = await withRedis(async (client) => {
       const key = libraryKey(uid);
       const all = await readSavedRhythms(client, key);
 
@@ -118,10 +120,35 @@ export async function GET(request: NextRequest) {
           : r
       );
 
-      // Normalise legacy data for the response. Reads must remain read-only:
-      // a full Redis instance must never make an otherwise successful read
-      // look like an empty library because optional housekeeping could not save.
-      return aged.map((r) => {
+      return aged;
+    });
+
+    if (request.nextUrl.searchParams.get("diagnostics") === "1") {
+      return NextResponse.json({ diagnostics: libraryDiagnostics(allRhythms) });
+    }
+    if (request.nextUrl.searchParams.get("summary") === "1") {
+      return NextResponse.json({ summary: librarySummary(allRhythms) });
+    }
+
+    const requestedId = request.nextUrl.searchParams.get("id");
+    const scope = request.nextUrl.searchParams.get("scope");
+    let selected: SavedRhythm[];
+    if (requestedId) {
+      const requested = allRhythms.find((rhythm) => rhythm.id === requestedId);
+      selected = requested
+        ? allRhythms.filter((rhythm) => samePair(rhythm, requested) && rhythm.status !== "deleted")
+        : [];
+    } else if (scope === "archived") {
+      selected = allRhythms.filter((rhythm) => rhythm.status === "archived");
+    } else if (scope === "all") {
+      selected = allRhythms;
+    } else {
+      selected = allRhythms.filter((rhythm) => rhythm.status !== "archived" && rhythm.status !== "deleted");
+    }
+
+    // Normalise only the records this caller needs. Reads remain read-only:
+    // optional housekeeping must never turn a successful read into an empty library.
+    const rhythms = selected.map((r) => {
         const pillar = normalisePillar(r.pillar) as PillarType;
         return {
           ...restoreDisplayLyrics(r),
@@ -129,14 +156,6 @@ export async function GET(request: NextRequest) {
           tags: r.tags?.length ? normalizeTags(r.tags) : tagsForSavedRhythm({ ...r, pillar }),
         };
       });
-    });
-
-    if (request.nextUrl.searchParams.get("diagnostics") === "1") {
-      return NextResponse.json({ diagnostics: libraryDiagnostics(rhythms) });
-    }
-    if (request.nextUrl.searchParams.get("summary") === "1") {
-      return NextResponse.json({ summary: librarySummary(rhythms) });
-    }
     return NextResponse.json({ rhythms });
   } catch (err) {
     console.error("Redis get error:", err);

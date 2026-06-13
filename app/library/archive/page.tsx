@@ -31,19 +31,13 @@ export default function ArchivePage() {
 
   const fetchLibrary = useCallback(async () => {
     try {
-      const res = await fetch("/api/library");
+      const res = await fetch("/api/library?scope=archived", { cache: "no-store" });
       if (!res.ok) throw new Error("fetch failed");
       const data = await res.json();
-      const rhythms = data.rhythms ?? [];
-      setRhythms(rhythms);
+      setRhythms(data.rhythms ?? []);
       setLoadState("ready");
-      const { saveLibraryCache } = await import("@/app/lib/libraryCache");
-      saveLibraryCache(rhythms);
     } catch {
-      const { loadLibraryCache } = await import("@/app/lib/libraryCache");
-      const cached = loadLibraryCache();
-      setRhythms(cached);
-      setLoadState(cached.length > 0 ? "ready" : "error");
+      setLoadState("error");
     }
   }, []);
 
@@ -188,6 +182,7 @@ export default function ArchivePage() {
                 onToggleLyrics={() => setShowLyricsId(showLyricsId === rhythm.id ? null : rhythm.id)}
                 onPlay={() => togglePlay(rhythm)}
                 onArchive={() => handleRestore(rhythm)}
+                onRestore={() => handleRestore(rhythm)}
                 onRemove={() => handleRemove(rhythm.id)}
                 onRecreate={() => setRecreateRhythm(rhythm)}
                 onBuildUpon={() => handleBuildUpon(rhythm)}

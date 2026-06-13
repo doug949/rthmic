@@ -4,11 +4,8 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
-const LOGIN_VIDEO_SRC = "/login-vinyl.mp4";
-
 function LoginForm() {
   const [openPanel, setOpenPanel] = useState<"login" | "request" | null>(null);
-  const [videoReady, setVideoReady] = useState(false);
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
@@ -104,39 +101,10 @@ function LoginForm() {
       style={{ background: "#02050a" }}
     >
       <div
-        className="pointer-events-none absolute inset-0 bg-cover bg-center"
-        aria-hidden="true"
-        style={{
-          backgroundImage: "url('/vinyl.jpg')",
-          filter: "saturate(0.72) contrast(1.12) brightness(0.32)",
-          transform: "scale(1.01)",
-        }}
-      />
-      <video
-        className="pointer-events-none absolute inset-0 h-full w-full object-cover"
-        autoPlay
-        muted
-        loop
-        playsInline
-        controls={false}
-        disablePictureInPicture
-        preload="auto"
-        poster="/vinyl.jpg"
-        onCanPlay={() => setVideoReady(true)}
-        aria-hidden="true"
-        style={{
-          filter: "saturate(0.76) contrast(1.12) brightness(0.42)",
-          opacity: videoReady ? 0.62 : 0,
-          transition: "opacity 1400ms cubic-bezier(0.16, 1, 0.3, 1)",
-        }}
-      >
-        <source src={LOGIN_VIDEO_SRC} type="video/mp4" />
-      </video>
-      <div
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "linear-gradient(180deg, rgba(2,6,13,0.91) 0%, rgba(5,10,20,0.82) 44%, rgba(2,6,13,0.96) 100%)",
+            "radial-gradient(circle at 50% 10%, rgba(201,165,90,0.16), transparent 30%), radial-gradient(circle at 18% 72%, rgba(64,205,235,0.10), transparent 34%), linear-gradient(180deg, #07101d 0%, #02050a 58%, #010204 100%)",
         }}
       />
       <div
@@ -460,16 +428,8 @@ function LoginBackdropFallback() {
   return (
     <main className="fixed inset-0 z-10 overflow-hidden" style={{ background: "#02050a" }} aria-hidden="true">
       <div
-        className="absolute inset-0 bg-cover bg-center"
-        style={{
-          backgroundImage: "url('/vinyl.jpg')",
-          filter: "saturate(0.72) contrast(1.12) brightness(0.32)",
-          transform: "scale(1.01)",
-        }}
-      />
-      <div
         className="absolute inset-0"
-        style={{ background: "linear-gradient(180deg, rgba(2,6,13,0.91), rgba(2,6,13,0.96))" }}
+        style={{ background: "radial-gradient(circle at 50% 10%, rgba(201,165,90,0.16), transparent 30%), linear-gradient(180deg, #07101d, #02050a 62%, #010204)" }}
       />
     </main>
   );

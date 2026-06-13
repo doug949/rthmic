@@ -28,6 +28,7 @@ export function RhythmRow({
   onGraduate,
   onUngraduate,
   onArchive,
+  onRestore,
   onRemove,
   onRecreate,
   onBuildUpon,
@@ -60,6 +61,7 @@ export function RhythmRow({
   onGraduate?: () => void;
   onUngraduate?: () => void;
   onArchive: () => void;
+  onRestore?: () => void;
   onRemove: () => void;
   onRecreate: () => void;
   onBuildUpon?: () => void;
@@ -336,6 +338,9 @@ export function RhythmRow({
 
       {/* Action bar — primary actions only */}
       <div className="flex" style={{ borderTop: `1px solid ${favourite ? "rgba(201,165,90,0.12)" : P ? P.divider : "rgba(255,255,255,0.06)"}` }}>
+        {onRestore && (
+          <SmallBtn onClick={onRestore} label={actionPending ? "Restoring…" : "Unarchive"} sublabel="Back to active" icon="↺" active disabled={actionPending} />
+        )}
         <SmallBtn onClick={onShare} label={shareToast ? "Copied!" : "Share"} sublabel={shareToast ? "Link ready" : "Send link"} icon="↗" active={shareToast} gold={favourite} purple={!!P} />
         {isNew && onMarkListened && (
           <SmallBtn onClick={onMarkListened} label={actionPending ? "Moving…" : markListenedLabel} sublabel={markListenedSublabel} icon="✓" purple disabled={actionPending} />
