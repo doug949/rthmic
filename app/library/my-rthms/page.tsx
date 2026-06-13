@@ -82,6 +82,19 @@ function belongsToCollection(rhythm: SavedRhythm, collection: LibraryCollection)
   return rhythm.pillar !== "Bridge" && rhythm.pillar !== "Invite";
 }
 
+function samePair(a: SavedRhythm, b: SavedRhythm): boolean {
+  if (a.id === b.id) return true;
+  if (a.alternateId === b.id || b.alternateId === a.id) return true;
+  if (a.pairId && b.pairId && a.pairId === b.pairId) return true;
+  const baseTitle = (rhythm: SavedRhythm) =>
+    rhythm.title.replace(/\s+\(Variation\)$/i, "").trim().toLowerCase();
+  return (
+    baseTitle(a) === baseTitle(b) &&
+    a.pillar === b.pillar &&
+    (a.lyrics ?? "").slice(0, 80) === (b.lyrics ?? "").slice(0, 80)
+  );
+}
+
 function normaliseSearchText(value: string | undefined): string {
   return (value ?? "")
     .toLowerCase()
@@ -242,7 +255,12 @@ export default function MyRthmsPage() {
   const searchActive = normaliseSearchText(searchQuery).length > 0;
   const newRthms      = regularRhythms.filter((r) => r.status === "new" && matchesSearch(r, searchQuery));
   const myRthms       = regularRhythms.filter((r) => r.status === "active" || r.status === "favourite");
-  const archiveableNonFavourites = regularRhythms.filter((r) => r.status === "active");
+  const favouriteRhythms = regularRhythms.filter((r) => r.status === "favourite");
+  const activeNonFavourites = regularRhythms.filter((r) => r.status === "active");
+  const archiveableNonFavourites = activeNonFavourites.filter((rhythm) =>
+    !favouriteRhythms.some((favourite) => samePair(rhythm, favourite))
+  );
+  const protectedFlipSides = activeNonFavourites.length - archiveableNonFavourites.length;
   const recentlyDeleted = regularRhythms.filter(
     (r) => r.status === "deleted" && r.deletedAt !== undefined && now - r.deletedAt < THIRTY_DAYS
   );
@@ -719,10 +737,14 @@ export default function MyRthmsPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold" style={{ color: confirmArchiveNonFavourites ? "rgba(248,113,113,0.9)" : "rgba(255,255,255,0.68)" }}>
-                      {bulkArchiving ? "Archiving..." : confirmArchiveNonFavourites ? "Are you sure? This can't be undone" : "Archive all non-favourites"}
+                      {bulkArchiving ? "Archiving..." : confirmArchiveNonFavourites ? "Move these Rthms to The Archive?" : "Archive all non-favourites"}
                     </p>
                     <p className="text-[10px] uppercase tracking-wider mt-0.5" style={{ color: confirmArchiveNonFavourites ? "rgba(248,113,113,0.58)" : "rgba(255,255,255,0.28)" }}>
-                      {archiveableNonFavourites.length > 0 ? `${archiveableNonFavourites.length} Rthm${archiveableNonFavourites.length === 1 ? "" : "s"} will move to The Archive` : "No non-favourite Rthms to archive"}
+                      {archiveableNonFavourites.length > 0
+                        ? `${archiveableNonFavourites.length} Rthm${archiveableNonFavourites.length === 1 ? "" : "s"} will move${protectedFlipSides > 0 ? ` · ${protectedFlipSides} paired with favourite${protectedFlipSides === 1 ? "" : "s"} will stay` : ""}`
+                        : protectedFlipSides > 0
+                          ? `${protectedFlipSides} non-favourite flip side${protectedFlipSides === 1 ? " is" : "s are"} kept with favourite${protectedFlipSides === 1 ? "" : "s"}`
+                          : "No non-favourite Rthms to archive"}
                     </p>
                   </div>
                   <span className="text-[10px] uppercase tracking-widest" style={{ color: confirmArchiveNonFavourites ? "rgba(248,113,113,0.72)" : "rgba(255,255,255,0.28)" }}>

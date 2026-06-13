@@ -230,15 +230,19 @@ export async function POST(request: NextRequest) {
           : current;
       } else if (action === "archiveNonFavourites") {
         const collection = body.collection === "bridge" || body.collection === "invite" ? body.collection : "main";
+        const isInCollection = (rhythm: SavedRhythm) =>
+          !rhythm.rthmixId &&
+          (collection === "bridge"
+            ? rhythm.pillar === "Bridge"
+            : collection === "invite"
+              ? rhythm.pillar === "Invite"
+              : rhythm.pillar !== "Bridge" && rhythm.pillar !== "Invite");
+        const favourites = current.filter((rhythm) =>
+          isInCollection(rhythm) && rhythm.status === "favourite"
+        );
         updated = current.map((r) => {
-          const inCollection =
-            !r.rthmixId &&
-            (collection === "bridge"
-              ? r.pillar === "Bridge"
-              : collection === "invite"
-                ? r.pillar === "Invite"
-                : r.pillar !== "Bridge" && r.pillar !== "Invite");
-          if (!inCollection || r.status !== "active") return r;
+          if (!isInCollection(r) || r.status !== "active") return r;
+          if (favourites.some((favourite) => samePair(r, favourite))) return r;
           archived++;
           return { ...r, status: "archived" as const };
         });
