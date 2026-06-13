@@ -61,6 +61,33 @@ function librarySummary(rhythms: SavedRhythm[]) {
   };
 }
 
+function libraryDiagnostics(rhythms: SavedRhythm[]) {
+  const statusCounts = rhythms.reduce<Record<SavedRhythm["status"], number>>((counts, rhythm) => {
+    counts[rhythm.status] += 1;
+    return counts;
+  }, { new: 0, active: 0, favourite: 0, archived: 0, deleted: 0 });
+  const recordSizes = rhythms.map((rhythm) => ({
+    id: rhythm.id,
+    title: rhythm.title,
+    status: rhythm.status,
+    approxBytes: Buffer.byteLength(JSON.stringify(rhythm), "utf8"),
+  }));
+
+  return {
+    totalRecords: rhythms.length,
+    visibleRecords: rhythms.filter((rhythm) => rhythm.status !== "deleted").length,
+    statusCounts,
+    playableRecords: rhythms.filter((rhythm) => rhythm.status !== "deleted" && !!(rhythm.audioUrl || rhythm.audioKey)).length,
+    rthmixTracks: rhythms.filter((rhythm) => !!rhythm.rthmixId).length,
+    recordsWithTimedLyrics: rhythms.filter((rhythm) => !!rhythm.timedLyrics?.length).length,
+    timedWordCount: rhythms.reduce((total, rhythm) => total + (rhythm.timedLyrics?.length ?? 0), 0),
+    recordsWithLyrics: rhythms.filter((rhythm) => !!rhythm.lyrics).length,
+    lyricCharacters: rhythms.reduce((total, rhythm) => total + (rhythm.lyrics?.length ?? 0), 0),
+    approxMetadataBytes: recordSizes.reduce((total, record) => total + record.approxBytes, 0),
+    largestRecords: recordSizes.sort((a, b) => b.approxBytes - a.approxBytes).slice(0, 5),
+  };
+}
+
 // GET /api/library — fetch all rhythms (active, archived, recently deleted)
 export async function GET(request: NextRequest) {
   const uid = requireUserId(request);
@@ -104,6 +131,9 @@ export async function GET(request: NextRequest) {
       });
     });
 
+    if (request.nextUrl.searchParams.get("diagnostics") === "1") {
+      return NextResponse.json({ diagnostics: libraryDiagnostics(rhythms) });
+    }
     if (request.nextUrl.searchParams.get("summary") === "1") {
       return NextResponse.json({ summary: librarySummary(rhythms) });
     }

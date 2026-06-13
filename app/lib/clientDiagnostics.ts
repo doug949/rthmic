@@ -10,6 +10,7 @@ export const RELOAD_REASON_KEY = "rthmic:last-reload-reason";
 export const RELOAD_INTENT_KEY = "rthmic:last-reload-intent-v1";
 export const NAV_INTENT_KEY = "rthmic:navigation-intent";
 export const SW_VERSION_KEY = "rthmic:service-worker-version";
+export const LIBRARY_DIAGNOSTICS_KEY = "rthmic:library-diagnostics-v1";
 
 const MAX_EVENTS = 120;
 const MAX_ROUTES = 24;
@@ -47,6 +48,28 @@ export interface ReloadIntent {
   at: string;
   appVersion: string;
   deploymentVersion: string;
+}
+
+export interface LibraryDiagnosticsSnapshot {
+  collectedAt: string;
+  server: Record<string, unknown>;
+  localLibraryCache: {
+    available: boolean;
+    records: number;
+    approxBytes: number;
+  };
+  offlineAudio: {
+    available: boolean;
+    entries: number;
+    contentLengthBytes: number;
+    entriesWithoutContentLength: number;
+  };
+  browserStorage: {
+    available: boolean;
+    usageBytes?: number;
+    quotaBytes?: number;
+    percentUsed?: number;
+  };
 }
 
 export function currentClientRoute(): string {
@@ -256,6 +279,78 @@ export function getStorageSnapshot(): Record<string, number | string> {
   }
 }
 
+export function readLibraryDiagnosticsSnapshot(): LibraryDiagnosticsSnapshot | null {
+  return readJson<LibraryDiagnosticsSnapshot | null>(LIBRARY_DIAGNOSTICS_KEY, null);
+}
+
+async function collectOfflineAudioSnapshot(): Promise<LibraryDiagnosticsSnapshot["offlineAudio"]> {
+  if (!("caches" in window)) return { available: false, entries: 0, contentLengthBytes: 0, entriesWithoutContentLength: 0 };
+  try {
+    const cache = await caches.open("rthmic-audio-v1");
+    const requests = await cache.keys();
+    let contentLengthBytes = 0;
+    let entriesWithoutContentLength = 0;
+    for (const request of requests) {
+      const response = await cache.match(request);
+      const length = Number(response?.headers.get("content-length"));
+      if (Number.isFinite(length) && length > 0) contentLengthBytes += length;
+      else entriesWithoutContentLength += 1;
+    }
+    return { available: true, entries: requests.length, contentLengthBytes, entriesWithoutContentLength };
+  } catch {
+    return { available: false, entries: 0, contentLengthBytes: 0, entriesWithoutContentLength: 0 };
+  }
+}
+
+export async function collectLibraryDiagnosticsSnapshot(): Promise<LibraryDiagnosticsSnapshot> {
+  let server: Record<string, unknown> = { available: false };
+  try {
+    const response = await fetch(`/api/library?diagnostics=1&t=${Date.now()}`, { cache: "no-store" });
+    const data = await response.json() as { diagnostics?: Record<string, unknown> };
+    if (response.ok && data.diagnostics) server = { available: true, ...data.diagnostics };
+  } catch {
+    server = { available: false };
+  }
+
+  let localLibraryCache = { available: false, records: 0, approxBytes: 0 };
+  try {
+    const raw = localStorage.getItem("rthmic_library_cache") ?? "";
+    const parsed = raw ? JSON.parse(raw) as unknown : [];
+    localLibraryCache = {
+      available: true,
+      records: Array.isArray(parsed) ? parsed.length : 0,
+      approxBytes: raw.length * 2,
+    };
+  } catch {
+    // Keep the unavailable snapshot.
+  }
+
+  let browserStorage: LibraryDiagnosticsSnapshot["browserStorage"] = { available: false };
+  try {
+    const estimate = await navigator.storage?.estimate?.();
+    const usageBytes = estimate?.usage ?? 0;
+    const quotaBytes = estimate?.quota ?? 0;
+    browserStorage = {
+      available: !!estimate,
+      usageBytes,
+      quotaBytes,
+      percentUsed: quotaBytes > 0 ? Number(((usageBytes / quotaBytes) * 100).toFixed(2)) : 0,
+    };
+  } catch {
+    // Keep the unavailable snapshot.
+  }
+
+  const snapshot: LibraryDiagnosticsSnapshot = {
+    collectedAt: new Date().toISOString(),
+    server,
+    localLibraryCache,
+    offlineAudio: await collectOfflineAudioSnapshot(),
+    browserStorage,
+  };
+  safeSetLocalItem(LIBRARY_DIAGNOSTICS_KEY, JSON.stringify(snapshot));
+  return snapshot;
+}
+
 export function collectDiagnosticDetail(extra?: Record<string, unknown>): Record<string, unknown> {
   return {
     currentRoute: diagnosticRoute(),
@@ -267,6 +362,7 @@ export function collectDiagnosticDetail(extra?: Record<string, unknown>): Record
     timestamp: new Date().toISOString(),
     memory: getMemorySnapshot(),
     storage: getStorageSnapshot(),
+    library: readLibraryDiagnosticsSnapshot(),
     ...extra,
   };
 }

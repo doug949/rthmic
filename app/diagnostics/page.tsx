@@ -6,6 +6,7 @@ import { AppHeader } from "@/app/components/AppHeader";
 import {
   getDeploymentVersion,
   getDiagnosticSessionId,
+  collectLibraryDiagnosticsSnapshot,
   getMemorySnapshot,
   getServiceWorkerVersion,
   getStorageSnapshot,
@@ -14,6 +15,7 @@ import {
   readRouteStack,
   sanitizeDiagnosticRoute,
   type DiagnosticEvent,
+  type LibraryDiagnosticsSnapshot,
 } from "@/app/lib/clientDiagnostics";
 
 interface DiagnosticsSnapshot {
@@ -36,6 +38,7 @@ interface DiagnosticsSnapshot {
   persistedRouteState: unknown;
   memory: Record<string, number | string>;
   storage: Record<string, number | string>;
+  library: LibraryDiagnosticsSnapshot;
   queueJobs: DiagnosticQueueJob[];
   events: DiagnosticEvent[];
   userAgent: string;
@@ -118,6 +121,7 @@ async function collectSnapshot(): Promise<DiagnosticsSnapshot> {
     persistedRouteState: readPersistedRouteState(),
     memory: getMemorySnapshot(),
     storage: getStorageSnapshot(),
+    library: await collectLibraryDiagnosticsSnapshot(),
     queueJobs: await collectQueueJobs(),
     events: readDiagnosticEvents(),
     userAgent: navigator.userAgent,
@@ -258,6 +262,19 @@ export default function DiagnosticsPage() {
               <Row label="Storage" value={JSON.stringify(snapshot.storage)} />
             </Panel>
 
+            <Panel title="Library Load And Crash Pressure">
+              <Row label="Assessment" value={libraryPressureAssessment(snapshot.library)} />
+              <Row label="Songs" value={libraryCountSummary(snapshot.library)} />
+              <Row label="Metadata" value={formatBytes(numberField(snapshot.library.server, "approxMetadataBytes"))} />
+              <Row label="Timed lyrics" value={`${numberField(snapshot.library.server, "recordsWithTimedLyrics")} songs / ${numberField(snapshot.library.server, "timedWordCount")} timed words`} />
+              <Row label="Rthmix tracks" value={String(numberField(snapshot.library.server, "rthmixTracks"))} />
+              <Row label="Local cache" value={`${snapshot.library.localLibraryCache.records} songs / ${formatBytes(snapshot.library.localLibraryCache.approxBytes)}`} />
+              <Row label="Offline audio" value={`${snapshot.library.offlineAudio.entries} cached files / ${formatBytes(snapshot.library.offlineAudio.contentLengthBytes)} known size${snapshot.library.offlineAudio.entriesWithoutContentLength ? ` / ${snapshot.library.offlineAudio.entriesWithoutContentLength} unknown size` : ""}`} />
+              <Row label="Device storage" value={snapshot.library.browserStorage.available ? `${formatBytes(snapshot.library.browserStorage.usageBytes ?? 0)} of ${formatBytes(snapshot.library.browserStorage.quotaBytes ?? 0)} (${snapshot.library.browserStorage.percentUsed ?? 0}%)` : "unavailable"} />
+              <Row label="Largest songs" value={largestRecordSummary(snapshot.library)} />
+              <p className="pt-2 text-xs leading-relaxed text-white/38">Compare this panel across crash reports. Rising song count alone is less significant than rising metadata, timed-word totals, local cache size, offline files, or browser storage pressure.</p>
+            </Panel>
+
             <Panel title={`Queue Jobs (${snapshot.queueJobs.length})`}>
               {snapshot.queueJobs.length === 0 ? (
                 <p className="text-sm text-white/45">No queued, generating, or failed jobs visible.</p>
@@ -322,4 +339,48 @@ function Row({ label, value }: { label: string; value: string }) {
       <span className="break-words text-white/72">{value}</span>
     </div>
   );
+}
+
+function numberField(record: Record<string, unknown>, key: string): number {
+  const value = record[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}
+
+function libraryCountSummary(snapshot: LibraryDiagnosticsSnapshot): string {
+  const total = numberField(snapshot.server, "totalRecords");
+  const visible = numberField(snapshot.server, "visibleRecords");
+  const playable = numberField(snapshot.server, "playableRecords");
+  const statuses = snapshot.server.statusCounts as Record<string, unknown> | undefined;
+  const deleted = statuses && typeof statuses.deleted === "number" ? statuses.deleted : 0;
+  const archived = statuses && typeof statuses.archived === "number" ? statuses.archived : 0;
+  return `${total} total / ${visible} visible / ${playable} playable / ${archived} archived / ${deleted} retained deleted`;
+}
+
+function largestRecordSummary(snapshot: LibraryDiagnosticsSnapshot): string {
+  const records = Array.isArray(snapshot.server.largestRecords) ? snapshot.server.largestRecords : [];
+  if (!records.length) return "none";
+  return records.slice(0, 5).map((record) => {
+    const item = record as { title?: unknown; approxBytes?: unknown };
+    return `${typeof item.title === "string" ? item.title : "Untitled"} (${formatBytes(typeof item.approxBytes === "number" ? item.approxBytes : 0)})`;
+  }).join(", ");
+}
+
+function libraryPressureAssessment(snapshot: LibraryDiagnosticsSnapshot): string {
+  const total = numberField(snapshot.server, "totalRecords");
+  const metadata = numberField(snapshot.server, "approxMetadataBytes");
+  const timedWords = numberField(snapshot.server, "timedWordCount");
+  const offline = snapshot.offlineAudio.entries;
+  const storagePercent = snapshot.browserStorage.percentUsed ?? 0;
+  const high = total >= 1000 || metadata >= 25 * 1024 * 1024 || timedWords >= 250_000 || offline >= 500 || storagePercent >= 85;
+  const elevated = total >= 400 || metadata >= 10 * 1024 * 1024 || timedWords >= 100_000 || offline >= 200 || storagePercent >= 65;
+  if (high) return "High collection pressure: song volume or retained data is a credible crash contributor.";
+  if (elevated) return "Elevated collection pressure: compare these values with the next crash event.";
+  return "No obvious collection-size pressure at this snapshot.";
 }

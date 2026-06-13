@@ -3,6 +3,7 @@
 import { Component, type ErrorInfo, type ReactNode, useEffect } from "react";
 import {
   RELOAD_REASON_KEY,
+  collectLibraryDiagnosticsSnapshot,
   recordDiagnosticEvent,
   safeGetSessionItem,
 } from "@/app/lib/clientDiagnostics";
@@ -123,6 +124,28 @@ export class RuntimeDiagnosticsBoundary extends Component<
 }
 
 export function RuntimeDiagnosticsListeners() {
+  useEffect(() => {
+    let cancelled = false;
+    let debounceTimer: number | undefined;
+    const refresh = () => {
+      if (cancelled) return;
+      void collectLibraryDiagnosticsSnapshot().catch(() => {});
+    };
+    const scheduleRefresh = () => {
+      window.clearTimeout(debounceTimer);
+      debounceTimer = window.setTimeout(refresh, 1200);
+    };
+    refresh();
+    window.addEventListener("library-mutated", scheduleRefresh);
+    const interval = window.setInterval(refresh, 10 * 60_000);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("library-mutated", scheduleRefresh);
+      window.clearTimeout(debounceTimer);
+      window.clearInterval(interval);
+    };
+  }, []);
+
   useEffect(() => {
     const onError = (event: ErrorEvent) => {
       recordDiagnosticEvent("window-error", {
