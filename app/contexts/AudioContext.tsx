@@ -86,12 +86,16 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const stop = useCallback(() => {
+    // Invalidate every listener, retry, and in-flight recovery belonging to
+    // the stopped audio element before it has a chance to resume itself.
+    generationRef.current++;
     stopCurrent();
     setCurrentTrackId(null);
     setCurrentTitle(null);
     setCurrentMeta(null);
     setIsPlaying(false);
     setLoadingId(null);
+    setPlayerOpen(false);
     queueRef.current = [];
     queueIndexRef.current = -1;
     queueLoopEachRef.current = false;
@@ -121,8 +125,12 @@ export function AudioProvider({ children }: { children: ReactNode }) {
 
       audio.addEventListener("durationchange", () => setDuration(isFinite(audio.duration) ? audio.duration : 0));
       audio.addEventListener("loadedmetadata", () => setDuration(isFinite(audio.duration) ? audio.duration : 0));
-      audio.addEventListener("pause", () => setIsPlaying(false));
-      audio.addEventListener("play",  () => setIsPlaying(true));
+      audio.addEventListener("pause", () => {
+        if (generation === generationRef.current) setIsPlaying(false);
+      });
+      audio.addEventListener("play",  () => {
+        if (generation === generationRef.current) setIsPlaying(true);
+      });
       let playCounted = false;
       audio.addEventListener("playing", () => {
         if (playCounted || generation !== generationRef.current) return;
@@ -185,6 +193,8 @@ export function AudioProvider({ children }: { children: ReactNode }) {
             console.warn("Audio refresh failed during stall recovery");
           }
         }
+
+        if (generation !== generationRef.current) return;
 
         const freshGen = ++generationRef.current;
         attachAndPlayRef.current?.(id, recoveryUrl, freshGen, meta);
@@ -261,6 +271,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
             );
             if (res.ok) {
               const { url: freshUrl } = await res.json();
+              if (generation !== generationRef.current) return;
               const freshGen = ++generationRef.current;
               attachAndPlayRef.current?.(id, freshUrl, freshGen, meta);
               return;
@@ -278,7 +289,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       setIsPlaying(true);
       playPromise?.catch((err) => {
         console.warn("Autoplay blocked:", err.message);
-        setIsPlaying(false);
+        if (generation === generationRef.current) setIsPlaying(false);
       });
     },
     [isLoop, playQueuedTrack]
@@ -473,7 +484,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       audioRef.current?.pause();
     });
     navigator.mediaSession.setActionHandler("stop", () => {
-      audioRef.current?.pause();
+      stop();
     });
     navigator.mediaSession.setActionHandler("nexttrack", () => {
       const nextTrack = queueRef.current[queueIndexRef.current + 1];
@@ -492,7 +503,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       navigator.mediaSession.setActionHandler("nexttrack", null);
       navigator.mediaSession.setActionHandler("previoustrack", null);
     };
-  }, [currentMeta, currentTrackId, currentTitle, playQueuedTrack, resumePlayback]);
+  }, [currentMeta, currentTrackId, currentTitle, playQueuedTrack, resumePlayback, stop]);
 
   // Keep the OS playback state in sync so the lock screen shows the right icon
   useEffect(() => {
