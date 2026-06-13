@@ -200,6 +200,16 @@ function AttentionStackContent() {
       className={`relative z-10 min-h-screen bg-[#0d1628] px-6 ${embedded ? "pt-5" : ""}`}
       style={embedded ? undefined : { paddingTop: "env(safe-area-inset-top, 0px)" }}
     >
+      {embedded && (
+        <button
+          type="button"
+          onClick={() => window.parent.postMessage({ type: "rthmic:close-attention-stack" }, window.location.origin)}
+          className="fixed right-4 top-4 z-50 flex h-11 w-11 items-center justify-center rounded-full border border-white/12 bg-[#111d32] text-2xl leading-none text-white/65 shadow-lg touch-manipulation"
+          aria-label="Close Attention Stack"
+        >
+          ×
+        </button>
+      )}
       {!embedded && <AppHeader title="Attention Stack" titleIcon={<StackIcon />} />}
       <div className="mx-auto flex max-w-xl flex-col gap-5 pb-16">
         <section className="rounded-3xl border p-5" style={{ borderColor: "rgba(74,222,128,0.34)", background: "rgba(34,197,94,0.075)" }}>

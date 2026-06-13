@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAudio } from "@/app/contexts/AudioContext";
 import { trackMetadataLabel } from "@/app/lib/playerMetadata";
 
@@ -10,6 +10,20 @@ export default function MiniPlayer() {
     currentTime, duration, playerOpen, openPlayer, stop, togglePlayPause,
   } = useAudio();
   const [tucked, setTucked] = useState(false);
+  const [attentionStackOpen, setAttentionStackOpen] = useState(false);
+
+  useEffect(() => {
+    const handleVisibility = (event: Event) => {
+      setAttentionStackOpen(!!(event as CustomEvent<{ open?: boolean }>).detail?.open);
+    };
+    window.addEventListener("rthmic:attention-stack-visibility", handleVisibility);
+    return () => window.removeEventListener("rthmic:attention-stack-visibility", handleVisibility);
+  }, []);
+
+  const showFullPlayer = () => {
+    if (attentionStackOpen) window.dispatchEvent(new CustomEvent("rthmic:close-attention-stack"));
+    openPlayer();
+  };
 
   // Don't show if nothing is playing, or the full-screen player is already open
   if (!currentTrackId || playerOpen) return null;
@@ -21,7 +35,7 @@ export default function MiniPlayer() {
   if (tucked) {
     return (
       <div
-        className="fixed bottom-0 right-0 z-40 pb-safe"
+        className={`fixed bottom-0 right-0 pb-safe ${attentionStackOpen ? "z-[90]" : "z-40"}`}
         style={{ paddingBottom: "max(env(safe-area-inset-bottom), 10px)" }}
       >
         <div
@@ -57,7 +71,7 @@ export default function MiniPlayer() {
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-40 pb-safe"
+      className={`fixed bottom-0 left-0 right-0 pb-safe ${attentionStackOpen ? "z-[90]" : "z-40"}`}
       style={{ paddingBottom: "max(env(safe-area-inset-bottom), 8px)" }}
     >
       <div
@@ -81,7 +95,7 @@ export default function MiniPlayer() {
           </button>
 
           <button
-            onClick={openPlayer}
+            onClick={showFullPlayer}
             className="flex-1 min-w-0 flex items-center gap-3 rounded-xl px-1 py-1 text-left touch-manipulation active:opacity-70 transition-opacity"
             aria-label="Open player"
           >
