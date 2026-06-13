@@ -2533,6 +2533,7 @@ function GenreView({
           body: JSON.stringify({
             stateSummary: understandResult.stateSummary,
             style: understandResult.style,
+            pillar: understandResult.pillar,
             genres: allGenres,
             stylePreferences: settings.stylePreferences,
           }),
