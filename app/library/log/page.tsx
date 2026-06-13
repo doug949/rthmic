@@ -131,6 +131,7 @@ function LogEntryCard({ entry }: { entry: GenLogEntry }) {
             <DetailSection label="Parameters">
               <DetailRow label="Pillar" value={entry.pillar || "—"} />
               <DetailRow label="Style"  value={styleLabel(entry.style)} />
+              {entry.menuSlug && <DetailRow label="Destination" value={`Menu · ${entry.menuSlug}`} mono />}
               {entry.genre && (
                 <DetailRow label="Genre" value={cleanGenre(entry.genre)} mono />
               )}

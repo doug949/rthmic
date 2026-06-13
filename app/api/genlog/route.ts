@@ -11,6 +11,7 @@ export interface GenLogEntry {
   pillar: string;
   genre: string;
   style: string;
+  menuSlug?: string;
   status: "success" | "failed" | "timeout";
   durationMs: number;
   songs?: { id: string; title: string }[];

@@ -652,6 +652,7 @@ export default function FullScreenPlayer() {
                     title: buildUponTitle(rhythm.title),
                     pillar: rhythm.pillar,
                     genre: BUILD_UPON_GENRE,
+                    menuSlug: sourceMenuSlug ?? undefined,
                     note: `Built upon: ${rhythm.title}`,
                   });
                   setMoreOpen(false);
@@ -700,6 +701,7 @@ export default function FullScreenPlayer() {
               title: rhythm.title,
               pillar: rhythm.pillar,
               genre,
+              menuSlug: sourceMenuSlug ?? undefined,
             });
             setRecreateOpen(false);
             closePlayer();
