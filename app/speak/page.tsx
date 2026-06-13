@@ -752,7 +752,7 @@ export default function SpeakPage() {
         const err = await res.json();
         throw new Error(err.error ?? "Failed to queue generation");
       }
-      // Job queued — navigate to library so user sees the generating section
+      // Job queued — return menu work to its menu; ordinary Rthms go to the library.
       refreshQueueStatus();
       setPhase("queued");
       setUnderstandResult(null);
@@ -762,6 +762,8 @@ export default function SpeakPage() {
         const unlock = await fetch("/api/onboarding/complete", { method: "POST" });
         if (!unlock.ok) throw new Error("Your Rthm started, but RTHMIC could not finish unlocking. Please try again.");
         setTimeout(() => navigateTo("/onboarding", router), 700);
+      } else if (menuSlugRef.current) {
+        setTimeout(() => navigateTo(`/structure/${encodeURIComponent(menuSlugRef.current!)}`, router), 1200);
       } else {
         setTimeout(() => navigateTo("/library", router), 1200);
       }

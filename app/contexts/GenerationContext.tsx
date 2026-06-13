@@ -27,6 +27,7 @@ interface GenerationContextValue {
   genPhase: GenPhase;
   genSongs: Song[];
   genPillar: PillarType | null;
+  genMenuSlug: string | null;
   genLyrics: string;
   genError: string;
   startGeneration: (params: StartParams) => void;
@@ -39,6 +40,7 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
   const [genPhase, setGenPhase] = useState<GenPhase>("idle");
   const [genSongs, setGenSongs] = useState<Song[]>([]);
   const [genPillar, setGenPillar] = useState<PillarType | null>(null);
+  const [genMenuSlug, setGenMenuSlug] = useState<string | null>(null);
   const [genLyrics, setGenLyrics] = useState("");
   const [genError, setGenError] = useState("");
   const generationRef = useRef(0);
@@ -48,6 +50,7 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
     setGenPhase("generating");
     setGenSongs([]);
     setGenPillar(params.pillar);
+    setGenMenuSlug(params.menuSlug ?? null);
     setGenLyrics(params.lyrics);
     setGenError("");
 
@@ -257,13 +260,14 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
     setGenPhase("idle");
     setGenSongs([]);
     setGenPillar(null);
+    setGenMenuSlug(null);
     setGenLyrics("");
     setGenError("");
   }, []);
 
   return (
     <GenerationCtx.Provider
-      value={{ genPhase, genSongs, genPillar, genLyrics, genError, startGeneration, clearGeneration }}
+      value={{ genPhase, genSongs, genPillar, genMenuSlug, genLyrics, genError, startGeneration, clearGeneration }}
     >
       {children}
     </GenerationCtx.Provider>

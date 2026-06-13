@@ -5,9 +5,10 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useGeneration } from "@/app/contexts/GenerationContext";
 import { WaveDots } from "@/app/components/CustomStyleInput";
+import { getMenuConfig } from "@/app/lib/menuConfigs";
 
 export default function GenerationBanner() {
-  const { genPhase, genError, clearGeneration } = useGeneration();
+  const { genPhase, genError, genMenuSlug, clearGeneration } = useGeneration();
   const pathname = usePathname();
   const [dismissedPhase, setDismissedPhase] = useState<string | null>(null);
 
@@ -19,6 +20,11 @@ export default function GenerationBanner() {
   if (pathname === "/speak") return null;
   if (genPhase === "idle") return null;
   if (dismissedPhase === genPhase) return null;
+
+  const menu = genMenuSlug ? getMenuConfig(genMenuSlug) : null;
+  const readyHref = genMenuSlug ? `/structure/${encodeURIComponent(genMenuSlug)}` : "/library/my-rthms?period=today";
+  const readyMessage = menu ? `${menu.label} Rthms are ready` : "Your Rthms are ready";
+  const readyLinkLabel = menu ? "Open menu →" : "My Rthms →";
 
   return (
     <div className="fixed top-0 left-0 right-0 z-50 flex justify-center px-4 pt-safe pointer-events-none">
@@ -53,12 +59,12 @@ export default function GenerationBanner() {
         {genPhase === "ready" && (
           <>
             <span className="flex-shrink-0 text-white/50 leading-none">✓</span>
-            <p className="flex-1 text-sm text-white/65">Your Rthms are ready</p>
+            <p className="flex-1 text-sm text-white/65">{readyMessage}</p>
             <Link
-              href="/library/my-rthms?period=today"
+              href={readyHref}
               className="flex-shrink-0 text-xs text-white/45 border border-white/15 rounded-lg px-3 py-1.5 hover:text-white/70 hover:border-white/25 transition-colors touch-manipulation"
             >
-              My Rthms →
+              {readyLinkLabel}
             </Link>
             <button
               onClick={clearGeneration}
